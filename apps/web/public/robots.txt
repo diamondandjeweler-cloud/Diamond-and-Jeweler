@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /talent
+Disallow: /hm
+Disallow: /hr
+Disallow: /restaurant
+Disallow: /onboarding/
+
+Sitemap: https://diamondandjeweler.com/sitemap.xml

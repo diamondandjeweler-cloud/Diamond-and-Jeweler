@@ -1,0 +1,150 @@
+/**
+ * extract-hm-profile
+ *
+ * Converts a Bo conversation with a hiring manager into structured
+ * leadership and culture data ready for the hiring_managers table.
+ *
+ * PDPA posture: the transcript must contain NO personal identifiers —
+ * name, phone, company name are collected via a separate form. This
+ * function only extracts leadership style, culture, and role requirements.
+ */
+import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
+import { corsHeaders, handleOptions } from '../_shared/cors.ts'
+import { authenticate } from '../_shared/auth.ts'
+
+interface Message { role: 'user' | 'assistant'; content: string }
+interface Body { messages?: Message[] }
+
+const buildPrompt = (transcript: string) => `
+You are a precise data extractor for a recruitment platform. Read the hiring manager conversation transcript below and extract structured leadership and culture data.
+
+Return ONLY valid JSON — no markdown fences, no explanation, no extra text whatsoever.
+
+The transcript contains NO personal identifiers (no names, no company names, no phone numbers) — do not try to infer or add any.
+
+Transcript:
+${transcript}
+
+Return this exact JSON structure (use null for any value not mentioned):
+{
+  "industry": string | null,
+  "role_type": string | null,
+  "leadership_tags": {
+    "supportive": number,
+    "collaborator": number,
+    "analytical": number,
+    "high_performance": number,
+    "autonomous": number,
+    "clear_communicator": number,
+    "offers_flexibility": number,
+    "offers_autonomy": number,
+    "gives_recognition": number,
+    "offers_growth": number,
+    "transparent": number,
+    "fair": number,
+    "reliable": number,
+    "growth_minded": number
+  },
+  "required_traits": string[],
+  "culture_offers": {
+    "wants_wlb": number,
+    "wants_fair_pay": number,
+    "wants_growth": number,
+    "wants_stability": number,
+    "wants_flexibility": number,
+    "wants_recognition": number,
+    "wants_mission": number,
+    "wants_team_culture": number
+  },
+  "salary_offer_min": number | null,
+  "salary_offer_max": number | null,
+  "summary": string | null
+}
+
+Rules:
+- leadership_tags: score 0.0–1.0 based on evidence of how the HM manages their team.
+- required_traits: list of talent tag names they are looking for, e.g. ["self_starter", "reliable", "customer_focused", "collaborator"]. Use only these tag names: self_starter, collaborator, growth_minded, reliable, customer_focused, detail_oriented, analytical, accountable, clear_communicator, adaptable, leadership.
+- culture_offers: what the team/company offers, inferred from what HM described. 0.0–1.0.
+- salary_offer_min / salary_offer_max: numbers only, RM per month. If single number given, use for both.
+- summary: 2-sentence recruiter-facing description of the team culture and ideal candidate — no personal or company identifiers.
+- DO NOT include any personal names, phone numbers, company names, or identifiers in the output.
+`.trim()
+
+serve(async (req) => {
+  const pre = handleOptions(req)
+  if (pre) return pre
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  const auth = await authenticate(req, { requiredRoles: ['hiring_manager', 'hr_admin', 'admin'] })
+  if (auth instanceof Response) return auth
+
+  let body: Body = {}
+  try { body = await req.json() } catch { /* empty */ }
+
+  const messages: Message[] = Array.isArray(body.messages) ? body.messages : []
+  if (messages.length === 0) {
+    return new Response(JSON.stringify({ error: 'No messages provided' }), {
+      status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  const transcript = messages
+    .map((m) => `${m.role === 'assistant' ? 'Bo' : 'Manager'}: ${m.content}`)
+    .join('\n\n')
+
+  const result = await callExtractionAI(buildPrompt(transcript))
+  if (result instanceof Response) return result
+
+  return new Response(JSON.stringify(result), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+})
+
+async function callExtractionAI(prompt: string): Promise<Record<string, unknown> | Response> {
+  const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY')
+  const groqKey = Deno.env.get('GROQ_API_KEY')
+
+  if (anthropicKey) {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1024, messages: [{ role: 'user', content: prompt }] }),
+    })
+    if (res.ok) {
+      const data = await res.json() as { content: { type: string; text: string }[] }
+      return parseJSON(data.content?.[0]?.text ?? '')
+    }
+  }
+
+  if (groqKey) {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
+      body: JSON.stringify({ model: 'llama-3.3-70b-versatile', max_tokens: 1024, messages: [{ role: 'user', content: prompt }] }),
+    })
+    if (res.ok) {
+      const data = await res.json() as { choices: { message: { content: string } }[] }
+      return parseJSON(data.choices?.[0]?.message?.content ?? '')
+    }
+  }
+
+  return new Response(JSON.stringify({ error: 'No AI provider configured.' }), {
+    status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
+
+function parseJSON(raw: string): Record<string, unknown> | Response {
+  const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
+  try {
+    return JSON.parse(cleaned)
+  } catch {
+    console.error('JSON parse failed:', cleaned)
+    return new Response(JSON.stringify({ error: 'Extraction returned invalid JSON', raw: cleaned }), {
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+}

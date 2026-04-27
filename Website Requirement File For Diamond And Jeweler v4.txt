@@ -1,0 +1,463 @@
+BoLe Platform – Final Production Requirements Document (PRD)
+Version 4.0 – Ready for 28‑Day Development
+Malaysia‑first | pgsodium encryption | 30‑day public launch (including legal & hardening)
+
+Table of Contents
+Mission & Vision
+
+Executive Summary
+
+Core Philosophy & Differentiators
+
+User Roles & Flows
+
+Tech Stack & Infrastructure Decisions
+
+Database Schema (with pgsodium encryption)
+
+Life‑Chart Engine Tables (Phase 2 placeholder)
+
+Row Level Security (RLS) – Complete Policies
+
+Storage Buckets & Policies
+
+Edge Functions (JWT‑verified, no open endpoints)
+
+React Frontend – Fixed Hook Order, Auth Listener, Routing
+
+Onboarding Flows (No Hook Violations)
+
+Match State Machine
+
+Notification Matrix (Resend + in‑app)
+
+Admin Backoffice Features
+
+Anti‑Ghosting & Expiry Logic
+
+Cold Start Strategy
+
+Role Posting & Market Rate Warning
+
+“Fight the Interview” (Phase 2)
+
+Legal & PDPA Compliance
+
+28‑Day Milestone Plan
+
+Success Metrics
+
+Deployment Checklist
+
+1. Mission & Vision
+Mission
+
+To create a fair, intelligent, and human‑centric recruitment ecosystem where every talent finds a leader who truly values them, and every leader discovers the talent that elevates their team — guided by proven insights, market honesty, and active advocacy.
+
+Vision
+
+A world where job matching is no longer a transaction of resumes and job descriptions, but a trusted partnership built on deep compatibility, mutual respect, and shared success — unlocking human potential for millions across Southeast Asia and beyond.
+
+2. Executive Summary
+BoLe is a dual‑sided recruitment platform that flips the traditional model:
+
+Talents complete a system interview (20 questions + 20 preference ratings) and receive exactly 3 job offers at a time.
+
+Hiring Managers (not HR) define role expectations and receive exactly 3 candidates at a time.
+
+Hidden matching engine uses 16 years of proprietary feng shui / life‑chart data (DOB‑based) – weighted 30% – combined with behavioural tags (70%).
+
+Market rate balancing educates both sides when expectations deviate.
+
+“Fight the interview” active advocacy post‑match (Phase 2).
+
+Progressive matching speed – initial wait periods shorten as database grows.
+
+Launch: Malaysia first, with a new dedicated domain bole.my.
+Timeline: 28 days to public launch (including legal review and PDPA compliance).
+
+3. Core Philosophy & Differentiators
+Principle	Description
+Equal partnership	Talent and hiring manager are equal customers.
+Hidden intelligence	Life‑chart (DOB) matching runs silently behind compatibility scores.
+Curated not overwhelming	Each side sees exactly 3 matches at a time.
+Market honesty	Real‑time market rate data prevents unrealistic expectations.
+Active advocacy	“We fight the interview for you” – coaching, negotiation, support (Phase 2).
+Progressive speed	Matching time improves automatically as database grows (14d → instant).
+4. User Roles & Flows
+Role	Primary Actions
+Talent	Register, upload IC/resume, answer 20 interview questions (text), rate 20 job preferences, receive 3 offers, accept/decline.
+Hiring Manager	Invited by HR, complete 10 leadership questions, provide DOB (encrypted), post role, receive 3 candidates, invite/decline.
+HR Admin	Register company, add hiring managers, schedule interviews after candidate selected.
+Platform Admin	Manage tags, algorithm weights, manual overrides, view audits, verify companies.
+Full flows are implemented via state machine (see Section 13).
+
+5. Tech Stack & Infrastructure Decisions
+Component	Decision
+Frontend	React (Vite) – SPA hosted on Vercel.
+Backend	Supabase (PostgreSQL, Auth, Storage, Realtime, Edge Functions).
+Database	PostgreSQL with pgsodium extension for column‑level encryption.
+DOB encryption	pgsodium + Supabase Vault (server‑side, key managed in Vault).
+Matching runtime	Supabase Edge Functions (Deno/TS) with JWT verification.
+Email provider	Resend (custom domain bole.my with fallback to resend.dev for pilot).
+Hosting	Vercel (free tier + MY edge).
+Domain	bole.my – to be registered by you.
+Supabase project	New project (Singapore region), separate from any existing CRM.
+6. Database Schema (with pgsodium encryption)
+Full migration script – includes all tables, pgsodium setup, and helper functions.
+Only key excerpts shown here; complete script is in the deliverable package.
+
+sql
+-- Enable extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "pg_cron";
+CREATE EXTENSION IF NOT EXISTS "pgsodium";
+
+-- Create a key for DOB encryption in Vault
+SELECT pgsodium.create_key('dob_key');
+
+-- Helper function to check admin role (SECURITY DEFINER + GRANT)
+CREATE OR REPLACE FUNCTION auth.is_admin()
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+$$;
+GRANT EXECUTE ON FUNCTION auth.is_admin() TO authenticated;
+
+-- Profiles table (no DOB here)
+CREATE TABLE public.profiles (
+  id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email text UNIQUE NOT NULL,
+  full_name text NOT NULL,
+  phone text,
+  role text NOT NULL CHECK (role IN ('talent', 'hiring_manager', 'hr_admin', 'admin')),
+  consents jsonb DEFAULT '{}',
+  is_banned boolean DEFAULT false,
+  ghost_score integer DEFAULT 0,
+  onboarding_complete boolean DEFAULT false,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Companies
+CREATE TABLE public.companies (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  registration_number text UNIQUE NOT NULL,
+  business_license_url text,
+  website text,
+  size text,
+  industry text,
+  primary_hr_email text NOT NULL,
+  verified boolean DEFAULT false,
+  created_at timestamptz DEFAULT now()
+);
+
+-- Hiring Managers (encrypted DOB using pgsodium)
+CREATE TABLE public.hiring_managers (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id uuid REFERENCES public.profiles(id) NOT NULL,
+  company_id uuid REFERENCES public.companies(id) NOT NULL,
+  job_title text NOT NULL,
+  date_of_birth_encrypted bytea, -- encrypted using pgsodium
+  leadership_answers jsonb,
+  leadership_tags jsonb,
+  created_at timestamptz DEFAULT now()
+);
+
+-- Talents (encrypted DOB)
+CREATE TABLE public.talents (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id uuid REFERENCES public.profiles(id) NOT NULL,
+  date_of_birth_encrypted bytea,
+  ic_url text,
+  resume_url text,
+  parsed_resume jsonb,
+  privacy_mode text DEFAULT 'public' CHECK (privacy_mode IN ('public', 'anonymous', 'whitelist')),
+  whitelist_companies uuid[] DEFAULT '{}',
+  expected_salary_min integer,
+  expected_salary_max integer,
+  is_open_to_offers boolean DEFAULT true,
+  interview_answers jsonb,
+  preference_ratings jsonb,
+  derived_tags jsonb,
+  created_at timestamptz DEFAULT now()
+);
+
+-- Roles, Matches, Interviews, Notifications, etc. (same as previous schema)
+-- ... (full script provided in migration file)
+
+-- System config with default values
+INSERT INTO public.system_config (key, value) VALUES
+  ('match_expiry_days', '5'),
+  ('refresh_limit', '3'),
+  ('weight_life_chart', '0.3'),
+  ('waiting_period_thresholds', '[{"min_talents":0,"max_talents":500,"days":14}]')
+ON CONFLICT (key) DO NOTHING;
+7. Life‑Chart Engine Tables (Phase 2 Placeholder)
+sql
+CREATE TABLE public.life_chart_base (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  start_date date NOT NULL,
+  end_date date NOT NULL,
+  gender text CHECK (gender IN ('male', 'female')),
+  base_number integer NOT NULL,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE public.life_chart_adjustments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  month integer CHECK (month BETWEEN 1 AND 12),
+  day_from integer,
+  day_to integer,
+  gender text,
+  adjustment integer,
+  description text,
+  created_at timestamptz DEFAULT now()
+);
+These are seeded by you later. For Phase 1, life_chart_score = NULL and compatibility_score = tag_compatibility.
+
+8. Row Level Security (RLS) – Complete Policies
+All tables have RLS enabled. Policies ensure:
+
+Users can only access their own data (profiles, talents, hiring_managers).
+
+HR admins can read company data and matches for their company.
+
+Hiring managers can read roles for their company and matches for their roles.
+
+Talents can only see their own matches (and only after they are generated).
+
+Admin has full access via auth.is_admin().
+
+Insert policies are properly restricted (e.g., hiring_managers can only be inserted by the invite-hm Edge Function or admin).
+
+Full policy set is in the migration file – includes all tables.
+
+9. Storage Buckets & Policies
+Buckets to create manually in Supabase dashboard:
+
+ic-documents (private)
+
+resumes (private)
+
+business-licenses (private)
+
+Example bucket policy for ic-documents:
+
+sql
+CREATE POLICY "Users can upload their own IC"
+  ON storage.objects FOR INSERT
+  WITH CHECK (bucket_id = 'ic-documents' AND auth.uid() = (storage.foldername(name))[1]::uuid);
+
+CREATE POLICY "Users can view their own IC"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'ic-documents' AND auth.uid() = (storage.foldername(name))[1]::uuid);
+Retention: IC files are deleted automatically 30 days after talent account deletion (via cron).
+
+10. Edge Functions (JWT‑verified, no open endpoints)
+All Edge Functions verify the JWT and role before processing.
+
+match-generate – called by database webhook after role insertion. Verifies caller is service role or admin. Generates 3 matches, dedupes, respects refresh limit, stores internal_reasoning.
+
+match-expire – called by pg_cron every 6h. Flips expired matches, triggers replacement if within refresh limit.
+
+notify – called only by other Edge Functions (service role). Sends email via Resend + stores in‑app notification.
+
+invite-hm – called by HR dashboard (authenticated HR only). Uses supabase.auth.admin.inviteUserByEmail() to send magic link.
+
+cold-start – called by admin only. Manually pairs talent with role.
+
+No function is deployed with --no-verify-jwt – all enforce authentication.
+
+11. React Frontend – Fixed Architecture
+Auth listener – useSession hook uses onAuthStateChange and getSession correctly, with Zustand store.
+
+Hooks at top level – No conditional hooks. Separate components for each step (e.g., <UploadStep />, <InterviewStep />, <PreferencesStep />) to avoid React rule violations.
+
+Role‑based routing – App.tsx wraps routes in BrowserRouter. Onboarding pages are separate routes, not conditional renders inside App.
+
+Error boundaries – Wrap each dashboard with error boundary.
+
+Empty states – Show friendly messages when no matches.
+
+Loading skeletons – Use skeleton loaders for async data.
+
+12. Onboarding Flows (No Hook Violations)
+Talent Onboarding – Three distinct components:
+
+TalentUploadStep – IC + resume upload.
+
+TalentInterviewStep – 20 questions, one per screen (state managed at parent level, no hooks inside conditional).
+
+TalentPreferencesStep – 20 aspects rating.
+
+Parent component TalentOnboarding uses a step state and renders the appropriate component, passing callbacks.
+
+Hiring Manager Onboarding – Similar decomposition:
+
+HMConsentStep – DOB input + consent.
+
+HMLeadershipStep – 10 questions, each as separate sub‑component.
+
+DOB is captured once and encrypted using pgsodium via Edge Function call (not client‑side).
+
+13. Match State Machine
+States and transitions:
+
+text
+generated → viewed → accepted_by_talent → invited_by_manager → hr_scheduling → interview_scheduled → interview_completed → offer_made → hired
+                                                                                                               ↓
+                                                                                                        offer_declined
+generated → viewed → declined_by_talent
+generated → viewed → invited_by_manager (if manager invites first) → ...
+Expiry after 5 days of no action (configurable).
+State transitions are enforced in Edge Functions, not client‑side.
+
+14. Notification Matrix
+Trigger	Recipient	Channel	Timing
+Match generated (3 offers/candidates)	Talent / HM	Email + in‑app	Immediate
+Talent accepts offer	HM	Email + in‑app	Immediate
+HM invites candidate	HR	Email + in‑app	Immediate
+HR schedules interview	Talent + HM	Email + in‑app	Immediate
+No action after 48h (viewed)	Talent / HM	Email	48h after view
+Match expiry warning	Both sides	Email	24h before expiry
+Market rate warning	Talent / HM	In‑app	During offer view / role creation
+All emails are sent via Resend; in‑app notifications are stored in notifications table and displayed in a notification bell.
+
+15. Admin Backoffice Features
+Built as React routes under /admin, gated by profile.role = 'admin'.
+
+Page	Features
+Dashboard	KPIs: active matches, ghosting rate, avg match time, refresh usage
+User management	List, ban/unban, view details, merge duplicates
+Match management	Search matches, view internal_reasoning, force regenerate, manual pair, expire stuck matches
+Verification queue	List unverified companies, preview license file (signed URL), verify/reject
+Cold‑start tool	Select role, pick talents from list → create matches
+Tag dictionary	CRUD tags, adjust weight multipliers, activate/deactivate
+System config	Edit expiry days, refresh limits, waiting period thresholds
+Notification logs	View sent notifications, resend
+16. Anti‑Ghosting & Expiry Logic
+Expiry: match-expire Edge Function (cron every 6h) sets status = expired for matches older than match_expiry_days (default 5).
+
+Replacement: If role still active and refresh count < limit, call match-generate to add a new match (excluding expired talent).
+
+Ghosting detection: If a user has 3 consecutive expired matches without any accept/decline, increment ghost_score. When ghost_score >= 3, reduce match priority (admin can override).
+
+17. Cold Start Strategy
+Early stage (<500 talents):
+
+Manual seeding: Admin can use cold‑start tool to select talents for a role. Creates matches directly.
+
+Fallback message: If a role has <3 eligible talents, show: “Not enough talents yet. We are growing our pool. You will be notified when we have 3 candidates. Estimated wait: 14 days.”
+
+Auto switch: Once total talents > 500, disable manual seeding and rely on algorithm.
+
+18. Role Posting & Market Rate Warning
+When a hiring manager posts a role:
+
+System fetches market rate from market_rate_cache based on job title, location, experience level.
+
+If offered salary is below market median, show warning:
+
+“The market rate for this role is RM X–Y. Your offer is below this range. Consider adjusting salary or experience level to attract quality candidates.”
+
+Employer can proceed anyway or edit.
+
+The warning is in‑app only (no email).
+
+19. “Fight the Interview” (Phase 2 – Post‑MVP)
+After a match is accepted, BoLe will actively advocate:
+
+For talent: Insider briefing on HM style, mock interview, salary negotiation.
+
+For HM: Candidate coaching, feedback templates, offer assistance.
+
+Implementation deferred to Phase 2. In Phase 1, after acceptance, the system simply connects the parties.
+
+20. Legal & PDPA Compliance
+Documents required before public launch:
+
+Privacy Notice – explains DOB encryption, retention (30 days after account deletion), data subject rights.
+
+Terms of Service – user responsibilities, dispute resolution, liability.
+
+Consent checkboxes – DOB, video (Phase 2), market data comparison – stored in profiles.consents.
+
+Data Subject Request (DSR) workflow – email to privacy@bole.my triggers manual process (admin tool to export/delete data).
+
+Data retention cron – deletes soft‑deleted user records and related encrypted fields after 30 days.
+
+IC storage retention – IC files deleted 30 days after account deletion.
+
+DOB encryption commitment: pgsodium with Vault key, not reversible by anyone except via Supabase admin with access to Vault.
+
+Legal review required: A Malaysian PDPA lawyer must approve the privacy notice and ToS before public launch.
+
+21. 28‑Day Milestone Plan
+Week	Focus	Deliverables
+1	Database + Auth + Encryption	pgsodium setup, full migration, RLS policies, storage buckets, is_admin() function, admin user seed, local dev env
+2	Onboarding (Talent + HM)	Fixed React hooks, upload with signed URLs, 20 questions + 20 preferences, 10 leadership questions, DOB capture + encryption (via Edge Function), consent storage
+3	Matching + Dashboards	Edge Functions (JWT‑verified), match generation (deduped, refresh limits), 3‑card displays, accept/decline/invite, HR scheduling (date picker), Resend emails, notification bell
+4	Admin + Legal + Hardening	Verification queue (with license preview), cold‑start tool, tag editor, system config editor, match management, privacy notice + ToS pages, DSR workflow, retention cron, expiry cron, waiting‑period UI
++2 days	Deployment & Launch	DNS (bole.my), Resend domain verification, Vercel deploy, smoke test with 5 test users, pilot under NDA, public launch
+22. Success Metrics
+Metric	Target
+Match acceptance rate (talent accepts offer)	> 40%
+Hiring manager repeat usage	> 60%
+Average compatibility score of accepted matches	> 75
+Talent response rate within 48h	> 80%
+Time from match to interview scheduled	< 3 days
+User report satisfaction (post‑hire)	> 4.5/5
+23. Deployment Checklist
+Before public launch, ensure:
+
+Supabase project created (Singapore region).
+
+All migrations applied (including pgsodium).
+
+Storage buckets created + policies added.
+
+Edge Functions deployed with JWT verification.
+
+Resend domain verified (SPF/DKIM/DMARC).
+
+Vercel environment variables set (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY).
+
+Custom domain bole.my pointed to Vercel.
+
+Admin user seeded (manually after auth signup).
+
+Privacy notice and ToS pages live and lawyer‑approved.
+
+Data retention cron active.
+
+Cold‑start procedure documented for admin.
+
+Pilot users (NDA) tested end‑to‑end.
+
+Monitoring (Sentry + Supabase logs) active.
+
+End of Document
+This PRD is the final specification for building BoLe. All previous bugs have been addressed:
+
+React hooks rules fixed via component decomposition.
+
+RLS policies complete with is_admin() granted.
+
+DOB encryption real (pgsodium).
+
+Edge Functions JWT‑verified, no open endpoints.
+
+Notifications use service role, not anon key.
+
+Legal requirements explicitly listed.
+
+28‑day realistic timeline.

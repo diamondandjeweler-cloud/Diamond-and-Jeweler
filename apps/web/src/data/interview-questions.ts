@@ -1,0 +1,23 @@
+/** 20 interview questions shown to talents during onboarding. */
+export const INTERVIEW_QUESTIONS: string[] = [
+  'Tell me about yourself in brief.',
+  'What are your greatest strengths and weaknesses?',
+  'Why do you want to work with a new company right now?',
+  'What are the three values most important to you in a workplace?',
+  'What specific skills do you bring that directly relate to the roles you are targeting?',
+  'Describe a time you used a key skill to solve a real problem.',
+  'Tell me about the biggest professional mistake you have made — and what you learned.',
+  'How have your past roles prepared you for your next step?',
+  'Describe a complex challenge you solved without direct supervision.',
+  'Tell me about a time you disagreed with a teammate. What did you do?',
+  'Describe a time you had to adapt quickly to a new process or environment.',
+  'How do you handle failure or pressure?',
+  'Tell me about a time miscommunication affected a project. How did you handle it?',
+  'How do you stay organised in a fast-paced environment?',
+  'What role do you naturally take in a team setting?',
+  'Where do you see yourself in five years?',
+  'What recent developments in your field interest you most?',
+  'What motivates you beyond salary or external rewards?',
+  'Do you have any questions for a future employer?',
+  'Is there anything else you would like us to know about you?',
+]

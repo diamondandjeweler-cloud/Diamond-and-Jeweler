@@ -1,0 +1,181 @@
+{
+  "common": {
+    "signIn": "登录",
+    "signOut": "退出登录",
+    "signUp": "注册账号",
+    "back": "返回",
+    "save": "保存",
+    "cancel": "取消",
+    "submit": "提交",
+    "continue": "继续",
+    "loading": "载入中…",
+    "language": "语言"
+  },
+  "nav": {
+    "home": "首页",
+    "myOffers": "我的工作机会",
+    "profile": "个人档案",
+    "candidates": "候选人",
+    "myRoles": "我的职位",
+    "postRole": "发布职位",
+    "scheduling": "面试安排",
+    "inviteHm": "邀请招聘经理",
+    "admin": "管理后台",
+    "restaurant": "餐厅"
+  },
+  "landing": {
+    "pilot": "马来西亚 · 试运行",
+    "title": "您是哪一方?",
+    "subtitle": "选一边，其余交给我们。",
+    "talent": "我是求职者",
+    "talentDesc": "无需投递。系统为您送上三份精选职位。",
+    "hiring": "我在招聘",
+    "hiringDesc": "无需翻看简历。系统为您送上三位精选候选人。",
+    "haveAccount": "已有账号?"
+  },
+  "consent": {
+    "title": "数据处理同意书与责任豁免",
+    "subtitle": "在开始为您匹配之前，我们需要您的明确同意。请仔细阅读。",
+    "agreeLabel": "我已阅读并同意上述同意书与责任豁免条款。",
+    "agreeButton": "同意并继续",
+    "saving": "保存中…",
+    "errorRequired": "请勾选此框以继续。"
+  },
+  "match": {
+    "score": "匹配度 {{score}}%",
+    "strengths": "优势",
+    "watchouts": "需要留意",
+    "matchedTraits": "匹配的特质",
+    "missingTraits": "缺失的特质",
+    "scoreBand": {
+      "strong": "高度匹配",
+      "good": "良好匹配",
+      "cautious": "需慎重考虑"
+    }
+  },
+  "feedback": {
+    "title": "为本次面试评分",
+    "ratingLabel": "您的体验如何? (1–5 星)",
+    "commentLabel": "有什么想让我们知道的吗?",
+    "submitted": "感谢您 — 已为您奖励 {{points}} 积分。",
+    "alreadySubmitted": "您已提交过反馈。"
+  },
+  "referral": {
+    "title": "邀请朋友, 赚取积分",
+    "subtitle": "分享您的邀请码。朋友完成注册后, 您即可获得 {{points}} 积分。",
+    "yourCode": "您的邀请码",
+    "yourLink": "分享链接",
+    "copied": "已复制!",
+    "earned": "{{n}} 次成功推荐 · 累计获得 {{p}} 积分"
+  },
+  "points": {
+    "balance": "积分",
+    "redeem": "用 {{cost}} 积分兑换 1 次免费额外匹配"
+  },
+  "whatsapp": {
+    "title": "WhatsApp 通知",
+    "numberLabel": "WhatsApp 号码",
+    "optIn": "通过 WhatsApp 接收匹配更新",
+    "saved": "WhatsApp 设置已保存。"
+  },
+  "role": {
+    "employmentType": "工作类型",
+    "fullTime": "全职",
+    "partTime": "兼职",
+    "contract": "合约",
+    "gig": "零工 / 项目",
+    "internship": "实习",
+    "duration": "时长 (天)",
+    "hourlyRate": "时薪 (RM)",
+    "startDate": "开始日期"
+  },
+  "interview": {
+    "joinMeeting": "加入视频面试",
+    "createMeeting": "创建视频会议",
+    "meetingProvider": "通过 {{provider}}"
+  },
+  "restaurant": {
+    "title": "餐厅",
+    "devBadge": "开发版",
+    "tabs": {
+      "overview": "总览",
+      "kiosk": "点餐台",
+      "floor": "桌位",
+      "orders": "订单",
+      "kitchen": "厨房",
+      "bar": "酒吧",
+      "cashier": "收银",
+      "shifts": "班次",
+      "inventory": "库存",
+      "purchasing": "采购",
+      "staff": "员工",
+      "accounting": "会计",
+      "promotions": "促销",
+      "audit": "审计",
+      "branches": "分店",
+      "reports": "报表",
+      "admin": "管理"
+    },
+    "kiosk": {
+      "outOfStock": "缺货",
+      "unavailable": "暂不可用",
+      "add": "加入",
+      "subtotal": "小计",
+      "tax": "税",
+      "discount": "折扣",
+      "happyHour": "欢乐时光",
+      "coupon": "优惠码",
+      "total": "总计",
+      "checkout": "结账",
+      "placing": "正在下单…",
+      "orderPlaced": "订单已下达",
+      "orderType": "订单类型",
+      "dinein": "堂食",
+      "takeaway": "外带",
+      "delivery": "外送",
+      "table": "桌号",
+      "customerName": "您的姓名",
+      "customerPhone": "电话 (用于会员 + WhatsApp)",
+      "couponLabel": "优惠码",
+      "couponApply": "使用",
+      "couponApplied": "已使用优惠码 {{code}}。",
+      "emptyCart": "购物车是空的。",
+      "viewOrders": "查看订单",
+      "trackOrder": "追踪此订单"
+    },
+    "cashier": {
+      "openOrders": "未结账订单",
+      "noOrders": "无匹配订单",
+      "selectOrder": "选择订单",
+      "selectOrderHint": "从列表中选择订单以收款。",
+      "addItem": "+ 加点",
+      "reorderSame": "再来一份",
+      "tipQuick": "小费",
+      "splitBy": "分单",
+      "splitEqually": "平均分单",
+      "splitByItems": "按菜品分单",
+      "applyDiscount": "给予折扣",
+      "openShift": "开班",
+      "xReport": "X 报表",
+      "closeShift": "结班 (Z 报表)",
+      "openingFloat": "开班零钱 (RM)",
+      "actualCash": "钱箱实际现金 (RM)",
+      "shiftOpened": "班次已开",
+      "shiftClosed": "班次已结 (Z 报表已存)"
+    },
+    "orders": {
+      "filter": { "all": "全部", "active": "进行中", "closed": "已完成" },
+      "noOrders": "无订单",
+      "noOrdersHint": "请从点餐台下单。",
+      "pacingAlert": "节奏提示",
+      "fireMains": "出主菜",
+      "fireDesserts": "出甜点",
+      "closeOrder": "关闭订单"
+    },
+    "shifts": {
+      "tipPool": "分配小费池",
+      "tipPoolHint": "按工时 + 服务桌数分配本班次小费总额。",
+      "noTips": "本班次未收取小费。"
+    }
+  }
+}

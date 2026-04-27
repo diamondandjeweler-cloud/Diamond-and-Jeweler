@@ -1,0 +1,644 @@
+BoLe Platform – Complete Production Requirements Document (Final)
+Version 3.0 – Ready for Development
+*Malaysia‑first launch | React (Vite) + Supabase (new project) | Hidden life‑chart matching (30% weight)*
+
+Table of Contents
+Executive Summary
+
+Core Philosophy & Differentiators
+
+User Roles & Flows
+
+Tech Stack & Infrastructure Decisions
+
+Database Schema (Supabase / PostgreSQL) – Full SQL
+
+Life‑Chart Engine Tables (Phase 2)
+
+Match State Machine
+
+Notification Matrix
+
+Admin Backoffice Features
+
+Anti‑Ghosting & Expiry Logic
+
+Cold Start Strategy
+
+Role Versioning & Edit Handling
+
+Algorithm Auditability (Legal Protection)
+
+Multiple Talent Profiles
+
+“Fight the Interview” SLA
+
+Internal Matching Quality Metrics
+
+Revenue Model Hooks
+
+Legal & Consent (PDPA Malaysia Note)
+
+Development Phases & Success Metrics
+
+Final SQL Migration Script (One‑Click Setup)
+
+1. Executive Summary
+BoLe is a dual‑sided recruitment platform that flips the traditional model:
+
+Talents complete a system interview (20 questions + 20 preference ratings) and receive exactly 3 job offers at a time.
+
+Hiring Managers (not HR) define role expectations and receive exactly 3 candidates at a time.
+
+Hidden matching engine uses 16 years of proprietary feng shui / life‑chart data (DOB‑based) – weighted 30% – combined with behavioural tags (70%).
+
+Market rate balancing educates both sides when expectations deviate.
+
+“Fight the interview” active advocacy post‑match.
+
+Progressive matching speed – 14 days initially, shortening to instant as database grows.
+
+Target launch: Malaysia first, with a new dedicated domain (e.g., bole.my).
+
+2. Core Philosophy & Differentiators
+Principle	Description
+Equal partnership	Talent and hiring manager are equal customers.
+Hidden intelligence	Life‑chart (DOB) matching runs silently behind compatibility scores.
+Curated not overwhelming	Each side sees exactly 3 matches at a time.
+Market honesty	Real‑time market rate data prevents unrealistic expectations.
+Active advocacy	“We fight the interview for you” – coaching, negotiation, support.
+Progressive speed	Matching time improves automatically as database grows (14d → instant).
+3. User Roles & Flows
+Role	Primary Actions
+Talent	Register, upload IC/resume, answer 20 interview questions, rate 20 job preferences, receive 3 offers, accept/decline.
+Hiring Manager	Invited by HR, complete 10 leadership questions, post role, receive 3 candidates, invite to interview.
+HR Admin	Register company, add hiring managers, schedule interviews after candidate selected.
+Platform Admin	Manage tags, algorithm weights, manual overrides, view audits.
+Full flows documented in earlier sections; implemented via state machine.
+
+4. Tech Stack & Infrastructure Decisions
+Component	Decision
+Frontend	React (Vite) – SPA, hosted on Vercel/Netlify or Supabase hosting.
+Backend	Supabase (PostgreSQL, Auth, Storage, Realtime).
+Matching engine	Python microservice (or Supabase Edge Functions) for proprietary life‑chart scoring.
+Project isolation	New Supabase project – separate from any existing CRM.
+Domain	New domain (e.g., bole.my, bole.com.my). Not under destinoraclessolution.com.
+Life‑chart engine	Phase 2; database tables provided below; algorithm owned by you.
+5. Database Schema (Supabase / PostgreSQL) – Full SQL
+See Section 20 for the complete runnable SQL migration script. It includes all tables:
+profiles, companies, hiring_managers, talents, talent_profiles, roles, role_versions, matches, match_history, interviews, coaches, coach_sessions, notifications, tag_dictionary, user_tags, admin_actions, system_config, market_rate_cache, cold_start_queue, subscriptions, transactions.
+
+6. Life‑Chart Engine Tables (Phase 2)
+These tables support your proprietary 16‑year‑old feng shui / DOB‑based matching. You will populate them with your data.
+
+sql
+-- Base life‑chart number by birth year range + gender
+CREATE TABLE life_chart_base (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  start_date date NOT NULL,
+  end_date date NOT NULL,
+  gender text CHECK (gender IN ('male', 'female')),
+  base_number integer NOT NULL,
+  created_at timestamptz DEFAULT now()
+);
+
+-- Adjustments based on day and month (future use)
+CREATE TABLE life_chart_adjustments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  month integer CHECK (month BETWEEN 1 AND 12),
+  day_from integer CHECK (day_from BETWEEN 1 AND 31),
+  day_to integer CHECK (day_to BETWEEN 1 AND 31),
+  gender text CHECK (gender IN ('male', 'female')),
+  adjustment integer NOT NULL,
+  description text,
+  created_at timestamptz DEFAULT now()
+);
+
+-- Cache for computed scores (optional, for performance)
+CREATE TABLE life_chart_cache (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  dob1 date NOT NULL,
+  dob2 date NOT NULL,
+  score numeric(5,2) NOT NULL,
+  computed_at timestamptz DEFAULT now(),
+  UNIQUE(dob1, dob2)
+);
+How it works:
+
+Your algorithm takes hiring manager DOB + talent DOB.
+
+Queries life_chart_base for each person’s base number using birth date range.
+
+Applies adjustments from life_chart_adjustments (if any).
+
+Produces a compatibility score (0–100).
+
+That score is stored in matches.life_chart_score and used in final calculation:
+Final = (Tag compatibility × 0.7) + (Life‑chart score × 0.3)
+
+The actual scoring logic remains your proprietary secret.
+
+7. Match State Machine
+States and transitions (see full details in earlier spec).
+Key states: generated → viewed → accepted_by_talent / declined_by_talent → invited_by_manager → hr_scheduling → interview_scheduled → interview_completed → offer_made → hired / offer_declined.
+Expiry after 5 days of inactivity (configurable).
+Automatic expiry cron job updates status to expired and triggers replacement matches.
+
+8. Notification Matrix
+See earlier detailed matrix. Implemented via notifications table and a background worker (Edge Function or cron).
+Key triggers: match generation, acceptance, invitation, scheduling, reminders (48h/72h), expiry warning, market rate alerts, coach assignment, feedback requests.
+
+9. Admin Backoffice Features
+Built as a React + Supabase admin section. Required pages:
+
+Dashboard – KPIs (active matches, ghosting rate, average match time, refresh usage).
+
+User Management – List, ban/unban, view details, merge duplicates.
+
+Match Management – Search, view internal reasoning, force regenerate, manual pair, expire stuck matches.
+
+Tag Dictionary Editor – CRUD tags, adjust weight multipliers.
+
+Algorithm Audit – For any match, show tag scores, life‑chart score, top factors.
+
+Cold Start Tool – Manually select talents for a role.
+
+Market Rate Override – Edit cached market rates.
+
+Verification Queue – Review company licenses and talent ICs.
+
+Notification Logs – View and resend.
+
+System Config – Edit expiry days, refresh limits, waiting period thresholds, life‑chart weight (70/30).
+
+10. Anti‑Ghosting & Expiry Logic
+Expiry: 5 days of inactivity → status = expired.
+
+Ghosting detection: If a user has 3 consecutive expired matches without any accept/decline, increment ghost_score. When score ≥ 3, temporarily reduce match priority (or pause matching) and show warning.
+
+Replacement: On expiry, system generates a new match for that role/talent (respecting refresh limits) and logs in match_history.
+
+11. Cold Start Strategy (Early Stage)
+Manual seeding: Admin can select a role and pick talents (bypassing algorithm). Creates matches directly.
+
+Fallback message: If role has < 3 eligible talents, show: “Not enough talents yet. We are growing our pool. You will be notified when we have 3 candidates. Estimated wait: 14 days.”
+
+Auto switch: Once total talents > 500, disable manual seeding and rely on algorithm.
+
+12. Role Versioning & Edit Handling
+When a hiring manager edits an active role:
+
+Insert old version into role_versions.
+
+Increment roles.version.
+
+Compare changes:
+
+Minor (salary ±10%, same location/traits) → keep matches, recalc compatibility.
+
+Major (title, experience_level, required_traits) → expire all current matches, regenerate new ones.
+
+13. Algorithm Auditability (Legal Protection)
+Each match stores internal_reasoning JSON (example below). Never shown to users, but viewable by admin and exportable for compliance.
+
+json
+{
+  "tag_compatibility": {
+    "self_starter_expectation": 0.92,
+    "collaborator_expectation": 0.78
+  },
+  "life_chart_score": 81,
+  "final_score": 87.3,
+  "top_contributing_factors": [
+    "High match on self_starter (talent has strong examples)",
+    "Life chart synergy above average"
+  ]
+}
+14. Multiple Talent Profiles
+A talent can create several talent_profiles (e.g., “Marketing Manager”, “Data Analyst”). Each profile has its own interview answers, preference ratings, derived tags, and expected salary. Matches are linked to a specific talent_profile_id.
+
+15. “Fight the Interview” SLA
+Coach assignment within 1 hour of match acceptance.
+
+First contact within 24 hours (tracked in coach_sessions.first_contact_at).
+
+Dashboard countdown for talent.
+
+If SLA missed → admin notification and coach reassignment.
+
+16. Internal Matching Quality Metrics
+Admin dashboard queries:
+
+Match expiry rate = count(status='expired') / count(*)
+
+Ghosting rate = users with ghost_score >= 3
+
+Average time to first view = avg(viewed_at - created_at)
+
+Refresh usage per role = sum of refreshed_by_manager from match_history
+
+Interview success rate = count(hired) / count(interview_completed)
+
+Feedback correlation = correlation between final_score and post‑interview feedback.
+
+17. Revenue Model Hooks
+Tables subscriptions and transactions are included in the schema. Future billing logic (success fees, refresh packs, premium plans) can be added without schema changes.
+
+18. Legal & Consent (PDPA Malaysia Note)
+Important: The draft consent text below is a placeholder. You must have a Malaysian privacy lawyer review it, especially for DOB processing under the Personal Data Protection Act 2010 (PDPA).
+
+DOB consent (during registration):
+
+*“We use your date of birth as part of our advanced compatibility algorithm, developed over 16 years with 400,000+ successful placements. Your DOB is encrypted and never shared with employers or other users. By providing your DOB, you consent to its use for matching purposes only.”*
+[ ] I consent
+
+Video recording consent (before first video question):
+
+“You may answer interview questions by recording a video. Videos are stored securely and only used for matching (not shared publicly). You can delete your video at any time. By recording, you consent to this use.”
+[ ] I consent
+
+Market data comparison consent:
+
+“We compare your salary expectations against real market data to provide guidance. Your data is anonymised for market rate calculations.”
+[ ] I consent
+
+Store consent flags in profiles.consents JSON.
+
+19. Development Phases & Success Metrics
+Phase 1 (MVP – 2 months):
+Auth, profiles, company registration, hiring manager invite, talent onboarding (text interviews), basic role posting, simple rule‑based matching (no life‑chart yet), 3‑card display, email notifications.
+
+Phase 2 (3–4 months):
+Life‑chart engine integration (30% weight), market rate module, video answers, HR dashboard + scheduling, waiting period logic.
+
+Phase 3 (5–6 months):
+ML refinement, mobile apps, full admin backoffice, “Fight the Interview” concierge dashboard, billing hooks.
+
+Success metrics:
+
+Match acceptance rate > 40%
+
+Hiring manager repeat usage > 60%
+
+Average compatibility score of accepted matches > 75
+
+Talent response rate > 80%
+
+Time from match to interview scheduled < 3 days
+
+20. Final SQL Migration Script (One‑Click Setup)
+Copy and paste the entire script below into your new Supabase project’s SQL editor. Run it to create all tables, indexes, default configuration, and sample tags.
+
+sql
+-- ============================================================
+-- BoLe Platform – Complete Database Schema
+-- For Supabase (PostgreSQL)
+-- Run this in a NEW Supabase project (not existing CRM)
+-- ============================================================
+
+-- Extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- Profiles (extends auth.users)
+CREATE TABLE profiles (
+  id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email text UNIQUE NOT NULL,
+  full_name text NOT NULL,
+  phone text,
+  role text NOT NULL CHECK (role IN ('talent', 'hiring_manager', 'hr_admin', 'admin')),
+  consents jsonb DEFAULT '{}',
+  is_banned boolean DEFAULT false,
+  ghost_score integer DEFAULT 0,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Companies
+CREATE TABLE companies (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  registration_number text UNIQUE NOT NULL,
+  business_license_url text,
+  website text,
+  size text,
+  industry text,
+  primary_hr_email text NOT NULL,
+  verified boolean DEFAULT false,
+  created_at timestamptz DEFAULT now()
+);
+
+-- Hiring Managers
+CREATE TABLE hiring_managers (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id uuid REFERENCES profiles(id) NOT NULL,
+  company_id uuid REFERENCES companies(id) NOT NULL,
+  job_title text NOT NULL,
+  date_of_birth date NOT NULL,
+  leadership_answers jsonb,
+  leadership_tags jsonb,
+  created_at timestamptz DEFAULT now()
+);
+
+-- Talents
+CREATE TABLE talents (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id uuid REFERENCES profiles(id) NOT NULL,
+  date_of_birth date NOT NULL,
+  ic_url text,
+  resume_url text,
+  parsed_resume jsonb,
+  privacy_mode text DEFAULT 'public' CHECK (privacy_mode IN ('public', 'anonymous', 'whitelist')),
+  whitelist_companies uuid[] DEFAULT '{}',
+  expected_salary_min integer,
+  expected_salary_max integer,
+  is_open_to_offers boolean DEFAULT true,
+  created_at timestamptz DEFAULT now()
+);
+
+-- Talent Profiles (for multiple career tracks)
+CREATE TABLE talent_profiles (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  talent_id uuid REFERENCES talents(id) ON DELETE CASCADE,
+  profile_name text NOT NULL,
+  interview_answers jsonb,
+  preference_ratings jsonb,
+  derived_tags jsonb,
+  expected_salary_min integer,
+  expected_salary_max integer,
+  is_active boolean DEFAULT true,
+  created_at timestamptz DEFAULT now()
+);
+
+-- Roles
+CREATE TABLE roles (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  hiring_manager_id uuid REFERENCES hiring_managers(id) NOT NULL,
+  title text NOT NULL,
+  description text,
+  department text,
+  location text,
+  work_arrangement text CHECK (work_arrangement IN ('remote', 'hybrid', 'onsite')),
+  experience_level text CHECK (experience_level IN ('entry', 'junior', 'mid', 'senior', 'lead')),
+  salary_min integer,
+  salary_max integer,
+  required_traits text[],
+  status text DEFAULT 'draft' CHECK (status IN ('draft', 'active', 'paused', 'filled', 'expired')),
+  version integer DEFAULT 1,
+  market_rate_check jsonb,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Role Versions
+CREATE TABLE role_versions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  role_id uuid REFERENCES roles(id) ON DELETE CASCADE,
+  version integer NOT NULL,
+  snapshot jsonb NOT NULL,
+  changed_by uuid REFERENCES profiles(id),
+  created_at timestamptz DEFAULT now()
+);
+
+-- Matches
+CREATE TABLE matches (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  role_id uuid REFERENCES roles(id) ON DELETE CASCADE,
+  talent_profile_id uuid REFERENCES talent_profiles(id) ON DELETE CASCADE,
+  compatibility_score numeric(5,2),
+  tag_compatibility numeric(5,2),
+  life_chart_score numeric(5,2),
+  internal_reasoning jsonb,
+  status text NOT NULL DEFAULT 'generated' CHECK (status IN (
+    'generated', 'viewed', 'accepted_by_talent', 'declined_by_talent',
+    'invited_by_manager', 'declined_by_manager', 'hr_scheduling',
+    'interview_scheduled', 'interview_completed', 'offer_made',
+    'offer_accepted', 'offer_declined', 'hired', 'expired', 'ghosted'
+  )),
+  viewed_at timestamptz,
+  accepted_at timestamptz,
+  invited_at timestamptz,
+  expires_at timestamptz,
+  refresh_count integer DEFAULT 0,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Match History
+CREATE TABLE match_history (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  role_id uuid REFERENCES roles(id),
+  talent_profile_id uuid REFERENCES talent_profiles(id),
+  action text CHECK (action IN ('generated', 'refreshed_by_manager', 'refreshed_by_talent', 'expired_auto', 'manual_admin')),
+  previous_match_id uuid,
+  created_at timestamptz DEFAULT now()
+);
+
+-- Interviews
+CREATE TABLE interviews (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  match_id uuid REFERENCES matches(id) ON DELETE CASCADE,
+  scheduled_at timestamptz,
+  format text CHECK (format IN ('video', 'phone', 'in_person')),
+  status text CHECK (status IN ('pending_hr', 'scheduled', 'confirmed', 'completed', 'cancelled', 'no_show')),
+  coach_id uuid REFERENCES profiles(id),
+  notes text,
+  feedback_talent integer CHECK (feedback_talent BETWEEN 1 AND 5),
+  feedback_manager integer CHECK (feedback_manager BETWEEN 1 AND 5),
+  created_at timestamptz DEFAULT now()
+);
+
+-- Coaches
+CREATE TABLE coaches (
+  id uuid PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
+  specialization text[],
+  max_concurrent_sessions integer DEFAULT 5
+);
+
+-- Coach Sessions
+CREATE TABLE coach_sessions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  match_id uuid REFERENCES matches(id) ON DELETE CASCADE,
+  coach_id uuid REFERENCES coaches(id),
+  status text DEFAULT 'assigned' CHECK (status IN ('assigned', 'contacted', 'completed', 'missed_sla')),
+  first_contact_at timestamptz,
+  notes text,
+  created_at timestamptz DEFAULT now()
+);
+
+-- Notifications
+CREATE TABLE notifications (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES profiles(id) ON DELETE CASCADE,
+  type text NOT NULL,
+  channel text CHECK (channel IN ('email', 'in_app')),
+  subject text,
+  body text,
+  data jsonb,
+  read boolean DEFAULT false,
+  sent_at timestamptz DEFAULT now()
+);
+
+-- Tag Dictionary
+CREATE TABLE tag_dictionary (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tag_name text UNIQUE NOT NULL,
+  category text CHECK (category IN ('boss_expectation', 'talent_expectation', 'behavioural')),
+  weight_multiplier numeric(3,2) DEFAULT 1.0,
+  is_active boolean DEFAULT true,
+  created_at timestamptz DEFAULT now()
+);
+
+-- User Tags
+CREATE TABLE user_tags (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES profiles(id) ON DELETE CASCADE,
+  tag_name text REFERENCES tag_dictionary(tag_name),
+  score numeric(4,3),
+  source text,
+  created_at timestamptz DEFAULT now()
+);
+
+-- Admin Actions
+CREATE TABLE admin_actions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  admin_id uuid REFERENCES profiles(id),
+  action_type text,
+  target_type text,
+  target_id uuid,
+  old_value jsonb,
+  new_value jsonb,
+  reason text,
+  created_at timestamptz DEFAULT now()
+);
+
+-- System Config
+CREATE TABLE system_config (
+  key text PRIMARY KEY,
+  value jsonb NOT NULL,
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Market Rate Cache
+CREATE TABLE market_rate_cache (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  job_title text,
+  location text,
+  experience_level text,
+  min_salary integer,
+  max_salary integer,
+  median_salary integer,
+  currency text DEFAULT 'RM',
+  snapshot_date date DEFAULT CURRENT_DATE
+);
+
+-- Cold Start Queue
+CREATE TABLE cold_start_queue (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  role_id uuid REFERENCES roles(id) ON DELETE CASCADE,
+  talent_profile_ids uuid[],
+  status text DEFAULT 'pending',
+  created_at timestamptz DEFAULT now()
+);
+
+-- Subscriptions
+CREATE TABLE subscriptions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id uuid REFERENCES companies(id) ON DELETE CASCADE,
+  plan text CHECK (plan IN ('free', 'pro', 'enterprise')),
+  matches_per_month integer,
+  refresh_limit integer,
+  fight_the_interview_included boolean,
+  price decimal,
+  starts_at timestamptz,
+  ends_at timestamptz
+);
+
+-- Transactions
+CREATE TABLE transactions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id uuid REFERENCES companies(id),
+  amount decimal,
+  type text CHECK (type IN ('subscription', 'success_fee', 'refresh_pack')),
+  description text,
+  created_at timestamptz DEFAULT now()
+);
+
+-- Life‑Chart Engine Tables (Phase 2)
+CREATE TABLE life_chart_base (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  start_date date NOT NULL,
+  end_date date NOT NULL,
+  gender text CHECK (gender IN ('male', 'female')),
+  base_number integer NOT NULL,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE life_chart_adjustments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  month integer CHECK (month BETWEEN 1 AND 12),
+  day_from integer CHECK (day_from BETWEEN 1 AND 31),
+  day_to integer CHECK (day_to BETWEEN 1 AND 31),
+  gender text CHECK (gender IN ('male', 'female')),
+  adjustment integer NOT NULL,
+  description text,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE life_chart_cache (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  dob1 date NOT NULL,
+  dob2 date NOT NULL,
+  score numeric(5,2) NOT NULL,
+  computed_at timestamptz DEFAULT now(),
+  UNIQUE(dob1, dob2)
+);
+
+-- Insert default system config
+INSERT INTO system_config (key, value) VALUES
+  ('match_expiry_days', '5'),
+  ('refresh_limit', '3'),
+  ('weight_life_chart', '0.3'),
+  ('waiting_period_thresholds', '[{"min_talents":0,"max_talents":500,"days":14},{"min_talents":500,"max_talents":2000,"days":7},{"min_talents":2000,"max_talents":10000,"days":3},{"min_talents":10000,"max_talents":999999,"days":0}]')
+ON CONFLICT (key) DO NOTHING;
+
+-- Insert sample tags
+INSERT INTO tag_dictionary (tag_name, category, weight_multiplier) VALUES
+  ('self_starter', 'boss_expectation', 1.0),
+  ('reliable', 'boss_expectation', 1.0),
+  ('collaborator', 'boss_expectation', 1.0),
+  ('growth_minded', 'boss_expectation', 1.0),
+  ('clear_communicator', 'boss_expectation', 1.0),
+  ('wants_wlb', 'talent_expectation', 1.0),
+  ('wants_fair_pay', 'talent_expectation', 1.0),
+  ('wants_supportive_boss', 'talent_expectation', 1.0),
+  ('wants_autonomy', 'talent_expectation', 1.0)
+ON CONFLICT (tag_name) DO NOTHING;
+
+-- Indexes for performance
+CREATE INDEX idx_matches_status_expires ON matches(status, expires_at);
+CREATE INDEX idx_matches_role_id ON matches(role_id);
+CREATE INDEX idx_matches_talent_profile_id ON matches(talent_profile_id);
+CREATE INDEX idx_roles_hiring_manager_id ON roles(hiring_manager_id);
+CREATE INDEX idx_talents_profile_id ON talents(profile_id);
+CREATE INDEX idx_hiring_managers_profile_id ON hiring_managers(profile_id);
+CREATE INDEX idx_notifications_user_id_read ON notifications(user_id, read);
+CREATE INDEX idx_user_tags_user_id ON user_tags(user_id);
+End of Document
+This document is complete and ready for implementation. Share it with your development team, legal counsel, and investors.
+
+Next recommended actions:
+
+Set up a new Supabase project.
+
+Run the SQL script above.
+
+Build the React (Vite) frontend.
+
+Implement the 20‑question interview flow.
+
+Start with manual matching (Phase 1) before integrating life‑chart engine (Phase 2).
+
+Good luck with BoLe. May the right matches find each other.
+
+

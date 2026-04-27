@@ -1,0 +1,181 @@
+{
+  "common": {
+    "signIn": "Log masuk",
+    "signOut": "Log keluar",
+    "signUp": "Daftar akaun",
+    "back": "Kembali",
+    "save": "Simpan",
+    "cancel": "Batal",
+    "submit": "Hantar",
+    "continue": "Teruskan",
+    "loading": "Sedang memuat…",
+    "language": "Bahasa"
+  },
+  "nav": {
+    "home": "Utama",
+    "myOffers": "Tawaran saya",
+    "profile": "Profil",
+    "candidates": "Calon",
+    "myRoles": "Jawatan saya",
+    "postRole": "Iklankan jawatan",
+    "scheduling": "Penjadualan",
+    "inviteHm": "Jemput Pengurus Pengambilan",
+    "admin": "Admin",
+    "restaurant": "Restoran"
+  },
+  "landing": {
+    "pilot": "Malaysia · Perintis",
+    "title": "Anda di pihak mana?",
+    "subtitle": "Pilih satu sahaja. Selebihnya kami uruskan.",
+    "talent": "Saya pencari kerja",
+    "talentDesc": "Cari kerja tanpa perlu mohon. Tiga tawaran terpilih khas untuk anda.",
+    "hiring": "Saya sedang mengambil pekerja",
+    "hiringDesc": "Cari bakat tanpa timbunan resume. Tiga calon terpilih khas untuk anda.",
+    "haveAccount": "Sudah ada akaun?"
+  },
+  "consent": {
+    "title": "Persetujuan Pemprosesan Data dan Penepian Tuntutan",
+    "subtitle": "Kami perlukan persetujuan jelas anda sebelum proses padanan. Sila baca dengan teliti.",
+    "agreeLabel": "Saya telah membaca dan bersetuju dengan persetujuan dan penepian tuntutan di atas.",
+    "agreeButton": "Saya setuju — teruskan",
+    "saving": "Sedang menyimpan…",
+    "errorRequired": "Sila tandakan kotak ini untuk meneruskan."
+  },
+  "match": {
+    "score": "Padanan {{score}}%",
+    "strengths": "Kekuatan",
+    "watchouts": "Aspek perlu diperhati",
+    "matchedTraits": "Ciri yang sepadan",
+    "missingTraits": "Ciri yang kurang",
+    "scoreBand": {
+      "strong": "Padanan terbaik",
+      "good": "Padanan baik",
+      "cautious": "Perlu pertimbangan teliti"
+    }
+  },
+  "feedback": {
+    "title": "Nilai temu duga ini",
+    "ratingLabel": "Bagaimana pengalaman anda? (1–5 bintang)",
+    "commentLabel": "Ada apa-apa yang perlu kami tahu?",
+    "submitted": "Terima kasih — anda telah menerima {{points}} mata.",
+    "alreadySubmitted": "Anda telah pun menghantar maklum balas."
+  },
+  "referral": {
+    "title": "Jemput rakan, kumpul mata",
+    "subtitle": "Kongsi kod anda. Apabila rakan anda selesai mendaftar, anda dapat {{points}} mata.",
+    "yourCode": "Kod anda",
+    "yourLink": "Pautan kongsi",
+    "copied": "Telah disalin!",
+    "earned": "{{n}} rujukan berjaya · {{p}} mata dikumpul"
+  },
+  "points": {
+    "balance": "Mata",
+    "redeem": "Tebus 1 padanan tambahan percuma dengan {{cost}} mata"
+  },
+  "whatsapp": {
+    "title": "Kemas kini melalui WhatsApp",
+    "numberLabel": "Nombor WhatsApp",
+    "optIn": "Hantarkan kemas kini padanan kepada saya melalui WhatsApp",
+    "saved": "Tetapan WhatsApp telah disimpan."
+  },
+  "role": {
+    "employmentType": "Jenis pekerjaan",
+    "fullTime": "Sepenuh masa",
+    "partTime": "Separuh masa",
+    "contract": "Kontrak",
+    "gig": "Gig / projek",
+    "internship": "Latihan industri",
+    "duration": "Tempoh (hari)",
+    "hourlyRate": "Bayaran sejam (RM)",
+    "startDate": "Tarikh mula"
+  },
+  "interview": {
+    "joinMeeting": "Sertai mesyuarat video",
+    "createMeeting": "Cipta mesyuarat video",
+    "meetingProvider": "melalui {{provider}}"
+  },
+  "restaurant": {
+    "title": "Restoran",
+    "devBadge": "Dev",
+    "tabs": {
+      "overview": "Ringkasan",
+      "kiosk": "Kiosk",
+      "floor": "Pelan lantai",
+      "orders": "Pesanan",
+      "kitchen": "Dapur",
+      "bar": "Bar",
+      "cashier": "Juruwang",
+      "shifts": "Syif",
+      "inventory": "Inventori",
+      "purchasing": "Pembelian",
+      "staff": "Kakitangan",
+      "accounting": "Perakaunan",
+      "promotions": "Promosi",
+      "audit": "Audit",
+      "branches": "Cawangan",
+      "reports": "Laporan",
+      "admin": "Admin"
+    },
+    "kiosk": {
+      "outOfStock": "Habis",
+      "unavailable": "Tiada",
+      "add": "Tambah",
+      "subtotal": "Subjumlah",
+      "tax": "Cukai",
+      "discount": "Diskaun",
+      "happyHour": "Jam meriah",
+      "coupon": "Kupon",
+      "total": "Jumlah",
+      "checkout": "Bayar",
+      "placing": "Sedang menghantar…",
+      "orderPlaced": "Pesanan diterima",
+      "orderType": "Jenis pesanan",
+      "dinein": "Makan di sini",
+      "takeaway": "Bawa pulang",
+      "delivery": "Penghantaran",
+      "table": "Meja",
+      "customerName": "Nama anda",
+      "customerPhone": "Telefon (untuk kesetiaan + WhatsApp)",
+      "couponLabel": "Kod kupon",
+      "couponApply": "Guna",
+      "couponApplied": "Kupon {{code}} digunakan.",
+      "emptyCart": "Troli anda kosong.",
+      "viewOrders": "Lihat pesanan",
+      "trackOrder": "Jejak pesanan ini"
+    },
+    "cashier": {
+      "openOrders": "Pesanan terbuka",
+      "noOrders": "Tiada pesanan",
+      "selectOrder": "Pilih pesanan",
+      "selectOrderHint": "Pilih pesanan dari senarai untuk kutip bayaran.",
+      "addItem": "+ Tambah item",
+      "reorderSame": "Pesan semula",
+      "tipQuick": "Tip",
+      "splitBy": "Bahagi kepada",
+      "splitEqually": "Bahagi sama",
+      "splitByItems": "Bahagi ikut item",
+      "applyDiscount": "Beri diskaun",
+      "openShift": "Buka syif",
+      "xReport": "Laporan X",
+      "closeShift": "Tutup syif (Laporan Z)",
+      "openingFloat": "Wang permulaan (RM)",
+      "actualCash": "Wang sebenar dalam laci (RM)",
+      "shiftOpened": "Syif dibuka",
+      "shiftClosed": "Syif ditutup (Laporan Z disimpan)"
+    },
+    "orders": {
+      "filter": { "all": "Semua", "active": "Aktif", "closed": "Selesai" },
+      "noOrders": "Tiada pesanan",
+      "noOrdersHint": "Hantar satu dari Kiosk.",
+      "pacingAlert": "Amaran kelewatan",
+      "fireMains": "Hantar hidangan utama",
+      "fireDesserts": "Hantar pencuci mulut",
+      "closeOrder": "Tutup pesanan"
+    },
+    "shifts": {
+      "tipPool": "Agihkan tabung tip",
+      "tipPoolHint": "Bahagikan tabung tip mengikut jam bekerja + meja dilayan.",
+      "noTips": "Tiada tip dikutip syif ini."
+    }
+  }
+}

@@ -1,0 +1,160 @@
+import { lazy, Suspense, useEffect } from 'react'
+import { Routes, Route, Navigate } from 'react-router-dom'
+import { useSession, bootstrapSession } from './state/useSession'
+import Layout from './components/Layout'
+import LoadingSpinner from './components/LoadingSpinner'
+import ProtectedRoute from './components/ProtectedRoute'
+import OnboardingGate from './components/OnboardingGate'
+import AdminGate from './components/AdminGate'
+import ConsentGate from './components/ConsentGate'
+
+import Landing from './routes/Landing'
+import SignUp from './routes/auth/SignUp'
+import Login from './routes/auth/Login'
+
+const Start            = lazy(() => import('./routes/Start'))
+const WaitlistConfirm  = lazy(() => import('./routes/WaitlistConfirm'))
+const PasswordReset    = lazy(() => import('./routes/auth/PasswordReset'))
+const AuthCallback     = lazy(() => import('./routes/auth/AuthCallback'))
+
+const TalentOnboarding = lazy(() => import('./routes/onboarding/TalentOnboarding'))
+const HMOnboarding     = lazy(() => import('./routes/onboarding/HMOnboarding'))
+const CompanyRegister  = lazy(() => import('./routes/onboarding/CompanyRegister'))
+
+const TalentDashboard  = lazy(() => import('./routes/dashboard/TalentDashboard'))
+const HMDashboard      = lazy(() => import('./routes/dashboard/HMDashboard'))
+const HRDashboard      = lazy(() => import('./routes/dashboard/HRDashboard'))
+const AdminDashboard   = lazy(() => import('./routes/dashboard/AdminDashboard'))
+const PostRole         = lazy(() => import('./routes/dashboard/PostRole'))
+const InviteHM         = lazy(() => import('./routes/dashboard/InviteHM'))
+const MyRoles          = lazy(() => import('./routes/dashboard/MyRoles'))
+const EditRole         = lazy(() => import('./routes/dashboard/EditRole'))
+const TalentProfile    = lazy(() => import('./routes/dashboard/TalentProfile'))
+
+const PrivacyNotice    = lazy(() => import('./routes/legal/PrivacyNotice'))
+const Terms            = lazy(() => import('./routes/legal/Terms'))
+const Consent          = lazy(() => import('./routes/legal/Consent'))
+const DataRequests     = lazy(() => import('./routes/DataRequests'))
+const InterviewFeedback = lazy(() => import('./routes/InterviewFeedback'))
+const Referrals        = lazy(() => import('./routes/Referrals'))
+const Consult          = lazy(() => import('./routes/Consult'))
+const NotFound         = lazy(() => import('./routes/NotFound'))
+
+// Restaurant OS — own chunk per page; heavy and rarely all visited together
+const GuestMenu        = lazy(() => import('./routes/restaurant/GuestMenu'))
+const RestaurantLayout = lazy(() => import('./routes/restaurant/RestaurantLayout'))
+const RestaurantHome   = lazy(() => import('./routes/restaurant/RestaurantHome'))
+const RestaurantTrack  = lazy(() => import('./routes/restaurant/Track'))
+const Kiosk            = lazy(() => import('./routes/restaurant/Kiosk'))
+const Orders           = lazy(() => import('./routes/restaurant/Orders'))
+const Kds              = lazy(() => import('./routes/restaurant/Kds'))
+const BarKds           = lazy(() => import('./routes/restaurant/Kds').then(m => ({ default: m.BarKds })))
+const Cashier          = lazy(() => import('./routes/restaurant/Cashier'))
+const Floor            = lazy(() => import('./routes/restaurant/Floor'))
+const Inventory        = lazy(() => import('./routes/restaurant/Inventory'))
+const Purchasing       = lazy(() => import('./routes/restaurant/Purchasing'))
+const Staff            = lazy(() => import('./routes/restaurant/Staff'))
+const Accounting       = lazy(() => import('./routes/restaurant/Accounting'))
+const Promotions       = lazy(() => import('./routes/restaurant/Promotions'))
+const Audit            = lazy(() => import('./routes/restaurant/Audit'))
+const Shifts           = lazy(() => import('./routes/restaurant/Shifts'))
+const Branches         = lazy(() => import('./routes/restaurant/Branches'))
+const Reports          = lazy(() => import('./routes/restaurant/Reports'))
+const RestaurantAdmin  = lazy(() => import('./routes/restaurant/Admin'))
+
+export default function App() {
+  const { loading, session, profile } = useSession()
+  useEffect(() => { bootstrapSession() }, [])
+
+  if (loading && !session) return <LoadingSpinner full />
+
+  return (
+    <Suspense fallback={<LoadingSpinner full />}>
+      <Routes>
+        {/* Public */}
+        <Route path="/" element={<Landing />} />
+        <Route path="/start/:side" element={<Start />} />
+        <Route path="/waitlist/confirm" element={<WaitlistConfirm />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/signup" element={session && profile ? <Navigate to="/home" replace /> : <SignUp />} />
+        <Route path="/login"  element={session && profile ? <Navigate to="/home" replace /> : <Login />} />
+        <Route path="/password-reset" element={<PasswordReset />} />
+        <Route path="/privacy" element={<PrivacyNotice />} />
+        <Route path="/terms"   element={<Terms />} />
+
+        {/* Public customer order tracker — anonymous, RLS-allowed read */}
+        <Route path="/restaurant/track/:orderId" element={<RestaurantTrack />} />
+
+        {/* Public QR menu — guest ordering, no login required */}
+        <Route path="/menu/:branchId" element={<GuestMenu />} />
+
+        {/* Authenticated (inside Layout) */}
+        <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+          <Route path="/consent" element={<Consent />} />
+          <Route path="/home" element={<ConsentGate><RoleHome /></ConsentGate>} />
+
+          {/* Onboarding (consent first, then onboarding) */}
+          <Route path="/onboarding/talent"  element={<ConsentGate><TalentOnboarding /></ConsentGate>} />
+          <Route path="/onboarding/hm"      element={<ConsentGate><HMOnboarding /></ConsentGate>} />
+          <Route path="/onboarding/company" element={<ConsentGate><CompanyRegister /></ConsentGate>} />
+
+          {/* Dashboards (consent + onboarding gated) */}
+          <Route path="/talent" element={<ConsentGate><OnboardingGate><TalentDashboard /></OnboardingGate></ConsentGate>} />
+          <Route path="/talent/profile" element={<ConsentGate><OnboardingGate><TalentProfile /></OnboardingGate></ConsentGate>} />
+          <Route path="/hm"     element={<ConsentGate><OnboardingGate><HMDashboard /></OnboardingGate></ConsentGate>} />
+          <Route path="/hm/post-role" element={<ConsentGate><OnboardingGate><PostRole /></OnboardingGate></ConsentGate>} />
+          <Route path="/hm/roles" element={<ConsentGate><OnboardingGate><MyRoles /></OnboardingGate></ConsentGate>} />
+          <Route path="/hm/roles/:id/edit" element={<ConsentGate><OnboardingGate><EditRole /></OnboardingGate></ConsentGate>} />
+          <Route path="/hr"     element={<ConsentGate><OnboardingGate><HRDashboard /></OnboardingGate></ConsentGate>} />
+          <Route path="/hr/invite" element={<ConsentGate><OnboardingGate><InviteHM /></OnboardingGate></ConsentGate>} />
+          <Route path="/admin"  element={<AdminGate><AdminDashboard /></AdminGate>} />
+          <Route path="/data-requests" element={<DataRequests />} />
+          <Route path="/feedback/:matchId" element={<InterviewFeedback />} />
+          <Route path="/referrals" element={<ConsentGate><Referrals /></ConsentGate>} />
+          <Route path="/consult" element={<Consult />} />
+          <Route path="/consult/return" element={<Consult />} />
+
+          {/* Restaurant OS — temporary dev feature, gated to authed users */}
+          <Route path="/restaurant" element={<RestaurantLayout />}>
+            <Route index element={<RestaurantHome />} />
+            <Route path="kiosk"      element={<Kiosk />} />
+            <Route path="orders"     element={<Orders />} />
+            <Route path="kds"        element={<Kds />} />
+            <Route path="bar"        element={<BarKds />} />
+            <Route path="cashier"    element={<Cashier />} />
+            <Route path="floor"      element={<Floor />} />
+            <Route path="inventory"  element={<Inventory />} />
+            <Route path="purchasing" element={<Purchasing />} />
+            <Route path="staff"      element={<Staff />} />
+            <Route path="accounting" element={<Accounting />} />
+            <Route path="promotions" element={<Promotions />} />
+            <Route path="audit"      element={<Audit />} />
+            <Route path="shifts"     element={<Shifts />} />
+            <Route path="branches"   element={<Branches />} />
+            <Route path="reports"    element={<Reports />} />
+            <Route path="admin"      element={<RestaurantAdmin />} />
+          </Route>
+        </Route>
+
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
+  )
+}
+
+function RoleHome() {
+  const { profile } = useSession()
+  if (!profile) return <Navigate to="/" replace />
+
+  if (!profile.onboarding_complete && profile.role !== 'admin') {
+    if (profile.role === 'talent')         return <Navigate to="/onboarding/talent" replace />
+    if (profile.role === 'hiring_manager') return <Navigate to="/onboarding/hm" replace />
+    if (profile.role === 'hr_admin')       return <Navigate to="/onboarding/company" replace />
+  }
+  if (profile.role === 'talent')            return <Navigate to="/talent" replace />
+  if (profile.role === 'hiring_manager')   return <Navigate to="/hm" replace />
+  if (profile.role === 'hr_admin')         return <Navigate to="/hr" replace />
+  if (profile.role === 'admin')            return <Navigate to="/admin" replace />
+  if (profile.role === 'restaurant_staff') return <Navigate to="/restaurant" replace />
+  return <Navigate to="/" replace />
+}

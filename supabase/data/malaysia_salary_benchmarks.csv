@@ -1,0 +1,616 @@
+Job title,Location,Level,Min,Max,Median,Updated
+Accountant,Kuala Lumpur,mid,4500,7500,6000,2026-04-23
+Data Analyst,Kuala Lumpur,junior,3800,6500,5000,2026-04-23
+Data Analyst,Kuala Lumpur,mid,6500,10500,8500,2026-04-23
+Designer,Kuala Lumpur,mid,5500,9500,7500,2026-04-23
+HR Manager,Kuala Lumpur,mid,6000,10000,8000,2026-04-23
+Marketing Manager,Kuala Lumpur,mid,6500,12000,9000,2026-04-23
+Product Manager,Kuala Lumpur,mid,7000,12000,9500,2026-04-23
+Product Manager,Kuala Lumpur,senior,12000,20000,16000,2026-04-23
+Sales Manager,Kuala Lumpur,mid,6000,11000,8500,2026-04-23
+Software Engineer,Kuala Lumpur,junior,3500,6000,4800,2026-04-23
+Software Engineer,Kuala Lumpur,lead,14000,22000,18000,2026-04-23
+Software Engineer,Kuala Lumpur,mid,6000,10000,8000,2026-04-23
+Software Engineer,Kuala Lumpur,senior,10000,16000,13000,2026-04-23
+Account Executive,Kuala Lumpur,junior,3000,4500,3800,2026-04-23
+Account Executive,Kuala Lumpur,mid,4500,7000,5800,2026-04-23
+Account Executive,Kuala Lumpur,senior,7000,10000,8500,2026-04-23
+Accounts Payable Specialist,Kuala Lumpur,junior,2800,4200,3500,2026-04-23
+Accounts Payable Specialist,Kuala Lumpur,mid,4200,6000,5100,2026-04-23
+Accounts Receivable Specialist,Kuala Lumpur,junior,2800,4200,3500,2026-04-23
+Accounts Receivable Specialist,Kuala Lumpur,mid,4200,6000,5100,2026-04-23
+Actuary,Kuala Lumpur,junior,5000,8000,6500,2026-04-23
+Actuary,Kuala Lumpur,mid,8000,13000,10500,2026-04-23
+Actuary,Kuala Lumpur,senior,13000,20000,16500,2026-04-23
+Administrative Assistant,Kuala Lumpur,junior,2000,3000,2500,2026-04-23
+Administrative Assistant,Kuala Lumpur,mid,3000,4500,3800,2026-04-23
+Administrative Manager,Kuala Lumpur,mid,5000,8000,6500,2026-04-23
+Administrative Manager,Kuala Lumpur,senior,8000,12000,10000,2026-04-23
+Advertising Manager,Kuala Lumpur,mid,6000,10000,8000,2026-04-23
+Advertising Manager,Kuala Lumpur,senior,10000,15000,12500,2026-04-23
+Aerospace Engineer,Kuala Lumpur,junior,4000,6500,5200,2026-04-23
+Aerospace Engineer,Kuala Lumpur,mid,6500,11000,8800,2026-04-23
+Aerospace Engineer,Kuala Lumpur,senior,11000,17000,14000,2026-04-23
+Agricultural Consultant,Kuala Lumpur,mid,4500,7500,6000,2026-04-23
+Agricultural Consultant,Kuala Lumpur,senior,7500,12000,9800,2026-04-23
+Air Traffic Controller,Kuala Lumpur,mid,6000,10000,8000,2026-04-23
+Air Traffic Controller,Kuala Lumpur,senior,10000,15000,12500,2026-04-23
+Analyst Programmer,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Analyst Programmer,Kuala Lumpur,mid,5500,9000,7200,2026-04-23
+Analyst Programmer,Kuala Lumpur,senior,9000,14000,11500,2026-04-23
+Android Developer,Kuala Lumpur,junior,4000,6000,5000,2026-04-23
+Android Developer,Kuala Lumpur,mid,6000,10000,8000,2026-04-23
+Android Developer,Kuala Lumpur,senior,10000,15000,12500,2026-04-23
+Application Support Engineer,Kuala Lumpur,junior,3500,5000,4200,2026-04-23
+Application Support Engineer,Kuala Lumpur,mid,5000,8000,6500,2026-04-23
+Application Support Engineer,Kuala Lumpur,senior,8000,12000,10000,2026-04-23
+Architect,Kuala Lumpur,junior,4000,6500,5200,2026-04-23
+Architect,Kuala Lumpur,mid,6500,11000,8800,2026-04-23
+Architect,Kuala Lumpur,senior,11000,18000,14500,2026-04-23
+Art Director,Kuala Lumpur,mid,6000,10000,8000,2026-04-23
+Art Director,Kuala Lumpur,senior,10000,15000,12500,2026-04-23
+Audit Manager,Kuala Lumpur,mid,7000,12000,9500,2026-04-23
+Audit Manager,Kuala Lumpur,senior,12000,18000,15000,2026-04-23
+Auditor (External),Kuala Lumpur,junior,3000,4500,3800,2026-04-23
+Auditor (External),Kuala Lumpur,mid,4500,7000,5800,2026-04-23
+Auditor (External),Kuala Lumpur,senior,7000,11000,9000,2026-04-23
+Auditor (Internal),Kuala Lumpur,junior,3200,4800,4000,2026-04-23
+Auditor (Internal),Kuala Lumpur,mid,4800,7500,6200,2026-04-23
+Auditor (Internal),Kuala Lumpur,senior,7500,12000,9800,2026-04-23
+Backend Developer,Kuala Lumpur,junior,4000,6500,5200,2026-04-23
+Backend Developer,Kuala Lumpur,mid,6500,11000,8800,2026-04-23
+Backend Developer,Kuala Lumpur,senior,11000,17000,14000,2026-04-23
+Bank Teller,Kuala Lumpur,junior,2000,2800,2400,2026-04-23
+Bank Teller,Kuala Lumpur,mid,2800,4000,3400,2026-04-23
+Banking Relationship Manager,Kuala Lumpur,mid,6000,10000,8000,2026-04-23
+Banking Relationship Manager,Kuala Lumpur,senior,10000,15000,12500,2026-04-23
+Biomedical Engineer,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Biomedical Engineer,Kuala Lumpur,mid,5500,9000,7200,2026-04-23
+Biomedical Engineer,Kuala Lumpur,senior,9000,14000,11500,2026-04-23
+Brand Manager,Kuala Lumpur,mid,6500,11000,8800,2026-04-23
+Brand Manager,Kuala Lumpur,senior,11000,17000,14000,2026-04-23
+Business Analyst,Kuala Lumpur,junior,4000,6000,5000,2026-04-23
+Business Analyst,Kuala Lumpur,mid,6000,10000,8000,2026-04-23
+Business Analyst,Kuala Lumpur,senior,10000,15000,12500,2026-04-23
+Business Development Executive,Kuala Lumpur,junior,3000,4800,3900,2026-04-23
+Business Development Executive,Kuala Lumpur,mid,4800,7500,6200,2026-04-23
+Business Development Manager,Kuala Lumpur,mid,7000,12000,9500,2026-04-23
+Business Development Manager,Kuala Lumpur,senior,12000,18000,15000,2026-04-23
+Business Intelligence Analyst,Kuala Lumpur,junior,4000,6500,5200,2026-04-23
+Business Intelligence Analyst,Kuala Lumpur,mid,6500,10500,8500,2026-04-23
+Business Intelligence Analyst,Kuala Lumpur,senior,10500,16000,13200,2026-04-23
+Buyer (Procurement),Kuala Lumpur,junior,3000,4500,3800,2026-04-23
+Buyer (Procurement),Kuala Lumpur,mid,4500,7000,5800,2026-04-23
+Buyer (Procurement),Kuala Lumpur,senior,7000,11000,9000,2026-04-23
+Call Center Manager,Kuala Lumpur,mid,5500,9000,7200,2026-04-23
+Call Center Manager,Kuala Lumpur,senior,9000,13000,11000,2026-04-23
+Call Center Representative,Kuala Lumpur,junior,2000,3000,2500,2026-04-23
+Call Center Representative,Kuala Lumpur,mid,3000,4500,3800,2026-04-23
+Chemical Engineer,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Chemical Engineer,Kuala Lumpur,mid,5500,9500,7500,2026-04-23
+Chemical Engineer,Kuala Lumpur,senior,9500,15000,12200,2026-04-23
+Chief Executive Officer (CEO),Kuala Lumpur,lead,30000,70000,50000,2026-04-23
+Chief Financial Officer (CFO),Kuala Lumpur,lead,25000,60000,42000,2026-04-23
+Chief Operating Officer (COO),Kuala Lumpur,lead,25000,55000,40000,2026-04-23
+Chief Technology Officer (CTO),Kuala Lumpur,lead,28000,65000,46000,2026-04-23
+Civil Engineer,Kuala Lumpur,junior,3000,5000,4000,2026-04-23
+Civil Engineer,Kuala Lumpur,mid,5000,8500,6800,2026-04-23
+Civil Engineer,Kuala Lumpur,senior,8500,14000,11200,2026-04-23
+Claims Adjuster,Kuala Lumpur,junior,2800,4200,3500,2026-04-23
+Claims Adjuster,Kuala Lumpur,mid,4200,6500,5400,2026-04-23
+Claims Adjuster,Kuala Lumpur,senior,6500,10000,8200,2026-04-23
+Clinical Research Associate,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Clinical Research Associate,Kuala Lumpur,mid,5500,8500,7000,2026-04-23
+Clinical Research Associate,Kuala Lumpur,senior,8500,13000,10800,2026-04-23
+Cloud Architect,Kuala Lumpur,mid,10000,16000,13000,2026-04-23
+Cloud Architect,Kuala Lumpur,senior,16000,25000,20500,2026-04-23
+Cloud Engineer,Kuala Lumpur,junior,5000,8000,6500,2026-04-23
+Cloud Engineer,Kuala Lumpur,mid,8000,13000,10500,2026-04-23
+Cloud Engineer,Kuala Lumpur,senior,13000,20000,16500,2026-04-23
+Compliance Officer,Kuala Lumpur,junior,4000,6000,5000,2026-04-23
+Compliance Officer,Kuala Lumpur,mid,6000,10000,8000,2026-04-23
+Compliance Officer,Kuala Lumpur,senior,10000,15000,12500,2026-04-23
+Content Creator,Kuala Lumpur,junior,2500,4000,3200,2026-04-23
+Content Creator,Kuala Lumpur,mid,4000,6500,5200,2026-04-23
+Content Creator,Kuala Lumpur,senior,6500,10000,8200,2026-04-23
+Content Writer,Kuala Lumpur,junior,2500,3800,3200,2026-04-23
+Content Writer,Kuala Lumpur,mid,3800,6000,4900,2026-04-23
+Content Writer,Kuala Lumpur,senior,6000,9000,7500,2026-04-23
+Contract Administrator,Kuala Lumpur,junior,3000,4500,3800,2026-04-23
+Contract Administrator,Kuala Lumpur,mid,4500,7000,5800,2026-04-23
+Contract Administrator,Kuala Lumpur,senior,7000,10000,8500,2026-04-23
+Copywriter,Kuala Lumpur,junior,2800,4200,3500,2026-04-23
+Copywriter,Kuala Lumpur,mid,4200,6500,5400,2026-04-23
+Copywriter,Kuala Lumpur,senior,6500,10000,8200,2026-04-23
+Corporate Communications Manager,Kuala Lumpur,mid,6500,11000,8800,2026-04-23
+Corporate Communications Manager,Kuala Lumpur,senior,11000,17000,14000,2026-04-23
+Corporate Lawyer,Kuala Lumpur,mid,8000,13000,10500,2026-04-23
+Corporate Lawyer,Kuala Lumpur,senior,13000,20000,16500,2026-04-23
+Cost Accountant,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Cost Accountant,Kuala Lumpur,mid,5500,8500,7000,2026-04-23
+Cost Accountant,Kuala Lumpur,senior,8500,13000,10800,2026-04-23
+Credit Analyst,Kuala Lumpur,junior,3200,4800,4000,2026-04-23
+Credit Analyst,Kuala Lumpur,mid,4800,7500,6200,2026-04-23
+Credit Analyst,Kuala Lumpur,senior,7500,12000,9800,2026-04-23
+Customer Experience Manager,Kuala Lumpur,mid,5500,9500,7500,2026-04-23
+Customer Experience Manager,Kuala Lumpur,senior,9500,14000,11800,2026-04-23
+Customer Service Executive,Kuala Lumpur,junior,2200,3200,2700,2026-04-23
+Customer Service Executive,Kuala Lumpur,mid,3200,5000,4100,2026-04-23
+Customer Service Manager,Kuala Lumpur,mid,5500,9000,7200,2026-04-23
+Customer Service Manager,Kuala Lumpur,senior,9000,13000,11000,2026-04-23
+Cybersecurity Analyst,Kuala Lumpur,junior,4500,7000,5800,2026-04-23
+Cybersecurity Analyst,Kuala Lumpur,mid,7000,12000,9500,2026-04-23
+Cybersecurity Analyst,Kuala Lumpur,senior,12000,18000,15000,2026-04-23
+Data Engineer,Kuala Lumpur,junior,5000,8000,6500,2026-04-23
+Data Engineer,Kuala Lumpur,mid,8000,13000,10500,2026-04-23
+Data Engineer,Kuala Lumpur,senior,13000,20000,16500,2026-04-23
+Data Scientist,Kuala Lumpur,junior,5500,8500,7000,2026-04-23
+Data Scientist,Kuala Lumpur,mid,8500,14000,11200,2026-04-23
+Data Scientist,Kuala Lumpur,senior,14000,22000,18000,2026-04-23
+Database Administrator,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Database Administrator,Kuala Lumpur,mid,5500,9000,7200,2026-04-23
+Database Administrator,Kuala Lumpur,senior,9000,14000,11500,2026-04-23
+Delivery Manager,Kuala Lumpur,mid,8000,13000,10500,2026-04-23
+Delivery Manager,Kuala Lumpur,senior,13000,19000,16000,2026-04-23
+Dental Assistant,Kuala Lumpur,junior,2000,3000,2500,2026-04-23
+Dental Assistant,Kuala Lumpur,mid,3000,4500,3800,2026-04-23
+Dentist,Kuala Lumpur,junior,5000,8000,6500,2026-04-23
+Dentist,Kuala Lumpur,mid,8000,13000,10500,2026-04-23
+Dentist,Kuala Lumpur,senior,13000,20000,16500,2026-04-23
+DevOps Engineer,Kuala Lumpur,junior,5000,8000,6500,2026-04-23
+DevOps Engineer,Kuala Lumpur,mid,8000,14000,11000,2026-04-23
+DevOps Engineer,Kuala Lumpur,senior,14000,21000,17500,2026-04-23
+Digital Marketing Executive,Kuala Lumpur,junior,3000,4800,3900,2026-04-23
+Digital Marketing Executive,Kuala Lumpur,mid,4800,7500,6200,2026-04-23
+Digital Marketing Manager,Kuala Lumpur,mid,7000,12000,9500,2026-04-23
+Digital Marketing Manager,Kuala Lumpur,senior,12000,18000,15000,2026-04-23
+Drafter (CAD),Kuala Lumpur,junior,2200,3500,2900,2026-04-23
+Drafter (CAD),Kuala Lumpur,mid,3500,5500,4500,2026-04-23
+Drafter (CAD),Kuala Lumpur,senior,5500,8000,6800,2026-04-23
+E-commerce Manager,Kuala Lumpur,mid,6000,10000,8000,2026-04-23
+E-commerce Manager,Kuala Lumpur,senior,10000,15000,12500,2026-04-23
+Economics Researcher,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Economics Researcher,Kuala Lumpur,mid,5500,8500,7000,2026-04-23
+Economics Researcher,Kuala Lumpur,senior,8500,13000,10800,2026-04-23
+Electrical Engineer,Kuala Lumpur,junior,3200,5000,4100,2026-04-23
+Electrical Engineer,Kuala Lumpur,mid,5000,8500,6800,2026-04-23
+Electrical Engineer,Kuala Lumpur,senior,8500,14000,11200,2026-04-23
+Electrical Technician,Kuala Lumpur,junior,2000,3200,2600,2026-04-23
+Electrical Technician,Kuala Lumpur,mid,3200,5000,4100,2026-04-23
+Electrical Technician,Kuala Lumpur,senior,5000,7500,6200,2026-04-23
+Electronics Engineer,Kuala Lumpur,junior,3200,5000,4100,2026-04-23
+Electronics Engineer,Kuala Lumpur,mid,5000,8500,6800,2026-04-23
+Electronics Engineer,Kuala Lumpur,senior,8500,14000,11200,2026-04-23
+Employee Relations Specialist,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Employee Relations Specialist,Kuala Lumpur,mid,5500,8500,7000,2026-04-23
+Employee Relations Specialist,Kuala Lumpur,senior,8500,13000,10800,2026-04-23
+Environmental Engineer,Kuala Lumpur,junior,3200,5000,4100,2026-04-23
+Environmental Engineer,Kuala Lumpur,mid,5000,8000,6500,2026-04-23
+Environmental Engineer,Kuala Lumpur,senior,8000,12000,10000,2026-04-23
+Event Manager,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Event Manager,Kuala Lumpur,mid,5500,9000,7200,2026-04-23
+Event Manager,Kuala Lumpur,senior,9000,14000,11500,2026-04-23
+Executive Assistant,Kuala Lumpur,junior,3500,5000,4200,2026-04-23
+Executive Assistant,Kuala Lumpur,mid,5000,8000,6500,2026-04-23
+Executive Assistant,Kuala Lumpur,senior,8000,12000,10000,2026-04-23
+Facilities Manager,Kuala Lumpur,mid,5500,9500,7500,2026-04-23
+Facilities Manager,Kuala Lumpur,senior,9500,14000,11800,2026-04-23
+Farm Manager,Kuala Lumpur,mid,4000,6500,5200,2026-04-23
+Farm Manager,Kuala Lumpur,senior,6500,10000,8200,2026-04-23
+Field Service Engineer,Kuala Lumpur,junior,3000,4500,3800,2026-04-23
+Field Service Engineer,Kuala Lumpur,mid,4500,7000,5800,2026-04-23
+Field Service Engineer,Kuala Lumpur,senior,7000,10000,8500,2026-04-23
+Financial Advisor,Kuala Lumpur,junior,3000,5000,4000,2026-04-23
+Financial Advisor,Kuala Lumpur,mid,5000,8000,6500,2026-04-23
+Financial Advisor,Kuala Lumpur,senior,8000,12000,10000,2026-04-23
+Financial Analyst,Kuala Lumpur,junior,3800,5800,4800,2026-04-23
+Financial Analyst,Kuala Lumpur,mid,5800,9500,7600,2026-04-23
+Financial Analyst,Kuala Lumpur,senior,9500,15000,12200,2026-04-23
+Financial Controller,Kuala Lumpur,mid,10000,16000,13000,2026-04-23
+Financial Controller,Kuala Lumpur,senior,16000,24000,20000,2026-04-23
+Financial Manager,Kuala Lumpur,mid,8000,13000,10500,2026-04-23
+Financial Manager,Kuala Lumpur,senior,13000,20000,16500,2026-04-23
+Firefighter,Kuala Lumpur,junior,2000,3000,2500,2026-04-23
+Firefighter,Kuala Lumpur,mid,3000,4500,3800,2026-04-23
+Firefighter,Kuala Lumpur,senior,4500,6500,5500,2026-04-23
+Food Technologist,Kuala Lumpur,junior,2800,4200,3500,2026-04-23
+Food Technologist,Kuala Lumpur,mid,4200,6500,5400,2026-04-23
+Food Technologist,Kuala Lumpur,senior,6500,10000,8200,2026-04-23
+Frontend Developer,Kuala Lumpur,junior,3800,6000,4900,2026-04-23
+Frontend Developer,Kuala Lumpur,mid,6000,10000,8000,2026-04-23
+Frontend Developer,Kuala Lumpur,senior,10000,15000,12500,2026-04-23
+Full Stack Developer,Kuala Lumpur,junior,4500,7000,5800,2026-04-23
+Full Stack Developer,Kuala Lumpur,mid,7000,12000,9500,2026-04-23
+Full Stack Developer,Kuala Lumpur,senior,12000,18000,15000,2026-04-23
+Fund Accountant,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Fund Accountant,Kuala Lumpur,mid,5500,8500,7000,2026-04-23
+Fund Accountant,Kuala Lumpur,senior,8500,13000,10800,2026-04-23
+General Manager,Kuala Lumpur,lead,15000,30000,22000,2026-04-23
+Geologist,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Geologist,Kuala Lumpur,mid,5500,9000,7200,2026-04-23
+Geologist,Kuala Lumpur,senior,9000,14000,11500,2026-04-23
+GIS Analyst,Kuala Lumpur,junior,3200,5000,4100,2026-04-23
+GIS Analyst,Kuala Lumpur,mid,5000,8000,6500,2026-04-23
+GIS Analyst,Kuala Lumpur,senior,8000,12000,10000,2026-04-23
+Graphic Designer,Kuala Lumpur,junior,2500,4000,3200,2026-04-23
+Graphic Designer,Kuala Lumpur,mid,4000,6500,5200,2026-04-23
+Graphic Designer,Kuala Lumpur,senior,6500,10000,8200,2026-04-23
+Health & Safety Officer,Kuala Lumpur,junior,3000,4800,3900,2026-04-23
+Health & Safety Officer,Kuala Lumpur,mid,4800,7500,6200,2026-04-23
+Health & Safety Officer,Kuala Lumpur,senior,7500,11000,9200,2026-04-23
+Healthcare Assistant,Kuala Lumpur,junior,1800,2600,2200,2026-04-23
+Healthcare Assistant,Kuala Lumpur,mid,2600,3800,3200,2026-04-23
+Healthcare Administrator,Kuala Lumpur,junior,3000,4500,3800,2026-04-23
+Healthcare Administrator,Kuala Lumpur,mid,4500,7000,5800,2026-04-23
+Healthcare Administrator,Kuala Lumpur,senior,7000,10000,8500,2026-04-23
+Hotel General Manager,Kuala Lumpur,mid,8000,13000,10500,2026-04-23
+Hotel General Manager,Kuala Lumpur,senior,13000,20000,16500,2026-04-23
+Hotel Receptionist,Kuala Lumpur,junior,1800,2600,2200,2026-04-23
+Hotel Receptionist,Kuala Lumpur,mid,2600,3800,3200,2026-04-23
+HR Business Partner,Kuala Lumpur,mid,6000,10000,8000,2026-04-23
+HR Business Partner,Kuala Lumpur,senior,10000,15000,12500,2026-04-23
+HR Coordinator,Kuala Lumpur,junior,2800,4200,3500,2026-04-23
+HR Coordinator,Kuala Lumpur,mid,4200,6500,5400,2026-04-23
+HR Director,Kuala Lumpur,lead,18000,30000,24000,2026-04-23
+HR Generalist,Kuala Lumpur,junior,3000,4500,3800,2026-04-23
+HR Generalist,Kuala Lumpur,mid,4500,7000,5800,2026-04-23
+HR Generalist,Kuala Lumpur,senior,7000,10000,8500,2026-04-23
+HRIS Analyst,Kuala Lumpur,junior,4000,6000,5000,2026-04-23
+HRIS Analyst,Kuala Lumpur,mid,6000,9500,7800,2026-04-23
+HRIS Analyst,Kuala Lumpur,senior,9500,14000,11800,2026-04-23
+Industrial Designer,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Industrial Designer,Kuala Lumpur,mid,5500,8500,7000,2026-04-23
+Industrial Designer,Kuala Lumpur,senior,8500,13000,10800,2026-04-23
+Industrial Engineer,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Industrial Engineer,Kuala Lumpur,mid,5500,9000,7200,2026-04-23
+Industrial Engineer,Kuala Lumpur,senior,9000,14000,11500,2026-04-23
+Information Security Analyst,Kuala Lumpur,junior,4500,7000,5800,2026-04-23
+Information Security Analyst,Kuala Lumpur,mid,7000,12000,9500,2026-04-23
+Information Security Analyst,Kuala Lumpur,senior,12000,18000,15000,2026-04-23
+Insurance Agent,Kuala Lumpur,junior,2000,3500,2800,2026-04-23
+Insurance Agent,Kuala Lumpur,mid,3500,6000,4800,2026-04-23
+Insurance Agent,Kuala Lumpur,senior,6000,9000,7500,2026-04-23
+Insurance Underwriter,Kuala Lumpur,junior,3200,5000,4100,2026-04-23
+Insurance Underwriter,Kuala Lumpur,mid,5000,8000,6500,2026-04-23
+Insurance Underwriter,Kuala Lumpur,senior,8000,12000,10000,2026-04-23
+Integration Engineer,Kuala Lumpur,junior,4000,6500,5200,2026-04-23
+Integration Engineer,Kuala Lumpur,mid,6500,10500,8500,2026-04-23
+Integration Engineer,Kuala Lumpur,senior,10500,16000,13200,2026-04-23
+Interior Designer,Kuala Lumpur,junior,2800,4200,3500,2026-04-23
+Interior Designer,Kuala Lumpur,mid,4200,7000,5600,2026-04-23
+Interior Designer,Kuala Lumpur,senior,7000,11000,9000,2026-04-23
+Investment Analyst,Kuala Lumpur,junior,4000,6500,5200,2026-04-23
+Investment Analyst,Kuala Lumpur,mid,6500,11000,8800,2026-04-23
+Investment Analyst,Kuala Lumpur,senior,11000,17000,14000,2026-04-23
+Investment Banker,Kuala Lumpur,mid,10000,16000,13000,2026-04-23
+Investment Banker,Kuala Lumpur,senior,16000,25000,20500,2026-04-23
+IT Consultant,Kuala Lumpur,junior,4000,6500,5200,2026-04-23
+IT Consultant,Kuala Lumpur,mid,6500,11000,8800,2026-04-23
+IT Consultant,Kuala Lumpur,senior,11000,17000,14000,2026-04-23
+IT Project Manager,Kuala Lumpur,mid,8000,13000,10500,2026-04-23
+IT Project Manager,Kuala Lumpur,senior,13000,19000,16000,2026-04-23
+IT Support Specialist,Kuala Lumpur,junior,2500,4000,3200,2026-04-23
+IT Support Specialist,Kuala Lumpur,mid,4000,6500,5200,2026-04-23
+IT Support Specialist,Kuala Lumpur,senior,6500,10000,8200,2026-04-23
+Java Developer,Kuala Lumpur,junior,4000,6000,5000,2026-04-23
+Java Developer,Kuala Lumpur,mid,6000,10000,8000,2026-04-23
+Java Developer,Kuala Lumpur,senior,10000,15000,12500,2026-04-23
+Journalist,Kuala Lumpur,junior,2800,4200,3500,2026-04-23
+Journalist,Kuala Lumpur,mid,4200,6500,5400,2026-04-23
+Journalist,Kuala Lumpur,senior,6500,10000,8200,2026-04-23
+Laboratory Technician,Kuala Lumpur,junior,2200,3500,2900,2026-04-23
+Laboratory Technician,Kuala Lumpur,mid,3500,5500,4500,2026-04-23
+Laboratory Technician,Kuala Lumpur,senior,5500,8000,6800,2026-04-23
+Land Surveyor,Kuala Lumpur,junior,3000,4800,3900,2026-04-23
+Land Surveyor,Kuala Lumpur,mid,4800,7500,6200,2026-04-23
+Land Surveyor,Kuala Lumpur,senior,7500,11000,9200,2026-04-23
+Landscape Architect,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Landscape Architect,Kuala Lumpur,mid,5500,8500,7000,2026-04-23
+Landscape Architect,Kuala Lumpur,senior,8500,13000,10800,2026-04-23
+Lawyer (General Practice),Kuala Lumpur,junior,4000,6500,5200,2026-04-23
+Lawyer (General Practice),Kuala Lumpur,mid,6500,11000,8800,2026-04-23
+Lawyer (General Practice),Kuala Lumpur,senior,11000,18000,14500,2026-04-23
+Learning & Development Specialist,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Learning & Development Specialist,Kuala Lumpur,mid,5500,9000,7200,2026-04-23
+Learning & Development Specialist,Kuala Lumpur,senior,9000,14000,11500,2026-04-23
+Legal Assistant,Kuala Lumpur,junior,2500,4000,3200,2026-04-23
+Legal Assistant,Kuala Lumpur,mid,4000,6000,5000,2026-04-23
+Legal Assistant,Kuala Lumpur,senior,6000,9000,7500,2026-04-23
+Legal Counsel,Kuala Lumpur,mid,7000,12000,9500,2026-04-23
+Legal Counsel,Kuala Lumpur,senior,12000,18000,15000,2026-04-23
+Licensed Aircraft Engineer,Kuala Lumpur,mid,7000,11000,9000,2026-04-23
+Licensed Aircraft Engineer,Kuala Lumpur,senior,11000,17000,14000,2026-04-23
+Logistics Coordinator,Kuala Lumpur,junior,2500,4000,3200,2026-04-23
+Logistics Coordinator,Kuala Lumpur,mid,4000,6500,5200,2026-04-23
+Logistics Coordinator,Kuala Lumpur,senior,6500,10000,8200,2026-04-23
+Logistics Manager,Kuala Lumpur,mid,6000,10000,8000,2026-04-23
+Logistics Manager,Kuala Lumpur,senior,10000,15000,12500,2026-04-23
+Machine Learning Engineer,Kuala Lumpur,junior,6000,9000,7500,2026-04-23
+Machine Learning Engineer,Kuala Lumpur,mid,9000,15000,12000,2026-04-23
+Machine Learning Engineer,Kuala Lumpur,senior,15000,22000,18500,2026-04-23
+Maintenance Manager,Kuala Lumpur,mid,5500,9000,7200,2026-04-23
+Maintenance Manager,Kuala Lumpur,senior,9000,14000,11500,2026-04-23
+Management Accountant,Kuala Lumpur,junior,4000,6000,5000,2026-04-23
+Management Accountant,Kuala Lumpur,mid,6000,9500,7800,2026-04-23
+Management Accountant,Kuala Lumpur,senior,9500,14000,11800,2026-04-23
+Manufacturing Engineer,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Manufacturing Engineer,Kuala Lumpur,mid,5500,9000,7200,2026-04-23
+Manufacturing Engineer,Kuala Lumpur,senior,9000,14000,11500,2026-04-23
+Market Research Analyst,Kuala Lumpur,junior,3000,4800,3900,2026-04-23
+Market Research Analyst,Kuala Lumpur,mid,4800,7500,6200,2026-04-23
+Market Research Analyst,Kuala Lumpur,senior,7500,12000,9800,2026-04-23
+Marketing Coordinator,Kuala Lumpur,junior,2800,4200,3500,2026-04-23
+Marketing Coordinator,Kuala Lumpur,mid,4200,6500,5400,2026-04-23
+Marketing Director,Kuala Lumpur,lead,15000,28000,21000,2026-04-23
+Marketing Executive,Kuala Lumpur,junior,2800,4500,3600,2026-04-23
+Marketing Executive,Kuala Lumpur,mid,4500,7000,5800,2026-04-23
+Materials Engineer,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Materials Engineer,Kuala Lumpur,mid,5500,9000,7200,2026-04-23
+Materials Engineer,Kuala Lumpur,senior,9000,14000,11500,2026-04-23
+Mechanical Engineer,Kuala Lumpur,junior,3200,5200,4200,2026-04-23
+Mechanical Engineer,Kuala Lumpur,mid,5200,8800,7000,2026-04-23
+Mechanical Engineer,Kuala Lumpur,senior,8800,14500,11600,2026-04-23
+Media Planner,Kuala Lumpur,junior,3000,4800,3900,2026-04-23
+Media Planner,Kuala Lumpur,mid,4800,7500,6200,2026-04-23
+Media Planner,Kuala Lumpur,senior,7500,11000,9200,2026-04-23
+Medical Laboratory Scientist,Kuala Lumpur,junior,3000,4500,3800,2026-04-23
+Medical Laboratory Scientist,Kuala Lumpur,mid,4500,7000,5800,2026-04-23
+Medical Laboratory Scientist,Kuala Lumpur,senior,7000,10000,8500,2026-04-23
+Medical Officer,Kuala Lumpur,junior,5000,7000,6000,2026-04-23
+Medical Officer,Kuala Lumpur,mid,7000,11000,9000,2026-04-23
+Medical Officer,Kuala Lumpur,senior,11000,16000,13500,2026-04-23
+Mobile Developer,Kuala Lumpur,junior,4000,6500,5200,2026-04-23
+Mobile Developer,Kuala Lumpur,mid,6500,10500,8500,2026-04-23
+Mobile Developer,Kuala Lumpur,senior,10500,16000,13200,2026-04-23
+Multimedia Designer,Kuala Lumpur,junior,2800,4200,3500,2026-04-23
+Multimedia Designer,Kuala Lumpur,mid,4200,6500,5400,2026-04-23
+Multimedia Designer,Kuala Lumpur,senior,6500,10000,8200,2026-04-23
+Network Administrator,Kuala Lumpur,junior,2800,4500,3600,2026-04-23
+Network Administrator,Kuala Lumpur,mid,4500,7500,6000,2026-04-23
+Network Administrator,Kuala Lumpur,senior,7500,11000,9200,2026-04-23
+Network Engineer,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Network Engineer,Kuala Lumpur,mid,5500,9000,7200,2026-04-23
+Network Engineer,Kuala Lumpur,senior,9000,14000,11500,2026-04-23
+Nurse (Registered),Kuala Lumpur,junior,2500,3800,3200,2026-04-23
+Nurse (Registered),Kuala Lumpur,mid,3800,6000,4900,2026-04-23
+Nurse (Registered),Kuala Lumpur,senior,6000,8500,7200,2026-04-23
+Nursery Manager,Kuala Lumpur,mid,4000,6500,5200,2026-04-23
+Nursery Manager,Kuala Lumpur,senior,6500,9500,8000,2026-04-23
+Nutritionist,Kuala Lumpur,junior,2800,4200,3500,2026-04-23
+Nutritionist,Kuala Lumpur,mid,4200,6500,5400,2026-04-23
+Nutritionist,Kuala Lumpur,senior,6500,9500,8000,2026-04-23
+Office Administrator,Kuala Lumpur,junior,2500,3800,3200,2026-04-23
+Office Administrator,Kuala Lumpur,mid,3800,5800,4800,2026-04-23
+Office Manager,Kuala Lumpur,mid,4500,7000,5800,2026-04-23
+Office Manager,Kuala Lumpur,senior,7000,10000,8500,2026-04-23
+Operations Manager,Kuala Lumpur,mid,7000,12000,9500,2026-04-23
+Operations Manager,Kuala Lumpur,senior,12000,18000,15000,2026-04-23
+Optometrist,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Optometrist,Kuala Lumpur,mid,5500,8500,7000,2026-04-23
+Optometrist,Kuala Lumpur,senior,8500,12000,10200,2026-04-23
+Organization Development Specialist,Kuala Lumpur,mid,6000,10000,8000,2026-04-23
+Organization Development Specialist,Kuala Lumpur,senior,10000,15000,12500,2026-04-23
+Packaging Engineer,Kuala Lumpur,junior,3200,5000,4100,2026-04-23
+Packaging Engineer,Kuala Lumpur,mid,5000,8000,6500,2026-04-23
+Packaging Engineer,Kuala Lumpur,senior,8000,12000,10000,2026-04-23
+Paralegal,Kuala Lumpur,junior,2500,3800,3200,2026-04-23
+Paralegal,Kuala Lumpur,mid,3800,6000,4900,2026-04-23
+Paralegal,Kuala Lumpur,senior,6000,9000,7500,2026-04-23
+Payroll Specialist,Kuala Lumpur,junior,2800,4200,3500,2026-04-23
+Payroll Specialist,Kuala Lumpur,mid,4200,6500,5400,2026-04-23
+Payroll Specialist,Kuala Lumpur,senior,6500,9500,8000,2026-04-23
+Performance Marketing Specialist,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Performance Marketing Specialist,Kuala Lumpur,mid,5500,9000,7200,2026-04-23
+Performance Marketing Specialist,Kuala Lumpur,senior,9000,14000,11500,2026-04-23
+Pharmacist,Kuala Lumpur,junior,4000,6000,5000,2026-04-23
+Pharmacist,Kuala Lumpur,mid,6000,9000,7500,2026-04-23
+Pharmacist,Kuala Lumpur,senior,9000,13000,11000,2026-04-23
+Physiotherapist,Kuala Lumpur,junior,3000,4500,3800,2026-04-23
+Physiotherapist,Kuala Lumpur,mid,4500,7000,5800,2026-04-23
+Physiotherapist,Kuala Lumpur,senior,7000,10000,8500,2026-04-23
+Plant Engineer,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Plant Engineer,Kuala Lumpur,mid,5500,9000,7200,2026-04-23
+Plant Engineer,Kuala Lumpur,senior,9000,14000,11500,2026-04-23
+Policy Analyst,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Policy Analyst,Kuala Lumpur,mid,5500,8500,7000,2026-04-23
+Policy Analyst,Kuala Lumpur,senior,8500,13000,10800,2026-04-23
+Product Designer,Kuala Lumpur,junior,4000,6000,5000,2026-04-23
+Product Designer,Kuala Lumpur,mid,6000,10000,8000,2026-04-23
+Product Designer,Kuala Lumpur,senior,10000,15000,12500,2026-04-23
+Product Owner,Kuala Lumpur,mid,8000,13000,10500,2026-04-23
+Product Owner,Kuala Lumpur,senior,13000,20000,16500,2026-04-23
+Production Manager,Kuala Lumpur,mid,6000,10000,8000,2026-04-23
+Production Manager,Kuala Lumpur,senior,10000,15000,12500,2026-04-23
+Project Coordinator,Kuala Lumpur,junior,3000,4500,3800,2026-04-23
+Project Coordinator,Kuala Lumpur,mid,4500,7000,5800,2026-04-23
+Project Coordinator,Kuala Lumpur,senior,7000,10000,8500,2026-04-23
+Project Engineer,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Project Engineer,Kuala Lumpur,mid,5500,9000,7200,2026-04-23
+Project Engineer,Kuala Lumpur,senior,9000,14000,11500,2026-04-23
+Project Manager (Construction),Kuala Lumpur,mid,7000,12000,9500,2026-04-23
+Project Manager (Construction),Kuala Lumpur,senior,12000,18000,15000,2026-04-23
+Property Agent,Kuala Lumpur,junior,2000,3500,2800,2026-04-23
+Property Agent,Kuala Lumpur,mid,3500,6000,4800,2026-04-23
+Property Agent,Kuala Lumpur,senior,6000,10000,8000,2026-04-23
+Property Manager,Kuala Lumpur,mid,5000,8000,6500,2026-04-23
+Property Manager,Kuala Lumpur,senior,8000,12000,10000,2026-04-23
+Psychologist,Kuala Lumpur,junior,4000,6000,5000,2026-04-23
+Psychologist,Kuala Lumpur,mid,6000,9500,7800,2026-04-23
+Psychologist,Kuala Lumpur,senior,9500,14000,11800,2026-04-23
+Public Relations Manager,Kuala Lumpur,mid,6500,11000,8800,2026-04-23
+Public Relations Manager,Kuala Lumpur,senior,11000,17000,14000,2026-04-23
+Public Relations Specialist,Kuala Lumpur,junior,3000,4800,3900,2026-04-23
+Public Relations Specialist,Kuala Lumpur,mid,4800,7500,6200,2026-04-23
+Public Relations Specialist,Kuala Lumpur,senior,7500,11000,9200,2026-04-23
+Purchasing Manager,Kuala Lumpur,mid,6000,10000,8000,2026-04-23
+Purchasing Manager,Kuala Lumpur,senior,10000,15000,12500,2026-04-23
+Quality Assurance Engineer,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Quality Assurance Engineer,Kuala Lumpur,mid,5500,9000,7200,2026-04-23
+Quality Assurance Engineer,Kuala Lumpur,senior,9000,14000,11500,2026-04-23
+Quality Assurance Tester,Kuala Lumpur,junior,2800,4200,3500,2026-04-23
+Quality Assurance Tester,Kuala Lumpur,mid,4200,6500,5400,2026-04-23
+Quality Assurance Tester,Kuala Lumpur,senior,6500,10000,8200,2026-04-23
+Quantity Surveyor,Kuala Lumpur,junior,3000,4800,3900,2026-04-23
+Quantity Surveyor,Kuala Lumpur,mid,4800,7500,6200,2026-04-23
+Quantity Surveyor,Kuala Lumpur,senior,7500,12000,9800,2026-04-23
+R&D Engineer,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+R&D Engineer,Kuala Lumpur,mid,5500,9000,7200,2026-04-23
+R&D Engineer,Kuala Lumpur,senior,9000,14000,11500,2026-04-23
+Radio Frequency Engineer,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Radio Frequency Engineer,Kuala Lumpur,mid,5500,9000,7200,2026-04-23
+Radio Frequency Engineer,Kuala Lumpur,senior,9000,14000,11500,2026-04-23
+Real Estate Analyst,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Real Estate Analyst,Kuala Lumpur,mid,5500,8500,7000,2026-04-23
+Real Estate Analyst,Kuala Lumpur,senior,8500,13000,10800,2026-04-23
+Recruitment Consultant,Kuala Lumpur,junior,3000,4800,3900,2026-04-23
+Recruitment Consultant,Kuala Lumpur,mid,4800,7500,6200,2026-04-23
+Recruitment Consultant,Kuala Lumpur,senior,7500,11000,9200,2026-04-23
+Recruitment Manager,Kuala Lumpur,mid,6500,11000,8800,2026-04-23
+Recruitment Manager,Kuala Lumpur,senior,11000,16000,13500,2026-04-23
+Regulatory Affairs Specialist,Kuala Lumpur,junior,4000,6000,5000,2026-04-23
+Regulatory Affairs Specialist,Kuala Lumpur,mid,6000,9500,7800,2026-04-23
+Regulatory Affairs Specialist,Kuala Lumpur,senior,9500,14000,11800,2026-04-23
+Remedial Teacher,Kuala Lumpur,junior,2500,3800,3200,2026-04-23
+Remedial Teacher,Kuala Lumpur,mid,3800,5500,4600,2026-04-23
+Remedial Teacher,Kuala Lumpur,senior,5500,8000,6800,2026-04-23
+Research & Development Manager,Kuala Lumpur,mid,8000,13000,10500,2026-04-23
+Research & Development Manager,Kuala Lumpur,senior,13000,20000,16500,2026-04-23
+Research Scientist,Kuala Lumpur,junior,4000,6000,5000,2026-04-23
+Research Scientist,Kuala Lumpur,mid,6000,10000,8000,2026-04-23
+Research Scientist,Kuala Lumpur,senior,10000,15000,12500,2026-04-23
+Restaurant Manager,Kuala Lumpur,mid,4000,6500,5200,2026-04-23
+Restaurant Manager,Kuala Lumpur,senior,6500,10000,8200,2026-04-23
+Retail Manager,Kuala Lumpur,mid,4500,7500,6000,2026-04-23
+Retail Manager,Kuala Lumpur,senior,7500,11000,9200,2026-04-23
+Retail Sales Associate,Kuala Lumpur,junior,1800,2800,2300,2026-04-23
+Retail Sales Associate,Kuala Lumpur,mid,2800,4000,3400,2026-04-23
+Risk Analyst,Kuala Lumpur,junior,4000,6000,5000,2026-04-23
+Risk Analyst,Kuala Lumpur,mid,6000,10000,8000,2026-04-23
+Risk Analyst,Kuala Lumpur,senior,10000,15000,12500,2026-04-23
+Risk Manager,Kuala Lumpur,mid,8000,13000,10500,2026-04-23
+Risk Manager,Kuala Lumpur,senior,13000,20000,16500,2026-04-23
+Robotics Engineer,Kuala Lumpur,junior,4500,7000,5800,2026-04-23
+Robotics Engineer,Kuala Lumpur,mid,7000,12000,9500,2026-04-23
+Robotics Engineer,Kuala Lumpur,senior,12000,18000,15000,2026-04-23
+Safety Engineer,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Safety Engineer,Kuala Lumpur,mid,5500,9000,7200,2026-04-23
+Safety Engineer,Kuala Lumpur,senior,9000,14000,11500,2026-04-23
+Sales Director,Kuala Lumpur,lead,15000,30000,22000,2026-04-23
+Sales Executive,Kuala Lumpur,junior,2500,4000,3200,2026-04-23
+Sales Executive,Kuala Lumpur,mid,4000,6500,5200,2026-04-23
+Sales Representative,Kuala Lumpur,junior,2000,3500,2800,2026-04-23
+Sales Representative,Kuala Lumpur,mid,3500,5500,4500,2026-04-23
+Salesforce Administrator,Kuala Lumpur,junior,4000,6500,5200,2026-04-23
+Salesforce Administrator,Kuala Lumpur,mid,6500,10500,8500,2026-04-23
+Salesforce Administrator,Kuala Lumpur,senior,10500,16000,13200,2026-04-23
+Scrum Master,Kuala Lumpur,mid,7000,12000,9500,2026-04-23
+Scrum Master,Kuala Lumpur,senior,12000,18000,15000,2026-04-23
+Security Architect,Kuala Lumpur,mid,12000,18000,15000,2026-04-23
+Security Architect,Kuala Lumpur,senior,18000,25000,21500,2026-04-23
+SEO Specialist,Kuala Lumpur,junior,3000,4800,3900,2026-04-23
+SEO Specialist,Kuala Lumpur,mid,4800,7500,6200,2026-04-23
+SEO Specialist,Kuala Lumpur,senior,7500,11000,9200,2026-04-23
+Site Supervisor (Construction),Kuala Lumpur,junior,2800,4200,3500,2026-04-23
+Site Supervisor (Construction),Kuala Lumpur,mid,4200,6500,5400,2026-04-23
+Site Supervisor (Construction),Kuala Lumpur,senior,6500,9000,7800,2026-04-23
+Social Media Manager,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Social Media Manager,Kuala Lumpur,mid,5500,9000,7200,2026-04-23
+Social Media Manager,Kuala Lumpur,senior,9000,13000,11000,2026-04-23
+Software Architect,Kuala Lumpur,senior,15000,24000,19500,2026-04-23
+Software Architect,Kuala Lumpur,lead,20000,32000,26000,2026-04-23
+Software Tester,Kuala Lumpur,junior,2800,4200,3500,2026-04-23
+Software Tester,Kuala Lumpur,mid,4200,7000,5600,2026-04-23
+Software Tester,Kuala Lumpur,senior,7000,11000,9000,2026-04-23
+Sourcing Specialist,Kuala Lumpur,junior,3000,4800,3900,2026-04-23
+Sourcing Specialist,Kuala Lumpur,mid,4800,7500,6200,2026-04-23
+Sourcing Specialist,Kuala Lumpur,senior,7500,11000,9200,2026-04-23
+Speech Therapist,Kuala Lumpur,junior,3000,4800,3900,2026-04-23
+Speech Therapist,Kuala Lumpur,mid,4800,7500,6200,2026-04-23
+Speech Therapist,Kuala Lumpur,senior,7500,11000,9200,2026-04-23
+SQL Developer,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+SQL Developer,Kuala Lumpur,mid,5500,9000,7200,2026-04-23
+SQL Developer,Kuala Lumpur,senior,9000,14000,11500,2026-04-23
+Statistician,Kuala Lumpur,junior,4000,6000,5000,2026-04-23
+Statistician,Kuala Lumpur,mid,6000,10000,8000,2026-04-23
+Statistician,Kuala Lumpur,senior,10000,15000,12500,2026-04-23
+Strategic Planner,Kuala Lumpur,mid,7000,12000,9500,2026-04-23
+Strategic Planner,Kuala Lumpur,senior,12000,18000,15000,2026-04-23
+Supply Chain Analyst,Kuala Lumpur,junior,3200,5000,4100,2026-04-23
+Supply Chain Analyst,Kuala Lumpur,mid,5000,8000,6500,2026-04-23
+Supply Chain Analyst,Kuala Lumpur,senior,8000,12000,10000,2026-04-23
+Supply Chain Manager,Kuala Lumpur,mid,7000,12000,9500,2026-04-23
+Supply Chain Manager,Kuala Lumpur,senior,12000,18000,15000,2026-04-23
+Systems Administrator,Kuala Lumpur,junior,3000,4800,3900,2026-04-23
+Systems Administrator,Kuala Lumpur,mid,4800,7500,6200,2026-04-23
+Systems Administrator,Kuala Lumpur,senior,7500,11000,9200,2026-04-23
+Systems Analyst,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Systems Analyst,Kuala Lumpur,mid,5500,9000,7200,2026-04-23
+Systems Analyst,Kuala Lumpur,senior,9000,14000,11500,2026-04-23
+Tax Accountant,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Tax Accountant,Kuala Lumpur,mid,5500,9000,7200,2026-04-23
+Tax Accountant,Kuala Lumpur,senior,9000,14000,11500,2026-04-23
+Tax Manager,Kuala Lumpur,mid,8000,13000,10500,2026-04-23
+Tax Manager,Kuala Lumpur,senior,13000,20000,16500,2026-04-23
+Teacher (Primary),Kuala Lumpur,junior,2500,3800,3200,2026-04-23
+Teacher (Primary),Kuala Lumpur,mid,3800,6000,4900,2026-04-23
+Teacher (Primary),Kuala Lumpur,senior,6000,8500,7200,2026-04-23
+Teacher (Secondary),Kuala Lumpur,junior,2500,4000,3200,2026-04-23
+Teacher (Secondary),Kuala Lumpur,mid,4000,6500,5200,2026-04-23
+Teacher (Secondary),Kuala Lumpur,senior,6500,9500,8000,2026-04-23
+Technical Support Engineer,Kuala Lumpur,junior,3000,4800,3900,2026-04-23
+Technical Support Engineer,Kuala Lumpur,mid,4800,7500,6200,2026-04-23
+Technical Support Engineer,Kuala Lumpur,senior,7500,11000,9200,2026-04-23
+Technical Writer,Kuala Lumpur,junior,3000,4800,3900,2026-04-23
+Technical Writer,Kuala Lumpur,mid,4800,7500,6200,2026-04-23
+Technical Writer,Kuala Lumpur,senior,7500,11000,9200,2026-04-23
+Telemarketer,Kuala Lumpur,junior,1800,2800,2300,2026-04-23
+Telemarketer,Kuala Lumpur,mid,2800,4000,3400,2026-04-23
+Telemarketing Manager,Kuala Lumpur,mid,5000,8000,6500,2026-04-23
+Telemarketing Manager,Kuala Lumpur,senior,8000,12000,10000,2026-04-23
+Training Specialist,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Training Specialist,Kuala Lumpur,mid,5500,8500,7000,2026-04-23
+Training Specialist,Kuala Lumpur,senior,8500,13000,10800,2026-04-23
+Translator,Kuala Lumpur,junior,2500,4000,3200,2026-04-23
+Translator,Kuala Lumpur,mid,4000,6500,5200,2026-04-23
+Translator,Kuala Lumpur,senior,6500,9500,8000,2026-04-23
+Travel Consultant,Kuala Lumpur,junior,2200,3200,2700,2026-04-23
+Travel Consultant,Kuala Lumpur,mid,3200,5000,4100,2026-04-23
+Travel Consultant,Kuala Lumpur,senior,5000,7500,6200,2026-04-23
+UI Designer,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+UI Designer,Kuala Lumpur,mid,5500,9000,7200,2026-04-23
+UI Designer,Kuala Lumpur,senior,9000,14000,11500,2026-04-23
+UI/UX Designer,Kuala Lumpur,junior,4000,6500,5200,2026-04-23
+UI/UX Designer,Kuala Lumpur,mid,6500,11000,8800,2026-04-23
+UI/UX Designer,Kuala Lumpur,senior,11000,17000,14000,2026-04-23
+Underwriter (General Insurance),Kuala Lumpur,junior,3200,5000,4100,2026-04-23
+Underwriter (General Insurance),Kuala Lumpur,mid,5000,8000,6500,2026-04-23
+Underwriter (General Insurance),Kuala Lumpur,senior,8000,12000,10000,2026-04-23
+UX Researcher,Kuala Lumpur,junior,4000,6000,5000,2026-04-23
+UX Researcher,Kuala Lumpur,mid,6000,10000,8000,2026-04-23
+UX Researcher,Kuala Lumpur,senior,10000,15000,12500,2026-04-23
+Validation Engineer,Kuala Lumpur,junior,3500,5500,4500,2026-04-23
+Validation Engineer,Kuala Lumpur,mid,5500,9000,7200,2026-04-23
+Validation Engineer,Kuala Lumpur,senior,9000,14000,11500,2026-04-23
+Veterinarian,Kuala Lumpur,junior,4000,6500,5200,2026-04-23
+Veterinarian,Kuala Lumpur,mid,6500,11000,8800,2026-04-23
+Veterinarian,Kuala Lumpur,senior,11000,17000,14000,2026-04-23
+Video Editor,Kuala Lumpur,junior,2500,4000,3200,2026-04-23
+Video Editor,Kuala Lumpur,mid,4000,6500,5200,2026-04-23
+Video Editor,Kuala Lumpur,senior,6500,10000,8200,2026-04-23
+Virtual Assistant,Kuala Lumpur,junior,1800,2800,2300,2026-04-23
+Virtual Assistant,Kuala Lumpur,mid,2800,4200,3500,2026-04-23
+Virtual Assistant,Kuala Lumpur,senior,4200,6000,5100,2026-04-23
+Warehouse Manager,Kuala Lumpur,mid,5000,8000,6500,2026-04-23
+Warehouse Manager,Kuala Lumpur,senior,8000,12000,10000,2026-04-23
+Warehouse Supervisor,Kuala Lumpur,junior,2800,4200,3500,2026-04-23
+Warehouse Supervisor,Kuala Lumpur,mid,4200,6500,5400,2026-04-23
+Warehouse Supervisor,Kuala Lumpur,senior,6500,9000,7800,2026-04-23
+Web Designer,Kuala Lumpur,junior,2800,4200,3500,2026-04-23
+Web Designer,Kuala Lumpur,mid,4200,7000,5600,2026-04-23
+Web Designer,Kuala Lumpur,senior,7000,11000,9000,2026-04-23
+Web Developer,Kuala Lumpur,junior,3000,4800,3900,2026-04-23
+Web Developer,Kuala Lumpur,mid,4800,8000,6400,2026-04-23
+Web Developer,Kuala Lumpur,senior,8000,12000,10000,2026-04-23
+WordPress Developer,Kuala Lumpur,junior,2800,4200,3500,2026-04-23
+WordPress Developer,Kuala Lumpur,mid,4200,6500,5400,2026-04-23
+WordPress Developer,Kuala Lumpur,senior,6500,10000,8200,2026-04-23

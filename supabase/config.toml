@@ -1,0 +1,77 @@
+# Supabase CLI configuration for the BoLe project.
+# Docs: https://supabase.com/docs/guides/cli/config
+
+project_id = "bole"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage"]
+extra_search_path = ["public", "extensions"]
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+file_size_limit = "10MiB"
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = [
+  "http://localhost:3000",
+  "http://localhost:3000/auth/callback",
+  "https://staging.diamondandjeweler.com",
+  "https://staging.diamondandjeweler.com/auth/callback",
+  "https://diamondandjeweler.com",
+  "https://diamondandjeweler.com/auth/callback",
+]
+jwt_expiry = 3600
+enable_signup = true
+enable_anonymous_sign_ins = false
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = true
+
+[edge_runtime]
+enabled = true
+policy = "oneshot"
+inspector_port = 8083
+
+# Edge Functions. Each function runs its own strict JWT + role check via
+# supabase/functions/_shared/auth.ts, so we disable Supabase's outer
+# verify_jwt gate — it would otherwise block legitimate cron calls that use
+# the service-role key (not a user JWT).
+[functions.match-generate]
+verify_jwt = false
+
+[functions.match-expire]
+verify_jwt = false
+
+[functions.notify]
+verify_jwt = false
+
+[functions.invite-hm]
+verify_jwt = false
+
+[functions.data-retention]
+verify_jwt = false
+
+[functions.dsr-export]
+verify_jwt = false
+
+[functions.dsr-apply-correction]
+verify_jwt = false

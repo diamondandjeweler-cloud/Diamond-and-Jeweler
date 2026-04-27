@@ -1,0 +1,185 @@
+{
+  "common": {
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "signUp": "Create an account",
+    "back": "Back",
+    "save": "Save",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "continue": "Continue",
+    "loading": "Loading…",
+    "language": "Language"
+  },
+  "nav": {
+    "home": "Home",
+    "myOffers": "My offers",
+    "profile": "Profile",
+    "candidates": "Candidates",
+    "myRoles": "My roles",
+    "postRole": "Post role",
+    "scheduling": "Scheduling",
+    "inviteHm": "Invite HM",
+    "admin": "Admin",
+    "restaurant": "Restaurant"
+  },
+  "landing": {
+    "pilot": "Malaysia · Pilot",
+    "title": "Which side are you on?",
+    "subtitle": "Pick one. We'll take it from there.",
+    "talent": "I'm a talent",
+    "talentDesc": "Looking for a role. Get three curated offers — no applications.",
+    "hiring": "I'm hiring",
+    "hiringDesc": "Looking for talent. Three curated candidates — no résumé pile.",
+    "haveAccount": "Already have an account?"
+  },
+  "consent": {
+    "title": "Data Processing Consent and Waiver",
+    "subtitle": "We need your explicit consent before we can match you. Please read carefully.",
+    "agreeLabel": "I have read and agree to the consent and waiver above.",
+    "agreeButton": "I agree — continue",
+    "saving": "Saving…",
+    "errorRequired": "Tick the box to continue."
+  },
+  "match": {
+    "score": "Match {{score}}%",
+    "strengths": "Strengths",
+    "watchouts": "Watch-outs",
+    "matchedTraits": "Matched traits",
+    "missingTraits": "Trait gaps",
+    "scoreBand": {
+      "strong": "Strong match",
+      "good": "Good match",
+      "cautious": "Cautious match"
+    }
+  },
+  "feedback": {
+    "title": "Rate this interview",
+    "ratingLabel": "How was your experience? (1–5 stars)",
+    "commentLabel": "Anything we should know?",
+    "submitted": "Thanks — we awarded {{points}} points.",
+    "alreadySubmitted": "You've already submitted feedback."
+  },
+  "referral": {
+    "title": "Invite a friend, earn points",
+    "subtitle": "Share your code. When they finish onboarding, you get {{points}} points.",
+    "yourCode": "Your code",
+    "yourLink": "Share link",
+    "copied": "Copied!",
+    "earned": "{{n}} successful referrals · {{p}} points earned"
+  },
+  "points": {
+    "balance": "Points",
+    "redeem": "Redeem {{cost}} pts for 1 free extra match"
+  },
+  "whatsapp": {
+    "title": "WhatsApp updates",
+    "numberLabel": "WhatsApp number",
+    "optIn": "Send me match updates on WhatsApp",
+    "saved": "WhatsApp preferences saved."
+  },
+  "role": {
+    "employmentType": "Employment type",
+    "fullTime": "Full-time",
+    "partTime": "Part-time",
+    "contract": "Contract",
+    "gig": "Gig / project",
+    "internship": "Internship",
+    "duration": "Duration (days)",
+    "hourlyRate": "Hourly rate (RM)",
+    "startDate": "Start date"
+  },
+  "interview": {
+    "joinMeeting": "Join video meeting",
+    "createMeeting": "Create video meeting",
+    "meetingProvider": "via {{provider}}"
+  },
+  "restaurant": {
+    "title": "Restaurant",
+    "devBadge": "Dev",
+    "tabs": {
+      "overview": "Overview",
+      "kiosk": "Kiosk",
+      "floor": "Floor",
+      "orders": "Orders",
+      "kitchen": "Kitchen",
+      "bar": "Bar",
+      "cashier": "Cashier",
+      "shifts": "Shifts",
+      "inventory": "Inventory",
+      "purchasing": "Purchasing",
+      "staff": "Staff",
+      "accounting": "Accounting",
+      "promotions": "Promotions",
+      "audit": "Audit",
+      "branches": "Branches",
+      "reports": "Reports",
+      "admin": "Admin"
+    },
+    "kiosk": {
+      "outOfStock": "Out",
+      "unavailable": "Unavailable",
+      "add": "Add",
+      "subtotal": "Subtotal",
+      "tax": "Tax",
+      "discount": "Discount",
+      "happyHour": "Happy hour",
+      "coupon": "Coupon",
+      "total": "Total",
+      "checkout": "Checkout",
+      "placing": "Placing order…",
+      "orderPlaced": "Order placed",
+      "orderType": "Order type",
+      "dinein": "Dine-in",
+      "takeaway": "Takeaway",
+      "delivery": "Delivery",
+      "table": "Table",
+      "customerName": "Your name",
+      "customerPhone": "Phone (for loyalty + WhatsApp)",
+      "couponLabel": "Coupon code",
+      "couponApply": "Apply",
+      "couponApplied": "Coupon {{code}} applied.",
+      "emptyCart": "Your cart is empty.",
+      "viewOrders": "View orders",
+      "trackOrder": "Track this order"
+    },
+    "cashier": {
+      "openOrders": "Open orders",
+      "noOrders": "No matching orders",
+      "selectOrder": "Select an order",
+      "selectOrderHint": "Pick an open order from the list to collect payment.",
+      "addItem": "+ Add item",
+      "reorderSame": "Reorder same",
+      "tipQuick": "Tip",
+      "splitBy": "Split by",
+      "splitEqually": "Split equally",
+      "splitByItems": "Split by items",
+      "applyDiscount": "Apply discount",
+      "openShift": "Open shift",
+      "xReport": "X-report",
+      "closeShift": "Close shift (Z-report)",
+      "openingFloat": "Opening float (RM)",
+      "actualCash": "Actual cash in drawer (RM)",
+      "shiftOpened": "Shift opened",
+      "shiftClosed": "Shift closed (Z-report saved)"
+    },
+    "orders": {
+      "filter": {
+        "all": "All",
+        "active": "Active",
+        "closed": "Closed"
+      },
+      "noOrders": "No orders",
+      "noOrdersHint": "Place one from the Kiosk.",
+      "pacingAlert": "Pacing alert",
+      "fireMains": "Fire mains",
+      "fireDesserts": "Fire desserts",
+      "closeOrder": "Close order"
+    },
+    "shifts": {
+      "tipPool": "Distribute tip pool",
+      "tipPoolHint": "Splits the shift's tip total by hours worked + tables served.",
+      "noTips": "No tips collected this shift."
+    }
+  }
+}

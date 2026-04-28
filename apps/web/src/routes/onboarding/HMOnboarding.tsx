@@ -42,9 +42,8 @@ export default function HMOnboarding() {
   const [dob, setDob] = useState('')
   const [gender, setGender] = useState<Gender | ''>('')
   const [dobConsent, setDobConsent] = useState(false)
-  const [afterHoursRequired, setAfterHoursRequired] = useState<boolean | null>(null)
-  const [drivingLicenseRequired, setDrivingLicenseRequired] = useState<boolean | null>(null)
-  const [minQualification, setMinQualification] = useState('')
+  const [mustHaveItems, setMustHaveItems] = useState<string[]>([])
+  const [mustHaveInput, setMustHaveInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
@@ -156,7 +155,7 @@ export default function HMOnboarding() {
             id: nextId(),
             from: 'system',
             content:
-              "Almost done — a couple of quick questions about your candidate requirements, then your date of birth.",
+              "Almost done — tell us your non-negotiable candidate requirements, then your date of birth.",
           },
         ])
         setTimeout(() => setPhase('mustHaves'), 600)
@@ -258,11 +257,7 @@ export default function HMOnboarding() {
           salary_offer_max: extracted.salary_offer_max,
           ai_summary: extracted.summary,
           interview_answers: { transcript: apiMessages },
-          must_haves: {
-            after_hours_contact: afterHoursRequired,
-            driving_license: drivingLicenseRequired,
-            min_qualification: minQualification || null,
-          },
+          must_haves: { items: mustHaveItems },
         })
         .eq('id', hmRow.id)
       if (updateErr) throw updateErr
@@ -371,91 +366,73 @@ export default function HMOnboarding() {
     }
 
     if (phase === 'mustHaves') {
-      const QUALIFICATIONS = [
-        { value: 'none', label: 'No requirement / Any' },
-        { value: 'spm', label: 'SPM' },
-        { value: 'diploma', label: 'Diploma' },
-        { value: 'degree', label: "Bachelor's Degree" },
-        { value: 'masters', label: "Master's" },
-        { value: 'phd', label: 'PhD' },
-      ]
-      const canProceed = afterHoursRequired !== null && drivingLicenseRequired !== null && !!minQualification
+      function addItem() {
+        const t = mustHaveInput.trim()
+        if (!t || mustHaveItems.includes(t)) return
+        setMustHaveItems((prev) => [...prev, t])
+        setMustHaveInput('')
+      }
       return (
-        <div className="space-y-5">
+        <div className="space-y-4">
           <p className="text-sm text-ink-600 leading-relaxed">
-            Set your <strong>non-negotiables</strong>. Candidates who don't meet these will never appear in your matches.
+            List your <strong>non-negotiables</strong> — requirements a candidate must meet.
+            Anyone who doesn't match these will never appear in your results.
+          </p>
+          <p className="text-xs text-ink-400">
+            e.g. "Must have driving licence", "Must be contactable after hours", "Degree required"
           </p>
 
-          {/* After-hours contact */}
-          <div className="space-y-1.5">
-            <label className="block text-sm font-semibold text-ink-800">
-              Must be contactable after working hours? <span className="text-red-500">*</span>
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {([true, false] as const).map((v) => (
-                <button
-                  key={String(v)}
-                  type="button"
-                  onClick={() => setAfterHoursRequired(v)}
-                  className={`border rounded-lg px-3 py-2 text-sm transition-colors ${
-                    afterHoursRequired === v
-                      ? 'bg-brand-500 text-white border-brand-500'
-                      : 'border-ink-200 text-ink-700 hover:bg-ink-50'
-                  }`}
-                >
-                  {v ? 'Yes, required' : 'No, not required'}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Driving license */}
-          <div className="space-y-1.5">
-            <label className="block text-sm font-semibold text-ink-800">
-              Must have a valid driving licence? <span className="text-red-500">*</span>
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {([true, false] as const).map((v) => (
-                <button
-                  key={String(v)}
-                  type="button"
-                  onClick={() => setDrivingLicenseRequired(v)}
-                  className={`border rounded-lg px-3 py-2 text-sm transition-colors ${
-                    drivingLicenseRequired === v
-                      ? 'bg-brand-500 text-white border-brand-500'
-                      : 'border-ink-200 text-ink-700 hover:bg-ink-50'
-                  }`}
-                >
-                  {v ? 'Yes, required' : 'No, not required'}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Min qualification */}
-          <div className="space-y-1.5">
-            <label className="block text-sm font-semibold text-ink-800">
-              Minimum qualification required <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={minQualification}
-              onChange={(e) => setMinQualification(e.target.value)}
-              className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+          {/* Input row */}
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={mustHaveInput}
+              onChange={(e) => setMustHaveInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addItem() } }}
+              placeholder="Type a requirement and press Enter or Add"
+              className="flex-1 border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={addItem}
+              disabled={!mustHaveInput.trim()}
+              className="px-4 py-2 rounded-lg text-sm font-medium bg-brand-500 text-white disabled:opacity-40 hover:bg-brand-600 transition-colors shrink-0"
             >
-              <option value="">Select...</option>
-              {QUALIFICATIONS.map(({ value, label }) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
+              Add
+            </button>
           </div>
+
+          {/* List */}
+          {mustHaveItems.length > 0 && (
+            <ul className="space-y-2">
+              {mustHaveItems.map((item) => (
+                <li key={item} className="flex items-start gap-2 bg-ink-50 border border-ink-200 rounded-lg px-3 py-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-brand-400 shrink-0 mt-1.5" />
+                  <span className="flex-1 text-sm text-ink-800">{item}</span>
+                  <button
+                    type="button"
+                    onClick={() => setMustHaveItems((prev) => prev.filter((i) => i !== item))}
+                    className="text-ink-400 hover:text-red-500 transition-colors shrink-0 text-base leading-none"
+                    aria-label="Remove"
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {mustHaveItems.length === 0 && (
+            <p className="text-xs text-ink-400 text-center py-2">No requirements added yet — you can skip if there are none.</p>
+          )}
 
           <Button
             onClick={() => setPhase('dob')}
-            disabled={!canProceed}
             className="w-full"
             size="lg"
           >
-            Continue
+            {mustHaveItems.length === 0 ? 'Skip — no hard requirements' : 'Continue'}
           </Button>
         </div>
       )

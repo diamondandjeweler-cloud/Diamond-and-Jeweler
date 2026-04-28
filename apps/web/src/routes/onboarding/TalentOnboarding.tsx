@@ -52,11 +52,8 @@ export default function TalentOnboarding() {
   const [religion, setReligion] = useState('')
   const [languages, setLanguages] = useState<string[]>([])
   const [photoFile, setPhotoFile] = useState<File | null>(null)
-  const [minSalary, setMinSalary] = useState<string>('')
-  const [noWorkDays, setNoWorkDays] = useState<string[]>([])
-  const [okayWithAfterHours, setOkayWithAfterHours] = useState<boolean | null>(null)
-  const [hasDrivingLicense, setHasDrivingLicense] = useState<boolean | null>(null)
-  const [highestQualification, setHighestQualification] = useState('')
+  const [dealBreakerItems, setDealBreakerItems] = useState<string[]>([])
+  const [dealBreakerInput, setDealBreakerInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
@@ -352,13 +349,7 @@ export default function TalentOnboarding() {
         uses_lunar_calendar: computeUsesLunarCalendar(race, religion, languages),
         is_open_to_offers: true,
         photo_url: photoPath,
-        has_driving_license: hasDrivingLicense,
-        highest_qualification: highestQualification || null,
-        deal_breakers: {
-          min_salary: minSalary ? parseInt(minSalary, 10) : null,
-          no_work_days: noWorkDays,
-          okay_with_after_hours: okayWithAfterHours,
-        },
+        deal_breakers: { items: dealBreakerItems },
       }).select('id').single()
       if (insErr) throw insErr
       insertedRef.current = true
@@ -696,147 +687,73 @@ export default function TalentOnboarding() {
     }
 
     if (phase === 'dealbreakers') {
-      const DAYS = [
-        { value: 'monday', label: 'Mon' },
-        { value: 'tuesday', label: 'Tue' },
-        { value: 'wednesday', label: 'Wed' },
-        { value: 'thursday', label: 'Thu' },
-        { value: 'friday', label: 'Fri' },
-        { value: 'saturday', label: 'Sat' },
-        { value: 'sunday', label: 'Sun' },
-      ]
-      const QUALIFICATIONS = [
-        { value: 'none', label: 'No requirement' },
-        { value: 'spm', label: 'SPM' },
-        { value: 'diploma', label: 'Diploma' },
-        { value: 'degree', label: "Bachelor's Degree" },
-        { value: 'masters', label: "Master's" },
-        { value: 'phd', label: 'PhD' },
-      ]
-      const canProceed = okayWithAfterHours !== null && hasDrivingLicense !== null && !!highestQualification
+      function addItem() {
+        const t = dealBreakerInput.trim()
+        if (!t || dealBreakerItems.includes(t)) return
+        setDealBreakerItems((prev) => [...prev, t])
+        setDealBreakerInput('')
+      }
       return (
-        <div className="space-y-5">
+        <div className="space-y-4">
           <p className="text-sm text-ink-600 leading-relaxed">
-            Set your hard limits — roles that don't meet these will <strong>never</strong> be shown to you.
+            Tell us your non-negotiables — things you will <strong>not</strong> compromise on.
+            Roles that conflict with these will never be shown to you.
+          </p>
+          <p className="text-xs text-ink-400">
+            e.g. "Minimum RM 8,000 salary", "No weekend work", "Must be hybrid or remote"
           </p>
 
-          {/* Min salary */}
-          <div className="space-y-1.5">
-            <label className="block text-sm font-semibold text-ink-800">
-              Minimum salary (RM / month)
-            </label>
-            <p className="text-xs text-ink-500">Leave blank if flexible.</p>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-ink-500 font-medium">RM</span>
-              <input
-                type="number"
-                min={0}
-                step={500}
-                value={minSalary}
-                onChange={(e) => setMinSalary(e.target.value)}
-                placeholder="e.g. 5000"
-                className="w-full border border-ink-200 rounded-lg pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-              />
-            </div>
-          </div>
-
-          {/* No-work days */}
-          <div className="space-y-1.5">
-            <label className="block text-sm font-semibold text-ink-800">Days I will NOT work</label>
-            <p className="text-xs text-ink-500">Tap to select. Leave all unselected if flexible.</p>
-            <div className="flex gap-2 flex-wrap">
-              {DAYS.map(({ value, label }) => {
-                const active = noWorkDays.includes(value)
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setNoWorkDays((prev) =>
-                      active ? prev.filter((d) => d !== value) : [...prev, value]
-                    )}
-                    className={`border rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                      active
-                        ? 'bg-red-500 text-white border-red-500'
-                        : 'border-ink-200 text-ink-700 hover:bg-ink-50'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* After-hours contact */}
-          <div className="space-y-1.5">
-            <label className="block text-sm font-semibold text-ink-800">
-              Contactable after working hours? <span className="text-red-500">*</span>
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {([true, false] as const).map((v) => (
-                <button
-                  key={String(v)}
-                  type="button"
-                  onClick={() => setOkayWithAfterHours(v)}
-                  className={`border rounded-lg px-3 py-2 text-sm transition-colors ${
-                    okayWithAfterHours === v
-                      ? 'bg-brand-500 text-white border-brand-500'
-                      : 'border-ink-200 text-ink-700 hover:bg-ink-50'
-                  }`}
-                >
-                  {v ? 'Yes, okay with it' : 'No, strictly off-hours'}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Driving license */}
-          <div className="space-y-1.5">
-            <label className="block text-sm font-semibold text-ink-800">
-              Do you have a driving licence? <span className="text-red-500">*</span>
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {([true, false] as const).map((v) => (
-                <button
-                  key={String(v)}
-                  type="button"
-                  onClick={() => setHasDrivingLicense(v)}
-                  className={`border rounded-lg px-3 py-2 text-sm transition-colors ${
-                    hasDrivingLicense === v
-                      ? 'bg-brand-500 text-white border-brand-500'
-                      : 'border-ink-200 text-ink-700 hover:bg-ink-50'
-                  }`}
-                >
-                  {v ? 'Yes' : 'No'}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Qualification */}
-          <div className="space-y-1.5">
-            <label className="block text-sm font-semibold text-ink-800">
-              Highest qualification <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={highestQualification}
-              onChange={(e) => setHighestQualification(e.target.value)}
-              className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+          {/* Input row */}
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={dealBreakerInput}
+              onChange={(e) => setDealBreakerInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addItem() } }}
+              placeholder="Type a requirement and press Enter or Add"
+              className="flex-1 border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={addItem}
+              disabled={!dealBreakerInput.trim()}
+              className="px-4 py-2 rounded-lg text-sm font-medium bg-brand-500 text-white disabled:opacity-40 hover:bg-brand-600 transition-colors shrink-0"
             >
-              <option value="">Select...</option>
-              {QUALIFICATIONS.map(({ value, label }) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
+              Add
+            </button>
           </div>
+
+          {/* List */}
+          {dealBreakerItems.length > 0 && (
+            <ul className="space-y-2">
+              {dealBreakerItems.map((item) => (
+                <li key={item} className="flex items-start gap-2 bg-ink-50 border border-ink-200 rounded-lg px-3 py-2">
+                  <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-red-400 shrink-0 mt-1.5" />
+                  <span className="flex-1 text-sm text-ink-800">{item}</span>
+                  <button
+                    type="button"
+                    onClick={() => setDealBreakerItems((prev) => prev.filter((i) => i !== item))}
+                    className="text-ink-400 hover:text-red-500 transition-colors shrink-0 text-base leading-none"
+                    aria-label="Remove"
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {dealBreakerItems.length === 0 && (
+            <p className="text-xs text-ink-400 text-center py-2">No non-negotiables added yet — you can skip this if you're flexible.</p>
+          )}
 
           <Button
             onClick={() => setPhase('docs')}
-            disabled={!canProceed}
             className="w-full"
             size="lg"
           >
-            Continue
+            {dealBreakerItems.length === 0 ? 'Skip — I\'m flexible' : 'Continue'}
           </Button>
         </div>
       )

@@ -98,7 +98,7 @@ export default function TalentProfile() {
   async function save(e: React.FormEvent) {
     e.preventDefault()
     if (!talent) return
-    setErr(null); setSaved(false); setBusy(true)
+    setErr(null); setWaSaved(false); setBusy(true)
     if (salaryMin > salaryMax) { setErr('Min salary must be ≤ max.'); setBusy(false); return }
 
     const { error } = await supabase.from('talents').update({

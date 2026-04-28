@@ -254,45 +254,10 @@ serve(async (req) => {
       }
     }
 
-    // ── Hard filters: deal-breakers + must-haves ──────────────────────────────
-    type DealBreakers = { min_salary?: number | null; no_work_days?: string[]; okay_with_after_hours?: boolean | null }
-    type MustHaves = { after_hours_contact?: boolean | null; driving_license?: boolean | null; min_qualification?: string | null }
-    const QUAL_LEVEL: Record<string, number> = { none: 0, spm: 1, diploma: 2, degree: 3, masters: 4, phd: 5 }
-
+    // ── Hard filter: deal-breakers (talent) ──────────────────────────────────
+    type DealBreakers = { items?: string[] }
     const dealBreakers = ((t as unknown as { deal_breakers: DealBreakers | null }).deal_breakers) ?? {}
-    const talentHasDrivingLicense = (t as unknown as { has_driving_license: boolean | null }).has_driving_license
-    const talentQual = (t as unknown as { highest_qualification: string | null }).highest_qualification ?? 'none'
-    const mustHaves = ((hm as unknown as { must_haves: MustHaves | null } | null)?.must_haves) ?? {}
-    const roleSalaryMax = (role as unknown as { salary_max: number | null }).salary_max ?? null
-    const roleRequiresWeekend = (role as unknown as { requires_weekend: boolean }).requires_weekend === true
-
-    // 1. Salary floor: talent won't accept less than their minimum
-    if (dealBreakers.min_salary && roleSalaryMax !== null && roleSalaryMax < dealBreakers.min_salary) {
-      return null
-    }
-
-    // 2. Weekend work: talent refuses weekend, role requires it
-    if (roleRequiresWeekend && Array.isArray(dealBreakers.no_work_days)) {
-      const blocksWeekend = dealBreakers.no_work_days.some((d) => d === 'saturday' || d === 'sunday')
-      if (blocksWeekend) return null
-    }
-
-    // 3. Driving licence: HM requires it, talent doesn't have it
-    if (mustHaves.driving_license === true && talentHasDrivingLicense === false) {
-      return null
-    }
-
-    // 4. Qualification: talent's level is below HM's minimum
-    if (mustHaves.min_qualification && mustHaves.min_qualification !== 'none') {
-      const required = QUAL_LEVEL[mustHaves.min_qualification] ?? 0
-      const has = QUAL_LEVEL[talentQual] ?? 0
-      if (has < required) return null
-    }
-
-    // 5. After-hours contact: HM requires it, talent explicitly refused
-    if (mustHaves.after_hours_contact === true && dealBreakers.okay_with_after_hours === false) {
-      return null
-    }
+    const talentDealBreakerItems: string[] = Array.isArray(dealBreakers.items) ? dealBreakers.items : []
     // ─────────────────────────────────────────────────────────────────────────
 
     // ── Internal stage signals for the talent (private). ──
@@ -412,6 +377,10 @@ serve(async (req) => {
       for (const d of dims) effectiveWeights[d.name] = d.weight / totalW
     }
 
+    const mustHaveItems: string[] = Array.isArray((hm as unknown as { must_haves: { items?: string[] } | null } | null)?.must_haves?.items)
+      ? ((hm as unknown as { must_haves: { items: string[] } }).must_haves.items)
+      : []
+
     return {
       talent_id: t.id,
       profile_id: t.profile_id,
@@ -426,6 +395,19 @@ serve(async (req) => {
       finalScore,
       activeWindowBoth: hmInActiveWindow && talentInActiveWindow,
       talentNeedsRamp,
+      mustHaveItems,
+      dealBreakerItems: talentDealBreakerItems,
+      talentBehavioralTags: {
+        ownership:            tags['ownership']            ?? null,
+        communication_clarity: tags['communication_clarity'] ?? null,
+        emotional_maturity:   tags['emotional_maturity']   ?? null,
+        problem_solving:      tags['problem_solving']      ?? null,
+        resilience:           tags['resilience']           ?? null,
+        results_orientation:  tags['results_orientation']  ?? null,
+        professional_attitude: tags['professional_attitude'] ?? null,
+        confidence:           tags['confidence']           ?? null,
+        coachability:         tags['coachability']         ?? null,
+      },
       reasoning: {
         role_traits: roleTraits,
         talent_tag_overlap: overlap,
@@ -483,7 +465,7 @@ serve(async (req) => {
 
   const expiresAt = new Date(Date.now() + 5 * 86400000).toISOString()
   const applicationSummaries = await Promise.all(
-    top.map((s) => generateApplicationSummary(role.title as string, roleTraits, s.aiSummary))
+    top.map((s) => generateApplicationSummary(role.title as string, roleTraits, s.aiSummary, s.mustHaveItems))
   )
   const toInsert = top.map((s, i) => ({
     role_id: body.role_id!,
@@ -545,6 +527,9 @@ interface ScoredCandidate {
   finalScore: number
   activeWindowBoth: boolean
   talentNeedsRamp: boolean
+  mustHaveItems: string[]
+  dealBreakerItems: string[]
+  talentBehavioralTags: Record<string, number | null>
   reasoning: { talent_tag_overlap: Record<string, number>; weight_sum: number }
 }
 
@@ -552,13 +537,17 @@ async function generateApplicationSummary(
   roleTitle: string,
   traits: string[],
   baseAiSummary: string | null,
+  mustHaveItems: string[] = [],
 ): Promise<string | null> {
   if (!baseAiSummary) return null
   const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY')
   if (!anthropicKey) return baseAiSummary
 
   const traitList = traits.length > 0 ? traits.join(', ') : 'general professional skills'
-  const prompt = `You are writing a one-sentence hiring pitch. Write exactly ONE sentence (max 30 words) that explains why a candidate who matches the traits "${traitList}" is a strong fit for the role "${roleTitle}". Be specific to the role title. Recruiter-facing. Confident tone. No personal details. Return only the sentence, nothing else.`
+  const mustHaveSection = mustHaveItems.length > 0
+    ? `\n\nThe hiring manager's non-negotiable requirements are:\n${mustHaveItems.map((i) => `- ${i}`).join('\n')}\nNote: these items were declared by the hiring manager but cannot be verified from the AI profile alone — flag them as items to confirm during the interview.`
+    : ''
+  const prompt = `You are writing a one-sentence hiring pitch. Write exactly ONE sentence (max 30 words) that explains why a candidate who matches the traits "${traitList}" is a strong fit for the role "${roleTitle}". Be specific to the role title. Recruiter-facing. Confident tone. No personal details. Return only the sentence, nothing else.${mustHaveSection}`
 
   try {
     const ac = new AbortController()
@@ -621,12 +610,52 @@ function buildPublicReasoning(s: ScoredCandidate, roleTraits: string[]) {
   if (missingTraits.length > 0) {
     watchouts.push(`Trait gaps to discuss: ${missingTraits.slice(0, 4).join(', ')}.`)
   }
+
+  // Behavioural tag highlights — surface standout scores and red-flag lows.
+  const bt = s.talentBehavioralTags ?? {}
+  const BEHAVIORAL_LABELS: Record<string, string> = {
+    ownership: 'personal accountability',
+    communication_clarity: 'communication clarity',
+    emotional_maturity: 'emotional maturity',
+    problem_solving: 'problem-solving logic',
+    resilience: 'resilience under failure',
+    results_orientation: 'results orientation',
+    professional_attitude: 'professional attitude',
+    confidence: 'confident self-presentation',
+    coachability: 'coachability',
+  }
+  const strongBehavior: string[] = []
+  const weakBehavior: string[] = []
+  for (const [key, label] of Object.entries(BEHAVIORAL_LABELS)) {
+    const score = bt[key]
+    if (score == null) continue
+    if (score >= 0.75) strongBehavior.push(label)
+    else if (score <= 0.35) weakBehavior.push(label)
+  }
+  if (strongBehavior.length > 0) {
+    strengths.push(`Behavioural interview signals strong ${strongBehavior.slice(0, 3).join(', ')}.`)
+  }
+  if (weakBehavior.length > 0) {
+    watchouts.push(`Interview showed weak signals on: ${weakBehavior.slice(0, 3).join(', ')} — probe these.`)
+  }
+
+  // Must-have items the HM declared — flag for interview verification.
+  if (s.mustHaveItems.length > 0) {
+    watchouts.push(`Verify HM's non-negotiables in interview: ${s.mustHaveItems.slice(0, 3).join('; ')}.`)
+  }
+
+  // Talent's own deal-breakers — flag for HM awareness.
+  if (s.dealBreakerItems.length > 0) {
+    watchouts.push(`Talent's non-negotiables (must be honoured): ${s.dealBreakerItems.slice(0, 3).join('; ')}.`)
+  }
+
   return {
     score_band: s.finalScore >= 75 ? 'strong' : s.finalScore >= 50 ? 'good' : 'cautious',
     strengths,
     watchouts,
     matched_traits: matchedTraits,
     missing_traits: missingTraits,
+    behavioral_tags: bt,
     note: 'This explanation summarises platform signals. Final hiring decisions remain yours.',
   }
 }

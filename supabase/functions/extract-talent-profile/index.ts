@@ -44,7 +44,16 @@ Return this exact JSON structure (use null for any value not mentioned):
     "accountable": number,
     "clear_communicator": number,
     "adaptable": number,
-    "leadership": number
+    "leadership": number,
+    "ownership": number,
+    "communication_clarity": number,
+    "emotional_maturity": number,
+    "problem_solving": number,
+    "resilience": number,
+    "results_orientation": number,
+    "professional_attitude": number,
+    "confidence": number,
+    "coachability": number
   },
   "wants_wlb": number,
   "wants_fair_pay": number,
@@ -62,6 +71,16 @@ Rules:
 - key_skills: concrete skills mentioned, not generic traits
 - salary_min / salary_max: numbers only, RM per month. If single number given, use for both.
 - derived_tags: score 0.0–1.0 based on evidence. 0.0 = no evidence, 1.0 = strong explicit evidence.
+  Behavioural assessment tags — score these from their interview answers:
+  · ownership: uses "I/me/my" for their own actions (not "we/they"); takes personal responsibility for outcomes, including failures. Score 0 if they consistently deflect or credit/blame the team.
+  · communication_clarity: answers are structured, specific, and measurable (STAR format). Score 0 if answers are vague, rambling, or generic.
+  · emotional_maturity: calm and professional when discussing conflict, feedback, or difficult managers. Doesn't bad-mouth previous employers. Score 0 if hostile or dismissive.
+  · problem_solving: demonstrates clear analytical framework, states trade-offs, and shows measurable outcomes when solving hard problems. Score 0 if solution steps are absent or illogical.
+  · resilience: owns failures, articulates clear lessons learned, and shows changed behaviour afterward. Score 0 if they deny failure, minimise it, or show no learning arc.
+  · results_orientation: consistently quantifies impact — RM, %, time saved, volume, headcount. Score 0 if answers are entirely activity-based with no outcomes.
+  · professional_attitude: frames past employers and managers positively even when things went wrong. Score 0 if they openly blame, mock, or disparage previous organisations.
+  · confidence: backs strong claims with concrete evidence. Shows conviction without arrogance. Score 0 if they hedge every statement or are unable to state a clear value proposition.
+  · coachability: gives a specific, concrete before/after example of feedback they received and acted on. Score 0 if they cannot give a real example ("I'm always open to feedback" with no story = 0).
 - wants_* tags: infer from what candidate said they value. 0.0–1.0. wants_team_culture reflects how much they value camaraderie, close teamwork, and a collaborative environment.
 - summary: 2-sentence recruiter-facing summary of career background and strengths only — no personal details.
 - DO NOT include name, phone, email, company names, or any personal identifiers in the output.

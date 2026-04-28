@@ -152,7 +152,7 @@ function navForRole(role: string | undefined, pathname: string) {
   const restaurant = linkFor('/restaurant', 'Restaurant', 'DEV')
   if (role === 'talent') return [
     linkFor('/home', 'My offers'),
-    linkFor('/profile', 'Profile'),
+    linkFor('/talent/profile', 'Profile'),
   ]
   if (role === 'hiring_manager') return [
     linkFor('/hm', 'Candidates'),

@@ -10,6 +10,8 @@ export default function SignUp() {
   const [params] = useSearchParams()
   const referralCode = (params.get('ref') ?? '').toUpperCase().slice(0, 16)
   const role = (params.get('role') === 'hr_admin' ? 'hr_admin' : 'talent') as 'talent' | 'hr_admin'
+  const isHiring = role === 'hr_admin'
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
@@ -65,24 +67,49 @@ export default function SignUp() {
 
   return (
     <AuthShell
-      title="Create your account"
-      subtitle={role === 'talent' ? "Find your next role through curated matches." : "Hiring managers are added by invitation from their HR contact."}
+      variant={isHiring ? 'hiring' : 'talent'}
+      title={isHiring ? 'Create your company account' : 'Create your account'}
+      subtitle={
+        isHiring
+          ? 'Set up your HR admin account to start receiving AI-matched talent.'
+          : 'Find your next role through curated AI matches.'
+      }
       footer={
-        <>Already have an account? <Link to="/login" className="font-medium text-brand-700 hover:text-brand-800">Sign in</Link></>
+        <>Already have an account?{' '}
+          <Link to="/login" className="font-medium hover:opacity-80 transition-opacity"
+            style={{ color: isHiring ? '#3b82f6' : '#c9a84c' }}>
+            Sign in
+          </Link>
+        </>
       }
     >
       <div className="space-y-4">
         {referralCode && (
-          <div className="rounded-lg bg-brand-50 border border-brand-200 px-3 py-2 text-xs text-brand-800">
-            Referred by code <span className="font-mono font-semibold">{referralCode}</span> — your friend earns points when you finish onboarding.
+          <div
+            className="rounded-lg px-3 py-2 text-xs"
+            style={{
+              backgroundColor: isHiring ? 'rgba(59,130,246,0.08)' : 'rgba(201,168,76,0.08)',
+              border: `1px solid ${isHiring ? 'rgba(59,130,246,0.25)' : 'rgba(201,168,76,0.25)'}`,
+              color: isHiring ? '#3b82f6' : '#b8860b',
+            }}
+          >
+            Referred by code{' '}
+            <span className="font-mono font-semibold">{referralCode}</span>
+            {' '}— your friend earns points when you finish onboarding.
           </div>
         )}
 
+        {/* Google button */}
         <button
           type="button"
           onClick={handleGoogleSignUp}
           disabled={busy}
-          className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-lg border border-ink-200 bg-white text-ink-800 text-sm font-medium hover:bg-ink-50 hover:border-ink-300 transition-all shadow-soft disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all shadow-sm disabled:opacity-50"
+          style={{
+            borderColor: 'rgba(0,0,0,0.12)',
+            backgroundColor: '#fff',
+            color: '#1a1a2e',
+          }}
         >
           <GoogleIcon />
           Continue with Google
@@ -90,7 +117,8 @@ export default function SignUp() {
 
         <p className="text-center text-[11px] text-ink-400 leading-relaxed -mt-1">
           By continuing, you agree to our{' '}
-          <Link to="/terms" className="underline hover:text-ink-700">Terms</Link> and consent to AI-powered compatibility analysis of your data.
+          <Link to="/terms" className="underline hover:text-ink-700">Terms</Link>{' '}
+          and consent to AI-powered compatibility analysis of your data.
         </p>
 
         <div className="relative flex items-center gap-3">
@@ -100,35 +128,93 @@ export default function SignUp() {
         </div>
 
         <form onSubmit={handleSubmit} method="post" className="space-y-4">
-          <Input label="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} required autoComplete="name" />
-          <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
-          <PasswordInput label="Password" hint="At least 8 characters." value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} autoComplete="new-password" />
+          <Input
+            label={isHiring ? 'Your full name' : 'Full name'}
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            required
+            autoComplete="name"
+          />
+          <Input
+            label="Work email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+          />
+          <PasswordInput
+            label="Password"
+            hint="At least 8 characters."
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            minLength={8}
+            autoComplete="new-password"
+          />
 
           <div className="space-y-3 pt-4 border-t border-ink-100">
-            <div className="text-xs text-ink-500 uppercase tracking-wide font-medium">Consents</div>
-            <Consent
-              checked={consents.dob}
-              onChange={(v) => setConsents((c) => ({ ...c, dob: v }))}
-              label="I consent to DNJ collecting my personal data to power advanced AI-driven compatibility analysis. All data is fully encrypted and never disclosed to employers."
-              required
-            />
-            <Consent
-              checked={consents.market}
-              onChange={(v) => setConsents((c) => ({ ...c, market: v }))}
-              label="I consent to anonymised comparison of my salary expectations against market data."
-            />
-            <Consent
-              checked={consents.tos}
-              onChange={(v) => setConsents((c) => ({ ...c, tos: v }))}
-              label="I have read and agree to the Terms of Service and Privacy Notice."
-              required
-            />
+            <div className="text-xs text-ink-500 uppercase tracking-widest font-semibold">
+              Consents
+            </div>
+
+            {isHiring ? (
+              <>
+                <Consent
+                  checked={consents.dob}
+                  onChange={(v) => setConsents((c) => ({ ...c, dob: v }))}
+                  label="I consent to DNJ collecting my company and professional data to power AI-driven talent matching. All data is fully encrypted and never disclosed to third parties."
+                  required
+                />
+                <Consent
+                  checked={consents.market}
+                  onChange={(v) => setConsents((c) => ({ ...c, market: v }))}
+                  label="I consent to anonymised comparison of our compensation benchmarks against market salary data."
+                />
+                <Consent
+                  checked={consents.tos}
+                  onChange={(v) => setConsents((c) => ({ ...c, tos: v }))}
+                  label="I have read and agree to the Terms of Service and Privacy Notice."
+                  required
+                />
+              </>
+            ) : (
+              <>
+                <Consent
+                  checked={consents.dob}
+                  onChange={(v) => setConsents((c) => ({ ...c, dob: v }))}
+                  label="I consent to DNJ collecting my personal data to power advanced AI-driven compatibility analysis. All data is fully encrypted and never disclosed to employers."
+                  required
+                />
+                <Consent
+                  checked={consents.market}
+                  onChange={(v) => setConsents((c) => ({ ...c, market: v }))}
+                  label="I consent to anonymised comparison of my salary expectations against market data."
+                />
+                <Consent
+                  checked={consents.tos}
+                  onChange={(v) => setConsents((c) => ({ ...c, tos: v }))}
+                  label="I have read and agree to the Terms of Service and Privacy Notice."
+                  required
+                />
+              </>
+            )}
           </div>
 
           {err && <Alert tone="red">{err}</Alert>}
 
-          <Button type="submit" loading={busy} disabled={!canSubmit} className="w-full" size="lg">
-            {busy ? 'Creating account…' : 'Create account'}
+          <Button
+            type="submit"
+            loading={busy}
+            disabled={!canSubmit}
+            className="w-full"
+            size="lg"
+          >
+            {busy
+              ? 'Creating account…'
+              : isHiring
+                ? 'Create company account'
+                : 'Create account'}
           </Button>
         </form>
       </div>

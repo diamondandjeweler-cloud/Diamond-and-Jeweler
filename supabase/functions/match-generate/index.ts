@@ -7,22 +7,29 @@
  *   - life-chart character bucket = 'bad' for this (HM, talent) pair
  *   - background-mismatch on a senior/lead role where HM did not opt-in to no-experience
  *
- * Soft scoring dimensions (each 0–100, dynamically normalised to sum to 1.0):
- *   tag_compatibility — talent derived_tags vs role required_traits
- *   culture_fit       — talent wants_* vs hiring_manager culture_offers
- *   character         — life-chart bucket: priority=100, two_match=70, neutral=40
- *   age               — HM same-age-or-older = 100, sliding penalty otherwise
- *   location          — postcode proximity, gated on talent.location_matters
- *   background        — overlap of talent job_areas with role title/industry;
- *                       full-time mismatch caps at 30, gig/PT 60, opt-in flags 80
+ * Soft scoring dimensions (each 0–100, dynamically normalised):
+ *   behavioral_fitness — weighted avg of 9 behavioural interview tags (always-on when present)
+ *   tag_compatibility  — talent derived_tags vs role required_traits
+ *   salary_fit         — overlap between talent salary expectation and role salary_max
+ *   culture_fit        — talent wants_* vs hiring_manager culture_offers
+ *   employment_fit     — talent preferred employment types vs role employment_type
+ *   character          — life-chart bucket: priority=100, two_match=70, neutral=50
+ *   age                — HM same-age-or-older = 100, sliding penalty otherwise
+ *   location           — postcode proximity, gated on talent.location_matters
+ *   background         — overlap of talent job_areas with role title/industry
+ *   feedback           — pre-computed talent.feedback_score from HM ratings
  *
  * Default weights (overridable via system_config):
- *   weight_tag_compatibility = 0.7
- *   weight_culture_fit       = 0.2
- *   weight_character         = 0.2  (replaces legacy weight_life_chart)
- *   weight_age               = 0.1
- *   weight_location          = 0.1  (only counts when talent.location_matters)
- *   weight_background        = 0.15
+ *   weight_behavioral_fitness = 0.20
+ *   weight_tag_compatibility  = 0.50
+ *   weight_salary_fit         = 0.15
+ *   weight_culture_fit        = 0.30
+ *   weight_employment_fit     = 0.10
+ *   weight_character          = 0.15
+ *   weight_age                = 0.05
+ *   weight_location           = 0.10  (only counts when talent.location_matters)
+ *   weight_background         = 0.15
+ *   weight_feedback           = 0.10  (only counts when feedback exists)
  *
  * Triggers:
  *   - Hiring manager POSTing a new role → called from client after insert.
@@ -85,20 +92,28 @@ serve(async (req) => {
   }
 
   // Matching weights, overridable via system_config.
-  const [wTagRow, wCultureRow, wCharRow, wAgeRow, wLocRow, wBgRow] = await Promise.all([
+  const [wBehRow, wTagRow, wSalRow, wCultureRow, wEmpRow, wCharRow, wAgeRow, wLocRow, wBgRow, wFbRow] = await Promise.all([
+    db.from('system_config').select('value').eq('key', 'weight_behavioral_fitness').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_tag_compatibility').maybeSingle(),
+    db.from('system_config').select('value').eq('key', 'weight_salary_fit').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_culture_fit').maybeSingle(),
+    db.from('system_config').select('value').eq('key', 'weight_employment_fit').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_character').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_age').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_location').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_background').maybeSingle(),
+    db.from('system_config').select('value').eq('key', 'weight_feedback').maybeSingle(),
   ])
-  const weightTag        = typeof wTagRow.data?.value     === 'number' ? wTagRow.data.value     : 0.7
-  const weightCulture    = typeof wCultureRow.data?.value === 'number' ? wCultureRow.data.value : 0.2
-  const weightCharacter  = typeof wCharRow.data?.value    === 'number' ? wCharRow.data.value    : 0.2
-  const weightAge        = typeof wAgeRow.data?.value     === 'number' ? wAgeRow.data.value     : 0.1
-  const weightLocation   = typeof wLocRow.data?.value     === 'number' ? wLocRow.data.value     : 0.1
+  const weightBehavioral = typeof wBehRow.data?.value     === 'number' ? wBehRow.data.value     : 0.20
+  const weightTag        = typeof wTagRow.data?.value     === 'number' ? wTagRow.data.value     : 0.50
+  const weightSalary     = typeof wSalRow.data?.value     === 'number' ? wSalRow.data.value     : 0.15
+  const weightCulture    = typeof wCultureRow.data?.value === 'number' ? wCultureRow.data.value : 0.30
+  const weightEmployment = typeof wEmpRow.data?.value     === 'number' ? wEmpRow.data.value     : 0.10
+  const weightCharacter  = typeof wCharRow.data?.value    === 'number' ? wCharRow.data.value    : 0.15
+  const weightAge        = typeof wAgeRow.data?.value     === 'number' ? wAgeRow.data.value     : 0.05
+  const weightLocation   = typeof wLocRow.data?.value     === 'number' ? wLocRow.data.value     : 0.10
   const weightBackground = typeof wBgRow.data?.value      === 'number' ? wBgRow.data.value      : 0.15
+  const weightFeedback   = typeof wFbRow.data?.value      === 'number' ? wFbRow.data.value      : 0.10
 
   // Ownership check for HM callers.
   if (auth.role === 'hiring_manager' && !auth.isServiceRole) {
@@ -138,7 +153,7 @@ serve(async (req) => {
   // Candidate pool: open, non-expired talents.
   const now = new Date().toISOString()
   const { data: talents } = await db.from('talents')
-    .select('id, profile_id, derived_tags, privacy_mode, whitelist_companies, date_of_birth_encrypted, life_chart_character, location_matters, location_postcode, open_to_new_field, parsed_resume, deal_breakers, has_driving_license, highest_qualification, profiles!inner(ghost_score, is_banned)')
+    .select('id, profile_id, derived_tags, privacy_mode, whitelist_companies, date_of_birth_encrypted, life_chart_character, location_matters, location_postcode, open_to_new_field, parsed_resume, deal_breakers, expected_salary_min, expected_salary_max, employment_type_preferences, feedback_score, profiles!inner(ghost_score, is_banned)')
     .eq('is_open_to_offers', true)
     .eq('profiles.is_banned', false)
     .or(`profile_expires_at.is.null,profile_expires_at.gte.${now}`)
@@ -179,7 +194,7 @@ serve(async (req) => {
   const BUCKET_SCORE: Record<string, number> = {
     priority: 100,
     two_match: 70,
-    neutral: 40,
+    neutral: 50,
   }
 
   // Internal stage signals (private — never echoed to UI in stage form).
@@ -259,6 +274,58 @@ serve(async (req) => {
     const dealBreakers = ((t as unknown as { deal_breakers: DealBreakers | null }).deal_breakers) ?? {}
     const talentDealBreakerItems: string[] = Array.isArray(dealBreakers.items) ? dealBreakers.items : []
     // ─────────────────────────────────────────────────────────────────────────
+
+    // ── Behavioral fitness: weighted avg of 9 behavioural interview tags ──────
+    const BEHAVIORAL_WEIGHTS: Record<string, number> = {
+      ownership: 1.2, communication_clarity: 1.0, emotional_maturity: 1.1,
+      problem_solving: 1.1, resilience: 1.0, results_orientation: 1.1,
+      professional_attitude: 1.0, confidence: 0.9, coachability: 1.1,
+    }
+    let bfNum = 0, bfDen = 0
+    for (const [key, w] of Object.entries(BEHAVIORAL_WEIGHTS)) {
+      const s = tags[key]
+      if (s != null) { bfNum += s * w; bfDen += w }
+    }
+    const behavioralFitness: number | null = bfDen > 0 ? (bfNum / bfDen) * 100 : null
+
+    // ── Salary fit ────────────────────────────────────────────────────────────
+    const talentSalMin = (t as unknown as { expected_salary_min: number | null }).expected_salary_min
+    const talentSalMax = (t as unknown as { expected_salary_max: number | null }).expected_salary_max
+    const roleSalaryMax = (role as unknown as { salary_max: number | null }).salary_max ?? null
+    let salaryFit: number | null = null
+    if (roleSalaryMax != null && talentSalMin != null) {
+      if (roleSalaryMax >= (talentSalMax ?? talentSalMin)) {
+        salaryFit = 100
+      } else if (roleSalaryMax >= talentSalMin) {
+        const range = (talentSalMax ?? talentSalMin) - talentSalMin
+        salaryFit = range > 0 ? 50 + ((roleSalaryMax - talentSalMin) / range) * 50 : 75
+      } else {
+        const gap = talentSalMin - roleSalaryMax
+        salaryFit = Math.max(0, 100 - (gap / talentSalMin) * 200)
+      }
+    }
+
+    // ── Employment type fit ───────────────────────────────────────────────────
+    const EMP_COMPAT: Record<string, Record<string, number>> = {
+      full_time:  { full_time: 100, contract: 70, part_time: 40, gig: 20, internship: 10 },
+      contract:   { full_time: 70,  contract: 100, part_time: 40, gig: 30, internship: 10 },
+      part_time:  { full_time: 40,  contract: 40,  part_time: 100, gig: 70, internship: 30 },
+      gig:        { full_time: 20,  contract: 30,  part_time: 70,  gig: 100, internship: 40 },
+      internship: { full_time: 10,  contract: 10,  part_time: 30,  gig: 40, internship: 100 },
+    }
+    const talentEmpPrefs: string[] = (t as unknown as { employment_type_preferences: string[] | null }).employment_type_preferences ?? []
+    const roleEmpType = employmentType
+    let employmentFit: number | null = null
+    if (talentEmpPrefs.length > 0) {
+      const row = EMP_COMPAT[roleEmpType]
+      if (row) {
+        employmentFit = talentEmpPrefs.reduce((best, pref) => Math.max(best, row[pref] ?? 0), 0)
+      }
+    }
+
+    // ── Feedback score ────────────────────────────────────────────────────────
+    const talentFeedbackRaw = (t as unknown as { feedback_score: number | null }).feedback_score
+    const feedbackScore: number | null = talentFeedbackRaw != null ? talentFeedbackRaw * 100 : null
 
     // ── Internal stage signals for the talent (private). ──
     let talentStage: number | null = null
@@ -348,12 +415,16 @@ serve(async (req) => {
 
     // ── Final score: dynamic weight normalisation across active dimensions ──
     const dims: Array<{ name: string; score: number; weight: number }> = [
-      { name: 'tag_compatibility', score: tagComp,      weight: weightTag },
-      { name: 'culture_fit',       score: cultureFit,   weight: cultureOffers != null ? weightCulture : 0 },
-      { name: 'character',         score: characterScore ?? 0, weight: characterScore != null ? weightCharacter : 0 },
-      { name: 'age',               score: ageScore ?? 0,       weight: ageScore       != null ? weightAge       : 0 },
-      { name: 'location',          score: locationScore ?? 0,  weight: locationScore  != null ? weightLocation  : 0 },
-      { name: 'background',        score: backgroundScore,     weight: weightBackground },
+      { name: 'behavioral_fitness', score: behavioralFitness ?? 0, weight: behavioralFitness != null ? weightBehavioral : 0 },
+      { name: 'tag_compatibility',  score: tagComp,                 weight: weightTag },
+      { name: 'salary_fit',         score: salaryFit ?? 0,          weight: salaryFit        != null ? weightSalary     : 0 },
+      { name: 'culture_fit',        score: cultureFit,              weight: cultureOffers    != null ? weightCulture    : 0 },
+      { name: 'employment_fit',     score: employmentFit ?? 0,      weight: employmentFit    != null ? weightEmployment : 0 },
+      { name: 'character',          score: characterScore ?? 0,     weight: characterScore   != null ? weightCharacter  : 0 },
+      { name: 'age',                score: ageScore ?? 0,           weight: ageScore         != null ? weightAge        : 0 },
+      { name: 'location',           score: locationScore ?? 0,      weight: locationScore    != null ? weightLocation   : 0 },
+      { name: 'background',         score: backgroundScore,         weight: weightBackground },
+      { name: 'feedback',           score: feedbackScore ?? 0,      weight: feedbackScore    != null ? weightFeedback   : 0 },
     ]
     const totalW = dims.reduce((acc, d) => acc + d.weight, 0)
     const rawScore = totalW > 0
@@ -392,6 +463,10 @@ serve(async (req) => {
       ageScore,
       locationScore,
       backgroundScore,
+      behavioralFitness,
+      salaryFit,
+      employmentFit,
+      feedbackScore,
       finalScore,
       activeWindowBoth: hmInActiveWindow && talentInActiveWindow,
       talentNeedsRamp,
@@ -414,6 +489,10 @@ serve(async (req) => {
         sum_hits: Number(sumHits.toFixed(3)),
         weight_sum: roleTraits.length,
         tag_compatibility: Number(tagComp.toFixed(2)),
+        behavioral_fitness: behavioralFitness != null ? Number(behavioralFitness.toFixed(2)) : null,
+        salary_fit: salaryFit != null ? Number(salaryFit.toFixed(2)) : null,
+        employment_fit: employmentFit != null ? Number(employmentFit.toFixed(2)) : null,
+        feedback_score_raw: talentFeedbackRaw,
         culture_fit: Number(cultureFit.toFixed(2)),
         character_bucket: characterBucket,
         character_score: characterScore,
@@ -427,7 +506,7 @@ serve(async (req) => {
         _internal_hm_stage: hmStage,
         _internal_talent_stage: talentStage,
         _internal_active_window_boost: activeWindowBoost,
-        weights: { tag: weightTag, culture: weightCulture, character: weightCharacter, age: weightAge, location: weightLocation, background: weightBackground },
+        weights: { behavioral: weightBehavioral, tag: weightTag, salary: weightSalary, culture: weightCulture, employment: weightEmployment, character: weightCharacter, age: weightAge, location: weightLocation, background: weightBackground, feedback: weightFeedback },
         active_dimensions: activeDims,
         effective_weights: effectiveWeights,
         ghost_score: ghostScore,
@@ -524,6 +603,10 @@ interface ScoredCandidate {
   ageScore: number | null
   locationScore: number | null
   backgroundScore: number
+  behavioralFitness: number | null
+  salaryFit: number | null
+  employmentFit: number | null
+  feedbackScore: number | null
   finalScore: number
   activeWindowBoth: boolean
   talentNeedsRamp: boolean
@@ -585,6 +668,26 @@ function buildPublicReasoning(s: ScoredCandidate, roleTraits: string[]) {
   if (s.cultureFit >= 60) strengths.push('Career preferences align well with what this team offers.')
   else if (s.cultureFit >= 30) watchouts.push('Some preference mismatches — discuss team culture fit in the interview.')
   else if (s.cultureFit > 0) watchouts.push("Career preferences may not fully match this role's environment.")
+
+  if (s.salaryFit != null) {
+    if (s.salaryFit >= 90) strengths.push('Salary expectation aligns well with the role offer.')
+    else if (s.salaryFit >= 60) watchouts.push('Salary expectation is slightly above the offer range — confirm budget in first call.')
+    else if (s.salaryFit < 40) watchouts.push('Significant salary gap — candidate expects considerably more than the role offers. Clarify early.')
+  }
+
+  if (s.employmentFit != null && s.employmentFit < 60) {
+    watchouts.push('Employment type preference may not match this role — confirm during screening.')
+  }
+
+  if (s.behavioralFitness != null) {
+    if (s.behavioralFitness >= 75) strengths.push(`Strong behavioural profile overall (${Math.round(s.behavioralFitness)}/100 from interview assessment).`)
+    else if (s.behavioralFitness < 50) watchouts.push(`Behavioural interview signals are mixed (${Math.round(s.behavioralFitness)}/100) — structured probing recommended.`)
+  }
+
+  if (s.feedbackScore != null) {
+    if (s.feedbackScore >= 70) strengths.push('Highly rated by previous hiring managers.')
+    else if (s.feedbackScore < 40) watchouts.push('Lower ratings from previous matches — review interview feedback before proceeding.')
+  }
 
   if (s.backgroundScore < 50) {
     watchouts.push('Off-field background — interview should probe motivation and learning curve.')

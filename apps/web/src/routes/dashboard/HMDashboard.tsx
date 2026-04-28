@@ -23,6 +23,7 @@ interface CandidateRow {
     expected_salary_max: number | null
   } | null
   roles: { id: string; title: string } | null
+  match_feedback: { rating: number; hired: boolean; notes: string | null }[] | null
 }
 
 interface WaitingInfo { roleCount: number; estimatedDays: number }
@@ -39,6 +40,7 @@ export default function HMDashboard() {
   const [err, setErr] = useState<string | null>(null)
   const [roleExtras, setRoleExtras] = useState<RoleExtraInfo[]>([])
   const [unlockingRoleId, setUnlockingRoleId] = useState<string | null>(null)
+  const [feedbackState, setFeedbackState] = useState<Record<string, { rating: number; hired: boolean; notes: string; saving: boolean; saved: boolean }>>({})
 
   useEffect(() => {
     let cancelled = false
@@ -60,7 +62,7 @@ export default function HMDashboard() {
 
       const { data: matchData, error } = await supabase
         .from('matches')
-        .select('id, compatibility_score, status, public_reasoning, application_summary, talents(id, privacy_mode, derived_tags, expected_salary_min, expected_salary_max), roles!inner(id, title, hiring_manager_id)')
+        .select('id, compatibility_score, status, public_reasoning, application_summary, talents(id, privacy_mode, derived_tags, expected_salary_min, expected_salary_max), roles!inner(id, title, hiring_manager_id), match_feedback(rating, hired, notes)')
         .eq('roles.hiring_manager_id', hm.id)
         .in('status', ACTIVE)
         .order('compatibility_score', { ascending: false })
@@ -151,6 +153,23 @@ export default function HMDashboard() {
     }
   }
 
+  async function submitFeedback(matchId: string) {
+    const fb = feedbackState[matchId]
+    if (!fb || fb.rating === 0) return
+    setFeedbackState((s) => ({ ...s, [matchId]: { ...s[matchId], saving: true } }))
+    const { error } = await supabase.from('match_feedback').upsert({
+      match_id: matchId,
+      rating: fb.rating,
+      hired: fb.hired,
+      notes: fb.notes.trim() || null,
+    }, { onConflict: 'match_id' })
+    setFeedbackState((s) => ({
+      ...s,
+      [matchId]: { ...s[matchId], saving: false, saved: !error },
+    }))
+    if (error) setErr(error.message)
+  }
+
   if (loading) return <LoadingSpinner />
 
   const actionNeeded = candidates.filter((c) => ['generated', 'viewed', 'accepted_by_talent'].includes(c.status)).length
@@ -205,6 +224,9 @@ export default function HMDashboard() {
             <CandidateCard key={c.id} row={c}
               onInvite={() => void respond(c.id, 'invited_by_manager')}
               onDecline={() => void respond(c.id, 'declined_by_manager')}
+              feedbackEntry={feedbackState[c.id] ?? { rating: c.match_feedback?.[0]?.rating ?? 0, hired: c.match_feedback?.[0]?.hired ?? false, notes: c.match_feedback?.[0]?.notes ?? '', saving: false, saved: !!c.match_feedback?.[0] }}
+              onFeedbackChange={(patch) => setFeedbackState((s) => ({ ...s, [c.id]: { ...( s[c.id] ?? { rating: 0, hired: false, notes: '', saving: false, saved: false }), ...patch } }))}
+              onFeedbackSubmit={() => void submitFeedback(c.id)}
             />
           ))}
         </div>
@@ -251,8 +273,15 @@ export default function HMDashboard() {
 }
 
 function CandidateCard({
-  row, onInvite, onDecline,
-}: { row: CandidateRow; onInvite: () => void; onDecline: () => void }) {
+  row, onInvite, onDecline, feedbackEntry, onFeedbackChange, onFeedbackSubmit,
+}: {
+  row: CandidateRow
+  onInvite: () => void
+  onDecline: () => void
+  feedbackEntry: { rating: number; hired: boolean; notes: string; saving: boolean; saved: boolean }
+  onFeedbackChange: (patch: Partial<{ rating: number; hired: boolean; notes: string }>) => void
+  onFeedbackSubmit: () => void
+}) {
   const displayName = row.talents?.privacy_mode === 'anonymous'
     ? 'Anonymous candidate'
     : `Candidate #${row.talents?.id.slice(0, 6).toUpperCase()}`
@@ -308,15 +337,67 @@ function CandidateCard({
 
         <MatchExplain reasoning={row.public_reasoning} />
 
-        <div className="mt-4 flex gap-2 flex-wrap">
+        <div className="mt-4 space-y-3">
           {['generated', 'viewed', 'accepted_by_talent'].includes(row.status) && (
-            <>
+            <div className="flex gap-2 flex-wrap">
               <Button onClick={onInvite} size="sm">Invite to interview</Button>
               <Button onClick={onDecline} size="sm" variant="secondary">Decline</Button>
-            </>
+            </div>
           )}
-          {row.status === 'interview_completed' && (
-            <Link to={`/feedback/${row.id}`} className="btn-primary btn-sm">Submit feedback</Link>
+
+          {/* Feedback widget — visible after interview or on any completed match */}
+          {['interview_completed', 'offer_made', 'hired', 'declined_by_manager', 'declined_by_talent'].includes(row.status) && (
+            <div className="border border-ink-200 rounded-lg p-3 space-y-2 bg-ink-50">
+              <p className="text-xs font-semibold text-ink-700 uppercase tracking-wide">
+                Rate this match
+              </p>
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => onFeedbackChange({ rating: star })}
+                    className={`text-xl leading-none transition-colors ${feedbackEntry.rating >= star ? 'text-amber-400' : 'text-ink-200 hover:text-amber-300'}`}
+                    aria-label={`${star} star`}
+                  >
+                    ★
+                  </button>
+                ))}
+                {feedbackEntry.rating > 0 && (
+                  <span className="ml-2 text-xs text-ink-500">
+                    {['', 'Poor', 'Below average', 'Average', 'Good', 'Excellent'][feedbackEntry.rating]}
+                  </span>
+                )}
+              </div>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={feedbackEntry.hired}
+                  onChange={(e) => onFeedbackChange({ hired: e.target.checked })}
+                  className="rounded"
+                />
+                <span className="text-ink-700">We hired this candidate</span>
+              </label>
+              <input
+                type="text"
+                value={feedbackEntry.notes}
+                onChange={(e) => onFeedbackChange({ notes: e.target.value })}
+                placeholder="Brief notes (optional)"
+                className="w-full border border-ink-200 rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 bg-white"
+              />
+              {feedbackEntry.saved ? (
+                <p className="text-xs text-emerald-600 font-medium">✓ Feedback saved — helps improve future matches</p>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={onFeedbackSubmit}
+                  disabled={feedbackEntry.rating === 0 || feedbackEntry.saving}
+                  loading={feedbackEntry.saving}
+                >
+                  Save feedback
+                </Button>
+              )}
+            </div>
           )}
         </div>
       </div>

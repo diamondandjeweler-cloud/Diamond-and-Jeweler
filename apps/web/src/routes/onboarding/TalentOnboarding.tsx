@@ -306,6 +306,7 @@ export default function TalentOnboarding() {
         wants_mission: number
         wants_team_culture: number
         summary: string | null
+        employment_type_preferences: string[]
       }
 
       const allTags: Record<string, number> = {
@@ -348,6 +349,7 @@ export default function TalentOnboarding() {
         languages,
         uses_lunar_calendar: computeUsesLunarCalendar(race, religion, languages),
         is_open_to_offers: true,
+        employment_type_preferences: extracted.employment_type_preferences ?? [],
         photo_url: photoPath,
         deal_breakers: { items: dealBreakerItems },
       }).select('id').single()

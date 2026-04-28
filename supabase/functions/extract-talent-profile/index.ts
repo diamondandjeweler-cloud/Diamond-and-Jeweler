@@ -63,7 +63,8 @@ Return this exact JSON structure (use null for any value not mentioned):
   "wants_recognition": number,
   "wants_mission": number,
   "wants_team_culture": number,
-  "summary": string | null
+  "summary": string | null,
+  "employment_type_preferences": string[]
 }
 
 Rules:
@@ -83,6 +84,7 @@ Rules:
   · coachability: gives a specific, concrete before/after example of feedback they received and acted on. Score 0 if they cannot give a real example ("I'm always open to feedback" with no story = 0).
 - wants_* tags: infer from what candidate said they value. 0.0–1.0. wants_team_culture reflects how much they value camaraderie, close teamwork, and a collaborative environment.
 - summary: 2-sentence recruiter-facing summary of career background and strengths only — no personal details.
+- employment_type_preferences: array of preferred employment types mentioned or strongly implied. Use only these values: "full_time", "part_time", "contract", "gig", "internship". Empty array if not mentioned.
 - DO NOT include name, phone, email, company names, or any personal identifiers in the output.
 `.trim()
 

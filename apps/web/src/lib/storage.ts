@@ -6,7 +6,7 @@ import { supabase } from './supabase'
  * Returns the path (not a URL) which should be stored in the db.
  */
 export async function uploadPrivate(
-  bucket: 'ic-documents' | 'resumes' | 'business-licenses',
+  bucket: 'ic-documents' | 'resumes' | 'business-licenses' | 'talent-photos',
   file: File,
   userId: string,
   filenameHint: string,
@@ -27,7 +27,7 @@ export async function uploadPrivate(
  * Defaults to 60 seconds; storage policies still apply.
  */
 export async function signedUrl(
-  bucket: 'ic-documents' | 'resumes' | 'business-licenses',
+  bucket: 'ic-documents' | 'resumes' | 'business-licenses' | 'talent-photos',
   path: string,
   expiresInSeconds = 60,
 ): Promise<string> {

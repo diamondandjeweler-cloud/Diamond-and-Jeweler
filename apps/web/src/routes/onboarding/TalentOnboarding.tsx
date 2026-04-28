@@ -24,9 +24,6 @@ import { Button, Alert } from '../../components/ui'
 
 type Phase = 'basics' | 'chat' | 'dob' | 'dealbreakers' | 'docs' | 'submit' | 'done' | 'resume'
 
-const QUALIFICATION_LEVELS: Record<string, number> = {
-  none: 0, spm: 1, diploma: 2, degree: 3, masters: 4, phd: 5,
-}
 interface ApiMessage { role: 'user' | 'assistant'; content: string }
 
 const BO_GREETING =

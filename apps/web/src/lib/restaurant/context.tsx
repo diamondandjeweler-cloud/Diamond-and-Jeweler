@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react'
-import type { Branch, Employee } from './types'
-import { listBranches, listEmployees } from './store'
+import type { Branch, Employee, Organization } from './types'
+import { listBranches, listEmployees, getMyOrg, createOrg } from './store'
 import { BRANCH_STORAGE_KEY, EMPLOYEE_STORAGE_KEY } from './format'
 
 interface RestaurantCtx {
@@ -17,6 +17,13 @@ interface RestaurantCtx {
   employee: Employee | null
   refreshEmployees: () => Promise<void>
 
+  org: Organization | null
+  orgId: string | null
+  isOrgOwner: boolean
+  noOrg: boolean
+  createFirstOrg: (orgName: string, branchName: string) => Promise<void>
+  refreshOrg: () => Promise<void>
+
   error: string | null
 }
 
@@ -31,6 +38,9 @@ export function RestaurantProvider({ children }: { children: ReactNode }) {
   const [employeeId, setEmployeeIdState] = useState<string | null>(
     () => (typeof window !== 'undefined' ? localStorage.getItem(EMPLOYEE_STORAGE_KEY) : null),
   )
+  const [org, setOrg] = useState<Organization | null>(null)
+  const [isOrgOwner, setIsOrgOwner] = useState(false)
+  const [noOrg, setNoOrg] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -45,6 +55,13 @@ export function RestaurantProvider({ children }: { children: ReactNode }) {
       if (id) localStorage.setItem(EMPLOYEE_STORAGE_KEY, id)
       else    localStorage.removeItem(EMPLOYEE_STORAGE_KEY)
     } catch { /* empty */ }
+  }, [])
+
+  const refreshOrg = useCallback(async () => {
+    const result = await getMyOrg()
+    setOrg(result.org)
+    setIsOrgOwner(result.isOwner)
+    setNoOrg(result.noOrg)
   }, [])
 
   const refreshBranches = useCallback(async () => {
@@ -64,13 +81,25 @@ export function RestaurantProvider({ children }: { children: ReactNode }) {
     }
   }, [branchId, employeeId, setEmployeeId])
 
+  const createFirstOrg = useCallback(async (orgName: string, branchName: string) => {
+    await createOrg(orgName, branchName)
+    await Promise.all([refreshOrg(), refreshBranches()])
+  }, [refreshOrg, refreshBranches])
+
   useEffect(() => {
     let cancelled = false
+    const watchdog = setTimeout(() => {
+      if (!cancelled) {
+        setError('Restaurant backend took too long to respond. Please refresh.')
+        setLoading(false)
+      }
+    }, 15_000)
     ;(async () => {
       try {
         setError(null)
-        const bs = await listBranches()
+        const [{ org: o, isOwner, noOrg: no }, bs] = await Promise.all([getMyOrg(), listBranches()])
         if (cancelled) return
+        setOrg(o); setIsOrgOwner(isOwner); setNoOrg(no)
         setBranches(bs)
         if (bs.length && !bs.find((b) => b.id === branchId)) {
           setBranchId(bs[0].id)
@@ -78,10 +107,11 @@ export function RestaurantProvider({ children }: { children: ReactNode }) {
       } catch (e) {
         if (!cancelled) setError((e as Error).message)
       } finally {
+        clearTimeout(watchdog)
         if (!cancelled) setLoading(false)
       }
     })()
-    return () => { cancelled = true }
+    return () => { cancelled = true; clearTimeout(watchdog) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -99,11 +129,13 @@ export function RestaurantProvider({ children }: { children: ReactNode }) {
 
   const branch = branches.find((b) => b.id === branchId) ?? null
   const employee = employees.find((e) => e.id === employeeId) ?? null
+  const orgId = org?.id ?? null
 
   return (
     <Ctx.Provider value={{
       loading, branches, branchId, branch, setBranchId, refreshBranches,
       employees, employeeId, setEmployeeId, employee, refreshEmployees,
+      org, orgId, isOrgOwner, noOrg, createFirstOrg, refreshOrg,
       error,
     }}>
       {children}

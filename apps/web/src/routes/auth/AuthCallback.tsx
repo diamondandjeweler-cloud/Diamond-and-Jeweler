@@ -35,12 +35,31 @@ export default function AuthCallback() {
       } catch { /* tolerate */ }
     }
 
+    async function processStoredReferral(userId: string) {
+      try {
+        const code = localStorage.getItem('bole.referral_code')
+        if (!code) return
+        localStorage.removeItem('bole.referral_code')
+        const { data: authData } = await supabase.auth.getSession()
+        const token = authData.session?.access_token
+        if (!token) return
+        await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-referral`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ referral_code: code, referred_user_id: userId }),
+          },
+        )
+      } catch { /* best effort — never block onboarding */ }
+    }
+
     supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return
       if (data.session) {
         if (type === 'recovery') setMode('recover')
         else {
-          void applyStoredRole(data.session.user.id).then(() => navigate('/home', { replace: true }))
+          void Promise.all([applyStoredRole(data.session.user.id), processStoredReferral(data.session.user.id)]).then(() => navigate('/home', { replace: true }))
         }
       } else {
         setMode('waiting')

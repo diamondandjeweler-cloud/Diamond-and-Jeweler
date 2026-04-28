@@ -73,8 +73,8 @@ export default function Layout() {
             >
               {SUPPORTED.map((s) => <option key={s.code} value={s.code}>{s.label}</option>)}
             </select>
-            {profile?.points != null && profile.points > 0 && (
-              <Link to="/referrals" className="hidden sm:inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-accent-500/10 text-accent-600 ring-1 ring-accent-500/20 hover:bg-accent-500/15">
+            {profile?.points != null && (
+              <Link to="/points" className="hidden sm:inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-accent-500/10 text-accent-600 ring-1 ring-accent-500/20 hover:bg-accent-500/15">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.5L12 16.9 5.8 21.4l2.4-7.5L2 9.4h7.6L12 2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>
                 {profile.points} pts
               </Link>
@@ -153,25 +153,22 @@ function navForRole(role: string | undefined, pathname: string) {
   if (role === 'talent') return [
     linkFor('/home', 'My offers'),
     linkFor('/profile', 'Profile'),
-    restaurant,
   ]
   if (role === 'hiring_manager') return [
     linkFor('/hm', 'Candidates'),
     linkFor('/hm/roles', 'My roles'),
     linkFor('/hm/post-role', 'Post role'),
-    restaurant,
   ]
   if (role === 'hr_admin') return [
     linkFor('/hr', 'Scheduling'),
     linkFor('/hr/invite', 'Invite HM'),
-    restaurant,
   ]
   if (role === 'admin') return [
     linkFor('/admin', 'Admin'),
     restaurant,
   ]
   if (role === 'restaurant_staff') return [restaurant]
-  return [restaurant]
+  return []
 }
 
 function Avatar({ name }: { name: string }) {

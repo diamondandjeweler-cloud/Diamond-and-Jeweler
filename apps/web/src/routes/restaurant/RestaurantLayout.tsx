@@ -4,26 +4,43 @@ import { useTranslation } from 'react-i18next'
 import { RestaurantProvider, useRestaurant } from '../../lib/restaurant/context'
 import { Alert, Badge, PageHeader, Spinner } from '../../components/ui'
 import { useSession } from '../../state/useSession'
+import OrgSetup from './OrgSetup'
+import type { EmployeeRole } from '../../lib/restaurant/types'
 
 const TAB_KEYS: Array<{ to: string; key: string }> = [
-  { to: '/restaurant',           key: 'overview' },
-  { to: '/restaurant/kiosk',     key: 'kiosk' },
-  { to: '/restaurant/floor',     key: 'floor' },
-  { to: '/restaurant/orders',    key: 'orders' },
-  { to: '/restaurant/kds',       key: 'kitchen' },
-  { to: '/restaurant/bar',       key: 'bar' },
-  { to: '/restaurant/cashier',   key: 'cashier' },
-  { to: '/restaurant/shifts',    key: 'shifts' },
-  { to: '/restaurant/inventory', key: 'inventory' },
-  { to: '/restaurant/purchasing',key: 'purchasing' },
-  { to: '/restaurant/staff',     key: 'staff' },
-  { to: '/restaurant/accounting',key: 'accounting' },
-  { to: '/restaurant/promotions',key: 'promotions' },
-  { to: '/restaurant/audit',     key: 'audit' },
-  { to: '/restaurant/branches',  key: 'branches' },
-  { to: '/restaurant/reports',   key: 'reports' },
-  { to: '/restaurant/admin',     key: 'admin' },
+  { to: '/restaurant',            key: 'overview' },
+  { to: '/restaurant/kiosk',      key: 'kiosk' },
+  { to: '/restaurant/floor',      key: 'floor' },
+  { to: '/restaurant/orders',     key: 'orders' },
+  { to: '/restaurant/kds',        key: 'kitchen' },
+  { to: '/restaurant/bar',        key: 'bar' },
+  { to: '/restaurant/cashier',    key: 'cashier' },
+  { to: '/restaurant/shifts',     key: 'shifts' },
+  { to: '/restaurant/inventory',  key: 'inventory' },
+  { to: '/restaurant/purchasing', key: 'purchasing' },
+  { to: '/restaurant/staff',      key: 'staff' },
+  { to: '/restaurant/accounting', key: 'accounting' },
+  { to: '/restaurant/promotions', key: 'promotions' },
+  { to: '/restaurant/audit',      key: 'audit' },
+  { to: '/restaurant/branches',   key: 'branches' },
+  { to: '/restaurant/reports',    key: 'reports' },
+  { to: '/restaurant/admin',      key: 'admin' },
 ]
+
+const ALL_TABS = TAB_KEYS.map((t) => t.key)
+
+const ROLE_TABS: Record<EmployeeRole, string[]> = {
+  waiter:        ['overview', 'kiosk', 'floor', 'orders'],
+  kitchen:       ['overview', 'kitchen'],
+  bar:           ['overview', 'bar'],
+  cashier:       ['overview', 'cashier', 'orders'],
+  host:          ['overview', 'floor'],
+  storekeeper:   ['overview', 'inventory', 'purchasing'],
+  shift_manager: ['overview', 'kiosk', 'floor', 'orders', 'kitchen', 'bar',
+                  'cashier', 'shifts', 'inventory', 'purchasing', 'staff', 'promotions', 'reports'],
+  admin:         ALL_TABS,
+  owner:         ALL_TABS,
+}
 
 export default function RestaurantLayout() {
   return (
@@ -33,18 +50,11 @@ export default function RestaurantLayout() {
   )
 }
 
-const ADMIN_EMPLOYEE_ROLES = ['admin', 'owner', 'shift_manager']
-
 function Inner() {
-  const { loading, branches, branch, branchId, setBranchId, employee, setEmployeeId, error } = useRestaurant()
+  const { loading, branches, branch, branchId, setBranchId, employee, setEmployeeId, error, noOrg, isOrgOwner, org } = useRestaurant()
   const { profile } = useSession()
   const { pathname } = useLocation()
   const { t } = useTranslation()
-
-  const canSeeAdmin = profile?.role === 'admin'
-    || (employee != null && ADMIN_EMPLOYEE_ROLES.includes(employee.role))
-
-  const visibleTabs = TAB_KEYS.filter((tab) => tab.key !== 'admin' || canSeeAdmin)
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })
@@ -58,19 +68,34 @@ function Inner() {
     )
   }
 
+  // First-time setup: user has no org membership yet
+  if (noOrg) {
+    return <OrgSetup />
+  }
+
+  // Determine which tabs this user/employee may see
+  const isPlatformAdmin = profile?.role === 'admin'
+  const allowedKeys: string[] = (() => {
+    if (isPlatformAdmin || isOrgOwner) return ALL_TABS
+    if (employee) return ROLE_TABS[employee.role] ?? ['overview']
+    return ['overview']
+  })()
+
+  const visibleTabs = TAB_KEYS.filter((tab) => allowedKeys.includes(tab.key))
+
   return (
     <div>
       <div className="surface-brand rounded-2xl border border-ink-200/60 px-6 md:px-8 py-7 md:py-8 mb-6 relative overflow-hidden">
         <div className="absolute inset-0 bg-grid opacity-50 pointer-events-none" aria-hidden />
         <PageHeader
-          eyebrow="Restaurant OS"
+          eyebrow={org ? `Restaurant OS · ${org.name}` : 'Restaurant OS'}
           title={
             <span className="flex items-center gap-3">
               {t('restaurant.title')}
               <Badge tone="amber" dot>{t('restaurant.devBadge')}</Badge>
             </span>
           }
-          description="Temporary restaurant Operating System module. Data lives in the shared BoLe Supabase today; will migrate to its own project."
+          description="Restaurant Operating System — multi-branch, multi-tenant."
           actions={
             <div className="flex items-center gap-2">
               <div className="relative">
@@ -108,7 +133,16 @@ function Inner() {
 
       {error && (
         <div className="mb-4">
-          <Alert tone="red" title="Backend error">{error}</Alert>
+          <Alert tone="red" title="Backend error">
+            {error}
+            <button
+              type="button"
+              className="ml-3 underline text-sm"
+              onClick={() => window.location.reload()}
+            >
+              Retry
+            </button>
+          </Alert>
         </div>
       )}
       {!branch && (

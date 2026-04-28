@@ -37,6 +37,7 @@ const Consent          = lazy(() => import('./routes/legal/Consent'))
 const DataRequests     = lazy(() => import('./routes/DataRequests'))
 const InterviewFeedback = lazy(() => import('./routes/InterviewFeedback'))
 const Referrals        = lazy(() => import('./routes/Referrals'))
+const PointsWallet     = lazy(() => import('./routes/PointsWallet'))
 const Consult          = lazy(() => import('./routes/Consult'))
 const NotFound         = lazy(() => import('./routes/NotFound'))
 
@@ -111,6 +112,7 @@ export default function App() {
           <Route path="/data-requests" element={<DataRequests />} />
           <Route path="/feedback/:matchId" element={<InterviewFeedback />} />
           <Route path="/referrals" element={<ConsentGate><Referrals /></ConsentGate>} />
+          <Route path="/points"   element={<ConsentGate><PointsWallet /></ConsentGate>} />
           <Route path="/consult" element={<Consult />} />
           <Route path="/consult/return" element={<Consult />} />
 

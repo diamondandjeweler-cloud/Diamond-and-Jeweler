@@ -25,7 +25,7 @@ type Phase = 'basics' | 'chat' | 'dob' | 'submit' | 'done'
 interface ApiMessage { role: 'user' | 'assistant'; content: string }
 
 const BO_GREETING =
-  "Hi! I'm Bo — your hiring consultant from DNJ. I'm here to understand your team and what kind of person would genuinely thrive working with you, so we can find the right match.\n\nLet's start: what role and industry are you hiring for?"
+  "Hi! I'm Bole — your hiring consultant from DNJ. I'm here to understand your team and what kind of person would genuinely thrive working with you, so we can find the right match.\n\nLet's start: what role and industry are you hiring for?"
 
 export default function HMOnboarding() {
   const { session, profile, refresh } = useSession()
@@ -58,6 +58,15 @@ export default function HMOnboarding() {
   }, [phase])
 
   if (!session || !profile) return null
+
+  // One-time Diamond Points info banner (shown on basics phase before chat).
+  const DiamondPointsInfo = phase === 'basics' ? (
+    <div className="mb-4 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-900">
+      <span className="font-semibold">You get 3 free matches.</span>{' '}
+      Earn Diamond Points by giving feedback, completing interviews, and referring friends — or buy more.
+      {' '}<span className="font-semibold">21 pts = 1 extra match.</span>
+    </div>
+  ) : null
 
   async function sendMessage(text: string) {
     if (isStreaming || !text.trim() || phase !== 'chat') return
@@ -310,7 +319,7 @@ export default function HMOnboarding() {
             className="w-full"
             size="lg"
           >
-            Continue to chat with Bo
+            Continue to chat with Bole
           </Button>
         </form>
       )
@@ -435,7 +444,7 @@ export default function HMOnboarding() {
 
   const headline =
     phase === 'basics' ? 'About you' :
-    phase === 'chat'   ? 'Chat with Bo' :
+    phase === 'chat'   ? 'Chat with Bole' :
     phase === 'dob'    ? 'Date of birth' :
     phase === 'submit' ? 'Finishing up…' : ''
 
@@ -446,6 +455,9 @@ export default function HMOnboarding() {
     phase === 'submit' ? 95 : 100
 
   return (
-    <ChatShell messages={log} input={composer} headline={headline} progressPct={progressPct} />
+    <>
+      {DiamondPointsInfo}
+      <ChatShell messages={log} input={composer} headline={headline} progressPct={progressPct} formMode={phase !== 'chat'} />
+    </>
   )
 }

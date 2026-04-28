@@ -1,27 +1,17 @@
 /**
  * unlock-extra-match
  *
- * Starts a ToyyibPay checkout for one extra match. Creates a pending
- * extra_match_purchases row, returns a payment URL. The actual match is only
- * inserted after payment-webhook confirms payment = paid.
+ * Starts a Billplz checkout for one extra match. Creates a pending
+ * extra_match_purchases row, returns a Billplz payment URL.
+ * The actual match is only inserted after payment-webhook confirms paid=true.
  *
- * Caller roles:
- *   - hiring_manager → buys 1 extra candidate for one of their own roles.
- *   - talent         → buys 1 extra offer (talent_extra).
- *   - admin          → can issue either on behalf of anyone (for refunds/retries).
+ * Billplz credentials (Edge Function secrets):
+ *   BILLPLZ_API_KEY        — Billplz API key (Basic auth username)
+ *   BILLPLZ_COLLECTION_ID  — Billplz collection ID
+ *   BILLPLZ_BASE_URL       — default https://www.billplz.com
+ *   SITE_URL               — used for redirect/callback URLs
  *
- * Quota:
- *   - hm_extra:     ≤ 3 per role     (roles.extra_matches_used)
- *   - talent_extra: ≤ 3 per talent   (talents.extra_matches_used)
- *
- * Price is read from system_config.extra_match_price_rm.
- *
- * ToyyibPay credentials (Edge Function secrets):
- *   TOYYIBPAY_SECRET          — user secret key
- *   TOYYIBPAY_CATEGORY_CODE   — the category (ProductCategoryCode)
- *   TOYYIBPAY_BASE_URL        — default https://toyyibpay.com
- *   SITE_URL                  — used for return/callback URLs
- * If TOYYIBPAY_SECRET is unset the function still works but returns a mock
+ * If BILLPLZ_API_KEY is unset the function still works but returns a mock
  * payment URL (useful for local/preview envs and webhook testing).
  */
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
@@ -76,7 +66,6 @@ serve(async (req) => {
     roleId = role.id
     used = role.extra_matches_used ?? 0
   } else {
-    // talent_extra — buyer is always the talent themselves (admin override allowed).
     let tid = body.talent_id ?? null
     if (!tid) {
       const { data: t } = await db.from('talents').select('id')
@@ -99,7 +88,7 @@ serve(async (req) => {
     return json({ error: 'Extra match quota exhausted', used, cap }, 400)
   }
 
-  // Price.
+  // Price — read from system_config, fallback to 9.90.
   const { data: priceCfg } = await db.from('system_config').select('value')
     .eq('key', 'extra_match_price_rm').maybeSingle()
   const priceRm = typeof priceCfg?.value === 'number' ? priceCfg.value : 9.90
@@ -116,69 +105,65 @@ serve(async (req) => {
       amount_rm: priceRm,
       currency: 'RM',
       payment_status: 'pending',
+      payment_provider: 'billplz',
     })
     .select('id')
     .single()
   if (purErr) return json({ error: purErr.message }, 500)
 
-  // Build the ToyyibPay bill. If creds are missing we return a mock URL so
-  // local dev / preview envs can still exercise the flow.
-  const secret = Deno.env.get('TOYYIBPAY_SECRET')
-  const category = Deno.env.get('TOYYIBPAY_CATEGORY_CODE')
+  const apiKey = Deno.env.get('BILLPLZ_API_KEY')
+  const collectionId = Deno.env.get('BILLPLZ_COLLECTION_ID')
   const site = Deno.env.get('SITE_URL') ?? 'https://bole.my'
-  const tbase = Deno.env.get('TOYYIBPAY_BASE_URL') ?? 'https://toyyibpay.com'
+  const billplzBase = Deno.env.get('BILLPLZ_BASE_URL') ?? 'https://www.billplz.com'
   const webhookUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/payment-webhook`
 
   let paymentUrl: string
-  let billCode: string
+  let billId: string
 
-  if (!secret || !category) {
-    billCode = `MOCK-${purchase.id}`
+  if (!apiKey || !collectionId) {
+    // Mock mode for dev/preview environments.
+    billId = `MOCK-${purchase.id}`
     paymentUrl = `${site}/payment/mock?purchase=${purchase.id}`
   } else {
-    const form = new URLSearchParams({
-      userSecretKey: secret,
-      categoryCode: category,
-      billName: 'BoLe extra match',
-      billDescription: `Extra match unlock (${body.match_type})`,
-      billPriceSetting: '1',
-      billPayorInfo: '1',
-      billAmount: String(Math.round(priceRm * 100)), // ToyyibPay expects sen
-      billReturnUrl: `${site}/payment/return?purchase=${purchase.id}`,
-      billCallbackUrl: webhookUrl,
-      billExternalReferenceNo: purchase.id,
-      billTo: auth.email,
-      billEmail: auth.email,
-      billPhone: '',
-    })
-    const tbResp = await fetch(`${tbase}/index.php/api/createBill`, {
+    const credentials = btoa(`${apiKey}:`)
+    const billplzRes = await fetch(`${billplzBase}/api/v3/bills`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: form.toString(),
+      headers: {
+        Authorization: `Basic ${credentials}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        collection_id: collectionId,
+        description: `BoLe extra match (${body.match_type})`,
+        email: auth.email,
+        name: auth.email,
+        amount: Math.round(priceRm * 100), // Billplz expects cents
+        callback_url: webhookUrl,
+        redirect_url: `${site}/payment/return?purchase=${purchase.id}`,
+        reference_1_label: 'Purchase ID',
+        reference_1: purchase.id,
+      }),
     })
-    if (!tbResp.ok) {
-      return json({ error: `ToyyibPay createBill failed: ${tbResp.status}` }, 502)
+    if (!billplzRes.ok) {
+      const errText = await billplzRes.text()
+      return json({ error: `Billplz createBill failed: ${billplzRes.status} — ${errText}` }, 502)
     }
-    const tbJson = await tbResp.json() as Array<{ BillCode?: string }>
-    billCode = tbJson?.[0]?.BillCode ?? ''
-    if (!billCode) return json({ error: 'ToyyibPay returned no BillCode' }, 502)
-    paymentUrl = `${tbase}/${billCode}`
+    const bill = await billplzRes.json() as { id: string; url: string }
+    billId = bill.id
+    paymentUrl = bill.url
   }
 
-  // Link the billcode back to the purchase for the webhook to look up.
-  // If this fails the webhook can't reconcile by billcode (it has a fallback to
-  // order_id == purchase.id via ToyyibPay's external_ref), but surface the error
-  // so we can alert on it instead of silently orphaning the purchase.
+  // Store the Billplz bill ID so the webhook can reconcile by it.
   const { error: linkErr } = await db.from('extra_match_purchases')
-    .update({ payment_intent_id: billCode })
+    .update({ payment_intent_id: billId })
     .eq('id', purchase.id)
   if (linkErr) {
-    console.error('Failed to link billcode to purchase', purchase.id, linkErr)
-    return json({ error: `Payment intent link failed: ${linkErr.message}` }, 500)
+    console.error('Failed to link bill ID to purchase', purchase.id, linkErr)
+    return json({ error: `Bill link failed: ${linkErr.message}` }, 500)
   }
 
   return new Response(
-    JSON.stringify({ purchase_id: purchase.id, billcode: billCode, paymentUrl, amount_rm: priceRm }),
+    JSON.stringify({ purchase_id: purchase.id, bill_id: billId, paymentUrl, amount_rm: priceRm }),
     { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
   )
 })

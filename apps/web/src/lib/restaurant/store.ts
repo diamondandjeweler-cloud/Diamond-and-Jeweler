@@ -15,6 +15,7 @@ import type {
   InventoryTransaction, PurchaseOrder, PurchaseOrderLine, Supplier,
   Payment, CashierShift, Promotion, AuditLog, WasteLog, StockTransfer,
   CartLine, OrderStatus, OrderItemStatus, TicketStatus, TableStatus,
+  Organization, OrgMember,
 } from './types'
 
 const db = supabase.schema('restaurant' as never) as unknown as ReturnType<typeof supabase.schema>
@@ -832,6 +833,7 @@ export async function placeGuestOrder(params: {
   const { data: order, error: e1 } = await db.from('orders').insert({
     branch_id: params.branch_id,
     order_type: 'dinein',
+    source: 'qr',
     table_id: params.table_id ?? null,
     customer_name: params.customer_name ?? null,
     customer_phone: params.customer_phone ?? null,
@@ -1341,4 +1343,46 @@ export async function dailySales(branchId: string, dayISO: string): Promise<numb
     .eq('branch_id', branchId).gte('created_at', dayISO)
   if (error) throw error
   return (data ?? []).reduce((s: number, r) => s + Number((r as Order).total ?? 0), 0)
+}
+
+/* ============================================================
+ * ORGANIZATION (multi-tenancy)
+ * ============================================================ */
+
+export async function getMyOrg(): Promise<{ org: Organization | null; isOwner: boolean; noOrg: boolean }> {
+  const { data: members, error } = await db.from('org_member').select('organization_id, is_owner').limit(1)
+  if (error) throw error
+  if (!members || members.length === 0) return { org: null, isOwner: false, noOrg: true }
+  const row = members[0] as { organization_id: string; is_owner: boolean }
+  const { data: org, error: orgErr } = await db.from('organization').select('*').eq('id', row.organization_id).maybeSingle()
+  if (orgErr) throw orgErr
+  return { org: org as Organization ?? null, isOwner: row.is_owner, noOrg: false }
+}
+
+export async function listOrgMembers(orgId: string): Promise<Array<OrgMember & { email?: string; full_name?: string }>> {
+  const { data, error } = await db.from('org_member').select('*').eq('organization_id', orgId).order('created_at')
+  if (error) throw error
+  return (data ?? []) as Array<OrgMember & { email?: string; full_name?: string }>
+}
+
+export async function updateOrgName(orgId: string, name: string): Promise<void> {
+  const { error } = await db.from('organization').update({ name }).eq('id', orgId)
+  if (error) throw error
+}
+
+export async function createOrg(orgName: string, branchName: string): Promise<{ org_id: string; branch_id: string; employee_id: string }> {
+  const { data, error } = await supabase.rpc('create_org' as never, { p_org_name: orgName, p_branch_name: branchName })
+  if (error) throw error
+  return data as { org_id: string; branch_id: string; employee_id: string }
+}
+
+export async function addOrgMemberByEmail(orgId: string, email: string, isOwner = false): Promise<{ user_id: string; name: string; is_owner: boolean }> {
+  const { data, error } = await supabase.rpc('add_org_member' as never, { p_org_id: orgId, p_email: email, p_is_owner: isOwner })
+  if (error) throw error
+  return data as { user_id: string; name: string; is_owner: boolean }
+}
+
+export async function removeOrgMember(orgId: string, userId: string): Promise<void> {
+  const { error } = await supabase.rpc('remove_org_member' as never, { p_org_id: orgId, p_user_id: userId })
+  if (error) throw error
 }

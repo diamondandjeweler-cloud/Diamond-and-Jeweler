@@ -132,7 +132,7 @@ export default function TalentDashboard() {
         eyebrow={profile && `Welcome back, ${profile.full_name.split(' ')[0]}`}
         title="Your top opportunities"
         description="Up to three curated matches at a time. Accept or decline — no applications needed."
-        actions={<Link to="/profile" className="btn-secondary">Edit profile</Link>}
+        actions={<Link to="/talent/profile" className="btn-secondary">Edit profile</Link>}
       />
 
       <ExpiryBanner expiresAt={profileExpiresAt} reviving={reviving} onRevive={reviveProfile} />
@@ -153,7 +153,7 @@ export default function TalentDashboard() {
           <EmptyState
             title="Still finding your matches"
             description="Our engine reviews new roles every hour. You'll see up to 3 offers as soon as they're ready. Pilot estimate: ~14 days."
-            action={<Link to="/profile" className="btn-secondary">Refine your profile</Link>}
+            action={<Link to="/talent/profile" className="btn-secondary">Refine your profile</Link>}
           />
         </Card>
       ) : (

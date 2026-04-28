@@ -11,11 +11,12 @@ import DsrPanel from './admin/DsrPanel'
 import MarketRatePanel from './admin/MarketRatePanel'
 import NotificationLogPanel from './admin/NotificationLogPanel'
 import SystemConfigPanel from './admin/SystemConfigPanel'
+import PricingPanel from './admin/PricingPanel'
 import { PageHeader } from '../../components/ui'
 
 type AdminTab =
   | 'kpi' | 'companies' | 'waitlist' | 'coldstart' | 'users' | 'matches'
-  | 'tags' | 'dsr' | 'market' | 'notifications' | 'config'
+  | 'tags' | 'dsr' | 'market' | 'notifications' | 'pricing' | 'config'
 
 const TABS: Array<{ key: AdminTab; label: string; render: () => JSX.Element }> = [
   { key: 'kpi',           label: 'Overview',      render: () => <KpiPanel /> },
@@ -28,7 +29,8 @@ const TABS: Array<{ key: AdminTab; label: string; render: () => JSX.Element }> =
   { key: 'dsr',           label: 'Data requests', render: () => <DsrPanel /> },
   { key: 'market',        label: 'Market rates',  render: () => <MarketRatePanel /> },
   { key: 'notifications', label: 'Notifications', render: () => <NotificationLogPanel /> },
-  { key: 'config',        label: 'Config',        render: () => <SystemConfigPanel /> },
+  { key: 'pricing',       label: 'Pricing',       render: () => <PricingPanel /> },
+  { key: 'config',        label: 'Config (raw)',  render: () => <SystemConfigPanel /> },
 ]
 
 export default function AdminDashboard() {

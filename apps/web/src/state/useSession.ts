@@ -42,6 +42,9 @@ export const useSession = create<SessionState>((set) => ({
       console.error('[session] signOut failed', e)
     }
     set({ session: null, profile: null, loading: false })
+    // Hard reload — clears all JS state and prevents any token-refresh race
+    // from restoring the session before React Router can redirect.
+    window.location.href = '/'
   },
 }))
 

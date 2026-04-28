@@ -8,8 +8,10 @@ import {
   listTables, createTable, updateTable, deleteTable,
   listModifiersForItem, createModifier, updateModifier, deleteModifier,
   uploadMenuItemImage,
+  listOrgMembers, addOrgMemberByEmail, removeOrgMember, updateOrgName,
+  createBranch,
 } from '../../lib/restaurant/store'
-import type { CourseType, MenuCategory, MenuItem, Modifier, RestaurantTable, TableArea, TableShape } from '../../lib/restaurant/types'
+import type { CourseType, MenuCategory, MenuItem, Modifier, OrgMember, RestaurantTable, TableArea, TableShape } from '../../lib/restaurant/types'
 import { MYR } from '../../lib/restaurant/format'
 import { getMyInvoisConfig, upsertMyInvoisConfig, type MyInvoisConfig } from '../../lib/restaurant/einvoice'
 
@@ -17,9 +19,9 @@ const ADMIN_EMPLOYEE_ROLES = ['admin', 'owner', 'shift_manager']
 const ADMIN_USER_ROLES     = ['admin', 'restaurant_staff']
 
 export default function Admin() {
-  const { branchId, employee } = useRestaurant()
+  const { branchId, employee, org, orgId, isOrgOwner, refreshOrg, refreshBranches } = useRestaurant()
   const { profile } = useSession()
-  const [tab, setTab] = useState<'menu' | 'tables' | 'myinvois'>('menu')
+  const [tab, setTab] = useState<'menu' | 'tables' | 'myinvois' | 'delivery' | 'org'>('menu')
   const [cats, setCats]   = useState<MenuCategory[]>([])
   const [items, setItems] = useState<MenuItem[]>([])
   const [tables, setTables] = useState<RestaurantTable[]>([])
@@ -55,10 +57,14 @@ export default function Admin() {
     <div className="space-y-4">
       {err && <Alert tone="red">{err}</Alert>}
       <div className="flex gap-1 flex-wrap">
-        {(['menu', 'tables', 'myinvois'] as const).map((t) => (
+        {(['menu', 'tables', 'myinvois', 'delivery', 'org'] as const).map((t) => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-3 py-1.5 rounded-md text-sm font-medium ${tab === t ? 'bg-brand-600 text-white' : 'bg-ink-100 text-ink-700 hover:bg-ink-200'}`}>
-            {t === 'menu' ? 'Menu & pricing' : t === 'tables' ? 'Tables & floor' : 'MyInvois (e-invoice)'}
+            {t === 'menu' ? 'Menu & pricing'
+              : t === 'tables' ? 'Tables & floor'
+              : t === 'myinvois' ? 'MyInvois (e-invoice)'
+              : t === 'delivery' ? 'Delivery platforms'
+              : 'Organisation'}
           </button>
         ))}
       </div>
@@ -66,6 +72,8 @@ export default function Admin() {
       {tab === 'menu'     && <MenuTab categories={cats} items={items} branchId={branchId} onChanged={refresh} />}
       {tab === 'tables'   && <TablesTab tables={tables} branchId={branchId} onChanged={refresh} />}
       {tab === 'myinvois' && <MyInvoisTab branchId={branchId} />}
+      {tab === 'delivery' && <DeliveryTab />}
+      {tab === 'org'      && <OrgTab org={org} orgId={orgId} isOwner={isOrgOwner} onOrgUpdated={async () => { await refreshOrg() }} onBranchAdded={async () => { await refreshBranches() }} />}
     </div>
   )
 }
@@ -78,11 +86,13 @@ type ItemForm = {
   name: string; description: string; price: number; category_id: string
   station: string; course_type: CourseType; is_active: boolean
   image_url: string; available_from: string; available_until: string
+  grab_id: string; foodpanda_id: string; shopee_id: string
 }
 
 const BLANK_ITEM: ItemForm = {
   name: '', description: '', price: 0, category_id: '', station: 'kitchen',
   course_type: 'main', is_active: true, image_url: '', available_from: '', available_until: '',
+  grab_id: '', foodpanda_id: '', shopee_id: '',
 }
 
 function MenuTab({ categories, items, branchId, onChanged }: {
@@ -110,12 +120,18 @@ function MenuTab({ categories, items, branchId, onChanged }: {
   const save = async () => {
     if (!form.name || form.price < 0) { setErr('Name and non-negative price required'); return }
     try {
+      const platformIds: Record<string, string> = {}
+      if (form.grab_id)      platformIds.grab      = form.grab_id
+      if (form.foodpanda_id) platformIds.foodpanda = form.foodpanda_id
+      if (form.shopee_id)    platformIds.shopee    = form.shopee_id
+      const { grab_id: _g, foodpanda_id: _f, shopee_id: _s, ...rest } = form
       const patch = {
-        ...form,
-        category_id:    form.category_id    || null,
-        image_url:      form.image_url      || null,
-        available_from: form.available_from || null,
+        ...rest,
+        category_id:     form.category_id    || null,
+        image_url:       form.image_url       || null,
+        available_from:  form.available_from  || null,
         available_until: form.available_until || null,
+        platform_ids:    platformIds,
       }
       if (editing) { await updateMenuItem(editing.id, patch) }
       else         { await createMenuItem({ ...patch, branch_id: branchId }) }
@@ -165,6 +181,19 @@ function MenuTab({ categories, items, branchId, onChanged }: {
                 onChange={(e) => setForm({ ...form, available_from: e.target.value })} />
               <Input label="Available until (time)" type="time" value={form.available_until}
                 onChange={(e) => setForm({ ...form, available_until: e.target.value })} />
+
+              {/* Delivery platform IDs */}
+              <div className="md:col-span-3 border-t border-ink-100 pt-3 mt-1">
+                <div className="text-xs font-semibold text-ink-500 uppercase tracking-wide mb-2">Delivery platform item IDs <span className="font-normal normal-case text-ink-400">(optional — paste the item ID from each platform portal)</span></div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <Input label="GrabFood item ID" value={form.grab_id} placeholder="e.g. GF-ITEM-12345"
+                    onChange={(e) => setForm({ ...form, grab_id: e.target.value })} />
+                  <Input label="FoodPanda item ID" value={form.foodpanda_id} placeholder="e.g. FP-456789"
+                    onChange={(e) => setForm({ ...form, foodpanda_id: e.target.value })} />
+                  <Input label="Shopee Food item ID" value={form.shopee_id} placeholder="e.g. SE-789012"
+                    onChange={(e) => setForm({ ...form, shopee_id: e.target.value })} />
+                </div>
+              </div>
 
               {/* Image upload */}
               <div className="md:col-span-1">
@@ -247,6 +276,9 @@ function MenuTab({ categories, items, branchId, onChanged }: {
                             image_url: m.image_url ?? '',
                             available_from: m.available_from ?? '',
                             available_until: m.available_until ?? '',
+                            grab_id:      m.platform_ids?.grab      ?? '',
+                            foodpanda_id: m.platform_ids?.foodpanda ?? '',
+                            shopee_id:    m.platform_ids?.shopee    ?? '',
                           })
                         }}>Edit</button>
                         <button className="btn-ghost btn-sm text-brand-700"
@@ -556,6 +588,125 @@ function TablesTab({ tables, branchId, onChanged }: { tables: RestaurantTable[];
 }
 
 /* ─────────────────────────────────────────────
+   DELIVERY PLATFORMS TAB
+───────────────────────────────────────────── */
+
+const PLATFORMS = [
+  {
+    id:   'grab',
+    name: 'GrabFood',
+    color: 'bg-green-50 border-green-200',
+    badge: 'bg-green-600',
+    steps: [
+      'Apply for GrabFood Merchant API access at grab.com/my/merchant',
+      'After approval, go to Merchant Portal → Integrations → Webhooks',
+      'Register webhook URL: https://www.diamondandjeweler.com/api/webhooks/grab',
+      'Copy the signing secret → add to Vercel env as GRAB_SECRET',
+      'Copy your Merchant ID  → add to Vercel env as GRAB_MERCHANT_ID',
+      'Set GRAB_BRANCH_ID to your branch ID (visible in browser URL when on this page)',
+    ],
+    envVars: ['GRAB_SECRET', 'GRAB_MERCHANT_ID', 'GRAB_BRANCH_ID'],
+  },
+  {
+    id:   'foodpanda',
+    name: 'FoodPanda',
+    color: 'bg-pink-50 border-pink-200',
+    badge: 'bg-pink-600',
+    steps: [
+      'Contact FoodPanda Malaysia via vendor.foodpanda.my to request API access',
+      'After approval, go to Vendor Portal → API & Webhooks',
+      'Register webhook URL: https://www.diamondandjeweler.com/api/webhooks/foodpanda',
+      'Copy the HMAC secret  → add to Vercel env as FOODPANDA_SECRET',
+      'Set FOODPANDA_BRANCH_ID to your branch ID',
+    ],
+    envVars: ['FOODPANDA_SECRET', 'FOODPANDA_BRANCH_ID'],
+  },
+  {
+    id:   'shopee',
+    name: 'Shopee Food',
+    color: 'bg-orange-50 border-orange-200',
+    badge: 'bg-orange-500',
+    steps: [
+      'Apply for Shopee Food partner access at open.shopee.com',
+      'After approval, go to Partner Portal → Webhook Settings',
+      'Register webhook URL: https://www.diamondandjeweler.com/api/webhooks/shopee',
+      'Copy the partner key  → add to Vercel env as SHOPEE_SECRET',
+      'Set SHOPEE_BRANCH_ID to your branch ID',
+    ],
+    envVars: ['SHOPEE_SECRET', 'SHOPEE_BRANCH_ID'],
+  },
+]
+
+function DeliveryTab() {
+  return (
+    <div className="space-y-5">
+      {/* How it works */}
+      <Card><CardBody>
+        <h2 className="font-display text-lg mb-2">How delivery integration works</h2>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-ink-600">
+          {[
+            ['1. Register', 'Apply for API/merchant access with each platform. This requires a business registration.'],
+            ['2. Add credentials', 'Paste the secret keys into Vercel → Project → Settings → Environment Variables.'],
+            ['3. Map menu items', 'In Menu & pricing → Edit each item → fill in the platform item IDs so orders match correctly.'],
+            ['4. Orders flow in', 'Platform orders hit your webhook → parsed → sent to KDS automatically, tagged with source.'],
+          ].map(([title, desc]) => (
+            <div key={title} className="bg-ink-50 rounded-xl p-4">
+              <div className="font-semibold text-ink-800 mb-1">{title}</div>
+              <div>{desc}</div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+          <strong>Add env vars in Vercel:</strong> go to{' '}
+          <a href="https://vercel.com/diamondandjeweler-5185s-projects/bole/settings/environment-variables"
+            target="_blank" rel="noreferrer" className="underline font-medium">
+            Vercel → bole → Settings → Environment Variables
+          </a>{' '}
+          and add each key below. Then redeploy.
+        </div>
+        <div className="mt-2 text-xs text-ink-500 font-mono bg-ink-50 rounded p-2">
+          SUPABASE_SERVICE_ROLE_KEY = &lt;your-service-role-key-from-supabase-dashboard&gt;
+        </div>
+      </CardBody></Card>
+
+      {/* Platform cards */}
+      {PLATFORMS.map((p) => (
+        <div key={p.id} className={`border rounded-xl overflow-hidden ${p.color}`}>
+          <div className="px-5 py-4 flex items-center gap-3">
+            <span className={`${p.badge} text-white text-xs font-bold px-2 py-0.5 rounded`}>{p.name}</span>
+            <span className="text-sm text-ink-500">Not yet connected — follow the steps below</span>
+          </div>
+          <div className="bg-white px-5 py-4 border-t border-ink-100">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Steps */}
+              <div>
+                <div className="text-xs font-semibold text-ink-600 uppercase tracking-wide mb-2">Setup steps</div>
+                <ol className="space-y-1.5 text-sm text-ink-700 list-decimal list-inside">
+                  {p.steps.map((s) => <li key={s}>{s}</li>)}
+                </ol>
+              </div>
+              {/* Env vars + webhook URL */}
+              <div>
+                <div className="text-xs font-semibold text-ink-600 uppercase tracking-wide mb-2">Vercel environment variables</div>
+                <div className="space-y-1.5 mb-4">
+                  {p.envVars.map((v) => (
+                    <div key={v} className="font-mono text-xs bg-ink-50 border border-ink-200 rounded px-3 py-1.5 text-ink-700">{v}</div>
+                  ))}
+                </div>
+                <div className="text-xs font-semibold text-ink-600 uppercase tracking-wide mb-1">Webhook URL to register</div>
+                <div className="font-mono text-xs bg-ink-50 border border-ink-200 rounded px-3 py-2 text-brand-700 break-all">
+                  https://www.diamondandjeweler.com/api/webhooks/{p.id}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/* ─────────────────────────────────────────────
    MYINVOIS TAB (unchanged)
 ───────────────────────────────────────────── */
 
@@ -633,6 +784,186 @@ function MyInvoisTab({ branchId }: { branchId: string }) {
         {okMsg && <Alert tone="green">{okMsg}</Alert>}
         <div className="mt-4"><Button onClick={save} loading={saving}>Save configuration</Button></div>
       </CardBody></Card>
+    </div>
+  )
+}
+
+/* ─────────────────────────────────────────────
+   ORGANISATION TAB
+───────────────────────────────────────────── */
+
+import type { Organization } from '../../lib/restaurant/types'
+
+function OrgTab({ org, orgId, isOwner, onOrgUpdated, onBranchAdded }: {
+  org: Organization | null
+  orgId: string | null
+  isOwner: boolean
+  onOrgUpdated: () => Promise<void>
+  onBranchAdded: () => Promise<void>
+}) {
+  const [members, setMembers] = useState<Array<OrgMember & { email?: string; full_name?: string }>>([])
+  const [loadingMembers, setLoadingMembers] = useState(false)
+  const [orgName, setOrgName] = useState(org?.name ?? '')
+  const [savingName, setSavingName] = useState(false)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteOwner, setInviteOwner] = useState(false)
+  const [inviting, setInviting] = useState(false)
+  const [newBranch, setNewBranch] = useState('')
+  const [addingBranch, setAddingBranch] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+  const [ok, setOk] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!orgId) return
+    setLoadingMembers(true)
+    void listOrgMembers(orgId)
+      .then(setMembers)
+      .catch((e) => setErr((e as Error).message))
+      .finally(() => setLoadingMembers(false))
+  }, [orgId])
+
+  const saveOrgName = async () => {
+    if (!orgId || !orgName.trim()) return
+    setSavingName(true); setErr(null); setOk(null)
+    try {
+      await updateOrgName(orgId, orgName.trim())
+      await onOrgUpdated()
+      setOk('Organisation name updated.')
+    } catch (e) { setErr((e as Error).message) } finally { setSavingName(false) }
+  }
+
+  const invite = async () => {
+    if (!orgId || !inviteEmail.trim()) return
+    setInviting(true); setErr(null); setOk(null)
+    try {
+      const result = await addOrgMemberByEmail(orgId, inviteEmail.trim(), inviteOwner)
+      setOk(`${result.name} added as ${result.is_owner ? 'owner' : 'member'}.`)
+      setInviteEmail('')
+      const updated = await listOrgMembers(orgId)
+      setMembers(updated)
+    } catch (e) { setErr((e as Error).message) } finally { setInviting(false) }
+  }
+
+  const removeMember = async (userId: string) => {
+    if (!orgId) return
+    setErr(null); setOk(null)
+    try {
+      await removeOrgMember(orgId, userId)
+      setMembers((prev) => prev.filter((m) => m.user_id !== userId))
+      setOk('Member removed.')
+    } catch (e) { setErr((e as Error).message) }
+  }
+
+  const addBranch = async () => {
+    if (!orgId || !newBranch.trim()) return
+    setAddingBranch(true); setErr(null); setOk(null)
+    try {
+      await createBranch({ organization_id: orgId, name: newBranch.trim(), status: 'active' })
+      await onBranchAdded()
+      setOk(`Branch "${newBranch.trim()}" created.`)
+      setNewBranch('')
+    } catch (e) { setErr((e as Error).message) } finally { setAddingBranch(false) }
+  }
+
+  if (!org) return <EmptyState title="No organisation found" />
+
+  return (
+    <div className="space-y-4">
+      {err && <Alert tone="red">{err}</Alert>}
+      {ok  && <Alert tone="green">{ok}</Alert>}
+
+      {/* Org name */}
+      <Card><CardBody>
+        <h2 className="font-display text-lg mb-3">Organisation settings</h2>
+        <div className="flex gap-2 items-end">
+          <div className="flex-1">
+            <Input label="Organisation name" value={orgName} onChange={(e) => setOrgName(e.target.value)} disabled={!isOwner} />
+          </div>
+          {isOwner && (
+            <Button onClick={saveOrgName} loading={savingName}>Save</Button>
+          )}
+        </div>
+        <div className="mt-2 flex gap-2 text-sm text-ink-500 items-center">
+          <span>Plan: <Badge tone="amber">{org.plan_tier}</Badge></span>
+          <span>·</span>
+          <span>Status: <Badge tone={org.is_active ? 'green' : 'gray'}>{org.is_active ? 'active' : 'inactive'}</Badge></span>
+        </div>
+      </CardBody></Card>
+
+      {/* Members */}
+      <Card><CardBody>
+        <h2 className="font-display text-lg mb-3">Team members</h2>
+        {loadingMembers ? (
+          <div className="py-4 text-center"><Spinner /></div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead><tr className="text-left text-ink-400 border-b border-ink-100">
+              <th className="pb-2 font-medium">User ID</th>
+              <th className="pb-2 font-medium">Role</th>
+              <th className="pb-2 font-medium">Joined</th>
+              {isOwner && <th />}
+            </tr></thead>
+            <tbody>
+              {members.map((m) => (
+                <tr key={m.id} className="border-b border-ink-50 last:border-0">
+                  <td className="py-2 font-mono text-xs text-ink-500">{m.user_id.slice(0, 8)}…</td>
+                  <td className="py-2">
+                    <Badge tone={m.is_owner ? 'amber' : 'gray'}>{m.is_owner ? 'Owner' : 'Member'}</Badge>
+                  </td>
+                  <td className="py-2 text-ink-400">{new Date(m.created_at).toLocaleDateString()}</td>
+                  {isOwner && (
+                    <td className="py-2 text-right">
+                      <button
+                        type="button"
+                        onClick={() => void removeMember(m.user_id)}
+                        className="text-red-500 hover:text-red-700 text-xs px-2 py-1 rounded hover:bg-red-50"
+                      >
+                        Remove
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+              {members.length === 0 && (
+                <tr><td colSpan={4} className="py-4 text-center text-ink-400">No members yet.</td></tr>
+              )}
+            </tbody>
+          </table>
+        )}
+
+        {isOwner && (
+          <div className="mt-4 border-t border-ink-100 pt-4">
+            <p className="text-sm font-medium mb-2">Invite by email</p>
+            <div className="flex gap-2 flex-wrap">
+              <Input
+                placeholder="colleague@email.com"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                className="flex-1 min-w-[200px]"
+              />
+              <Select value={inviteOwner ? '1' : '0'} onChange={(e) => setInviteOwner(e.target.value === '1')}>
+                <option value="0">Member</option>
+                <option value="1">Owner</option>
+              </Select>
+              <Button onClick={invite} loading={inviting}>Invite</Button>
+            </div>
+            <p className="text-xs text-ink-400 mt-1">They must already have a BoLe account to be invited.</p>
+          </div>
+        )}
+      </CardBody></Card>
+
+      {/* Add branch */}
+      {isOwner && (
+        <Card><CardBody>
+          <h2 className="font-display text-lg mb-3">Add a branch</h2>
+          <div className="flex gap-2 items-end">
+            <div className="flex-1">
+              <Input label="Branch name" placeholder="e.g. Sunway Pyramid outlet" value={newBranch} onChange={(e) => setNewBranch(e.target.value)} />
+            </div>
+            <Button onClick={addBranch} loading={addingBranch}>Add branch</Button>
+          </div>
+        </CardBody></Card>
+      )}
     </div>
   )
 }

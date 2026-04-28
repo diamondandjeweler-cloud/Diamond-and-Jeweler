@@ -21,7 +21,7 @@ export default function Referrals() {
   const [email, setEmail] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
-  const [pointsCfg, setPointsCfg] = useState({ perReferral: 3, perExtra: 5 })
+  const [pointsCfg, setPointsCfg] = useState({ perReferral: 19, perExtra: 21 })
   const [copyMsg, setCopyMsg] = useState<string | null>(null)
   const [redeeming, setRedeeming] = useState(false)
 
@@ -37,8 +37,8 @@ export default function Referrals() {
       if (cancelled) return
       setList((refsR.data as Referral[] | null) ?? [])
       setPointsCfg({
-        perReferral: typeof cfgPerRef.data?.value === 'number' ? cfgPerRef.data.value : 3,
-        perExtra:    typeof cfgPerExtra.data?.value === 'number' ? cfgPerExtra.data.value : 5,
+        perReferral: typeof cfgPerRef.data?.value === 'number' ? cfgPerRef.data.value : 19,
+        perExtra:    typeof cfgPerExtra.data?.value === 'number' ? cfgPerExtra.data.value : 21,
       })
       setLoading(false)
     })()
@@ -89,6 +89,25 @@ export default function Referrals() {
         title={t('referral.title')}
         description={t('referral.subtitle', { points: pointsCfg.perReferral })}
       />
+
+      {profile?.referral_code && (
+        <div className="mb-6 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 flex items-center justify-between gap-4">
+          <div>
+            <div className="text-xs text-brand-700 font-medium mb-0.5">Your referral link</div>
+            <div className="font-mono text-sm text-ink-900">
+              {window.location.origin}/signup?ref={profile.referral_code}
+            </div>
+            <div className="text-xs text-ink-500 mt-0.5">Friend earns +5 pts · You earn +{pointsCfg.perReferral} pts when they finish onboarding</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => copyLink(profile.referral_code!)}
+            className="shrink-0 btn-ghost btn-sm"
+          >
+            Copy
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
         <Stat label={t('points.balance')} value={points} tone="brand" hint={`${profile?.points_earned_total ?? 0} earned all time`} />

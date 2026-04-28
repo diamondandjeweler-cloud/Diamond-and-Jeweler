@@ -26,7 +26,7 @@ type Phase = 'basics' | 'chat' | 'dob' | 'docs' | 'submit' | 'done' | 'resume'
 interface ApiMessage { role: 'user' | 'assistant'; content: string }
 
 const BO_GREETING =
-  "Hi! I'm Bo — your career advisor for DNJ. I'm here to learn about your career so we can match you with employers who are genuinely a good fit.\n\nWhat type of work are you looking for? Tell me the industry and role — even something rough is fine to start."
+  "Hi! I'm Bole — your career advisor for DNJ. I'm here to learn about your career so we can match you with employers who are genuinely a good fit.\n\nLet's start: what type of role and job scope are you targeting? Even something rough is fine — I'll help you sharpen it."
 
 export default function TalentOnboarding() {
   const { session, refresh } = useSession()
@@ -415,7 +415,7 @@ export default function TalentOnboarding() {
           <p className="text-sm text-ink-700 font-medium">Welcome back — here's your progress:</p>
           <div className="space-y-1.5">
             <ProgressStep label="Name & contact" done={!!fullName} />
-            <ProgressStep label="Chat with Bo" done={chatDone} active={!chatDone} />
+            <ProgressStep label="Chat with Bole" done={chatDone} active={!chatDone} />
             <ProgressStep label="Background & date of birth" done={dobFilled} active={chatDone && !dobFilled} />
             <ProgressStep label="Documents" done={false} active={dobFilled} />
           </div>
@@ -483,7 +483,7 @@ export default function TalentOnboarding() {
             className="w-full"
             size="lg"
           >
-            Continue to chat with Bo
+            Continue to chat with Bole
           </Button>
         </form>
       )
@@ -756,7 +756,7 @@ export default function TalentOnboarding() {
   const headline =
     phase === 'resume' ? 'Welcome back' :
     phase === 'basics' ? 'About you' :
-    phase === 'chat'   ? 'Chat with Bo' :
+    phase === 'chat'   ? 'Chat with Bole' :
     phase === 'dob'    ? 'About you' :
     phase === 'docs'   ? 'Your documents' :
     phase === 'submit' || phase === 'done' ? 'Finishing up…' : ''
@@ -769,8 +769,19 @@ export default function TalentOnboarding() {
     phase === 'docs'   ? 85 :
     phase === 'submit' ? 95 : 100
 
+  const DiamondPointsInfo = phase === 'basics' ? (
+    <div className="mb-4 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-900">
+      <span className="font-semibold">You get 3 free matches.</span>{' '}
+      Earn Diamond Points by giving feedback, completing interviews, and referring friends — or buy more.
+      {' '}<span className="font-semibold">21 pts = 1 extra match.</span>
+    </div>
+  ) : null
+
   return (
-    <ChatShell messages={log} input={composer} headline={headline} progressPct={progressPct} />
+    <>
+      {DiamondPointsInfo}
+      <ChatShell messages={log} input={composer} headline={headline} progressPct={progressPct} formMode={phase !== 'chat'} />
+    </>
   )
 }
 

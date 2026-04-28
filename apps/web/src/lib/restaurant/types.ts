@@ -4,12 +4,33 @@
  * Kept isolated so this module can be lifted to its own project cleanly.
  */
 
+export type PlanTier = 'starter' | 'pro' | 'enterprise'
+
+export interface Organization {
+  id: string
+  name: string
+  plan_tier: PlanTier
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface OrgMember {
+  id: string
+  organization_id: string
+  user_id: string
+  is_owner: boolean
+  invited_by: string | null
+  created_at: string
+}
+
 export type BranchStatus = 'active' | 'inactive' | 'archived'
 export type TableStatus  = 'free' | 'occupied' | 'reserved' | 'cleaning' | 'out_of_service'
 export type TableShape   = 'round' | 'square' | 'rectangle' | 'booth'
 export type TableArea    = 'indoor' | 'outdoor' | 'bar' | 'patio' | 'private'
 export type CourseType   = 'appetizer' | 'main' | 'dessert' | 'drink' | 'side' | 'any'
 export type OrderType    = 'dinein' | 'takeaway' | 'delivery' | 'bar'
+export type OrderSource  = 'waiter' | 'kiosk' | 'qr' | 'grab' | 'foodpanda' | 'shopee'
 export type OrderStatus  = 'active' | 'sent' | 'partial' | 'ready' | 'served' | 'paid' | 'closed' | 'voided'
 export type OrderItemStatus = 'pending' | 'held' | 'fired' | 'preparing' | 'ready' | 'served' | 'voided' | 'rejected'
 export type TicketStatus = 'pending' | 'acknowledged' | 'started' | 'ready' | 'completed' | 'rejected'
@@ -24,6 +45,7 @@ export type WasteReason = 'expired' | 'remake' | 'broken' | 'spill' | 'overcook'
 
 export interface Branch {
   id: string
+  organization_id: string
   name: string
   address: string | null
   timezone: string | null
@@ -99,6 +121,7 @@ export interface MenuItem {
   course_type: CourseType
   available_from: string | null
   available_until: string | null
+  platform_ids: Record<string, string>
 }
 
 export interface Modifier {
@@ -130,6 +153,7 @@ export interface Recipe {
 export interface Employee {
   id: string
   branch_id: string
+  organization_id: string
   auth_user_id: string | null
   name: string
   role: EmployeeRole
@@ -169,6 +193,8 @@ export interface Order {
   table_id: string | null
   seat_number: number | null
   order_type: OrderType
+  source: OrderSource
+  external_order_id: string | null
   customer_name: string | null
   customer_phone: string | null
   membership_id: string | null

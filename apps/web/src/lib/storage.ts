@@ -13,19 +13,12 @@ export async function uploadPrivate(
 ): Promise<string> {
   const safeName = filenameHint.replace(/[^a-zA-Z0-9._-]/g, '_')
   const path = `${userId}/${Date.now()}_${safeName}`
-  const ac = new AbortController()
-  const t = setTimeout(() => ac.abort(), 120_000)
-  try {
-    const { error } = await supabase.storage.from(bucket).upload(path, file, {
-      cacheControl: '3600',
-      upsert: false,
-      contentType: file.type || 'application/octet-stream',
-      signal: ac.signal,
-    })
-    if (error) throw error
-  } finally {
-    clearTimeout(t)
-  }
+  const { error } = await supabase.storage.from(bucket).upload(path, file, {
+    cacheControl: '3600',
+    upsert: false,
+    contentType: file.type || 'application/octet-stream',
+  })
+  if (error) throw error
   return path
 }
 

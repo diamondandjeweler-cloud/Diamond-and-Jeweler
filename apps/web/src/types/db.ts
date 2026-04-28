@@ -22,6 +22,7 @@ export interface Profile {
   whatsapp_opt_in: boolean
   points: number
   points_earned_total: number
+  referral_code: string | null
 }
 
 export interface Company {

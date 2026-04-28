@@ -19,6 +19,7 @@ export default function ChatShell({
   input,
   headline,
   progressPct,
+  formMode = false,
 }: {
   messages: ChatMessage[]
   /** The bottom composer area (input + send button, or custom control). */
@@ -27,11 +28,45 @@ export default function ChatShell({
   headline?: ReactNode
   /** 0–100 progress bar under the headline. */
   progressPct?: number
+  /**
+   * When true the shell acts as a plain page (no fixed height, page scrolls).
+   * Use this for form-heavy phases (basics, dob, docs) where the input area
+   * is a tall form — not a single-line text box.
+   */
+  formMode?: boolean
 }) {
   const endRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
   }, [messages])
+
+  if (formMode) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        {(headline || progressPct !== undefined) && (
+          <div className="mb-4">
+            {headline && <div className="text-xs text-ink-500 uppercase tracking-wider font-medium mb-2">{headline}</div>}
+            {progressPct !== undefined && (
+              <div className="h-1 bg-ink-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-brand-600 transition-all duration-500"
+                  style={{ width: `${Math.max(0, Math.min(100, progressPct))}%` }}
+                />
+              </div>
+            )}
+          </div>
+        )}
+        <div className="space-y-3 pb-4">
+          {messages.map((m) => (
+            <Bubble key={m.id} from={m.from} typing={m.typing}>{m.content}</Bubble>
+          ))}
+        </div>
+        <div className="bg-white border-t border-ink-200 pt-4 mt-2 pb-8">
+          {input}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-2xl mx-auto flex flex-col h-[calc(100vh-8rem)] md:h-[calc(100vh-10rem)]">
@@ -91,7 +126,7 @@ function Bubble({
 function SystemAvatar() {
   return (
     <div className="h-8 w-8 shrink-0 rounded-full bg-brand-700 text-white flex items-center justify-center text-xs font-display">
-      Bo
+      Bole
     </div>
   )
 }

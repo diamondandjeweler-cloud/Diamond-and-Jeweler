@@ -15,6 +15,7 @@ interface TalentRow {
   is_open_to_offers: boolean
   privacy_mode: PrivacyMode
   preference_ratings: Record<string, number> | null
+  parsed_resume: { ai_summary?: string | null } | null
 }
 
 export default function TalentProfile() {
@@ -38,8 +39,9 @@ export default function TalentProfile() {
   const [waSaved, setWaSaved] = useState(false)
   const [waBusy, setWaBusy] = useState(false)
 
+  const [aiSummary, setAiSummary] = useState<string | null>(null)
+
   const [busy, setBusy] = useState(false)
-  const [saved, setSaved] = useState(false)
 
   useEffect(() => {
     if (profile) {
@@ -73,7 +75,7 @@ export default function TalentProfile() {
     void (async () => {
       const { data, error } = await supabase
         .from('talents')
-        .select('id, expected_salary_min, expected_salary_max, is_open_to_offers, privacy_mode, preference_ratings')
+        .select('id, expected_salary_min, expected_salary_max, is_open_to_offers, privacy_mode, preference_ratings, parsed_resume')
         .eq('profile_id', session.user.id)
         .maybeSingle()
       if (cancelled) return
@@ -86,6 +88,7 @@ export default function TalentProfile() {
         setOpenToOffers(row.is_open_to_offers)
         setPrivacy(row.privacy_mode)
         setRatings(row.preference_ratings ?? {})
+        setAiSummary((row.parsed_resume?.ai_summary as string | null) ?? null)
       }
       setLoading(false)
     })()
@@ -107,7 +110,7 @@ export default function TalentProfile() {
     }).eq('id', talent.id)
     setBusy(false)
     if (error) setErr(error.message)
-    else { setSaved(true); setTimeout(() => setSaved(false), 2500) }
+    else navigate('/talent')
   }
 
   if (loading) return <LoadingSpinner />
@@ -132,6 +135,19 @@ export default function TalentProfile() {
         <p className="text-sm text-gray-600 mb-6">
           Tune what employers see and what kinds of roles we surface for you.
         </p>
+
+        {aiSummary ? (
+          <div className="mb-6 border border-brand-200 rounded-lg p-4 bg-brand-50">
+            <p className="text-xs font-semibold uppercase tracking-wide text-brand-700 mb-1">How the system describes you</p>
+            <p className="text-sm text-ink-800 leading-relaxed">{aiSummary}</p>
+            <p className="text-xs text-ink-400 mt-2">This is what hiring managers see about your background and strengths when you appear as a match.</p>
+          </div>
+        ) : (
+          <div className="mb-6 border border-dashed border-ink-200 rounded-lg p-4 bg-ink-50">
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-400 mb-1">Profile summary</p>
+            <p className="text-sm text-ink-500">No summary yet — complete your profile chat to generate this.</p>
+          </div>
+        )}
 
         <form onSubmit={save} className="space-y-6">
           <section>
@@ -249,7 +265,6 @@ export default function TalentProfile() {
           </section>
 
           {err && <p className="text-sm text-red-600">{err}</p>}
-          {saved && <p className="text-sm text-green-700">Saved.</p>}
 
           <div className="flex gap-2 justify-between pt-2 border-t">
             <button

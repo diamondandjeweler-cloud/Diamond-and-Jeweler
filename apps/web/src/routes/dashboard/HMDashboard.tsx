@@ -14,6 +14,7 @@ interface CandidateRow {
   compatibility_score: number | null
   status: string
   public_reasoning: PublicReasoning | null
+  application_summary: string | null
   talents: {
     id: string
     privacy_mode: string
@@ -59,7 +60,7 @@ export default function HMDashboard() {
 
       const { data: matchData, error } = await supabase
         .from('matches')
-        .select('id, compatibility_score, status, public_reasoning, talents(id, privacy_mode, derived_tags, expected_salary_min, expected_salary_max), roles!inner(id, title, hiring_manager_id)')
+        .select('id, compatibility_score, status, public_reasoning, application_summary, talents(id, privacy_mode, derived_tags, expected_salary_min, expected_salary_max), roles!inner(id, title, hiring_manager_id)')
         .eq('roles.hiring_manager_id', hm.id)
         .in('status', ACTIVE)
         .order('compatibility_score', { ascending: false })
@@ -297,6 +298,13 @@ function CandidateCard({
         )}
 
         <StatusNote status={row.status} />
+
+        {row.application_summary && (
+          <div className="mt-3 mb-3 border border-brand-100 rounded-lg p-3 bg-brand-50">
+            <p className="text-xs font-semibold uppercase tracking-wide text-brand-700 mb-1">Why hire for this role</p>
+            <p className="text-sm text-ink-800 leading-relaxed whitespace-pre-line">{row.application_summary}</p>
+          </div>
+        )}
 
         <MatchExplain reasoning={row.public_reasoning} />
 

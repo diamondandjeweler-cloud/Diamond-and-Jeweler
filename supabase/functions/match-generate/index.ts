@@ -237,8 +237,9 @@ serve(async (req) => {
     const talentLocMatters = (t as unknown as { location_matters: boolean }).location_matters === true
     const talentPostcode = (t as unknown as { location_postcode: string | null }).location_postcode ?? null
     const talentOpenNewField = (t as unknown as { open_to_new_field: boolean }).open_to_new_field === true
-    const parsedResume = (t as unknown as { parsed_resume: { job_areas?: unknown } | null }).parsed_resume
+    const parsedResume = (t as unknown as { parsed_resume: { job_areas?: unknown; ai_summary?: string | null } | null }).parsed_resume
     const talentJobAreas = parsedResume?.job_areas
+    const aiSummary = (parsedResume?.ai_summary as string | null) ?? null
 
     // ── Hard filter: character bad-match ──
     let characterBucket: string | null = null
@@ -373,6 +374,7 @@ serve(async (req) => {
     return {
       talent_id: t.id,
       profile_id: t.profile_id,
+      aiSummary,
       tagComp,
       cultureFit,
       characterScore,
@@ -439,7 +441,10 @@ serve(async (req) => {
   }
 
   const expiresAt = new Date(Date.now() + 5 * 86400000).toISOString()
-  const toInsert = top.map((s) => ({
+  const applicationSummaries = await Promise.all(
+    top.map((s) => generateApplicationSummary(role.title as string, roleTraits, s.aiSummary))
+  )
+  const toInsert = top.map((s, i) => ({
     role_id: body.role_id!,
     talent_id: s.talent_id,
     compatibility_score: Number(s.finalScore.toFixed(2)),
@@ -448,6 +453,7 @@ serve(async (req) => {
     life_chart_score: s.characterScore == null ? null : Number(s.characterScore.toFixed(2)),
     internal_reasoning: s.reasoning,
     public_reasoning: buildPublicReasoning(s, roleTraits),
+    application_summary: applicationSummaries[i],
     status: 'generated',
     expires_at: expiresAt,
     is_extra_match: isExtra,
@@ -487,6 +493,7 @@ serve(async (req) => {
 interface ScoredCandidate {
   talent_id: string
   profile_id: string
+  aiSummary: string | null
   tagComp: number
   cultureFit: number
   characterScore: number | null
@@ -498,6 +505,37 @@ interface ScoredCandidate {
   activeWindowBoth: boolean
   talentNeedsRamp: boolean
   reasoning: { talent_tag_overlap: Record<string, number>; weight_sum: number }
+}
+
+async function generateApplicationSummary(
+  roleTitle: string,
+  traits: string[],
+  baseAiSummary: string | null,
+): Promise<string | null> {
+  if (!baseAiSummary) return null
+  const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY')
+  if (!anthropicKey) return baseAiSummary
+
+  const traitList = traits.length > 0 ? traits.join(', ') : 'general professional skills'
+  const prompt = `You are writing a one-sentence hiring pitch. Write exactly ONE sentence (max 30 words) that explains why a candidate who matches the traits "${traitList}" is a strong fit for the role "${roleTitle}". Be specific to the role title. Recruiter-facing. Confident tone. No personal details. Return only the sentence, nothing else.`
+
+  try {
+    const ac = new AbortController()
+    const t = setTimeout(() => ac.abort(), 15_000)
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 80, messages: [{ role: 'user', content: prompt }] }),
+      signal: ac.signal,
+    })
+    clearTimeout(t)
+    if (res.ok) {
+      const data = await res.json() as { content: { type: string; text: string }[] }
+      const intro = (data.content?.[0]?.text ?? '').trim().replace(/^["']|["']$/g, '')
+      if (intro) return `${intro}\n\n${baseAiSummary}`
+    }
+  } catch { /* best effort — fall through */ }
+  return baseAiSummary
 }
 
 function buildPublicReasoning(s: ScoredCandidate, roleTraits: string[]) {

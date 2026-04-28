@@ -15,6 +15,7 @@ interface MatchRow {
   status: string
   expires_at: string | null
   public_reasoning: PublicReasoning | null
+  application_summary: string | null
   roles: { id: string; title: string; description: string | null; salary_min: number | null; salary_max: number | null; location: string | null; work_arrangement: string | null; employment_type?: string; hourly_rate?: number | null; duration_days?: number | null } | null
 }
 
@@ -45,7 +46,7 @@ export default function TalentDashboard() {
         setProfileExpiresAt((talent as unknown as { profile_expires_at: string | null }).profile_expires_at ?? null)
         const { data, error } = await supabase
           .from('matches')
-          .select('id, compatibility_score, status, expires_at, public_reasoning, roles(id, title, description, salary_min, salary_max, location, work_arrangement, employment_type, hourly_rate, duration_days)')
+          .select('id, compatibility_score, status, expires_at, public_reasoning, application_summary, roles(id, title, description, salary_min, salary_max, location, work_arrangement, employment_type, hourly_rate, duration_days)')
           .eq('talent_id', talent.id)
           .in('status', ACTIVE)
           .order('created_at', { ascending: false })
@@ -211,6 +212,13 @@ function OfferCard({ m, respond }: { m: MatchRow; respond: (id: string, next: 'a
 
         {m.roles?.description && (
           <p className="text-sm text-ink-600 line-clamp-3 mb-4">{m.roles.description}</p>
+        )}
+
+        {m.application_summary && (
+          <div className="mb-3 border border-brand-100 rounded-lg p-3 bg-brand-50">
+            <p className="text-xs font-semibold uppercase tracking-wide text-brand-700 mb-1">Your pitch for this role</p>
+            <p className="text-sm text-ink-800 leading-relaxed whitespace-pre-line">{m.application_summary}</p>
+          </div>
         )}
 
         <StatusPill status={m.status} />

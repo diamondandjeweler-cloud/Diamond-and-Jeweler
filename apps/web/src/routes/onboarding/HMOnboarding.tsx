@@ -21,7 +21,11 @@ import Consent from '../../components/Consent'
 import ChatShell, { ChatMessage } from '../../components/ChatShell'
 import { Button, Alert } from '../../components/ui'
 
-type Phase = 'basics' | 'chat' | 'dob' | 'submit' | 'done'
+type Phase = 'basics' | 'chat' | 'mustHaves' | 'dob' | 'submit' | 'done'
+
+const QUALIFICATION_ORDER: Record<string, number> = {
+  none: 0, spm: 1, diploma: 2, degree: 3, masters: 4, phd: 5,
+}
 interface ApiMessage { role: 'user' | 'assistant'; content: string }
 
 const BO_GREETING =
@@ -41,6 +45,9 @@ export default function HMOnboarding() {
   const [dob, setDob] = useState('')
   const [gender, setGender] = useState<Gender | ''>('')
   const [dobConsent, setDobConsent] = useState(false)
+  const [afterHoursRequired, setAfterHoursRequired] = useState<boolean | null>(null)
+  const [drivingLicenseRequired, setDrivingLicenseRequired] = useState<boolean | null>(null)
+  const [minQualification, setMinQualification] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
@@ -152,10 +159,10 @@ export default function HMOnboarding() {
             id: nextId(),
             from: 'system',
             content:
-              "One last thing — your date of birth. It's encrypted and only used by our hidden compatibility engine. Candidates never see it.",
+              "Almost done — a couple of quick questions about your candidate requirements, then your date of birth.",
           },
         ])
-        setTimeout(() => setPhase('dob'), 600)
+        setTimeout(() => setPhase('mustHaves'), 600)
       }
     } catch {
       setLog((l) =>
@@ -254,6 +261,11 @@ export default function HMOnboarding() {
           salary_offer_max: extracted.salary_offer_max,
           ai_summary: extracted.summary,
           interview_answers: { transcript: apiMessages },
+          must_haves: {
+            after_hours_contact: afterHoursRequired,
+            driving_license: drivingLicenseRequired,
+            min_qualification: minQualification || null,
+          },
         })
         .eq('id', hmRow.id)
       if (updateErr) throw updateErr
@@ -361,6 +373,97 @@ export default function HMOnboarding() {
       )
     }
 
+    if (phase === 'mustHaves') {
+      const QUALIFICATIONS = [
+        { value: 'none', label: 'No requirement / Any' },
+        { value: 'spm', label: 'SPM' },
+        { value: 'diploma', label: 'Diploma' },
+        { value: 'degree', label: "Bachelor's Degree" },
+        { value: 'masters', label: "Master's" },
+        { value: 'phd', label: 'PhD' },
+      ]
+      const canProceed = afterHoursRequired !== null && drivingLicenseRequired !== null && !!minQualification
+      return (
+        <div className="space-y-5">
+          <p className="text-sm text-ink-600 leading-relaxed">
+            Set your <strong>non-negotiables</strong>. Candidates who don't meet these will never appear in your matches.
+          </p>
+
+          {/* After-hours contact */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-semibold text-ink-800">
+              Must be contactable after working hours? <span className="text-red-500">*</span>
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {([true, false] as const).map((v) => (
+                <button
+                  key={String(v)}
+                  type="button"
+                  onClick={() => setAfterHoursRequired(v)}
+                  className={`border rounded-lg px-3 py-2 text-sm transition-colors ${
+                    afterHoursRequired === v
+                      ? 'bg-brand-500 text-white border-brand-500'
+                      : 'border-ink-200 text-ink-700 hover:bg-ink-50'
+                  }`}
+                >
+                  {v ? 'Yes, required' : 'No, not required'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Driving license */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-semibold text-ink-800">
+              Must have a valid driving licence? <span className="text-red-500">*</span>
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {([true, false] as const).map((v) => (
+                <button
+                  key={String(v)}
+                  type="button"
+                  onClick={() => setDrivingLicenseRequired(v)}
+                  className={`border rounded-lg px-3 py-2 text-sm transition-colors ${
+                    drivingLicenseRequired === v
+                      ? 'bg-brand-500 text-white border-brand-500'
+                      : 'border-ink-200 text-ink-700 hover:bg-ink-50'
+                  }`}
+                >
+                  {v ? 'Yes, required' : 'No, not required'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Min qualification */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-semibold text-ink-800">
+              Minimum qualification required <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={minQualification}
+              onChange={(e) => setMinQualification(e.target.value)}
+              className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+            >
+              <option value="">Select...</option>
+              {QUALIFICATIONS.map(({ value, label }) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </div>
+
+          <Button
+            onClick={() => setPhase('dob')}
+            disabled={!canProceed}
+            className="w-full"
+            size="lg"
+          >
+            Continue
+          </Button>
+        </div>
+      )
+    }
+
     if (phase === 'dob') {
       return (
         <div className="space-y-3">
@@ -443,16 +546,18 @@ export default function HMOnboarding() {
   }
 
   const headline =
-    phase === 'basics' ? 'About you' :
-    phase === 'chat'   ? 'Chat with Bole' :
-    phase === 'dob'    ? 'Date of birth' :
-    phase === 'submit' ? 'Finishing up…' : ''
+    phase === 'basics'    ? 'About you' :
+    phase === 'chat'      ? 'Chat with Bole' :
+    phase === 'mustHaves' ? 'Your non-negotiables' :
+    phase === 'dob'       ? 'Date of birth' :
+    phase === 'submit'    ? 'Finishing up…' : ''
 
   const progressPct =
-    phase === 'basics' ? 5 :
-    phase === 'chat'   ? 40 :
-    phase === 'dob'    ? 85 :
-    phase === 'submit' ? 95 : 100
+    phase === 'basics'    ? 5 :
+    phase === 'chat'      ? 40 :
+    phase === 'mustHaves' ? 75 :
+    phase === 'dob'       ? 88 :
+    phase === 'submit'    ? 97 : 100
 
   return (
     <>

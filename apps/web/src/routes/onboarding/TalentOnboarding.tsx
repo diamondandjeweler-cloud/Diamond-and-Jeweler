@@ -22,7 +22,11 @@ import { getLifeChartCharacter, type Gender } from '../../lib/lifeChartCharacter
 import ChatShell, { ChatMessage } from '../../components/ChatShell'
 import { Button, Alert } from '../../components/ui'
 
-type Phase = 'basics' | 'chat' | 'dob' | 'docs' | 'submit' | 'done' | 'resume'
+type Phase = 'basics' | 'chat' | 'dob' | 'dealbreakers' | 'docs' | 'submit' | 'done' | 'resume'
+
+const QUALIFICATION_LEVELS: Record<string, number> = {
+  none: 0, spm: 1, diploma: 2, degree: 3, masters: 4, phd: 5,
+}
 interface ApiMessage { role: 'user' | 'assistant'; content: string }
 
 const BO_GREETING =
@@ -50,6 +54,12 @@ export default function TalentOnboarding() {
   const [race, setRace] = useState('')
   const [religion, setReligion] = useState('')
   const [languages, setLanguages] = useState<string[]>([])
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [minSalary, setMinSalary] = useState<string>('')
+  const [noWorkDays, setNoWorkDays] = useState<string[]>([])
+  const [okayWithAfterHours, setOkayWithAfterHours] = useState<boolean | null>(null)
+  const [hasDrivingLicense, setHasDrivingLicense] = useState<boolean | null>(null)
+  const [highestQualification, setHighestQualification] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
@@ -249,12 +259,13 @@ export default function TalentOnboarding() {
     try {
       const userId = session.user.id
 
-      const [icPath, resumePath, clPath, dobEncrypted] = await Promise.all([
+      const [icPath, resumePath, clPath, photoPath, dobEncrypted] = await Promise.all([
         uploadPrivate('ic-documents', icFile!, userId, icFile!.name),
         uploadPrivate('resumes', resumeFile!, userId, resumeFile!.name),
         coverLetterFile
           ? uploadPrivate('resumes', coverLetterFile, userId, `cover-letter-${coverLetterFile.name}`)
           : Promise.resolve<string | null>(null),
+        uploadPrivate('talent-photos', photoFile!, userId, photoFile!.name),
         encryptDob(dob),
       ])
 
@@ -343,6 +354,14 @@ export default function TalentOnboarding() {
         languages,
         uses_lunar_calendar: computeUsesLunarCalendar(race, religion, languages),
         is_open_to_offers: true,
+        photo_url: photoPath,
+        has_driving_license: hasDrivingLicense,
+        highest_qualification: highestQualification || null,
+        deal_breakers: {
+          min_salary: minSalary ? parseInt(minSalary, 10) : null,
+          no_work_days: noWorkDays,
+          okay_with_after_hours: okayWithAfterHours,
+        },
       }).select('id').single()
       if (insErr) throw insErr
       insertedRef.current = true
@@ -664,12 +683,159 @@ export default function TalentOnboarding() {
             </span>
           </label>
           <Button
-            onClick={() => setPhase('docs')}
+            onClick={() => setPhase('dealbreakers')}
             disabled={
               !dob || !gender || locationMatters === null
               || (locationMatters === true && locationPostcode.length !== 5)
               || !race || !religion || languages.length === 0
             }
+            className="w-full"
+            size="lg"
+          >
+            Continue
+          </Button>
+        </div>
+      )
+    }
+
+    if (phase === 'dealbreakers') {
+      const DAYS = [
+        { value: 'monday', label: 'Mon' },
+        { value: 'tuesday', label: 'Tue' },
+        { value: 'wednesday', label: 'Wed' },
+        { value: 'thursday', label: 'Thu' },
+        { value: 'friday', label: 'Fri' },
+        { value: 'saturday', label: 'Sat' },
+        { value: 'sunday', label: 'Sun' },
+      ]
+      const QUALIFICATIONS = [
+        { value: 'none', label: 'No requirement' },
+        { value: 'spm', label: 'SPM' },
+        { value: 'diploma', label: 'Diploma' },
+        { value: 'degree', label: "Bachelor's Degree" },
+        { value: 'masters', label: "Master's" },
+        { value: 'phd', label: 'PhD' },
+      ]
+      const canProceed = okayWithAfterHours !== null && hasDrivingLicense !== null && !!highestQualification
+      return (
+        <div className="space-y-5">
+          <p className="text-sm text-ink-600 leading-relaxed">
+            Set your hard limits — roles that don't meet these will <strong>never</strong> be shown to you.
+          </p>
+
+          {/* Min salary */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-semibold text-ink-800">
+              Minimum salary (RM / month)
+            </label>
+            <p className="text-xs text-ink-500">Leave blank if flexible.</p>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-ink-500 font-medium">RM</span>
+              <input
+                type="number"
+                min={0}
+                step={500}
+                value={minSalary}
+                onChange={(e) => setMinSalary(e.target.value)}
+                placeholder="e.g. 5000"
+                className="w-full border border-ink-200 rounded-lg pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+            </div>
+          </div>
+
+          {/* No-work days */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-semibold text-ink-800">Days I will NOT work</label>
+            <p className="text-xs text-ink-500">Tap to select. Leave all unselected if flexible.</p>
+            <div className="flex gap-2 flex-wrap">
+              {DAYS.map(({ value, label }) => {
+                const active = noWorkDays.includes(value)
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setNoWorkDays((prev) =>
+                      active ? prev.filter((d) => d !== value) : [...prev, value]
+                    )}
+                    className={`border rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                      active
+                        ? 'bg-red-500 text-white border-red-500'
+                        : 'border-ink-200 text-ink-700 hover:bg-ink-50'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* After-hours contact */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-semibold text-ink-800">
+              Contactable after working hours? <span className="text-red-500">*</span>
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {([true, false] as const).map((v) => (
+                <button
+                  key={String(v)}
+                  type="button"
+                  onClick={() => setOkayWithAfterHours(v)}
+                  className={`border rounded-lg px-3 py-2 text-sm transition-colors ${
+                    okayWithAfterHours === v
+                      ? 'bg-brand-500 text-white border-brand-500'
+                      : 'border-ink-200 text-ink-700 hover:bg-ink-50'
+                  }`}
+                >
+                  {v ? 'Yes, okay with it' : 'No, strictly off-hours'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Driving license */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-semibold text-ink-800">
+              Do you have a driving licence? <span className="text-red-500">*</span>
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {([true, false] as const).map((v) => (
+                <button
+                  key={String(v)}
+                  type="button"
+                  onClick={() => setHasDrivingLicense(v)}
+                  className={`border rounded-lg px-3 py-2 text-sm transition-colors ${
+                    hasDrivingLicense === v
+                      ? 'bg-brand-500 text-white border-brand-500'
+                      : 'border-ink-200 text-ink-700 hover:bg-ink-50'
+                  }`}
+                >
+                  {v ? 'Yes' : 'No'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Qualification */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-semibold text-ink-800">
+              Highest qualification <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={highestQualification}
+              onChange={(e) => setHighestQualification(e.target.value)}
+              className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+            >
+              <option value="">Select...</option>
+              {QUALIFICATIONS.map(({ value, label }) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </div>
+
+          <Button
+            onClick={() => setPhase('docs')}
+            disabled={!canProceed}
             className="w-full"
             size="lg"
           >
@@ -685,6 +851,14 @@ export default function TalentOnboarding() {
           <p className="text-sm text-ink-600">
             Last step — upload your documents. Only you and verified employers can see these.
           </p>
+          <FileRow
+            label="Passport-size photo"
+            accept="image/jpeg,image/png,image/webp"
+            file={photoFile}
+            onChange={setPhotoFile}
+            hint="JPG or PNG, max 2 MB. Used on your candidate profile."
+            required
+          />
           <FileRow
             label="IC or passport"
             accept="image/*,application/pdf"
@@ -708,7 +882,7 @@ export default function TalentOnboarding() {
           {err && <Alert tone="red">{err}</Alert>}
           <Button
             onClick={() => { setPhase('submit'); void finalise() }}
-            disabled={!icFile || !resumeFile || busy}
+            disabled={!photoFile || !icFile || !resumeFile || busy}
             loading={busy}
             className="w-full"
             size="lg"
@@ -754,20 +928,22 @@ export default function TalentOnboarding() {
   })()
 
   const headline =
-    phase === 'resume' ? 'Welcome back' :
-    phase === 'basics' ? 'About you' :
-    phase === 'chat'   ? 'Chat with Bole' :
-    phase === 'dob'    ? 'About you' :
-    phase === 'docs'   ? 'Your documents' :
+    phase === 'resume'       ? 'Welcome back' :
+    phase === 'basics'       ? 'About you' :
+    phase === 'chat'         ? 'Chat with Bole' :
+    phase === 'dob'          ? 'About you' :
+    phase === 'dealbreakers' ? 'Your non-negotiables' :
+    phase === 'docs'         ? 'Your documents' :
     phase === 'submit' || phase === 'done' ? 'Finishing up…' : ''
 
   const progressPct =
-    phase === 'resume' ? 10 :
-    phase === 'basics' ? 5 :
-    phase === 'chat'   ? 30 :
-    phase === 'dob'    ? 70 :
-    phase === 'docs'   ? 85 :
-    phase === 'submit' ? 95 : 100
+    phase === 'resume'       ? 10 :
+    phase === 'basics'       ? 5 :
+    phase === 'chat'         ? 30 :
+    phase === 'dob'          ? 65 :
+    phase === 'dealbreakers' ? 80 :
+    phase === 'docs'         ? 90 :
+    phase === 'submit'       ? 97 : 100
 
   const DiamondPointsInfo = phase === 'basics' ? (
     <div className="mb-4 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-900">
@@ -820,12 +996,14 @@ function FileRow({
   file,
   onChange,
   required,
+  hint,
 }: {
   label: string
   accept: string
   file: File | null
   onChange: (f: File | null) => void
   required?: boolean
+  hint?: string
 }) {
   return (
     <label className="block border border-dashed border-ink-300 rounded-lg p-3 hover:border-ink-400 transition cursor-pointer bg-white">
@@ -847,7 +1025,7 @@ function FileRow({
             {required && <span className="text-red-500 ml-0.5">*</span>}
           </div>
           <div className="text-xs text-ink-500 truncate">
-            {file ? file.name : 'No file selected'}
+            {file ? file.name : (hint ?? 'No file selected')}
           </div>
         </div>
         <span className="btn-secondary btn-sm pointer-events-none shrink-0">Choose</span>

@@ -57,7 +57,7 @@ serve(async (req) => {
 
   const { data: role, error: roleErr } = await db
     .from('roles')
-    .select('id, hiring_manager_id, required_traits, status, location_postcode, title, industry, accept_no_experience, employment_type, experience_level, vacancy_expires_at')
+    .select('id, hiring_manager_id, required_traits, status, location_postcode, title, industry, accept_no_experience, employment_type, experience_level, vacancy_expires_at, salary_max, requires_weekend')
     .eq('id', body.role_id).single()
   if (roleErr || !role) return json({ error: 'Role not found' }, 404)
   if (role.status !== 'active') return json({ error: `Role status is ${role.status}` }, 400)
@@ -68,7 +68,7 @@ serve(async (req) => {
 
   // Resolve HM data: DOB + character + culture_offers.
   const { data: hm } = await db.from('hiring_managers')
-    .select('date_of_birth_encrypted, culture_offers, life_chart_character')
+    .select('date_of_birth_encrypted, culture_offers, life_chart_character, must_haves')
     .eq('id', role.hiring_manager_id).maybeSingle()
   let hmDobText: string | null = null
   let cultureOffers: Record<string, number> | null = null
@@ -138,7 +138,7 @@ serve(async (req) => {
   // Candidate pool: open, non-expired talents.
   const now = new Date().toISOString()
   const { data: talents } = await db.from('talents')
-    .select('id, profile_id, derived_tags, privacy_mode, whitelist_companies, date_of_birth_encrypted, life_chart_character, location_matters, location_postcode, open_to_new_field, parsed_resume, profiles!inner(ghost_score, is_banned)')
+    .select('id, profile_id, derived_tags, privacy_mode, whitelist_companies, date_of_birth_encrypted, life_chart_character, location_matters, location_postcode, open_to_new_field, parsed_resume, deal_breakers, has_driving_license, highest_qualification, profiles!inner(ghost_score, is_banned)')
     .eq('is_open_to_offers', true)
     .eq('profiles.is_banned', false)
     .or(`profile_expires_at.is.null,profile_expires_at.gte.${now}`)
@@ -253,6 +253,47 @@ serve(async (req) => {
         return null  // hard-fail; talent never appears as a match
       }
     }
+
+    // ── Hard filters: deal-breakers + must-haves ──────────────────────────────
+    type DealBreakers = { min_salary?: number | null; no_work_days?: string[]; okay_with_after_hours?: boolean | null }
+    type MustHaves = { after_hours_contact?: boolean | null; driving_license?: boolean | null; min_qualification?: string | null }
+    const QUAL_LEVEL: Record<string, number> = { none: 0, spm: 1, diploma: 2, degree: 3, masters: 4, phd: 5 }
+
+    const dealBreakers = ((t as unknown as { deal_breakers: DealBreakers | null }).deal_breakers) ?? {}
+    const talentHasDrivingLicense = (t as unknown as { has_driving_license: boolean | null }).has_driving_license
+    const talentQual = (t as unknown as { highest_qualification: string | null }).highest_qualification ?? 'none'
+    const mustHaves = ((hm as unknown as { must_haves: MustHaves | null } | null)?.must_haves) ?? {}
+    const roleSalaryMax = (role as unknown as { salary_max: number | null }).salary_max ?? null
+    const roleRequiresWeekend = (role as unknown as { requires_weekend: boolean }).requires_weekend === true
+
+    // 1. Salary floor: talent won't accept less than their minimum
+    if (dealBreakers.min_salary && roleSalaryMax !== null && roleSalaryMax < dealBreakers.min_salary) {
+      return null
+    }
+
+    // 2. Weekend work: talent refuses weekend, role requires it
+    if (roleRequiresWeekend && Array.isArray(dealBreakers.no_work_days)) {
+      const blocksWeekend = dealBreakers.no_work_days.some((d) => d === 'saturday' || d === 'sunday')
+      if (blocksWeekend) return null
+    }
+
+    // 3. Driving licence: HM requires it, talent doesn't have it
+    if (mustHaves.driving_license === true && talentHasDrivingLicense === false) {
+      return null
+    }
+
+    // 4. Qualification: talent's level is below HM's minimum
+    if (mustHaves.min_qualification && mustHaves.min_qualification !== 'none') {
+      const required = QUAL_LEVEL[mustHaves.min_qualification] ?? 0
+      const has = QUAL_LEVEL[talentQual] ?? 0
+      if (has < required) return null
+    }
+
+    // 5. After-hours contact: HM requires it, talent explicitly refused
+    if (mustHaves.after_hours_contact === true && dealBreakers.okay_with_after_hours === false) {
+      return null
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     // ── Internal stage signals for the talent (private). ──
     let talentStage: number | null = null

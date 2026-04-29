@@ -28,6 +28,10 @@ export default function Login() {
     e.preventDefault()
     setErr(null)
     setBusy(true)
+    // Stale sb-* tokens can hang signInWithPassword; clear here not on mount to avoid wiping Google OAuth sessions.
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith('sb-')) localStorage.removeItem(key)
+    }
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     setBusy(false)
     if (error) { setErr(error.message); return }

@@ -9,6 +9,16 @@ import MatchExplain from '../../components/MatchExplain'
 import CareerNudgePanel from '../../components/CareerNudgePanel'
 import type { PublicReasoning } from '../../types/db'
 
+const HM_OUTCOMES = [
+  { value: '', label: 'Select outcome (optional)' },
+  { value: 'great_hire',       label: '🏆 Great hire — still with us' },
+  { value: 'good_interview',   label: '✅ Good interview, no offer made' },
+  { value: 'offer_declined',   label: '🔄 Candidate declined offer' },
+  { value: 'hired_left_early', label: '⚠️ Hired but left within 3 months' },
+  { value: 'poor_interview',   label: '⬇️ Poor interview performance' },
+  { value: 'no_show',          label: '❌ No-show — did not attend' },
+]
+
 interface CandidateRow {
   id: string
   compatibility_score: number | null
@@ -40,7 +50,8 @@ export default function HMDashboard() {
   const [err, setErr] = useState<string | null>(null)
   const [roleExtras, setRoleExtras] = useState<RoleExtraInfo[]>([])
   const [unlockingRoleId, setUnlockingRoleId] = useState<string | null>(null)
-  const [feedbackState, setFeedbackState] = useState<Record<string, { rating: number; hired: boolean; notes: string; saving: boolean; saved: boolean }>>({})
+  const [feedbackState, setFeedbackState] = useState<Record<string, { rating: number; hired: boolean; notes: string; outcome: string; freeText: string; saving: boolean; saved: boolean; pointsAwarded?: number }>>({})
+  const [hmReputation, setHmReputation] = useState<{ reputation_score: number | null; feedback_volume: number; phs_offer_accept_rate: number | null; hm_quality_factor: number | null; hm_cancel_rate: number | null } | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -48,8 +59,15 @@ export default function HMDashboard() {
 
     async function load() {
       if (!session) return
-      const { data: hm } = await supabase.from('hiring_managers').select('id').eq('profile_id', session.user.id).maybeSingle()
+      const { data: hm } = await supabase.from('hiring_managers').select('id, reputation_score, feedback_volume, phs_offer_accept_rate, hm_quality_factor, hm_cancel_rate').eq('profile_id', session.user.id).maybeSingle()
       if (!hm) { setLoading(false); return }
+      if (!cancelled) setHmReputation({
+        reputation_score: (hm as unknown as { reputation_score: number | null }).reputation_score ?? null,
+        feedback_volume: (hm as unknown as { feedback_volume: number }).feedback_volume ?? 0,
+        phs_offer_accept_rate: (hm as unknown as { phs_offer_accept_rate: number | null }).phs_offer_accept_rate ?? null,
+        hm_quality_factor: (hm as unknown as { hm_quality_factor: number | null }).hm_quality_factor ?? null,
+        hm_cancel_rate: (hm as unknown as { hm_cancel_rate: number | null }).hm_cancel_rate ?? null,
+      })
 
       const { count } = await supabase.from('roles').select('*', { count: 'exact', head: true })
         .eq('hiring_manager_id', hm.id).eq('status', 'active')
@@ -157,17 +175,23 @@ export default function HMDashboard() {
     const fb = feedbackState[matchId]
     if (!fb || fb.rating === 0) return
     setFeedbackState((s) => ({ ...s, [matchId]: { ...s[matchId], saving: true } }))
-    const { error } = await supabase.from('match_feedback').upsert({
-      match_id: matchId,
-      rating: fb.rating,
-      hired: fb.hired,
-      notes: fb.notes.trim() || null,
-    }, { onConflict: 'match_id' })
-    setFeedbackState((s) => ({
-      ...s,
-      [matchId]: { ...s[matchId], saving: false, saved: !error },
-    }))
-    if (error) setErr(error.message)
+    try {
+      const result = await callFunction<{ success: boolean; points_awarded: number }>('submit-feedback', {
+        match_id: matchId,
+        stage: 'interview',
+        from_party: 'hm',
+        rating: fb.rating,
+        ...(fb.outcome && { outcome: fb.outcome }),
+        ...(fb.freeText.trim() && { free_text: fb.freeText.trim() }),
+      })
+      setFeedbackState((s) => ({
+        ...s,
+        [matchId]: { ...s[matchId], saving: false, saved: true, pointsAwarded: result?.points_awarded ?? 0 },
+      }))
+    } catch (e) {
+      setFeedbackState((s) => ({ ...s, [matchId]: { ...s[matchId], saving: false } }))
+      setErr(e instanceof Error ? e.message : 'Failed to save feedback')
+    }
   }
 
   if (loading) return <LoadingSpinner />
@@ -197,6 +221,10 @@ export default function HMDashboard() {
 
       <CareerNudgePanel side="hm" />
 
+      {hmReputation && hmReputation.feedback_volume > 0 && (
+        <EmployerReputationPanel reputation={hmReputation} />
+      )}
+
       {err && <div className="mb-6"><Alert tone="red">{err}</Alert></div>}
 
       {waiting && (
@@ -224,8 +252,8 @@ export default function HMDashboard() {
             <CandidateCard key={c.id} row={c}
               onInvite={() => void respond(c.id, 'invited_by_manager')}
               onDecline={() => void respond(c.id, 'declined_by_manager')}
-              feedbackEntry={feedbackState[c.id] ?? { rating: c.match_feedback?.[0]?.rating ?? 0, hired: c.match_feedback?.[0]?.hired ?? false, notes: c.match_feedback?.[0]?.notes ?? '', saving: false, saved: !!c.match_feedback?.[0] }}
-              onFeedbackChange={(patch) => setFeedbackState((s) => ({ ...s, [c.id]: { ...( s[c.id] ?? { rating: 0, hired: false, notes: '', saving: false, saved: false }), ...patch } }))}
+              feedbackEntry={feedbackState[c.id] ?? { rating: c.match_feedback?.[0]?.rating ?? 0, hired: c.match_feedback?.[0]?.hired ?? false, notes: c.match_feedback?.[0]?.notes ?? '', outcome: '', freeText: '', saving: false, saved: !!c.match_feedback?.[0] }}
+              onFeedbackChange={(patch) => setFeedbackState((s) => ({ ...s, [c.id]: { ...(s[c.id] ?? { rating: 0, hired: false, notes: '', outcome: '', freeText: '', saving: false, saved: false }), ...patch } }))}
               onFeedbackSubmit={() => void submitFeedback(c.id)}
             />
           ))}
@@ -278,8 +306,8 @@ function CandidateCard({
   row: CandidateRow
   onInvite: () => void
   onDecline: () => void
-  feedbackEntry: { rating: number; hired: boolean; notes: string; saving: boolean; saved: boolean }
-  onFeedbackChange: (patch: Partial<{ rating: number; hired: boolean; notes: string }>) => void
+  feedbackEntry: { rating: number; hired: boolean; notes: string; outcome: string; freeText: string; saving: boolean; saved: boolean; pointsAwarded?: number }
+  onFeedbackChange: (patch: Partial<{ rating: number; hired: boolean; notes: string; outcome: string; freeText: string }>) => void
   onFeedbackSubmit: () => void
 }) {
   const displayName = row.talents?.privacy_mode === 'anonymous'
@@ -369,24 +397,24 @@ function CandidateCard({
                   </span>
                 )}
               </div>
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={feedbackEntry.hired}
-                  onChange={(e) => onFeedbackChange({ hired: e.target.checked })}
-                  className="rounded"
-                />
-                <span className="text-ink-700">We hired this candidate</span>
-              </label>
-              <input
-                type="text"
-                value={feedbackEntry.notes}
-                onChange={(e) => onFeedbackChange({ notes: e.target.value })}
-                placeholder="Brief notes (optional)"
+              <select
+                value={feedbackEntry.outcome}
+                onChange={(e) => onFeedbackChange({ outcome: e.target.value })}
                 className="w-full border border-ink-200 rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 bg-white"
+              >
+                {HM_OUTCOMES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+              <textarea
+                value={feedbackEntry.freeText}
+                onChange={(e) => onFeedbackChange({ freeText: e.target.value })}
+                placeholder="What stood out? Your notes train the matching engine (optional)"
+                rows={2}
+                className="w-full border border-ink-200 rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 bg-white resize-none"
               />
               {feedbackEntry.saved ? (
-                <p className="text-xs text-emerald-600 font-medium">✓ Feedback saved — helps improve future matches</p>
+                <p className="text-xs text-emerald-600 font-medium">
+                  ✓ Feedback saved{feedbackEntry.pointsAwarded ? ` — +${feedbackEntry.pointsAwarded} Diamond Points` : ' — helps improve future matches'}
+                </p>
               ) : (
                 <Button
                   size="sm"
@@ -394,7 +422,7 @@ function CandidateCard({
                   disabled={feedbackEntry.rating === 0 || feedbackEntry.saving}
                   loading={feedbackEntry.saving}
                 >
-                  Save feedback
+                  Save feedback (+5 pts)
                 </Button>
               )}
             </div>
@@ -414,6 +442,59 @@ function StatusNote({ status }: { status: string }) {
   }
   const entry = m[status] ?? { label: status.replace(/_/g, ' '), tone: 'gray' as const }
   return <Badge tone={entry.tone}>{entry.label}</Badge>
+}
+
+function EmployerReputationPanel({ reputation }: {
+  reputation: { reputation_score: number | null; feedback_volume: number; phs_offer_accept_rate: number | null; hm_quality_factor: number | null; hm_cancel_rate: number | null }
+}) {
+  const score = reputation.reputation_score
+  const scoreTone = score == null ? 'gray' : score >= 75 ? 'green' : score >= 50 ? 'amber' : 'red'
+  const qf = reputation.hm_quality_factor
+  const qfTone = qf == null ? 'gray' : qf >= 0.90 ? 'green' : qf >= 0.80 ? 'amber' : 'red'
+  return (
+    <Card className="mb-6">
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500 mb-0.5">Employer reputation</p>
+            <p className="text-xs text-ink-400">Based on {reputation.feedback_volume} talent review{reputation.feedback_volume === 1 ? '' : 's'}</p>
+          </div>
+          {score != null && <Badge tone={scoreTone as 'gray' | 'green' | 'amber' | 'brand' | 'accent' | 'red'}>{Math.round(score)} / 100</Badge>}
+        </div>
+        <div className="flex gap-6 flex-wrap">
+          {qf != null && (
+            <div>
+              <p className="text-xs text-ink-500">Reliability score</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-semibold text-ink-900">{(qf * 100).toFixed(0)} / 100</p>
+                <Badge tone={qfTone as 'gray' | 'green' | 'amber' | 'brand' | 'accent' | 'red'} className="text-xs">
+                  {qf >= 0.90 ? 'Excellent' : qf >= 0.80 ? 'Good' : 'Needs attention'}
+                </Badge>
+              </div>
+              <p className="text-xs text-ink-400 mt-0.5">Factors into how your roles are ranked to talent</p>
+            </div>
+          )}
+          {reputation.hm_cancel_rate != null && (
+            <div>
+              <p className="text-xs text-ink-500">Interview cancel rate</p>
+              <p className="text-sm font-semibold text-ink-900">{Math.round(reputation.hm_cancel_rate * 100)}%</p>
+            </div>
+          )}
+          {reputation.phs_offer_accept_rate != null && (
+            <div>
+              <p className="text-xs text-ink-500">Offer accept rate</p>
+              <p className="text-sm font-semibold text-ink-900">{Math.round(reputation.phs_offer_accept_rate * 100)}%</p>
+            </div>
+          )}
+        </div>
+        {qf != null && qf < 0.80 && (
+          <div className="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+            Your reliability score affects how your roles rank in matching. To improve it: show up to scheduled interviews, ensure JDs are accurate, and follow through on offers.
+          </div>
+        )}
+      </div>
+    </Card>
+  )
 }
 
 function fmt(v: number | null | undefined): string { return v == null ? '—' : v.toLocaleString() }

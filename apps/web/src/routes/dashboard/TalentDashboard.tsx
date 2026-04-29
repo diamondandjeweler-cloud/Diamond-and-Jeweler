@@ -21,6 +21,17 @@ interface MatchRow {
 
 const ACTIVE = ['generated', 'viewed', 'accepted_by_talent', 'invited_by_manager', 'hr_scheduling', 'interview_scheduled', 'interview_completed']
 
+const TALENT_OUTCOMES = [
+  { value: '', label: 'Select outcome (optional)' },
+  { value: 'accepted_offer',      label: '✅ I accepted the offer' },
+  { value: 'offer_declined',      label: '❌ I declined the offer' },
+  { value: 'company_ghosted',     label: '👻 Company ghosted me' },
+  { value: 'passed_probation',    label: '🏆 Passed probation' },
+  { value: 'failed_probation',    label: '⚠️ Did not pass probation' },
+  { value: 'still_employed_6m',   label: '📅 Still employed at 6 months' },
+  { value: 'still_employed_1y',   label: '🎉 Still employed at 1 year' },
+]
+
 export default function TalentDashboard() {
   const { session, profile } = useSession()
   const [matches, setMatches] = useState<MatchRow[]>([])
@@ -30,6 +41,8 @@ export default function TalentDashboard() {
   const [unlocking, setUnlocking] = useState(false)
   const [profileExpiresAt, setProfileExpiresAt] = useState<string | null>(null)
   const [reviving, setReviving] = useState(false)
+  const [talentReputation, setTalentReputation] = useState<{ reputation_score: number | null; feedback_volume: number; phs_show_rate: number | null; phs_accept_rate: number | null } | null>(null)
+  const [talentFeedbackState, setTalentFeedbackState] = useState<Record<string, { rating: number; outcome: string; freeText: string; saving: boolean; saved: boolean; pointsAwarded?: number }>>({})
 
   useEffect(() => {
     let cancelled = false
@@ -38,12 +51,18 @@ export default function TalentDashboard() {
     async function load() {
       if (!session) { setLoading(false); return }
       try {
-        const { data: talent } = await supabase.from('talents').select('id, extra_matches_used, profile_expires_at').eq('profile_id', session.user.id).maybeSingle()
+        const { data: talent } = await supabase.from('talents').select('id, extra_matches_used, profile_expires_at, reputation_score, feedback_volume, phs_show_rate, phs_accept_rate').eq('profile_id', session.user.id).maybeSingle()
         if (cancelled) return
         if (!talent) return
         talentId = talent.id
         setExtraUsed(talent.extra_matches_used ?? 0)
         setProfileExpiresAt((talent as unknown as { profile_expires_at: string | null }).profile_expires_at ?? null)
+        setTalentReputation({
+          reputation_score: (talent as unknown as { reputation_score: number | null }).reputation_score ?? null,
+          feedback_volume: (talent as unknown as { feedback_volume: number }).feedback_volume ?? 0,
+          phs_show_rate: (talent as unknown as { phs_show_rate: number | null }).phs_show_rate ?? null,
+          phs_accept_rate: (talent as unknown as { phs_accept_rate: number | null }).phs_accept_rate ?? null,
+        })
         const { data, error } = await supabase
           .from('matches')
           .select('id, compatibility_score, status, expires_at, public_reasoning, application_summary, roles(id, title, description, salary_min, salary_max, location, work_arrangement, employment_type, hourly_rate, duration_days)')
@@ -108,6 +127,29 @@ export default function TalentDashboard() {
     } finally { setUnlocking(false) }
   }
 
+  async function submitTalentFeedback(matchId: string) {
+    const fb = talentFeedbackState[matchId]
+    if (!fb || fb.rating === 0) return
+    setTalentFeedbackState((s) => ({ ...s, [matchId]: { ...s[matchId], saving: true } }))
+    try {
+      const result = await callFunction<{ success: boolean; points_awarded: number }>('submit-feedback', {
+        match_id: matchId,
+        stage: 'interview',
+        from_party: 'talent',
+        rating: fb.rating,
+        ...(fb.outcome && { outcome: fb.outcome }),
+        ...(fb.freeText.trim() && { free_text: fb.freeText.trim() }),
+      })
+      setTalentFeedbackState((s) => ({
+        ...s,
+        [matchId]: { ...s[matchId], saving: false, saved: true, pointsAwarded: result?.points_awarded ?? 0 },
+      }))
+    } catch (e) {
+      setTalentFeedbackState((s) => ({ ...s, [matchId]: { ...s[matchId], saving: false } }))
+      setErr(e instanceof Error ? e.message : 'Failed to save feedback')
+    }
+  }
+
   async function respond(id: string, next: 'accepted_by_talent' | 'declined_by_talent') {
     const current = matches.find((m) => m.id === id)
     setMatches((ms) => ms.map((m) => (m.id === id ? { ...m, status: next } : m)))
@@ -147,6 +189,10 @@ export default function TalentDashboard() {
 
       <CareerNudgePanel side="talent" />
 
+      {talentReputation && talentReputation.feedback_volume > 0 && (
+        <CareerHealthPanel reputation={talentReputation} />
+      )}
+
       {err && <div className="mb-6"><Alert tone="red">{err}</Alert></div>}
 
       {matches.length === 0 ? (
@@ -159,7 +205,13 @@ export default function TalentDashboard() {
         </Card>
       ) : (
         <div className="grid md:grid-cols-2 gap-4">
-          {matches.map((m) => <OfferCard key={m.id} m={m} respond={respond} />)}
+          {matches.map((m) => (
+            <OfferCard key={m.id} m={m} respond={respond}
+              feedbackEntry={talentFeedbackState[m.id] ?? { rating: 0, outcome: '', freeText: '', saving: false, saved: false }}
+              onFeedbackChange={(patch) => setTalentFeedbackState((s) => ({ ...s, [m.id]: { ...(s[m.id] ?? { rating: 0, outcome: '', freeText: '', saving: false, saved: false }), ...patch } }))}
+              onFeedbackSubmit={() => void submitTalentFeedback(m.id)}
+            />
+          ))}
         </div>
       )}
 
@@ -187,7 +239,13 @@ export default function TalentDashboard() {
   )
 }
 
-function OfferCard({ m, respond }: { m: MatchRow; respond: (id: string, next: 'accepted_by_talent' | 'declined_by_talent') => void }) {
+function OfferCard({ m, respond, feedbackEntry, onFeedbackChange, onFeedbackSubmit }: {
+  m: MatchRow
+  respond: (id: string, next: 'accepted_by_talent' | 'declined_by_talent') => void
+  feedbackEntry: { rating: number; outcome: string; freeText: string; saving: boolean; saved: boolean; pointsAwarded?: number }
+  onFeedbackChange: (patch: Partial<{ rating: number; outcome: string; freeText: string }>) => void
+  onFeedbackSubmit: () => void
+}) {
   const pct = Math.round(m.compatibility_score ?? 0)
   return (
     <Card hoverable className="animate-slide-up">
@@ -233,15 +291,63 @@ function OfferCard({ m, respond }: { m: MatchRow; respond: (id: string, next: 'a
 
         <MatchExplain reasoning={m.public_reasoning} />
 
-        <div className="mt-5 flex gap-2 flex-wrap">
+        <div className="mt-5 space-y-3">
           {['generated', 'viewed'].includes(m.status) && (
-            <>
+            <div className="flex gap-2 flex-wrap">
               <Button onClick={() => respond(m.id, 'accepted_by_talent')} size="sm">Accept</Button>
               <Button onClick={() => respond(m.id, 'declined_by_talent')} size="sm" variant="secondary">Decline</Button>
-            </>
+            </div>
           )}
           {m.status === 'interview_completed' && (
-            <Link to={`/feedback/${m.id}`} className="btn-primary btn-sm">Submit interview feedback</Link>
+            <div className="border border-ink-200 rounded-lg p-3 space-y-2 bg-ink-50">
+              <p className="text-xs font-semibold text-ink-700 uppercase tracking-wide">Rate this opportunity</p>
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => onFeedbackChange({ rating: star })}
+                    className={`text-xl leading-none transition-colors ${feedbackEntry.rating >= star ? 'text-amber-400' : 'text-ink-200 hover:text-amber-300'}`}
+                    aria-label={`${star} star`}
+                  >
+                    ★
+                  </button>
+                ))}
+                {feedbackEntry.rating > 0 && (
+                  <span className="ml-2 text-xs text-ink-500">
+                    {['', 'Poor', 'Below average', 'Average', 'Good', 'Excellent'][feedbackEntry.rating]}
+                  </span>
+                )}
+              </div>
+              <select
+                value={feedbackEntry.outcome}
+                onChange={(e) => onFeedbackChange({ outcome: e.target.value })}
+                className="w-full border border-ink-200 rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 bg-white"
+              >
+                {TALENT_OUTCOMES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+              <textarea
+                value={feedbackEntry.freeText}
+                onChange={(e) => onFeedbackChange({ freeText: e.target.value })}
+                placeholder="How was the interview experience? Your feedback improves hiring quality (optional)"
+                rows={2}
+                className="w-full border border-ink-200 rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 bg-white resize-none"
+              />
+              {feedbackEntry.saved ? (
+                <p className="text-xs text-emerald-600 font-medium">
+                  ✓ Feedback saved{feedbackEntry.pointsAwarded ? ` — +${feedbackEntry.pointsAwarded} Diamond Points` : ''}
+                </p>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={onFeedbackSubmit}
+                  disabled={feedbackEntry.rating === 0 || feedbackEntry.saving}
+                  loading={feedbackEntry.saving}
+                >
+                  Save feedback (+5 pts)
+                </Button>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -310,6 +416,40 @@ function ExpiryBanner({ expiresAt, reviving, onRevive }: { expiresAt: string | n
       </div>
       <Button onClick={onRevive} loading={reviving} size="sm" variant="secondary">Extend 45 days</Button>
     </div>
+  )
+}
+
+function CareerHealthPanel({ reputation }: {
+  reputation: { reputation_score: number | null; feedback_volume: number; phs_show_rate: number | null; phs_accept_rate: number | null }
+}) {
+  const score = reputation.reputation_score
+  const scoreTone = score == null ? 'gray' : score >= 75 ? 'green' : score >= 50 ? 'amber' : 'red'
+  return (
+    <Card className="mb-6">
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500 mb-0.5">Career health</p>
+            <p className="text-xs text-ink-400">Based on {reputation.feedback_volume} employer review{reputation.feedback_volume === 1 ? '' : 's'}</p>
+          </div>
+          {score != null && <Badge tone={scoreTone as 'gray' | 'green' | 'amber' | 'brand' | 'accent' | 'red'}>{Math.round(score)} / 100</Badge>}
+        </div>
+        <div className="flex gap-6 flex-wrap">
+          {reputation.phs_show_rate != null && (
+            <div>
+              <p className="text-xs text-ink-500">Interview attendance</p>
+              <p className="text-sm font-semibold text-ink-900">{Math.round(reputation.phs_show_rate * 100)}%</p>
+            </div>
+          )}
+          {reputation.phs_accept_rate != null && (
+            <div>
+              <p className="text-xs text-ink-500">Offer acceptance</p>
+              <p className="text-sm font-semibold text-ink-900">{Math.round(reputation.phs_accept_rate * 100)}%</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </Card>
   )
 }
 

@@ -75,7 +75,7 @@ serve(async (req) => {
 
   // Resolve HM data: DOB + character + culture_offers.
   const { data: hm } = await db.from('hiring_managers')
-    .select('date_of_birth_encrypted, culture_offers, life_chart_character, must_haves, culture_data_source')
+    .select('date_of_birth_encrypted, culture_offers, life_chart_character, must_haves, culture_data_source, hm_quality_factor, hm_cancel_rate')
     .eq('id', role.hiring_manager_id).maybeSingle()
   let hmDobText: string | null = null
   let cultureOffers: Record<string, number> | null = null
@@ -150,6 +150,12 @@ serve(async (req) => {
     weightCulture = weightCulture * 0.5
   }
 
+  // HM quality factor: accounts for employer-side behaviour (cancel rate, retention, truthfulness).
+  // New HMs default to 1.0 — no penalty until data accumulates.
+  // Range: 0.70 (terrible track record) → 1.0 (perfect employer).
+  const hmQualityFactor = (hm?.hm_quality_factor as number | null) ?? 1.0
+  const hmCancelRate    = (hm?.hm_cancel_rate    as number | null) ?? null
+
   // Ownership check for HM callers.
   if (auth.role === 'hiring_manager' && !auth.isServiceRole) {
     const { data: hmOwner } = await db.from('hiring_managers')
@@ -188,7 +194,7 @@ serve(async (req) => {
   // Candidate pool: open, non-expired talents.
   const now = new Date().toISOString()
   const { data: talents } = await db.from('talents')
-    .select('id, profile_id, derived_tags, privacy_mode, whitelist_companies, date_of_birth_encrypted, life_chart_character, location_matters, location_postcode, open_to_new_field, parsed_resume, deal_breakers, expected_salary_min, expected_salary_max, employment_type_preferences, feedback_score, profiles!inner(ghost_score, is_banned)')
+    .select('id, profile_id, derived_tags, privacy_mode, whitelist_companies, date_of_birth_encrypted, life_chart_character, location_matters, location_postcode, open_to_new_field, parsed_resume, deal_breakers, expected_salary_min, expected_salary_max, employment_type_preferences, feedback_score, phs_show_rate, phs_accept_rate, phs_pass_probation_rate, phs_stay_6m_rate, profiles!inner(ghost_score, is_banned)')
     .eq('is_open_to_offers', true)
     .eq('profiles.is_banned', false)
     .or(`profile_expires_at.is.null,profile_expires_at.gte.${now}`)
@@ -503,7 +509,37 @@ serve(async (req) => {
     // so the priority sort surfaces them faster. Capped at 100.
     const activeWindowBoost = (hmInActiveWindow && talentInActiveWindow) ? 5 : 0
 
-    const finalScore = Math.min(100, Math.max(0, rawScore - ghostPenalty + activeWindowBoost))
+    // ── Outcome multiplier (PHS — Probability of Hire Success) ───────────────
+    // Phase 1: rule-based proxies, overridden by stored rates once data accumulates.
+    //   multiplier = 0.60 floor + 0.40 × (P_accept × P_show × P_pass_probation × P_stay_6m)
+    // The 0.60 floor prevents new talent from being unfairly suppressed;
+    // the 0.40 ceiling rewards proven track records.
+    const phsShowStored     = (t as unknown as { phs_show_rate: number | null }).phs_show_rate
+    const phsAcceptStored   = (t as unknown as { phs_accept_rate: number | null }).phs_accept_rate
+    const phsProbStored     = (t as unknown as { phs_pass_probation_rate: number | null }).phs_pass_probation_rate
+    const phsStay6mStored   = (t as unknown as { phs_stay_6m_rate: number | null }).phs_stay_6m_rate
+
+    const pShow = phsShowStored ?? Math.max(0.10, 1.0 - ghostScore * 0.15)
+
+    // P_accept is per-match (depends on salary + culture + employment fit for this role)
+    const salFitN  = (salaryFit    ?? 50) / 100
+    const culFitN  = cultureOffers != null ? cultureFit / 100 : 0.5
+    const empFitN  = (employmentFit ?? 60) / 100
+    const pAccept  = phsAcceptStored ?? (salFitN * 0.6 + culFitN * 0.3 + empFitN * 0.1)
+
+    // P_pass_probation: driven by ownership + coachability + resilience (the "stability trio")
+    const ownTag  = tags['ownership']    ?? 0.5
+    const coaTag  = tags['coachability'] ?? 0.5
+    const resTag  = tags['resilience']   ?? 0.5
+    const pProbation = phsProbStored ?? (ownTag * 0.4 + coaTag * 0.35 + resTag * 0.25)
+
+    // P_stay_6m: correlated with probation pass rate + background fit
+    const pStay6m = phsStay6mStored ?? (pProbation * 0.6 + (backgroundScore / 100) * 0.4)
+
+    const phsMultiplier = 0.60 + 0.40 * (pAccept * pShow * pProbation * pStay6m)
+    // hmQualityFactor accounts for employer-side reliability — prevents good talent from
+    // being suppressed because a bad HM created poor outcomes in prior matches.
+    const finalScore = Math.min(100, Math.max(0, rawScore * phsMultiplier * hmQualityFactor - ghostPenalty + activeWindowBoost))
 
     const activeDims = dims.filter((d) => d.weight > 0).map((d) => d.name)
     const effectiveWeights: Record<string, number> = {}
@@ -578,8 +614,21 @@ serve(async (req) => {
         ghost_score: ghostScore,
         ghost_penalty: ghostPenalty,
         raw_score: Number(rawScore.toFixed(2)),
+        phs: {
+          p_accept:      Number(pAccept.toFixed(3)),
+          p_show:        Number(pShow.toFixed(3)),
+          p_pass_probation: Number(pProbation.toFixed(3)),
+          p_stay_6m:     Number(pStay6m.toFixed(3)),
+          multiplier:    Number(phsMultiplier.toFixed(3)),
+          phase:         (phsShowStored != null || phsProbStored != null) ? 'data-driven' : 'rule-based',
+          hm_quality: {
+            factor:       Number(hmQualityFactor.toFixed(3)),
+            cancel_rate:  hmCancelRate,
+            source:       hmCancelRate != null ? 'computed' : 'default_new_hm',
+          },
+        },
         final_score: Number(finalScore.toFixed(2)),
-        note: activeDims.join(' + ') + ' (dynamically normalised).',
+        note: activeDims.join(' + ') + ' (dynamically normalised) × PHS multiplier × HM quality factor.',
       },
     }
   }))

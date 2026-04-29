@@ -28,10 +28,13 @@ export default function Login() {
     e.preventDefault()
     setErr(null)
     setBusy(true)
-    // Sign out locally first so the auth client releases any held internal locks
-    // before signInWithPassword acquires them (avoids indefinite hang).
-    await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const timeout = new Promise<{ error: { message: string } }>(resolve =>
+      setTimeout(() => resolve({ error: { message: 'Sign-in timed out — please refresh the page and try again.' } }), 15000)
+    )
+    const { error } = await Promise.race([
+      supabase.auth.signInWithPassword({ email, password }),
+      timeout,
+    ])
     setBusy(false)
     if (error) { setErr(error.message); return }
     navigate(redirectTo, { replace: true })

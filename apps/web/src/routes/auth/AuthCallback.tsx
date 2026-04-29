@@ -4,21 +4,23 @@ import { supabase } from '../../lib/supabase'
 
 /**
  * Handles three scenarios:
- *  - /auth/callback?type=signup  (shown after signUp; email pending confirmation)
+ *  - /auth/callback?code=...      (PKCE OAuth — Google etc; exchange in progress)
+ *  - /auth/callback?type=signup   (shown after signUp; email pending confirmation)
  *  - /auth/callback?type=recovery (user clicked password-reset link)
- *  - /auth/callback (generic magic-link / OAuth / invite callback)
- *
- * Supabase parses the URL fragment automatically (detectSessionInUrl: true).
- * We just need to react once the session resolves.
  */
 export default function AuthCallback() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const type = params.get('type')
+  const hasCode = !!params.get('code')
   const [newPw, setNewPw] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
-  const [mode, setMode] = useState<'waiting' | 'recover' | 'done'>('waiting')
+  // Start in 'loading' when a PKCE code is present — the exchange takes ~1s.
+  // Only start in 'waiting' (show "Check your email") for explicit signup callbacks.
+  const [mode, setMode] = useState<'loading' | 'waiting' | 'recover' | 'done'>(
+    hasCode ? 'loading' : 'waiting'
+  )
 
   useEffect(() => {
     let mounted = true
@@ -54,26 +56,43 @@ export default function AuthCallback() {
       } catch { /* best effort — never block onboarding */ }
     }
 
-    supabase.auth.getSession().then(({ data }) => {
+    function handleSession(session: { user: { id: string } } | null) {
       if (!mounted) return
-      if (data.session) {
-        if (type === 'recovery') setMode('recover')
-        else {
-          void Promise.all([applyStoredRole(data.session.user.id), processStoredReferral(data.session.user.id)]).then(() => navigate('/home', { replace: true }))
+      if (session) {
+        if (type === 'recovery') {
+          setMode('recover')
+        } else {
+          void Promise.all([
+            applyStoredRole(session.user.id),
+            processStoredReferral(session.user.id),
+          ]).then(() => { if (mounted) navigate('/home', { replace: true }) })
         }
-      } else {
+      } else if (!hasCode) {
+        // No code in URL and no session = genuine "check your email" case
         setMode('waiting')
       }
-    })
+      // If hasCode but no session yet: exchange still in progress — stay in 'loading'
+    }
+
+    // Check if session is already available (may be null if PKCE exchange is still running)
+    supabase.auth.getSession().then(({ data }) => handleSession(data.session))
+
+    // onAuthStateChange fires once the PKCE exchange or token confirmation completes
     const { data: sub } = supabase.auth.onAuthStateChange((_ev, session) => {
-      if (!session) return
-      if (type === 'recovery') setMode('recover')
-      else {
-        void applyStoredRole(session.user.id).then(() => navigate('/home', { replace: true }))
-      }
+      handleSession(session)
     })
-    return () => { mounted = false; sub.subscription.unsubscribe() }
-  }, [navigate, type])
+
+    // Safety net: if still loading after 15s, show an error
+    const timeout = setTimeout(() => {
+      if (mounted && mode === 'loading') setMode('waiting')
+    }, 15000)
+
+    return () => {
+      mounted = false
+      sub.subscription.unsubscribe()
+      clearTimeout(timeout)
+    }
+  }, [navigate, type, hasCode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handlePwSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -126,7 +145,21 @@ export default function AuthCallback() {
     )
   }
 
-  // waiting — e.g. after signup
+  if (mode === 'loading') {
+    return (
+      <CenteredBox>
+        <div className="flex justify-center mb-4">
+          <svg className="animate-spin h-8 w-8 text-brand-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+          </svg>
+        </div>
+        <p className="text-gray-600 text-sm">Signing you in…</p>
+      </CenteredBox>
+    )
+  }
+
+  // waiting — signup email confirmation
   return (
     <CenteredBox>
       <h1 className="text-xl font-semibold mb-2">Check your email</h1>

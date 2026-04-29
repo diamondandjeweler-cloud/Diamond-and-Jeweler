@@ -80,12 +80,9 @@ export function bootstrapSession() {
         console.error('[session] fetchProfile failed in onAuthStateChange', e)
         return null
       })
-      if (!profile) {
-        // Orphan session — sign out so we land cleanly on the public homepage.
-        console.error('[session] profile fetch failed — signing out to recover')
-        await supabase.auth.signOut().catch(() => { /* best effort */ })
-        return
-      }
+      // Don't sign out on profile fetch failure — it cancels in-flight auth flows
+      // (e.g. PKCE callback) and leaves the user stuck on "Check your email".
+      // Onboarding/consent gates handle missing profiles gracefully.
       useSession.setState({ profile })
     } catch (e) {
       console.error('[session] onAuthStateChange failed', e)

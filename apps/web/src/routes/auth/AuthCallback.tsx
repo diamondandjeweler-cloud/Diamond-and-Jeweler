@@ -63,11 +63,12 @@ export default function AuthCallback() {
         if (type === 'recovery') {
           setMode('recover')
         } else if (!navigated.current) {
-          // Navigate immediately — don't wait for background DB ops which can hang
+          // Use hard redirect — React Router navigate() can fail if Zustand session
+          // state hasn't propagated yet when onAuthStateChange fires.
           navigated.current = true
           void applyStoredRole(session.user.id)
           void processStoredReferral(session.user.id)
-          navigate('/home', { replace: true })
+          window.location.replace('/home')
         }
       } else if (!hasCode) {
         // No code in URL and no session = genuine "check your email" case

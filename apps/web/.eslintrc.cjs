@@ -15,6 +15,7 @@ module.exports = {
     '.eslintrc.cjs',
     'vite.config.ts',
     'vitest.config.ts',
+    'src/routes/restaurant',
   ],
   parser: '@typescript-eslint/parser',
   parserOptions: {

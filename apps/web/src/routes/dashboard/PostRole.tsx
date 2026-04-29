@@ -34,6 +34,9 @@ export default function PostRole() {
   const [hourlyRate, setHourlyRate] = useState(0)
   const [durationDays, setDurationDays] = useState<number | ''>('')
   const [startDate, setStartDate] = useState<string>('')
+  const [requiresWeekend, setRequiresWeekend] = useState(false)
+  const [requiresDrivingLicense, setRequiresDrivingLicense] = useState(false)
+  const [weightPreset, setWeightPreset] = useState<'default'|'operations'|'technical'|'creative'|'sales'|'management'>('default')
 
   const [marketWarning, setMarketWarning] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -93,6 +96,9 @@ export default function PostRole() {
         hourly_rate: employmentType === 'gig' || employmentType === 'part_time' || employmentType === 'contract' ? (hourlyRate || null) : null,
         duration_days: durationDays === '' ? null : Number(durationDays),
         start_date: startDate || null,
+        requires_weekend: requiresWeekend,
+        requires_driving_license: requiresDrivingLicense,
+        weight_preset: weightPreset === 'default' ? null : weightPreset,
       }).select('id').single()
       if (insErr) throw insErr
       try { await callFunction('match-generate', { role_id: inserted.id }) }
@@ -207,6 +213,45 @@ export default function PostRole() {
           {marketWarning && (
             <Alert tone="amber" title="Market-rate check">{marketWarning}</Alert>
           )}
+
+          {/* Role requirements */}
+          <div className="space-y-2">
+            <div className="field-label">Role requirements</div>
+            <div className="field-hint mb-2">Used as hard filters — candidates who cannot meet these are excluded before scoring.</div>
+            <label className="flex items-center gap-3 border border-ink-200 rounded-lg px-3 py-2.5 cursor-pointer hover:bg-ink-50 transition-colors">
+              <input
+                type="checkbox"
+                checked={requiresWeekend}
+                onChange={(e) => setRequiresWeekend(e.target.checked)}
+                className="h-4 w-4 rounded border-ink-300 accent-brand-500"
+              />
+              <span className="text-sm text-ink-800">Role requires weekend work</span>
+            </label>
+            <label className="flex items-center gap-3 border border-ink-200 rounded-lg px-3 py-2.5 cursor-pointer hover:bg-ink-50 transition-colors">
+              <input
+                type="checkbox"
+                checked={requiresDrivingLicense}
+                onChange={(e) => setRequiresDrivingLicense(e.target.checked)}
+                className="h-4 w-4 rounded border-ink-300 accent-brand-500"
+              />
+              <span className="text-sm text-ink-800">Role requires a driving licence</span>
+            </label>
+          </div>
+
+          {/* Matching weight preset */}
+          <Select
+            label="Matching profile"
+            hint="Shifts which signals the engine prioritises for this role. Leave on Default if unsure."
+            value={weightPreset}
+            onChange={(e) => setWeightPreset(e.target.value as typeof weightPreset)}
+          >
+            <option value="default">Default — balanced weights</option>
+            <option value="operations">Operations — reliability, culture, feedback</option>
+            <option value="technical">Technical — hard skills, background, behavioural rigour</option>
+            <option value="creative">Creative — culture fit, style, background</option>
+            <option value="sales">Sales — relationship signals, character, HM feedback</option>
+            <option value="management">Management — leadership behaviourals, culture, seniority</option>
+          </Select>
 
           <div>
             <div className="field-label">Required traits <span className="text-red-500">*</span></div>

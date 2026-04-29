@@ -64,7 +64,7 @@ serve(async (req) => {
 
   const { data: role, error: roleErr } = await db
     .from('roles')
-    .select('id, hiring_manager_id, required_traits, status, location_postcode, title, industry, accept_no_experience, employment_type, experience_level, vacancy_expires_at, salary_max, requires_weekend')
+    .select('id, hiring_manager_id, required_traits, status, location_postcode, title, industry, accept_no_experience, employment_type, experience_level, vacancy_expires_at, salary_max, requires_weekend, requires_driving_license, weight_preset')
     .eq('id', body.role_id).single()
   if (roleErr || !role) return json({ error: 'Role not found' }, 404)
   if (role.status !== 'active') return json({ error: `Role status is ${role.status}` }, 400)
@@ -75,7 +75,7 @@ serve(async (req) => {
 
   // Resolve HM data: DOB + character + culture_offers.
   const { data: hm } = await db.from('hiring_managers')
-    .select('date_of_birth_encrypted, culture_offers, life_chart_character, must_haves')
+    .select('date_of_birth_encrypted, culture_offers, life_chart_character, must_haves, culture_data_source')
     .eq('id', role.hiring_manager_id).maybeSingle()
   let hmDobText: string | null = null
   let cultureOffers: Record<string, number> | null = null
@@ -104,16 +104,51 @@ serve(async (req) => {
     db.from('system_config').select('value').eq('key', 'weight_background').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_feedback').maybeSingle(),
   ])
-  const weightBehavioral = typeof wBehRow.data?.value     === 'number' ? wBehRow.data.value     : 0.20
-  const weightTag        = typeof wTagRow.data?.value     === 'number' ? wTagRow.data.value     : 0.50
-  const weightSalary     = typeof wSalRow.data?.value     === 'number' ? wSalRow.data.value     : 0.15
-  const weightCulture    = typeof wCultureRow.data?.value === 'number' ? wCultureRow.data.value : 0.30
-  const weightEmployment = typeof wEmpRow.data?.value     === 'number' ? wEmpRow.data.value     : 0.10
-  const weightCharacter  = typeof wCharRow.data?.value    === 'number' ? wCharRow.data.value    : 0.15
-  const weightAge        = typeof wAgeRow.data?.value     === 'number' ? wAgeRow.data.value     : 0.05
-  const weightLocation   = typeof wLocRow.data?.value     === 'number' ? wLocRow.data.value     : 0.10
-  const weightBackground = typeof wBgRow.data?.value      === 'number' ? wBgRow.data.value      : 0.15
-  const weightFeedback   = typeof wFbRow.data?.value      === 'number' ? wFbRow.data.value      : 0.10
+  let weightBehavioral = typeof wBehRow.data?.value     === 'number' ? wBehRow.data.value     : 0.20
+  let weightTag        = typeof wTagRow.data?.value     === 'number' ? wTagRow.data.value     : 0.50
+  let weightSalary     = typeof wSalRow.data?.value     === 'number' ? wSalRow.data.value     : 0.15
+  let weightCulture    = typeof wCultureRow.data?.value === 'number' ? wCultureRow.data.value : 0.30
+  let weightEmployment = typeof wEmpRow.data?.value     === 'number' ? wEmpRow.data.value     : 0.10
+  let weightCharacter  = typeof wCharRow.data?.value    === 'number' ? wCharRow.data.value    : 0.15
+  let weightAge        = typeof wAgeRow.data?.value     === 'number' ? wAgeRow.data.value     : 0.05
+  let weightLocation   = typeof wLocRow.data?.value     === 'number' ? wLocRow.data.value     : 0.10
+  let weightBackground = typeof wBgRow.data?.value      === 'number' ? wBgRow.data.value      : 0.15
+  let weightFeedback   = typeof wFbRow.data?.value      === 'number' ? wFbRow.data.value      : 0.10
+
+  // Fix e: role-type weight presets — shift relative emphasis for different role families.
+  const roleWeightPreset = ((role as { weight_preset?: string }).weight_preset ?? '').toLowerCase()
+  const WEIGHT_PRESETS: Record<string, Partial<Record<string, number>>> = {
+    // Operations: reliability + culture + feedback matter most
+    operations: { behavioral: 0.25, tag: 0.45, culture: 0.30, background: 0.15, feedback: 0.15 },
+    // Technical: hard skills + background + behavioural rigor
+    technical:  { behavioral: 0.30, tag: 0.55, culture: 0.15, background: 0.20, feedback: 0.10 },
+    // Creative: culture + style fit + background
+    creative:   { behavioral: 0.15, tag: 0.35, culture: 0.35, background: 0.20, feedback: 0.10 },
+    // Sales: relationship signals + character + feedback from prior HMs
+    sales:      { behavioral: 0.25, tag: 0.40, culture: 0.25, character: 0.20, age: 0.10, feedback: 0.15 },
+    // Management: leadership behaviourals + culture alignment + seniority signals
+    management: { behavioral: 0.35, tag: 0.35, culture: 0.35, character: 0.20, age: 0.10, feedback: 0.15 },
+  }
+  if (roleWeightPreset && WEIGHT_PRESETS[roleWeightPreset]) {
+    const p = WEIGHT_PRESETS[roleWeightPreset]
+    if (p.behavioral  !== undefined) weightBehavioral = p.behavioral
+    if (p.tag         !== undefined) weightTag        = p.tag
+    if (p.salary      !== undefined) weightSalary     = p.salary
+    if (p.culture     !== undefined) weightCulture    = p.culture
+    if (p.employment  !== undefined) weightEmployment = p.employment
+    if (p.character   !== undefined) weightCharacter  = p.character
+    if (p.age         !== undefined) weightAge        = p.age
+    if (p.location    !== undefined) weightLocation   = p.location
+    if (p.background  !== undefined) weightBackground = p.background
+    if (p.feedback    !== undefined) weightFeedback   = p.feedback
+  }
+
+  // Fix c: culture signals from onboarding chat are AI-inferred — reduce weight by half
+  // until a HM completes a structured culture survey (culture_data_source = 'survey_verified').
+  const hmCultureDataSource = (hm?.culture_data_source as string | null) ?? 'ai_inferred'
+  if (hmCultureDataSource === 'ai_inferred') {
+    weightCulture = weightCulture * 0.5
+  }
 
   // Ownership check for HM callers.
   if (auth.role === 'hiring_manager' && !auth.isServiceRole) {
@@ -270,9 +305,32 @@ serve(async (req) => {
     }
 
     // ── Hard filter: deal-breakers (talent) ──────────────────────────────────
-    type DealBreakers = { items?: string[] }
+    type DealBreakers = {
+      items?: string[]
+      min_salary_hard?: number | null
+      no_weekend_work?: boolean
+      no_driving_license?: boolean
+    }
     const dealBreakers = ((t as unknown as { deal_breakers: DealBreakers | null }).deal_breakers) ?? {}
     const talentDealBreakerItems: string[] = Array.isArray(dealBreakers.items) ? dealBreakers.items : []
+    const talentMinSalaryHard = (dealBreakers.min_salary_hard as number | null | undefined) ?? null
+    const talentNoWeekendWork = dealBreakers.no_weekend_work === true
+    const talentNoDrivingLicense = dealBreakers.no_driving_license === true
+
+    const roleSalaryMaxForFilter = (role as unknown as { salary_max: number | null }).salary_max ?? null
+    const roleRequiresWeekend = (role as { requires_weekend?: boolean }).requires_weekend === true
+    const roleRequiresDrivingLicense = (role as { requires_driving_license?: boolean }).requires_driving_license === true
+
+    // Fix d: structured hard filters — eliminate role before any scoring
+    if (talentMinSalaryHard != null && roleSalaryMaxForFilter != null && roleSalaryMaxForFilter < talentMinSalaryHard) {
+      return null  // role salary cap is below talent's hard floor
+    }
+    if (talentNoWeekendWork && roleRequiresWeekend) {
+      return null  // weekend conflict
+    }
+    if (talentNoDrivingLicense && roleRequiresDrivingLicense) {
+      return null  // driving licence conflict
+    }
     // ─────────────────────────────────────────────────────────────────────────
 
     // ── Behavioral fitness: weighted avg of 9 behavioural interview tags ──────
@@ -414,17 +472,22 @@ serve(async (req) => {
     }
 
     // ── Final score: dynamic weight normalisation across active dimensions ──
+    // Fix g: neutral imputation for missing-data dimensions instead of zero-weight skip.
+    // When a signal is absent we use a neutral score with half the normal weight so the
+    // dimension still exerts mild gravitational pull without dominating.  Genuinely
+    // optional dimensions (location, character, age, salary, culture) still drop to zero
+    // weight when the underlying data is entirely absent.
     const dims: Array<{ name: string; score: number; weight: number }> = [
-      { name: 'behavioral_fitness', score: behavioralFitness ?? 0, weight: behavioralFitness != null ? weightBehavioral : 0 },
+      { name: 'behavioral_fitness', score: behavioralFitness ?? 50, weight: weightBehavioral * (behavioralFitness != null ? 1 : 0.5) },
       { name: 'tag_compatibility',  score: tagComp,                 weight: weightTag },
       { name: 'salary_fit',         score: salaryFit ?? 0,          weight: salaryFit        != null ? weightSalary     : 0 },
       { name: 'culture_fit',        score: cultureFit,              weight: cultureOffers    != null ? weightCulture    : 0 },
-      { name: 'employment_fit',     score: employmentFit ?? 0,      weight: employmentFit    != null ? weightEmployment : 0 },
+      { name: 'employment_fit',     score: employmentFit ?? 60,     weight: weightEmployment * (employmentFit != null ? 1 : 0.5) },
       { name: 'character',          score: characterScore ?? 0,     weight: characterScore   != null ? weightCharacter  : 0 },
       { name: 'age',                score: ageScore ?? 0,           weight: ageScore         != null ? weightAge        : 0 },
       { name: 'location',           score: locationScore ?? 0,      weight: locationScore    != null ? weightLocation   : 0 },
       { name: 'background',         score: backgroundScore,         weight: weightBackground },
-      { name: 'feedback',           score: feedbackScore ?? 0,      weight: feedbackScore    != null ? weightFeedback   : 0 },
+      { name: 'feedback',           score: feedbackScore ?? 50,     weight: weightFeedback   * (feedbackScore != null ? 1 : 0.5) },
     ]
     const totalW = dims.reduce((acc, d) => acc + d.weight, 0)
     const rawScore = totalW > 0
@@ -468,6 +531,9 @@ serve(async (req) => {
       employmentFit,
       feedbackScore,
       finalScore,
+      ghostScore,
+      ghostThreshold,
+      cultureDataSource: hmCultureDataSource,
       activeWindowBoth: hmInActiveWindow && talentInActiveWindow,
       talentNeedsRamp,
       mustHaveItems,
@@ -608,6 +674,9 @@ interface ScoredCandidate {
   employmentFit: number | null
   feedbackScore: number | null
   finalScore: number
+  ghostScore: number
+  ghostThreshold: number
+  cultureDataSource: string
   activeWindowBoth: boolean
   talentNeedsRamp: boolean
   mustHaveItems: string[]
@@ -693,6 +762,16 @@ function buildPublicReasoning(s: ScoredCandidate, roleTraits: string[]) {
     watchouts.push('Off-field background — interview should probe motivation and learning curve.')
   } else if (s.backgroundScore >= 100) {
     strengths.push('Background experience aligns with the role.')
+  }
+
+  // Fix f: surface ghost-score penalty when candidate has a pattern of slow/no responses.
+  if (s.ghostScore >= s.ghostThreshold) {
+    watchouts.push('This candidate has been slow to respond in previous matches — build extra lead time into your outreach and set a clear response deadline.')
+  }
+
+  // Fix c: flag that culture signals are AI-inferred from onboarding chat, not survey-verified.
+  if (s.cultureDataSource === 'ai_inferred') {
+    watchouts.push('Culture signals are self-reported via AI onboarding — treat as indicative, not verified. Confirm values and working style in the interview.')
   }
 
   // HR-facing nudges driven by internal signals. Wording is generic

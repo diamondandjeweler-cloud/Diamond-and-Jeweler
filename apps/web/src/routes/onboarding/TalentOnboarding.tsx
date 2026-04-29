@@ -54,6 +54,9 @@ export default function TalentOnboarding() {
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [dealBreakerItems, setDealBreakerItems] = useState<string[]>([])
   const [dealBreakerInput, setDealBreakerInput] = useState('')
+  const [minSalaryHard, setMinSalaryHard] = useState<number | null>(null)
+  const [noWeekendWork, setNoWeekendWork] = useState(false)
+  const [noDrivingLicense, setNoDrivingLicense] = useState(false)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
@@ -351,7 +354,12 @@ export default function TalentOnboarding() {
         is_open_to_offers: true,
         employment_type_preferences: extracted.employment_type_preferences ?? [],
         photo_url: photoPath,
-        deal_breakers: { items: dealBreakerItems },
+        deal_breakers: {
+          items: dealBreakerItems,
+          min_salary_hard: minSalaryHard,
+          no_weekend_work: noWeekendWork,
+          no_driving_license: noDrivingLicense,
+        },
       }).select('id').single()
       if (insErr) throw insErr
       insertedRef.current = true
@@ -695,43 +703,89 @@ export default function TalentOnboarding() {
         setDealBreakerItems((prev) => [...prev, t])
         setDealBreakerInput('')
       }
+      const hasAnyDealBreaker = noWeekendWork || noDrivingLicense || minSalaryHard != null || dealBreakerItems.length > 0
       return (
         <div className="space-y-4">
           <p className="text-sm text-ink-600 leading-relaxed">
             Tell us your non-negotiables — things you will <strong>not</strong> compromise on.
-            Roles that conflict with these will never be shown to you.
-          </p>
-          <p className="text-xs text-ink-400">
-            e.g. "Minimum RM 8,000 salary", "No weekend work", "Must be hybrid or remote"
+            Roles that conflict with these will be filtered out automatically.
           </p>
 
-          {/* Input row */}
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={dealBreakerInput}
-              onChange={(e) => setDealBreakerInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addItem() } }}
-              placeholder="Type a requirement and press Enter or Add"
-              className="flex-1 border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-              autoFocus
-            />
-            <button
-              type="button"
-              onClick={addItem}
-              disabled={!dealBreakerInput.trim()}
-              className="px-4 py-2 rounded-lg text-sm font-medium bg-brand-500 text-white disabled:opacity-40 hover:bg-brand-600 transition-colors shrink-0"
-            >
-              Add
-            </button>
+          {/* Quick structured toggles — machine-verified hard filters */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-ink-500 uppercase tracking-wide">Quick filters (auto-enforced)</p>
+            <label className="flex items-center gap-3 border border-ink-200 rounded-lg px-3 py-2.5 cursor-pointer hover:bg-ink-50 transition-colors">
+              <input
+                type="checkbox"
+                checked={noWeekendWork}
+                onChange={(e) => setNoWeekendWork(e.target.checked)}
+                className="h-4 w-4 rounded border-ink-300 accent-brand-500"
+              />
+              <span className="text-sm text-ink-800">I cannot work weekends</span>
+            </label>
+            <label className="flex items-center gap-3 border border-ink-200 rounded-lg px-3 py-2.5 cursor-pointer hover:bg-ink-50 transition-colors">
+              <input
+                type="checkbox"
+                checked={noDrivingLicense}
+                onChange={(e) => setNoDrivingLicense(e.target.checked)}
+                className="h-4 w-4 rounded border-ink-300 accent-brand-500"
+              />
+              <span className="text-sm text-ink-800">I do not have a driving licence</span>
+            </label>
+            <div className="border border-ink-200 rounded-lg px-3 py-2.5">
+              <label className="block text-sm text-ink-800 mb-1.5">Minimum salary I will accept (RM / month)</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={0}
+                  step={100}
+                  value={minSalaryHard ?? ''}
+                  onChange={(e) => setMinSalaryHard(e.target.value === '' ? null : Math.max(0, parseInt(e.target.value, 10) || 0))}
+                  placeholder="e.g. 4000  (leave blank if flexible)"
+                  className="flex-1 border border-ink-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                />
+                {minSalaryHard != null && (
+                  <button
+                    type="button"
+                    onClick={() => setMinSalaryHard(null)}
+                    className="text-ink-400 hover:text-red-500 text-base leading-none"
+                    aria-label="Clear"
+                  >×</button>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* List */}
+          {/* Free-text additional requirements */}
+          <div>
+            <p className="text-xs font-semibold text-ink-500 uppercase tracking-wide mb-2">Anything else (optional)</p>
+            <p className="text-xs text-ink-400 mb-2">e.g. "Must be hybrid or remote", "No night shifts", "Company must provide transport"</p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={dealBreakerInput}
+                onChange={(e) => setDealBreakerInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addItem() } }}
+                placeholder="Type a requirement and press Enter or Add"
+                className="flex-1 border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+              <button
+                type="button"
+                onClick={addItem}
+                disabled={!dealBreakerInput.trim()}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-brand-500 text-white disabled:opacity-40 hover:bg-brand-600 transition-colors shrink-0"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+
+          {/* Free-text list */}
           {dealBreakerItems.length > 0 && (
             <ul className="space-y-2">
               {dealBreakerItems.map((item) => (
                 <li key={item} className="flex items-start gap-2 bg-ink-50 border border-ink-200 rounded-lg px-3 py-2">
-                  <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-red-400 shrink-0 mt-1.5" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-red-400 shrink-0 mt-1.5" />
                   <span className="flex-1 text-sm text-ink-800">{item}</span>
                   <button
                     type="button"
@@ -746,8 +800,8 @@ export default function TalentOnboarding() {
             </ul>
           )}
 
-          {dealBreakerItems.length === 0 && (
-            <p className="text-xs text-ink-400 text-center py-2">No non-negotiables added yet — you can skip this if you're flexible.</p>
+          {!hasAnyDealBreaker && (
+            <p className="text-xs text-ink-400 text-center py-1">No non-negotiables set — you can skip this if you're flexible.</p>
           )}
 
           <Button
@@ -755,7 +809,7 @@ export default function TalentOnboarding() {
             className="w-full"
             size="lg"
           >
-            {dealBreakerItems.length === 0 ? 'Skip — I\'m flexible' : 'Continue'}
+            {hasAnyDealBreaker ? 'Continue' : "Skip — I'm flexible"}
           </Button>
         </div>
       )

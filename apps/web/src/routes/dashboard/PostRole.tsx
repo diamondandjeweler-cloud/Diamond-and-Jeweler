@@ -36,6 +36,12 @@ export default function PostRole() {
   const [startDate, setStartDate] = useState<string>('')
   const [requiresWeekend, setRequiresWeekend] = useState(false)
   const [requiresDrivingLicense, setRequiresDrivingLicense] = useState(false)
+  const [requiresTravel, setRequiresTravel] = useState(false)
+  const [hasNightShifts, setHasNightShifts] = useState(false)
+  const [requiresOwnCar, setRequiresOwnCar] = useState(false)
+  const [requiresRelocation, setRequiresRelocation] = useState(false)
+  const [requiresOvertime, setRequiresOvertime] = useState(false)
+  const [isCommissionBased, setIsCommissionBased] = useState(false)
   const [weightPreset, setWeightPreset] = useState<'default'|'operations'|'technical'|'creative'|'sales'|'management'>('default')
 
   const [marketWarning, setMarketWarning] = useState<string | null>(null)
@@ -98,6 +104,12 @@ export default function PostRole() {
         start_date: startDate || null,
         requires_weekend: requiresWeekend,
         requires_driving_license: requiresDrivingLicense,
+        requires_travel: requiresTravel,
+        has_night_shifts: hasNightShifts,
+        requires_own_car: requiresOwnCar,
+        requires_relocation: requiresRelocation,
+        requires_overtime: requiresOvertime,
+        is_commission_based: isCommissionBased,
         weight_preset: weightPreset === 'default' ? null : weightPreset,
       }).select('id').single()
       if (insErr) throw insErr
@@ -236,6 +248,24 @@ export default function PostRole() {
               />
               <span className="text-sm text-ink-800">Role requires a driving licence</span>
             </label>
+            {[
+              { state: requiresTravel,     setter: setRequiresTravel,     label: 'Role requires travel' },
+              { state: hasNightShifts,     setter: setHasNightShifts,     label: 'Role has night shifts / shift work' },
+              { state: requiresOwnCar,     setter: setRequiresOwnCar,     label: 'Must have own transport / car' },
+              { state: requiresRelocation, setter: setRequiresRelocation, label: 'Must be willing to relocate' },
+              { state: requiresOvertime,   setter: setRequiresOvertime,   label: 'Overtime is expected' },
+              { state: isCommissionBased,  setter: setIsCommissionBased,  label: 'Commission-based or variable pay structure' },
+            ].map(({ state, setter, label }) => (
+              <label key={label} className="flex items-center gap-3 border border-ink-200 rounded-lg px-3 py-2.5 cursor-pointer hover:bg-ink-50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={state}
+                  onChange={(e) => setter(e.target.checked)}
+                  className="h-4 w-4 rounded border-ink-300 accent-brand-500"
+                />
+                <span className="text-sm text-ink-800">{label}</span>
+              </label>
+            ))}
           </div>
 
           {/* Matching weight preset */}

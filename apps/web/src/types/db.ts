@@ -99,12 +99,23 @@ export interface Match {
   public_reasoning?: PublicReasoning | null
 }
 
+export interface CultureComparison {
+  talent_top_wants: string[]
+  hm_top_offers: string[]
+  overlap: string[]
+  talent_only: string[]
+  hm_only: string[]
+  labels: Record<string, string>
+}
+
 export interface PublicReasoning {
   score_band: 'strong' | 'good' | 'cautious'
   strengths: string[]
   watchouts: string[]
   matched_traits: string[]
   missing_traits: string[]
+  behavioral_tags?: Record<string, number | null>
+  culture_comparison?: CultureComparison
   note?: string
 }
 

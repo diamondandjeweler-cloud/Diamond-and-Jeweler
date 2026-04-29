@@ -64,7 +64,7 @@ serve(async (req) => {
 
   const { data: role, error: roleErr } = await db
     .from('roles')
-    .select('id, hiring_manager_id, required_traits, status, location_postcode, title, industry, accept_no_experience, employment_type, experience_level, vacancy_expires_at, salary_max, requires_weekend, requires_driving_license, weight_preset')
+    .select('id, hiring_manager_id, required_traits, status, location_postcode, title, industry, accept_no_experience, employment_type, experience_level, vacancy_expires_at, salary_max, work_arrangement, requires_weekend, requires_driving_license, weight_preset, requires_travel, has_night_shifts, requires_own_car, requires_relocation, requires_overtime, is_commission_based')
     .eq('id', body.role_id).single()
   if (roleErr || !role) return json({ error: 'Role not found' }, 404)
   if (role.status !== 'active') return json({ error: `Role status is ${role.status}` }, 400)
@@ -337,6 +337,23 @@ serve(async (req) => {
     if (talentNoDrivingLicense && roleRequiresDrivingLicense) {
       return null  // driving licence conflict
     }
+    // Extracted free-text deal-breaker hard filters
+    const roleRequiresTravel     = (role as { requires_travel?: boolean }).requires_travel === true
+    const roleHasNightShifts     = (role as { has_night_shifts?: boolean }).has_night_shifts === true
+    const roleRequiresOwnCar     = (role as { requires_own_car?: boolean }).requires_own_car === true
+    const roleRequiresRelocation = (role as { requires_relocation?: boolean }).requires_relocation === true
+    const roleRequiresOvertime   = (role as { requires_overtime?: boolean }).requires_overtime === true
+    const roleIsCommissionBased  = (role as { is_commission_based?: boolean }).is_commission_based === true
+    const roleWorkArrangement    = ((role as { work_arrangement?: string | null }).work_arrangement ?? null)
+    type ExtractedDB = { no_travel?: boolean; no_night_shifts?: boolean; no_own_car?: boolean; remote_only?: boolean; no_relocation?: boolean; no_overtime?: boolean; no_commission_only?: boolean }
+    const edb = dealBreakers as ExtractedDB
+    if (edb.no_travel        && roleRequiresTravel) return null
+    if (edb.no_night_shifts  && roleHasNightShifts) return null
+    if (edb.no_own_car       && roleRequiresOwnCar) return null
+    if (edb.remote_only      && roleWorkArrangement !== 'remote' && roleWorkArrangement !== 'hybrid') return null
+    if (edb.no_relocation    && roleRequiresRelocation) return null
+    if (edb.no_overtime      && roleRequiresOvertime) return null
+    if (edb.no_commission_only && roleIsCommissionBased) return null
     // ─────────────────────────────────────────────────────────────────────────
 
     // ── Behavioral fitness: weighted avg of 9 behavioural interview tags ──────
@@ -431,7 +448,10 @@ serve(async (req) => {
     }
     const tagComp = roleTraits.length > 0 ? (sumHits / roleTraits.length) * 100 : 0
 
-    // ── Dimension 2: culture fit (talent wants_* vs HM culture_offers) ──
+    // ── Dimension 2: culture fit — computed for comparison only, weight=0 ──
+    // The numeric score (wants_X × offers_X) used arbitrary multipliers.
+    // We now expose the raw overlap as a qualitative chart for the HM and
+    // remove it from scoring entirely. See culture_comparison in public_reasoning.
     let cultureFitSum = 0
     for (const key of CULTURE_KEYS) {
       const talentWant = tags[key] ?? 0
@@ -439,6 +459,31 @@ serve(async (req) => {
       cultureFitSum += talentWant * hmOffer
     }
     const cultureFit = (cultureFitSum / CULTURE_KEYS.length) * 100
+
+    const CULTURE_LABELS: Record<string, string> = {
+      wants_wlb: 'Work-life balance', wants_fair_pay: 'Fair pay',
+      wants_growth: 'Growth', wants_stability: 'Stability',
+      wants_flexibility: 'Flexibility', wants_recognition: 'Recognition',
+      wants_mission: 'Mission-driven', wants_team_culture: 'Team culture',
+    }
+    const talentTopWants = (CULTURE_KEYS as unknown as string[])
+      .filter((k) => (tags[k] ?? 0) >= 0.5)
+      .sort((a, b) => (tags[b] ?? 0) - (tags[a] ?? 0))
+      .slice(0, 4)
+    const hmTopOffers = cultureOffers
+      ? (CULTURE_KEYS as unknown as string[])
+        .filter((k) => (cultureOffers![k] ?? 0) >= 0.5)
+        .sort((a, b) => (cultureOffers![b] ?? 0) - (cultureOffers![a] ?? 0))
+        .slice(0, 4)
+      : []
+    const cultureComparison = {
+      talent_top_wants: talentTopWants,
+      hm_top_offers: hmTopOffers,
+      overlap:      talentTopWants.filter((k) => hmTopOffers.includes(k)),
+      talent_only:  talentTopWants.filter((k) => !hmTopOffers.includes(k)),
+      hm_only:      hmTopOffers.filter((k) => !talentTopWants.includes(k)),
+      labels:       CULTURE_LABELS,
+    }
 
     // ── Dimension 3: character bucket (replaces legacy bazi-score path) ──
     const characterScore: number | null = characterBucket
@@ -487,7 +532,7 @@ serve(async (req) => {
       { name: 'behavioral_fitness', score: behavioralFitness ?? 50, weight: weightBehavioral * (behavioralFitness != null ? 1 : 0.5) },
       { name: 'tag_compatibility',  score: tagComp,                 weight: weightTag },
       { name: 'salary_fit',         score: salaryFit ?? 0,          weight: salaryFit        != null ? weightSalary     : 0 },
-      { name: 'culture_fit',        score: cultureFit,              weight: cultureOffers    != null ? weightCulture    : 0 },
+      { name: 'culture_fit',        score: cultureFit,              weight: 0 },  // qualitative only — see culture_comparison
       { name: 'employment_fit',     score: employmentFit ?? 60,     weight: weightEmployment * (employmentFit != null ? 1 : 0.5) },
       { name: 'character',          score: characterScore ?? 0,     weight: characterScore   != null ? weightCharacter  : 0 },
       { name: 'age',                score: ageScore ?? 0,           weight: ageScore         != null ? weightAge        : 0 },
@@ -570,6 +615,7 @@ serve(async (req) => {
       ghostScore,
       ghostThreshold,
       cultureDataSource: hmCultureDataSource,
+      cultureComparison,
       activeWindowBoth: hmInActiveWindow && talentInActiveWindow,
       talentNeedsRamp,
       mustHaveItems,
@@ -726,6 +772,7 @@ interface ScoredCandidate {
   ghostScore: number
   ghostThreshold: number
   cultureDataSource: string
+  cultureComparison: { talent_top_wants: string[]; hm_top_offers: string[]; overlap: string[]; talent_only: string[]; hm_only: string[]; labels: Record<string, string> }
   activeWindowBoth: boolean
   talentNeedsRamp: boolean
   mustHaveItems: string[]
@@ -783,9 +830,10 @@ function buildPublicReasoning(s: ScoredCandidate, roleTraits: string[]) {
   else if (s.tagComp >= 40) watchouts.push('Skills overlap is moderate — interview should probe gaps.')
   else watchouts.push('Skills overlap is low — fit will rely on adjacent strengths.')
 
-  if (s.cultureFit >= 60) strengths.push('Career preferences align well with what this team offers.')
-  else if (s.cultureFit >= 30) watchouts.push('Some preference mismatches — discuss team culture fit in the interview.')
-  else if (s.cultureFit > 0) watchouts.push("Career preferences may not fully match this role's environment.")
+  // Culture: use qualitative overlap instead of arbitrary numeric score
+  const cc = s.cultureComparison
+  if (cc.overlap.length >= 3) strengths.push('Strong culture alignment — talent and team share most key priorities.')
+  else if (cc.overlap.length === 0 && cc.talent_top_wants.length > 0) watchouts.push('No direct culture overlap detected — discuss team environment and expectations in the interview.')
 
   if (s.salaryFit != null) {
     if (s.salaryFit >= 90) strengths.push('Salary expectation aligns well with the role offer.')
@@ -887,6 +935,7 @@ function buildPublicReasoning(s: ScoredCandidate, roleTraits: string[]) {
     matched_traits: matchedTraits,
     missing_traits: missingTraits,
     behavioral_tags: bt,
+    culture_comparison: s.cultureComparison,
     note: 'This explanation summarises platform signals. Final hiring decisions remain yours.',
   }
 }

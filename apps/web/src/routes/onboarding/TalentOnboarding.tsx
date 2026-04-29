@@ -18,6 +18,7 @@ import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { uploadPrivate } from '../../lib/storage'
 import { encryptDob, markOnboardingComplete } from '../../lib/api'
+import { callFunction } from '../../lib/functions'
 import { getLifeChartCharacter, type Gender } from '../../lib/lifeChartCharacter'
 import ChatShell, { ChatMessage } from '../../components/ChatShell'
 import { Button, Alert } from '../../components/ui'
@@ -57,6 +58,13 @@ export default function TalentOnboarding() {
   const [minSalaryHard, setMinSalaryHard] = useState<number | null>(null)
   const [noWeekendWork, setNoWeekendWork] = useState(false)
   const [noDrivingLicense, setNoDrivingLicense] = useState(false)
+  const [noTravel, setNoTravel] = useState(false)
+  const [noNightShifts, setNoNightShifts] = useState(false)
+  const [noOwnCar, setNoOwnCar] = useState(false)
+  const [remoteOnly, setRemoteOnly] = useState(false)
+  const [noRelocation, setNoRelocation] = useState(false)
+  const [noOvertime, setNoOvertime] = useState(false)
+  const [noCommissionOnly, setNoCommissionOnly] = useState(false)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
@@ -359,6 +367,13 @@ export default function TalentOnboarding() {
           min_salary_hard: minSalaryHard,
           no_weekend_work: noWeekendWork,
           no_driving_license: noDrivingLicense,
+          no_travel: noTravel,
+          no_night_shifts: noNightShifts,
+          no_own_car: noOwnCar,
+          remote_only: remoteOnly,
+          no_relocation: noRelocation,
+          no_overtime: noOvertime,
+          no_commission_only: noCommissionOnly,
         },
       }).select('id').single()
       if (insErr) throw insErr
@@ -703,7 +718,27 @@ export default function TalentOnboarding() {
         setDealBreakerItems((prev) => [...prev, t])
         setDealBreakerInput('')
       }
-      const hasAnyDealBreaker = noWeekendWork || noDrivingLicense || minSalaryHard != null || dealBreakerItems.length > 0
+      const hasAnyDealBreaker = noWeekendWork || noDrivingLicense || minSalaryHard != null || dealBreakerItems.length > 0 || noTravel || noNightShifts || noOwnCar || remoteOnly || noRelocation || noOvertime || noCommissionOnly
+
+      async function handleContinue() {
+        // Best-effort: classify free-text items into structured flags via AI
+        if (dealBreakerItems.length > 0) {
+          try {
+            const result = await callFunction<{ deal_breakers: Record<string, boolean> }>('extract-deal-breakers', {
+              items: dealBreakerItems, party: 'talent',
+            })
+            const db = result?.deal_breakers ?? {}
+            if (db.no_travel)         setNoTravel(true)
+            if (db.no_night_shifts)   setNoNightShifts(true)
+            if (db.no_own_car)        setNoOwnCar(true)
+            if (db.remote_only)       setRemoteOnly(true)
+            if (db.no_relocation)     setNoRelocation(true)
+            if (db.no_overtime)       setNoOvertime(true)
+            if (db.no_commission_only) setNoCommissionOnly(true)
+          } catch { /* best effort — manual toggles still apply */ }
+        }
+        setPhase('docs')
+      }
       return (
         <div className="space-y-4">
           <p className="text-sm text-ink-600 leading-relaxed">
@@ -732,6 +767,25 @@ export default function TalentOnboarding() {
               />
               <span className="text-sm text-ink-800">I do not have a driving licence</span>
             </label>
+            {[
+              { state: noTravel,         setter: setNoTravel,         label: 'I cannot travel for work' },
+              { state: noNightShifts,    setter: setNoNightShifts,    label: 'I cannot work night shifts' },
+              { state: noOwnCar,         setter: setNoOwnCar,         label: "I don't have my own car / transport" },
+              { state: remoteOnly,       setter: setRemoteOnly,       label: 'Remote or hybrid only — no full-time office' },
+              { state: noRelocation,     setter: setNoRelocation,     label: 'I cannot relocate' },
+              { state: noOvertime,       setter: setNoOvertime,       label: 'No overtime — strict working hours only' },
+              { state: noCommissionOnly, setter: setNoCommissionOnly, label: 'No commission-only or variable-pay-only roles' },
+            ].map(({ state, setter, label }) => (
+              <label key={label} className="flex items-center gap-3 border border-ink-200 rounded-lg px-3 py-2.5 cursor-pointer hover:bg-ink-50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={state}
+                  onChange={(e) => setter(e.target.checked)}
+                  className="h-4 w-4 rounded border-ink-300 accent-brand-500"
+                />
+                <span className="text-sm text-ink-800">{label}</span>
+              </label>
+            ))}
             <div className="border border-ink-200 rounded-lg px-3 py-2.5">
               <label className="block text-sm text-ink-800 mb-1.5">Minimum salary I will accept (RM / month)</label>
               <div className="flex items-center gap-2">
@@ -805,7 +859,7 @@ export default function TalentOnboarding() {
           )}
 
           <Button
-            onClick={() => setPhase('docs')}
+            onClick={() => void handleContinue()}
             className="w-full"
             size="lg"
           >

@@ -7,7 +7,7 @@ import LoadingSpinner from '../../components/LoadingSpinner'
 import { Button, Card, Badge, Alert, EmptyState, PageHeader, Stat } from '../../components/ui'
 import MatchExplain from '../../components/MatchExplain'
 import CareerNudgePanel from '../../components/CareerNudgePanel'
-import type { PublicReasoning } from '../../types/db'
+import type { PublicReasoning, CultureComparison } from '../../types/db'
 
 const HM_OUTCOMES = [
   { value: '', label: 'Select outcome (optional)' },
@@ -364,6 +364,9 @@ function CandidateCard({
         )}
 
         <MatchExplain reasoning={row.public_reasoning} />
+        {row.public_reasoning?.culture_comparison && (
+          <CultureCompare comparison={row.public_reasoning.culture_comparison} />
+        )}
 
         <div className="mt-4 space-y-3">
           {['generated', 'viewed', 'accepted_by_talent'].includes(row.status) && (
@@ -442,6 +445,33 @@ function StatusNote({ status }: { status: string }) {
   }
   const entry = m[status] ?? { label: status.replace(/_/g, ' '), tone: 'gray' as const }
   return <Badge tone={entry.tone}>{entry.label}</Badge>
+}
+
+function CultureCompare({ comparison }: { comparison: CultureComparison }) {
+  if (comparison.talent_top_wants.length === 0 && comparison.hm_top_offers.length === 0) return null
+  return (
+    <div className="mt-3 border border-ink-100 rounded-lg p-3 bg-white">
+      <p className="text-xs font-semibold uppercase tracking-wide text-ink-500 mb-2">Culture alignment</p>
+      <div className="flex flex-wrap gap-1.5">
+        {comparison.overlap.map((k) => (
+          <span key={k} className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">
+            ✓ {comparison.labels[k] ?? k.replace('wants_', '')}
+          </span>
+        ))}
+        {comparison.talent_only.map((k) => (
+          <span key={k} className="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">
+            ~ {comparison.labels[k] ?? k.replace('wants_', '')}
+          </span>
+        ))}
+      </div>
+      {(comparison.overlap.length > 0 || comparison.talent_only.length > 0) && (
+        <p className="text-xs text-ink-400 mt-1.5">
+          {comparison.overlap.length > 0 && <span className="mr-3">✓ aligned with your team</span>}
+          {comparison.talent_only.length > 0 && <span>~ talent wants this — confirm in interview</span>}
+        </p>
+      )}
+    </div>
+  )
 }
 
 function EmployerReputationPanel({ reputation }: {

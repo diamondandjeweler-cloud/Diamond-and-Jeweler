@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 
@@ -16,6 +16,7 @@ export default function AuthCallback() {
   const [newPw, setNewPw] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const navigated = useRef(false)
   // Start in 'loading' when a PKCE code is present — the exchange takes ~1s.
   // Only start in 'waiting' (show "Check your email") for explicit signup callbacks.
   const [mode, setMode] = useState<'loading' | 'waiting' | 'recover' | 'done'>(
@@ -61,11 +62,12 @@ export default function AuthCallback() {
       if (session) {
         if (type === 'recovery') {
           setMode('recover')
-        } else {
-          void Promise.all([
-            applyStoredRole(session.user.id),
-            processStoredReferral(session.user.id),
-          ]).then(() => { if (mounted) navigate('/home', { replace: true }) })
+        } else if (!navigated.current) {
+          // Navigate immediately — don't wait for background DB ops which can hang
+          navigated.current = true
+          void applyStoredRole(session.user.id)
+          void processStoredReferral(session.user.id)
+          navigate('/home', { replace: true })
         }
       } else if (!hasCode) {
         // No code in URL and no session = genuine "check your email" case

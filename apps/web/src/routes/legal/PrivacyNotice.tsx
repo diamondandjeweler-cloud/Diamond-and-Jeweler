@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase'
 
 interface LegalCopy {
   entityName: string | null  // e.g. "DNJ Sdn Bhd (123456-A)"
-  contactEmail: string       // e.g. "privacy@bole.my"
+  contactEmail: string       // e.g. "privacy@diamondandjeweler.com"
   legalReviewed: boolean     // when true, drops the "draft pending legal review" footer
   lastUpdated: string        // ISO date
   version: string            // semver-ish
@@ -12,7 +12,7 @@ interface LegalCopy {
 
 const FALLBACK: LegalCopy = {
   entityName: null,
-  contactEmail: 'privacy@bole.my',
+  contactEmail: 'privacy@diamondandjeweler.com',
   legalReviewed: false,
   lastUpdated: '2026-04-21',
   version: '0.1',

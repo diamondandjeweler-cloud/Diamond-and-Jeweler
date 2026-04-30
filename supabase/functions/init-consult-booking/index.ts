@@ -63,7 +63,7 @@ serve(async (req) => {
   const tpSecret = Deno.env.get('TOYYIBPAY_SECRET')
   const tpCategory = Deno.env.get('TOYYIBPAY_CATEGORY_CODE')
   const tpBaseUrl = Deno.env.get('TOYYIBPAY_BASE_URL') ?? 'https://toyyibpay.com'
-  const siteUrl = Deno.env.get('SITE_URL') ?? 'https://bole.my'
+  const siteUrl = Deno.env.get('SITE_URL') ?? 'https://diamondandjeweler.com'
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
 
   // If ToyyibPay isn't configured yet, return a manual flag so the

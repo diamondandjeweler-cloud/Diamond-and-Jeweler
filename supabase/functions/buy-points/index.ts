@@ -69,7 +69,7 @@ serve(async (req) => {
 
   const apiKey = Deno.env.get('BILLPLZ_API_KEY')
   const collectionId = Deno.env.get('BILLPLZ_COLLECTION_ID')
-  const site = Deno.env.get('SITE_URL') ?? 'https://bole.my'
+  const site = Deno.env.get('SITE_URL') ?? 'https://diamondandjeweler.com'
   const billplzBase = Deno.env.get('BILLPLZ_BASE_URL') ?? 'https://www.billplz.com'
   const webhookUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/payment-webhook`
 

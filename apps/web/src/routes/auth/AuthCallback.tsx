@@ -19,7 +19,7 @@ export default function AuthCallback() {
   const [params] = useSearchParams()
   const type = params.get('type')
   const hasCode = !!params.get('code')
-  const isHiring = params.get('role') === 'hr_admin'
+  const roleParam = params.get('role')
   const { session } = useSession()
   const [newPw, setNewPw] = useState('')
   const [busy, setBusy] = useState(false)
@@ -128,7 +128,7 @@ export default function AuthCallback() {
   }
 
   const pendingEmail = sessionStorage.getItem('dnj.pending_email')
-  const loginHref = isHiring ? '/login?role=hr_admin' : '/login'
+  const loginHref = roleParam === 'hr_admin' ? '/login?role=hr_admin' : roleParam === 'hiring_manager' ? '/login?role=hiring_manager' : '/login'
 
   // waiting — signup email confirmation
   return (

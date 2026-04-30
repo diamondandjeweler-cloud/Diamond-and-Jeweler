@@ -8,7 +8,10 @@ export default function Login() {
   const navigate = useNavigate()
   const location = useLocation()
   const [params] = useSearchParams()
-  const isHiring = params.get('role') === 'hr_admin'
+  const roleParam = params.get('role')
+  const isHRAdmin = roleParam === 'hr_admin'
+  const isHiringManager = roleParam === 'hiring_manager'
+  const isHiring = isHRAdmin || isHiringManager
   const redirectTo = (location.state as { from?: string } | null)?.from ?? '/home'
 
   const [email, setEmail] = useState('')
@@ -19,8 +22,8 @@ export default function Login() {
   async function handleGoogleSignIn() {
     setErr(null)
     setBusy(true)
-    if (isHiring) {
-      try { localStorage.setItem('dnj.signup_role', 'hr_admin') } catch { /* tolerate */ }
+    if (isHRAdmin || isHiringManager) {
+      try { localStorage.setItem('dnj.signup_role', isHRAdmin ? 'hr_admin' : 'hiring_manager') } catch { /* tolerate */ }
     }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -49,11 +52,17 @@ export default function Login() {
     <AuthShell
       variant={isHiring ? 'hiring' : 'talent'}
       title="Welcome back"
-      subtitle={isHiring ? 'Sign in to your company account.' : 'Sign in to continue to your matches.'}
+      subtitle={
+        isHRAdmin ? 'Sign in to your company account.'
+        : isHiringManager ? 'Sign in to your hiring manager account.'
+        : 'Sign in to continue to your matches.'
+      }
       footer={
-        isHiring
+        isHRAdmin
           ? <>New here? <Link to="/signup?role=hr_admin" className="font-medium" style={{ color: '#3b82f6' }}>Create a company account</Link></>
-          : <>New here? <Link to="/signup" className="font-medium text-brand-700 hover:text-brand-800">Create an account</Link></>
+          : isHiringManager
+            ? <>New here? <Link to="/signup?role=hiring_manager" className="font-medium" style={{ color: '#3b82f6' }}>Create a hiring manager account</Link></>
+            : <>New here? <Link to="/signup" className="font-medium text-brand-700 hover:text-brand-800">Create an account</Link></>
       }
     >
       <div className="space-y-4">

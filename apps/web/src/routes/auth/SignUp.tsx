@@ -9,8 +9,10 @@ export default function SignUp() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const referralCode = (params.get('ref') ?? '').toUpperCase().slice(0, 16)
-  const role = (params.get('role') === 'hr_admin' ? 'hr_admin' : 'talent') as 'talent' | 'hr_admin'
-  const isHiring = role === 'hr_admin'
+  const roleParam = params.get('role')
+  const role = (roleParam === 'hr_admin' ? 'hr_admin' : roleParam === 'hiring_manager' ? 'hiring_manager' : 'talent') as 'talent' | 'hr_admin' | 'hiring_manager'
+  const isHiring = role !== 'talent'
+  const isHRAdmin = role === 'hr_admin'
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -67,22 +69,28 @@ export default function SignUp() {
     if (data.session) { window.location.replace('/home'); return }
     // Email confirmation required (auto-confirm off, or email already registered).
     try { sessionStorage.setItem('dnj.pending_email', email) } catch { /* tolerate */ }
-    const callbackRole = role === 'hr_admin' ? '&role=hr_admin' : ''
+    const callbackRole = role !== 'talent' ? `&role=${role}` : ''
     navigate(`/auth/callback?type=signup${callbackRole}`, { replace: true })
   }
 
   return (
     <AuthShell
       variant={isHiring ? 'hiring' : 'talent'}
-      title={isHiring ? 'Create your company account' : 'Create your account'}
+      title={
+        isHRAdmin ? 'Create your company account'
+        : role === 'hiring_manager' ? 'Create your hiring manager account'
+        : 'Create your account'
+      }
       subtitle={
-        isHiring
-          ? 'Set up your HR admin account to start receiving AI-matched talent.'
-          : 'Find your next role through curated AI matches.'
+        isHRAdmin ? 'Set up your HR admin account to start receiving AI-matched talent.'
+        : role === 'hiring_manager' ? 'Find and hire top talent through AI-powered matching.'
+        : 'Find your next role through curated AI matches.'
       }
       footer={
         <>Already have an account?{' '}
-          <Link to="/login" className="font-medium hover:opacity-80 transition-opacity"
+          <Link
+            to={isHRAdmin ? '/login?role=hr_admin' : role === 'hiring_manager' ? '/login?role=hiring_manager' : '/login'}
+            className="font-medium hover:opacity-80 transition-opacity"
             style={{ color: isHiring ? '#3b82f6' : '#c9a84c' }}>
             Sign in
           </Link>
@@ -164,7 +172,7 @@ export default function SignUp() {
               Consents
             </div>
 
-            {isHiring ? (
+            {isHRAdmin ? (
               <>
                 <Consent
                   checked={consents.dob}
@@ -176,6 +184,26 @@ export default function SignUp() {
                   checked={consents.market}
                   onChange={(v) => setConsents((c) => ({ ...c, market: v }))}
                   label="I consent to anonymised comparison of our compensation benchmarks against market salary data."
+                />
+                <Consent
+                  checked={consents.tos}
+                  onChange={(v) => setConsents((c) => ({ ...c, tos: v }))}
+                  label="I have read and agree to the Terms of Service and Privacy Notice."
+                  required
+                />
+              </>
+            ) : role === 'hiring_manager' ? (
+              <>
+                <Consent
+                  checked={consents.dob}
+                  onChange={(v) => setConsents((c) => ({ ...c, dob: v }))}
+                  label="I consent to DNJ collecting my professional data to power AI-driven talent matching. All data is fully encrypted and never disclosed to third parties."
+                  required
+                />
+                <Consent
+                  checked={consents.market}
+                  onChange={(v) => setConsents((c) => ({ ...c, market: v }))}
+                  label="I consent to anonymised comparison of compensation benchmarks against market salary data."
                 />
                 <Consent
                   checked={consents.tos}
@@ -218,9 +246,11 @@ export default function SignUp() {
           >
             {busy
               ? 'Creating account…'
-              : isHiring
+              : isHRAdmin
                 ? 'Create company account'
-                : 'Create account'}
+                : role === 'hiring_manager'
+                  ? 'Create hiring manager account'
+                  : 'Create account'}
           </Button>
         </form>
       </div>

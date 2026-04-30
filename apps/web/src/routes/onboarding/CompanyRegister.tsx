@@ -17,6 +17,7 @@ export default function CompanyRegister() {
   const [licenseFile, setLicenseFile] = useState<File | null>(null)
 
   const [busy, setBusy] = useState(false)
+  const [step, setStep] = useState<'idle' | 'uploading' | 'saving'>('idle')
   const [err, setErr] = useState<string | null>(null)
 
   if (!session || !profile) return null
@@ -29,23 +30,33 @@ export default function CompanyRegister() {
       if (!licenseFile) throw new Error('Business license is required.')
       const userId = session!.user.id
 
-      const licensePath = await uploadPrivate(
-        'business-licenses',
-        licenseFile,
-        userId,
-        licenseFile.name,
-      )
+      // Race each network step against a timeout so a hung connection shows
+      // an error instead of freezing the button forever.
+      const timeout = <T,>(ms: number, label: string) =>
+        new Promise<T>((_, reject) =>
+          setTimeout(() => reject(new Error(`${label} timed out. Check your internet and try again.`)), ms),
+        )
 
-      const { error } = await supabase.from('companies').insert({
-        name,
-        registration_number: regNo,
-        business_license_path: licensePath,
-        website: website || null,
-        size,
-        industry: industry || null,
-        primary_hr_email: profile?.email ?? session!.user.email!,
-        created_by: userId,
-      })
+      setStep('uploading')
+      const licensePath = await Promise.race([
+        uploadPrivate('business-licenses', licenseFile, userId, licenseFile.name),
+        timeout<string>(45000, 'File upload'),
+      ])
+
+      setStep('saving')
+      const { error } = await Promise.race([
+        supabase.from('companies').insert({
+          name,
+          registration_number: regNo,
+          business_license_path: licensePath,
+          website: website || null,
+          size,
+          industry: industry || null,
+          primary_hr_email: profile?.email ?? session!.user.email!,
+          created_by: userId,
+        }),
+        timeout<{ error: unknown }>(15000, 'Save'),
+      ])
       if (error) throw error
 
       await markOnboardingComplete(userId)
@@ -55,6 +66,7 @@ export default function CompanyRegister() {
       setErr(e instanceof Error ? e.message : String(e))
     } finally {
       setBusy(false)
+      setStep('idle')
     }
   }
 
@@ -132,7 +144,7 @@ export default function CompanyRegister() {
             disabled={busy || !name || !regNo || !licenseFile}
             className="bg-brand-600 text-white px-4 py-2 rounded hover:bg-brand-700 disabled:bg-gray-300"
           >
-            {busy ? 'Submitting…' : 'Register company'}
+            {step === 'uploading' ? 'Uploading file…' : step === 'saving' ? 'Saving…' : 'Register company'}
           </button>
         </form>
       </div>

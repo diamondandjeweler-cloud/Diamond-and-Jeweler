@@ -162,7 +162,9 @@ async function applyStoredRole(userId: string) {
     if (!storedRole) return
     localStorage.removeItem('dnj.signup_role')
     const { data: existing } = await supabase.from('profiles').select('role').eq('id', userId).single()
-    if (!existing?.role) {
+    // Only override if the profile has no role or still has the trigger's default 'talent' role.
+    // (The trigger always inserts 'talent' as default, so we must overwrite it for hr_admin signups.)
+    if (!existing?.role || existing.role === 'talent') {
       await supabase.from('profiles').update({ role: storedRole }).eq('id', userId)
     }
   } catch { /* tolerate */ }

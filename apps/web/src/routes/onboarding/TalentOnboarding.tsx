@@ -531,7 +531,7 @@ export default function TalentOnboarding() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+              if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault()
                 void sendMessage(input)
               }
@@ -539,7 +539,7 @@ export default function TalentOnboarding() {
             placeholder={
               isStreaming
                 ? 'Bo is typing…'
-                : 'Type your message… (Cmd / Ctrl + Enter to send)'
+                : 'Type your message… (Shift + Enter for new line)'
             }
             rows={2}
             disabled={isStreaming}

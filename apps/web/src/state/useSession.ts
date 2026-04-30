@@ -37,12 +37,25 @@ export const useSession = create<SessionState>((set) => ({
     }
   },
   signOut: async () => {
+    // Race against a 3s timeout: a hung Supabase call must not trap the user
+    // on the page. We then force-clear the persisted tokens ourselves so the
+    // hard reload below can't restore the session.
     try {
-      await supabase.auth.signOut()
+      await Promise.race([
+        supabase.auth.signOut(),
+        new Promise<void>((_, reject) =>
+          setTimeout(() => reject(new Error('signOut timeout')), 3000),
+        ),
+      ])
     } catch (e) {
-      console.error('[session] signOut failed', e)
+      console.error('[session] signOut failed or timed out', e)
     }
     clearAdminVerified()
+    try {
+      Object.keys(localStorage).forEach((k) => {
+        if (k.startsWith('sb-') || k === 'supabase.auth.token') localStorage.removeItem(k)
+      })
+    } catch { /* tolerate */ }
     set({ session: null, profile: null, loading: false })
     // Hard reload — clears all JS state and prevents any token-refresh race
     // from restoring the session before React Router can redirect.

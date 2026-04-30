@@ -30,13 +30,21 @@ export default function SignUp() {
     setBusy(true)
     try {
       localStorage.setItem('dnj.signup_role', role)
-      if (referralCode) localStorage.setItem('bole.referral_code', referralCode)
+      // Use sessionStorage so the code lives only for the current tab/auth
+      // round-trip and never lingers if the user abandons signup.
+      if (referralCode) sessionStorage.setItem('bole.referral_code', referralCode)
     } catch { /* tolerate */ }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${siteUrl}/auth/callback` },
     })
-    if (error) { setErr(error.message); setBusy(false) }
+    if (error) {
+      setErr(error.message)
+      setBusy(false)
+      // OAuth never started — drop the pending referral code so a later
+      // unrelated signup on this tab can't accidentally claim it.
+      try { sessionStorage.removeItem('bole.referral_code') } catch { /* tolerate */ }
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -45,7 +53,7 @@ export default function SignUp() {
     if (!canSubmit) { setErr('Please complete all required fields and consents.'); return }
     setBusy(true)
     if (referralCode) {
-      try { localStorage.setItem('bole.referral_code', referralCode) } catch { /* tolerate */ }
+      try { sessionStorage.setItem('bole.referral_code', referralCode) } catch { /* tolerate */ }
     }
 
     const { data, error } = await supabase.auth.signUp({
@@ -63,7 +71,11 @@ export default function SignUp() {
       },
     })
     setBusy(false)
-    if (error) { setErr(error.message); return }
+    if (error) {
+      setErr(error.message)
+      try { sessionStorage.removeItem('bole.referral_code') } catch { /* tolerate */ }
+      return
+    }
     // Auto-confirm is on: signUp returns a session immediately for new users.
     // Skip the "check your email" screen and go straight to the app.
     if (data.session) { window.location.replace('/home'); return }

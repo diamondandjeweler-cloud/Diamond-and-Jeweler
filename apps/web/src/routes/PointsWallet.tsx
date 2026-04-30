@@ -66,15 +66,18 @@ export default function PointsWallet() {
       const token = authData.session?.access_token
       if (!token) throw new Error('Not authenticated')
 
-      // For now: packages award points directly via Billplz. We re-use
-      // unlock-extra-match infrastructure — in future a dedicated
-      // buy-points endpoint will handle this. For MVP, redirect to Billplz
-      // bill URL returned by the Edge Function.
-      // TODO: wire up dedicated buy-points Edge Function for package purchases.
-      alert(`Billplz payment for ${pkg.name} (RM ${pkg.price_rm} → ${pkg.points} pts) will be wired when Billplz credentials are configured.`)
+      const r = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/buy-points`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ package_id: pkg.id }),
+      })
+      const j = await r.json() as { paymentUrl?: string; error?: string }
+      if (!r.ok || !j.paymentUrl) throw new Error(j.error || 'Failed to start payment')
+      // Hand off to Billplz hosted checkout. Webhook credits the points
+      // once the bill is paid; redirect URL brings the user back to /payment/return.
+      window.location.assign(j.paymentUrl)
     } catch (e) {
       setBuyErr((e as Error).message)
-    } finally {
       setBuyingId(null)
     }
   }

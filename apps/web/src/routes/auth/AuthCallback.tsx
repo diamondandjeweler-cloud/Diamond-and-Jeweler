@@ -172,9 +172,14 @@ async function applyStoredRole(userId: string) {
 
 async function processStoredReferral(userId: string) {
   try {
-    const code = localStorage.getItem('bole.referral_code')
-    if (!code) return
+    // Read from sessionStorage (current tab only). Fall back to localStorage
+    // for users who began signup in a previous Claude/SignUp.tsx version that
+    // wrote to localStorage — read once, then clear both.
+    let code = sessionStorage.getItem('bole.referral_code')
+    if (!code) code = localStorage.getItem('bole.referral_code')
+    sessionStorage.removeItem('bole.referral_code')
     localStorage.removeItem('bole.referral_code')
+    if (!code) return
     const { data: authData } = await supabase.auth.getSession()
     const token = authData.session?.access_token
     if (!token) return

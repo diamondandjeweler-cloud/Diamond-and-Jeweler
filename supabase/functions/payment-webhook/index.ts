@@ -68,6 +68,11 @@ serve(async (req) => {
     return new Response('OK (consult)', { status: 200, headers: corsHeaders })
   }
 
+  // Try point_purchases (Diamond Points package buy).
+  if (await tryPointPurchase({ db, billId, purchaseRef, paid })) {
+    return new Response('OK (points)', { status: 200, headers: corsHeaders })
+  }
+
   // Look up extra_match_purchases.
   let purchase: {
     id: string; user_id: string; role_id: string | null; talent_id: string | null;
@@ -182,6 +187,79 @@ async function verifyBillplzSignature(
     .join('')
 
   return computed === signature.toLowerCase()
+}
+
+/**
+ * Handle Diamond Points package purchases (point_purchases table).
+ * Returns true if the bill/ref matched a points purchase, false otherwise.
+ *
+ * On paid=true: flip to 'paid' and credit points via award_points() with the
+ * purchase id as idempotency_key (so a replayed webhook never double-credits).
+ */
+async function tryPointPurchase(args: {
+  db: ReturnType<typeof adminClient>
+  billId: string
+  purchaseRef: string
+  paid: boolean
+}): Promise<boolean> {
+  const { db, billId, purchaseRef, paid } = args
+  let purchase: {
+    id: string; user_id: string; package_id: string; package_name: string;
+    points: number; amount_rm: number; payment_status: string;
+  } | null = null
+
+  if (billId) {
+    const { data } = await db.from('point_purchases')
+      .select('id, user_id, package_id, package_name, points, amount_rm, payment_status')
+      .eq('payment_intent_id', billId).maybeSingle()
+    purchase = data as typeof purchase
+  }
+  if (!purchase && purchaseRef) {
+    const { data } = await db.from('point_purchases')
+      .select('id, user_id, package_id, package_name, points, amount_rm, payment_status')
+      .eq('id', purchaseRef).maybeSingle()
+    purchase = data as typeof purchase
+  }
+  if (!purchase) return false
+
+  if (purchase.payment_status === 'paid') return true
+
+  if (!paid) {
+    await db.from('point_purchases')
+      .update({ payment_status: 'failed' })
+      .eq('id', purchase.id)
+    return true
+  }
+
+  // Row-level guard: only flip if still pending.
+  const { data: updRows, error: updErr } = await db.from('point_purchases')
+    .update({ payment_status: 'paid', paid_at: new Date().toISOString() })
+    .eq('id', purchase.id)
+    .eq('payment_status', 'pending')
+    .select('id')
+  if (updErr) { console.error('points: paid flip failed', purchase.id, updErr); return true }
+  if (!updRows || updRows.length === 0) return true
+
+  const { error: awardErr } = await db.rpc('award_points', {
+    p_user_id: purchase.user_id,
+    p_delta: purchase.points,
+    p_reason: 'extra_match_purchased',
+    p_reference: { purchase_id: purchase.id, package_id: purchase.package_id, amount_rm: purchase.amount_rm },
+    p_idempotency_key: `point_purchase:${purchase.id}`,
+  })
+  if (awardErr) console.error('points: award_points failed', purchase.id, awardErr)
+
+  fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/notify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` },
+    body: JSON.stringify({
+      user_id: purchase.user_id,
+      type: 'points_purchased',
+      data: { purchase_id: purchase.id, points: purchase.points, package_name: purchase.package_name },
+    }),
+  }).catch(() => { /* best effort */ })
+
+  return true
 }
 
 /**

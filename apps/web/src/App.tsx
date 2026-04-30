@@ -39,6 +39,7 @@ const InterviewFeedback = lazy(() => import('./routes/InterviewFeedback'))
 const Referrals        = lazy(() => import('./routes/Referrals'))
 const PointsWallet     = lazy(() => import('./routes/PointsWallet'))
 const Consult          = lazy(() => import('./routes/Consult'))
+const PaymentReturn    = lazy(() => import('./routes/PaymentReturn'))
 const NotFound         = lazy(() => import('./routes/NotFound'))
 
 // Restaurant OS — own chunk per page; heavy and rarely all visited together
@@ -77,6 +78,8 @@ export default function App() {
         <Route path="/start/:side" element={<Start />} />
         <Route path="/waitlist/confirm" element={<WaitlistConfirm />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/payment/return" element={<PaymentReturn />} />
+        <Route path="/payment/mock"   element={<PaymentReturn />} />
         <Route path="/signup" element={session && profile ? <Navigate to="/home" replace /> : <SignUp />} />
         <Route path="/login"  element={session && profile ? <Navigate to="/home" replace /> : <Login />} />
         <Route path="/password-reset" element={<PasswordReset />} />

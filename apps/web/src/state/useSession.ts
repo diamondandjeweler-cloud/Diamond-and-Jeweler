@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { fetchProfile } from '../lib/api'
+import { clearAdminVerified } from '../lib/adminReauth'
 import type { Profile } from '../types/db'
 
 interface SessionState {
@@ -41,6 +42,7 @@ export const useSession = create<SessionState>((set) => ({
     } catch (e) {
       console.error('[session] signOut failed', e)
     }
+    clearAdminVerified()
     set({ session: null, profile: null, loading: false })
     // Hard reload — clears all JS state and prevents any token-refresh race
     // from restoring the session before React Router can redirect.

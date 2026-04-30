@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useSession } from '../../state/useSession'
+import { markAdminVerified } from '../../lib/adminReauth'
 
 /**
  * Handles three scenarios:
@@ -38,6 +39,7 @@ export default function AuthCallback() {
     }
     if (navigated.current) return
     navigated.current = true
+    markAdminVerified()
     void applyStoredRole(session.user.id)
     void processStoredReferral(session.user.id)
     window.location.replace('/home')
@@ -69,6 +71,7 @@ export default function AuthCallback() {
     const { error } = await supabase.auth.updateUser({ password: newPw })
     setBusy(false)
     if (error) { setErr(error.message); return }
+    markAdminVerified()
     setMode('done')
     setTimeout(() => navigate('/home', { replace: true }), 1500)
   }

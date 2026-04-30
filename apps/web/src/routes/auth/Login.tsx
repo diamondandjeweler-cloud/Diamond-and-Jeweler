@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-do
 import { supabase, siteUrl } from '../../lib/supabase'
 import AuthShell from '../../components/AuthShell'
 import { Button, Input, PasswordInput, Alert } from '../../components/ui'
+import { markAdminVerified } from '../../lib/adminReauth'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -12,6 +13,7 @@ export default function Login() {
   const isHRAdmin = roleParam === 'hr_admin'
   const isHiringManager = roleParam === 'hiring_manager'
   const isHiring = isHRAdmin || isHiringManager
+  const isReauth = params.get('reauth') === '1'
   const redirectTo = (location.state as { from?: string } | null)?.from ?? '/home'
 
   const [email, setEmail] = useState('')
@@ -45,15 +47,17 @@ export default function Login() {
     ])
     setBusy(false)
     if (error) { setErr(error.message); return }
+    markAdminVerified()
     navigate(redirectTo, { replace: true })
   }
 
   return (
     <AuthShell
       variant={isHiring ? 'hiring' : 'talent'}
-      title="Welcome back"
+      title={isReauth ? 'Confirm it’s you' : 'Welcome back'}
       subtitle={
-        isHRAdmin ? 'Sign in to your company account.'
+        isReauth ? 'For security, please re-enter your password to access the admin console.'
+        : isHRAdmin ? 'Sign in to your company account.'
         : isHiringManager ? 'Sign in to your hiring manager account.'
         : 'Sign in to continue to your matches.'
       }

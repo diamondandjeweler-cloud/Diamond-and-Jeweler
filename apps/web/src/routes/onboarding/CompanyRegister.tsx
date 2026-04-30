@@ -86,7 +86,7 @@ export default function CompanyRegister() {
       await refresh()
       navigate('/hr', { replace: true })
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e))
+      setErr(e instanceof Error ? e.message : (e as { message?: string })?.message ?? String(e))
     } finally {
       setBusy(false)
       setStep('idle')

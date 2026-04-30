@@ -1,101 +1,66 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import { useSession } from '../../state/useSession'
 
 /**
  * Handles three scenarios:
  *  - /auth/callback?code=...      (PKCE OAuth — Google etc; exchange in progress)
  *  - /auth/callback?type=signup   (shown after signUp; email pending confirmation)
  *  - /auth/callback?type=recovery (user clicked password-reset link)
+ *
+ * Watches Zustand session state (set by bootstrapSession) rather than
+ * registering its own onAuthStateChange listener. Registering a second
+ * listener causes Supabase v2 to re-emit SIGNED_IN to all existing
+ * subscribers, which triggers an infinite remount loop.
  */
 export default function AuthCallback() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const type = params.get('type')
   const hasCode = !!params.get('code')
+  const isHiring = params.get('role') === 'hr_admin'
+  const { session } = useSession()
   const [newPw, setNewPw] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const [resent, setResent] = useState(false)
   const navigated = useRef(false)
-  // Start in 'loading' when a PKCE code is present — the exchange takes ~1s.
-  // Only start in 'waiting' (show "Check your email") for explicit signup callbacks.
   const [mode, setMode] = useState<'loading' | 'waiting' | 'recover' | 'done'>(
     hasCode ? 'loading' : 'waiting'
   )
 
   useEffect(() => {
-    let mounted = true
-
-    async function applyStoredRole(userId: string) {
-      try {
-        const storedRole = localStorage.getItem('dnj.signup_role')
-        if (!storedRole) return
-        localStorage.removeItem('dnj.signup_role')
-        const { data: existing } = await supabase.from('profiles').select('role').eq('id', userId).single()
-        if (!existing?.role) {
-          await supabase.from('profiles').update({ role: storedRole }).eq('id', userId)
-        }
-      } catch { /* tolerate */ }
+    if (!session) return
+    if (type === 'recovery') {
+      setMode('recover')
+      return
     }
+    if (navigated.current) return
+    navigated.current = true
+    void applyStoredRole(session.user.id)
+    void processStoredReferral(session.user.id)
+    window.location.replace('/home')
+  }, [session, type])
 
-    async function processStoredReferral(userId: string) {
-      try {
-        const code = localStorage.getItem('bole.referral_code')
-        if (!code) return
-        localStorage.removeItem('bole.referral_code')
-        const { data: authData } = await supabase.auth.getSession()
-        const token = authData.session?.access_token
-        if (!token) return
-        await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-referral`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ referral_code: code, referred_user_id: userId }),
-          },
-        )
-      } catch { /* best effort — never block onboarding */ }
-    }
-
-    function handleSession(session: { user: { id: string } } | null) {
-      if (!mounted) return
-      if (session) {
-        if (type === 'recovery') {
-          setMode('recover')
-        } else if (!navigated.current) {
-          // Use hard redirect — React Router navigate() can fail if Zustand session
-          // state hasn't propagated yet when onAuthStateChange fires.
-          navigated.current = true
-          void applyStoredRole(session.user.id)
-          void processStoredReferral(session.user.id)
-          window.location.replace('/home')
-        }
-      } else if (!hasCode) {
-        // No code in URL and no session = genuine "check your email" case
-        setMode('waiting')
-      }
-      // If hasCode but no session yet: exchange still in progress — stay in 'loading'
-    }
-
-    // Check if session is already available (may be null if PKCE exchange is still running)
-    supabase.auth.getSession().then(({ data }) => handleSession(data.session))
-
-    // onAuthStateChange fires once the PKCE exchange or token confirmation completes
-    const { data: sub } = supabase.auth.onAuthStateChange((_ev, session) => {
-      handleSession(session)
-    })
-
-    // Safety net: if still loading after 15s, show an error
+  // Safety net: if still loading after 15s (e.g. PKCE exchange stalled),
+  // drop to the "check your email" UI so the user isn't stuck on a spinner.
+  useEffect(() => {
+    if (!hasCode) return
     const timeout = setTimeout(() => {
-      if (mounted && mode === 'loading') setMode('waiting')
+      setMode((m) => (m === 'loading' ? 'waiting' : m))
     }, 15000)
+    return () => clearTimeout(timeout)
+  }, [hasCode])
 
-    return () => {
-      mounted = false
-      sub.subscription.unsubscribe()
-      clearTimeout(timeout)
-    }
-  }, [navigate, type, hasCode]) // eslint-disable-line react-hooks/exhaustive-deps
+  async function handleResend() {
+    const email = sessionStorage.getItem('dnj.pending_email')
+    if (!email) return
+    setBusy(true)
+    await supabase.auth.resend({ type: 'signup', email }).catch(() => null)
+    setBusy(false)
+    setResent(true)
+  }
 
   async function handlePwSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -162,17 +127,64 @@ export default function AuthCallback() {
     )
   }
 
+  const pendingEmail = sessionStorage.getItem('dnj.pending_email')
+  const loginHref = isHiring ? '/login?role=hr_admin' : '/login'
+
   // waiting — signup email confirmation
   return (
     <CenteredBox>
       <h1 className="text-xl font-semibold mb-2">Check your email</h1>
-      <p className="text-gray-600 text-sm mb-4">
-        We've sent you a confirmation link. Open it on this device to finish
-        signing in.
+      <p className="text-gray-600 text-sm mb-1">
+        We've sent a confirmation link to{' '}
+        {pendingEmail ? <strong>{pendingEmail}</strong> : 'your email address'}.
+        Open it on this device to finish signing in.
       </p>
-      <Link to="/login" className="text-brand-600 underline text-sm">Back to sign in</Link>
+      <p className="text-gray-400 text-xs mb-5">
+        Can't find it? Check your spam or junk folder.
+      </p>
+      {pendingEmail && (
+        <button
+          onClick={handleResend}
+          disabled={busy || resent}
+          className="w-full mb-3 py-2 rounded border border-gray-200 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+        >
+          {resent ? 'Confirmation email resent ✓' : busy ? 'Sending…' : 'Resend confirmation email'}
+        </button>
+      )}
+      <Link to={loginHref} className="text-brand-600 underline text-sm">Back to sign in</Link>
     </CenteredBox>
   )
+}
+
+async function applyStoredRole(userId: string) {
+  try {
+    const storedRole = localStorage.getItem('dnj.signup_role')
+    if (!storedRole) return
+    localStorage.removeItem('dnj.signup_role')
+    const { data: existing } = await supabase.from('profiles').select('role').eq('id', userId).single()
+    if (!existing?.role) {
+      await supabase.from('profiles').update({ role: storedRole }).eq('id', userId)
+    }
+  } catch { /* tolerate */ }
+}
+
+async function processStoredReferral(userId: string) {
+  try {
+    const code = localStorage.getItem('bole.referral_code')
+    if (!code) return
+    localStorage.removeItem('bole.referral_code')
+    const { data: authData } = await supabase.auth.getSession()
+    const token = authData.session?.access_token
+    if (!token) return
+    await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-referral`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ referral_code: code, referred_user_id: userId }),
+      },
+    )
+  } catch { /* best effort — never block onboarding */ }
 }
 
 function CenteredBox({ children }: { children: React.ReactNode }) {

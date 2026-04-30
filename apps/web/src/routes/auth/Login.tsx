@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { supabase, siteUrl } from '../../lib/supabase'
 import AuthShell from '../../components/AuthShell'
 import { Button, Input, PasswordInput, Alert } from '../../components/ui'
@@ -7,6 +7,8 @@ import { Button, Input, PasswordInput, Alert } from '../../components/ui'
 export default function Login() {
   const navigate = useNavigate()
   const location = useLocation()
+  const [params] = useSearchParams()
+  const isHiring = params.get('role') === 'hr_admin'
   const redirectTo = (location.state as { from?: string } | null)?.from ?? '/home'
 
   const [email, setEmail] = useState('')
@@ -17,6 +19,9 @@ export default function Login() {
   async function handleGoogleSignIn() {
     setErr(null)
     setBusy(true)
+    if (isHiring) {
+      try { localStorage.setItem('dnj.signup_role', 'hr_admin') } catch { /* tolerate */ }
+    }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${siteUrl}/auth/callback` },
@@ -42,10 +47,13 @@ export default function Login() {
 
   return (
     <AuthShell
+      variant={isHiring ? 'hiring' : 'talent'}
       title="Welcome back"
-      subtitle="Sign in to continue to your matches."
+      subtitle={isHiring ? 'Sign in to your company account.' : 'Sign in to continue to your matches.'}
       footer={
-        <>New here? <Link to="/signup" className="font-medium text-brand-700 hover:text-brand-800">Create an account</Link></>
+        isHiring
+          ? <>New here? <Link to="/signup?role=hr_admin" className="font-medium" style={{ color: '#3b82f6' }}>Create a company account</Link></>
+          : <>New here? <Link to="/signup" className="font-medium text-brand-700 hover:text-brand-800">Create an account</Link></>
       }
     >
       <div className="space-y-4">

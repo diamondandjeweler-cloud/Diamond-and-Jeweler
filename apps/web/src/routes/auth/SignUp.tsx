@@ -46,7 +46,7 @@ export default function SignUp() {
       try { localStorage.setItem('bole.referral_code', referralCode) } catch { /* tolerate */ }
     }
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email, password,
       options: {
         emailRedirectTo: `${siteUrl}/auth/callback`,
@@ -62,7 +62,13 @@ export default function SignUp() {
     })
     setBusy(false)
     if (error) { setErr(error.message); return }
-    navigate('/auth/callback?type=signup', { replace: true })
+    // Auto-confirm is on: signUp returns a session immediately for new users.
+    // Skip the "check your email" screen and go straight to the app.
+    if (data.session) { window.location.replace('/home'); return }
+    // Email confirmation required (auto-confirm off, or email already registered).
+    try { sessionStorage.setItem('dnj.pending_email', email) } catch { /* tolerate */ }
+    const callbackRole = role === 'hr_admin' ? '&role=hr_admin' : ''
+    navigate(`/auth/callback?type=signup${callbackRole}`, { replace: true })
   }
 
   return (

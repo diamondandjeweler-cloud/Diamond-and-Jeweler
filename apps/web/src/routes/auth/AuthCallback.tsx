@@ -27,7 +27,7 @@ export default function AuthCallback() {
   const [err, setErr] = useState<string | null>(null)
   const [resent, setResent] = useState(false)
   const navigated = useRef(false)
-  const [mode, setMode] = useState<'loading' | 'waiting' | 'recover' | 'done'>(
+  const [mode, setMode] = useState<'loading' | 'waiting' | 'recover' | 'done' | 'error'>(
     hasCode ? 'loading' : 'waiting'
   )
 
@@ -51,13 +51,30 @@ export default function AuthCallback() {
     })()
   }, [session, type])
 
-  // Safety net: if still loading after 15s (e.g. PKCE exchange stalled),
-  // drop to the "check your email" UI so the user isn't stuck on a spinner.
+  // Safety net: if PKCE doesn't deliver a session within 6s, treat it as a
+  // failed OAuth exchange and show a real error — NOT the "Check your email"
+  // screen, which is for email-signup confirmation and was misleading users
+  // into clicking "Back to sign in" → /login (talent variant, default).
+  // Verifies via supabase.auth.getSession() directly to rule out a Zustand
+  // propagation lag before declaring failure.
   useEffect(() => {
     if (!hasCode) return
-    const timeout = setTimeout(() => {
-      setMode((m) => (m === 'loading' ? 'waiting' : m))
-    }, 15000)
+    const timeout = setTimeout(async () => {
+      if (navigated.current) return
+      try {
+        const { data } = await supabase.auth.getSession()
+        if (data.session) return  // session arrived but Zustand hasn't caught up; let main effect run
+      } catch { /* fall through to error */ }
+      console.error('[auth] PKCE exchange did not produce a session within 6s — likely stale code_verifier or expired code')
+      // Clear stale PKCE state so the next attempt starts clean.
+      try {
+        Object.keys(localStorage).forEach((k) => {
+          if (k.includes('code-verifier') || k.endsWith('-pkce')) localStorage.removeItem(k)
+        })
+      } catch { /* tolerate */ }
+      setMode((m) => (m === 'loading' ? 'error' : m))
+      setErr('We couldn\'t complete sign-in. Please try again.')
+    }, 6000)
     return () => clearTimeout(timeout)
   }, [hasCode])
 
@@ -132,6 +149,29 @@ export default function AuthCallback() {
           </svg>
         </div>
         <p className="text-gray-600 text-sm">Signing you in…</p>
+      </CenteredBox>
+    )
+  }
+
+  if (mode === 'error') {
+    const retryHref = roleParam === 'hr_admin' ? '/login?role=hr_admin'
+      : roleParam === 'hiring_manager' ? '/login?role=hiring_manager'
+      : '/login'
+    return (
+      <CenteredBox>
+        <h1 className="text-xl font-semibold mb-2">Sign-in didn't go through</h1>
+        <p className="text-gray-600 text-sm mb-5">
+          {err ?? 'We couldn\'t complete sign-in. Please try again.'}
+        </p>
+        <Link
+          to={retryHref}
+          className="inline-block w-full py-2 rounded bg-brand-600 text-white text-sm font-medium hover:bg-brand-700"
+        >
+          Try sign-in again
+        </Link>
+        <p className="text-gray-400 text-xs mt-4">
+          If this keeps happening, clear your browser cache for this site and retry.
+        </p>
       </CenteredBox>
     )
   }

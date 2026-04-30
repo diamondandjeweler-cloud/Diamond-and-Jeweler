@@ -24,6 +24,15 @@ export default function Login() {
   async function handleGoogleSignIn() {
     setErr(null)
     setBusy(true)
+    // Clear any stale PKCE code-verifier from a previous failed attempt — if
+    // it's left over, the Supabase callback will try to exchange a fresh
+    // Google code against the wrong verifier and silently fail, leaving the
+    // user stuck on "Signing you in…".
+    try {
+      Object.keys(localStorage).forEach((k) => {
+        if (k.includes('code-verifier') || k.endsWith('-pkce')) localStorage.removeItem(k)
+      })
+    } catch { /* tolerate */ }
     if (isHRAdmin || isHiringManager) {
       try { localStorage.setItem('dnj.signup_role', isHRAdmin ? 'hr_admin' : 'hiring_manager') } catch { /* tolerate */ }
     }

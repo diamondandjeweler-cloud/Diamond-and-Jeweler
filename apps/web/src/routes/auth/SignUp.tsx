@@ -28,6 +28,14 @@ export default function SignUp() {
   async function handleGoogleSignUp() {
     setErr(null)
     setBusy(true)
+    // Clear any stale PKCE code-verifier from a previous failed attempt — if
+    // it lingers, the next callback will exchange the new Google code against
+    // the wrong verifier and silently fail (user stuck on "Signing you in…").
+    try {
+      Object.keys(localStorage).forEach((k) => {
+        if (k.includes('code-verifier') || k.endsWith('-pkce')) localStorage.removeItem(k)
+      })
+    } catch { /* tolerate */ }
     try {
       localStorage.setItem('dnj.signup_role', role)
       // Use sessionStorage so the code lives only for the current tab/auth

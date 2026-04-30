@@ -78,7 +78,24 @@ export default function SignUp() {
     }
     // Auto-confirm is on: signUp returns a session immediately for new users.
     // Skip the "check your email" screen and go straight to the app.
-    if (data.session) { window.location.replace('/home'); return }
+    if (data.session) {
+      // The DB trigger creates the profile with role='talent' by default and
+      // ignores the role from options.data, so for hiring signups we have to
+      // overwrite it here before navigating. Awaited to avoid the same race
+      // that AuthCallback hits.
+      if (role !== 'talent') {
+        try {
+          await supabase
+            .from('profiles')
+            .update({ role })
+            .eq('id', data.session.user.id)
+        } catch (e) {
+          console.error('[signup] role update failed', e)
+        }
+      }
+      window.location.replace('/home')
+      return
+    }
     // Email confirmation required (auto-confirm off, or email already registered).
     try { sessionStorage.setItem('dnj.pending_email', email) } catch { /* tolerate */ }
     const callbackRole = role !== 'talent' ? `&role=${role}` : ''

@@ -40,9 +40,15 @@ export default function AuthCallback() {
     if (navigated.current) return
     navigated.current = true
     markAdminVerified()
-    void applyStoredRole(session.user.id)
-    void processStoredReferral(session.user.id)
-    window.location.replace('/home')
+    // Await the role update before navigating — otherwise window.location.replace
+    // tears down the JS context mid-flight and the new page reads the still-default
+    // role='talent' from the trigger, sending hiring signups to talent onboarding.
+    // Referrals are best-effort and can fire-and-forget.
+    ;(async () => {
+      await applyStoredRole(session.user.id)
+      void processStoredReferral(session.user.id)
+      window.location.replace('/home')
+    })()
   }, [session, type])
 
   // Safety net: if still loading after 15s (e.g. PKCE exchange stalled),
@@ -163,14 +169,19 @@ async function applyStoredRole(userId: string) {
   try {
     const storedRole = localStorage.getItem('dnj.signup_role')
     if (!storedRole) return
-    localStorage.removeItem('dnj.signup_role')
     const { data: existing } = await supabase.from('profiles').select('role').eq('id', userId).single()
     // Only override if the profile has no role or still has the trigger's default 'talent' role.
     // (The trigger always inserts 'talent' as default, so we must overwrite it for hr_admin signups.)
     if (!existing?.role || existing.role === 'talent') {
-      await supabase.from('profiles').update({ role: storedRole }).eq('id', userId)
+      const { error } = await supabase.from('profiles').update({ role: storedRole }).eq('id', userId)
+      if (error) throw error
     }
-  } catch { /* tolerate */ }
+    // Only clear the stored role on success — otherwise a transient network
+    // error would silently strand the user on the wrong role.
+    localStorage.removeItem('dnj.signup_role')
+  } catch (e) {
+    console.error('[auth] applyStoredRole failed', e)
+  }
 }
 
 async function processStoredReferral(userId: string) {

@@ -45,7 +45,12 @@ export default function AuthCallback() {
     // role='talent' from the trigger, sending hiring signups to talent onboarding.
     // Referrals are best-effort and can fire-and-forget.
     ;(async () => {
-      await applyStoredRole(session.user.id)
+      // Race applyStoredRole against 5s — a hung profiles query must not
+      // block the redirect indefinitely (common for HM users on slow networks).
+      await Promise.race([
+        applyStoredRole(session.user.id),
+        new Promise<void>((resolve) => setTimeout(resolve, 5000)),
+      ])
       void processStoredReferral(session.user.id)
       window.location.replace('/home')
     })()
@@ -63,7 +68,13 @@ export default function AuthCallback() {
       if (navigated.current) return
       try {
         const { data } = await supabase.auth.getSession()
-        if (data.session) return  // session arrived but Zustand hasn't caught up; let main effect run
+        if (data.session) {
+          // Session exists but Zustand never received it (onAuthStateChange fired
+          // with null before the PKCE exchange completed, then never re-fired).
+          // Push the session in directly so the main useEffect can fire.
+          useSession.setState({ session: data.session, loading: false })
+          return
+        }
       } catch { /* fall through to error */ }
       console.error('[auth] PKCE exchange did not produce a session within 6s — likely stale code_verifier or expired code')
       // Clear stale PKCE state so the next attempt starts clean.

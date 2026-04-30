@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react'
-import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { useSession, bootstrapSession } from './state/useSession'
 import Layout from './components/Layout'
 import LoadingSpinner from './components/LoadingSpinner'
@@ -39,7 +39,6 @@ const InterviewFeedback = lazy(() => import('./routes/InterviewFeedback'))
 const Referrals        = lazy(() => import('./routes/Referrals'))
 const PointsWallet     = lazy(() => import('./routes/PointsWallet'))
 const Consult          = lazy(() => import('./routes/Consult'))
-const Support          = lazy(() => import('./routes/Support'))
 const PaymentReturn    = lazy(() => import('./routes/PaymentReturn'))
 const NotFound         = lazy(() => import('./routes/NotFound'))
 
@@ -82,7 +81,7 @@ export default function App() {
         <Route path="/payment/return" element={<PaymentReturn />} />
         <Route path="/payment/mock"   element={<PaymentReturn />} />
         <Route path="/signup" element={session && profile ? <Navigate to="/home" replace /> : <SignUp />} />
-        <Route path="/login"  element={<LoginRoute />} />
+        <Route path="/login"  element={session && profile ? <Navigate to="/home" replace /> : <Login />} />
         <Route path="/password-reset" element={<PasswordReset />} />
         <Route path="/privacy" element={<PrivacyNotice />} />
         <Route path="/terms"   element={<Terms />} />
@@ -119,7 +118,6 @@ export default function App() {
           <Route path="/points"   element={<ConsentGate><PointsWallet /></ConsentGate>} />
           <Route path="/consult" element={<Consult />} />
           <Route path="/consult/return" element={<Consult />} />
-          <Route path="/support" element={<Support />} />
 
           {/* Restaurant OS — temporary dev feature, gated to authed users */}
           <Route path="/restaurant" element={<RestaurantLayout />}>
@@ -147,17 +145,6 @@ export default function App() {
       </Routes>
     </Suspense>
   )
-}
-
-function LoginRoute() {
-  const { session, profile } = useSession()
-  const [params] = useSearchParams()
-  // Allow re-auth even when already authenticated, so AdminGate can force a
-  // fresh password entry before granting access to /admin.
-  if (session && profile && params.get('reauth') !== '1') {
-    return <Navigate to="/home" replace />
-  }
-  return <Login />
 }
 
 function RoleHome() {

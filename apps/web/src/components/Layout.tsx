@@ -4,7 +4,6 @@ import { useSession } from '../state/useSession'
 import { supabase } from '../lib/supabase'
 import { SUPPORTED } from '../lib/i18n'
 import NotificationBell from './NotificationBell'
-import HelpButton from './HelpButton'
 
 export default function Layout() {
   const { profile, signOut } = useSession()
@@ -127,8 +126,6 @@ export default function Layout() {
       <main id="main-content" className="flex-1 max-w-7xl w-full mx-auto px-4 md:px-6 py-8 md:py-10" role="main">
         <Outlet />
       </main>
-
-      <HelpButton />
 
       <footer className="border-t border-ink-200 bg-white/60 backdrop-blur py-6 mt-8" role="contentinfo">
         <div className="max-w-7xl mx-auto px-4 md:px-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-ink-500">

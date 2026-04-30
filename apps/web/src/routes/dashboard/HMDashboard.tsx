@@ -52,6 +52,7 @@ export default function HMDashboard() {
   const [unlockingRoleId, setUnlockingRoleId] = useState<string | null>(null)
   const [feedbackState, setFeedbackState] = useState<Record<string, { rating: number; hired: boolean; notes: string; outcome: string; freeText: string; saving: boolean; saved: boolean; pointsAwarded?: number }>>({})
   const [hmReputation, setHmReputation] = useState<{ reputation_score: number | null; feedback_volume: number; phs_offer_accept_rate: number | null; hm_quality_factor: number | null; hm_cancel_rate: number | null } | null>(null)
+  const [hiredAllTime, setHiredAllTime] = useState<number>(0)
 
   useEffect(() => {
     let cancelled = false
@@ -77,6 +78,17 @@ export default function HMDashboard() {
         .select('id, title, status, extra_matches_used')
         .eq('hiring_manager_id', hm.id)
       hmRoleIds = (roleRows ?? []).map((r) => r.id)
+
+      // Hired (all time): matches across this HM's roles whose status reached
+      // 'hired'. Counts everything that ever made it to a hire — closed roles,
+      // archived ones, etc. — which is what the HM cares about historically.
+      if (hmRoleIds.length > 0) {
+        const { count: hiredCount } = await supabase.from('matches')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'hired')
+          .in('role_id', hmRoleIds)
+        if (!cancelled) setHiredAllTime(hiredCount ?? 0)
+      }
 
       const { data: matchData, error } = await supabase
         .from('matches')
@@ -216,7 +228,7 @@ export default function HMDashboard() {
         <Stat label="Active roles" value={roleCount} />
         <Stat label="Candidates" value={candidates.length} />
         <Stat label="Awaiting you" value={actionNeeded} tone={actionNeeded > 0 ? 'brand' : 'default'} />
-        <Stat label="Hired (all time)" value="—" hint="Coming soon" />
+        <Stat label="Hired (all time)" value={hiredAllTime} />
       </div>
 
       <CareerNudgePanel side="hm" />

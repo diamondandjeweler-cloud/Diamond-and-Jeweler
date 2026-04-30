@@ -96,7 +96,9 @@ export default function CompanyRegister() {
           <Text label="Industry" value={industry} onChange={setIndustry} />
 
           <div>
-            <label className="block text-sm mb-1">Business license</label>
+            <label className="block text-sm mb-1">
+              Business license <span className="text-red-500 ml-1">*</span>
+            </label>
             <input
               type="file"
               accept="image/*,application/pdf"
@@ -106,6 +108,7 @@ export default function CompanyRegister() {
             />
             <p className="mt-1 text-xs text-gray-500">
               PDF or image. Max 5 MB. Stored privately; only admins can view.
+              Required — admin verification cannot complete without it.
             </p>
             {licenseFile && (
               <p className="mt-1 text-xs text-gray-600">Selected: {licenseFile.name}</p>
@@ -113,6 +116,16 @@ export default function CompanyRegister() {
           </div>
 
           {err && <p className="text-sm text-red-600">{err}</p>}
+
+          {/* Show *what* is missing instead of just disabling silently — the
+              previous gray button gave no feedback when fields were blank. */}
+          {!busy && (!name || !regNo || !licenseFile) && (
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+              Still needed:{' '}
+              {[!name && 'company name', !regNo && 'SSM registration number', !licenseFile && 'business license file']
+                .filter(Boolean).join(', ')}.
+            </p>
+          )}
 
           <button
             type="submit"

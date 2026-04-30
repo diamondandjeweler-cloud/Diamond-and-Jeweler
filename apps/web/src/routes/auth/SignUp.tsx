@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { supabase, siteUrl } from '../../lib/supabase'
 import Consent from '../../components/Consent'
 import AuthShell from '../../components/AuthShell'
 import { Button, Input, PasswordInput, Alert } from '../../components/ui'
 
 export default function SignUp() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const referralCode = (params.get('ref') ?? '').toUpperCase().slice(0, 16)
@@ -58,7 +60,7 @@ export default function SignUp() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setErr(null)
-    if (!canSubmit) { setErr('Please complete all required fields and consents.'); return }
+    if (!canSubmit) { setErr(t('auth.errorBody')); return }
     setBusy(true)
     if (referralCode) {
       try { sessionStorage.setItem('bole.referral_code', referralCode) } catch { /* tolerate */ }
@@ -114,22 +116,22 @@ export default function SignUp() {
     <AuthShell
       variant={isHiring ? 'hiring' : 'talent'}
       title={
-        isHRAdmin ? 'Create your company account'
-        : role === 'hiring_manager' ? 'Create your hiring manager account'
-        : 'Create your account'
+        isHRAdmin ? t('auth.createTitleHr')
+        : role === 'hiring_manager' ? t('auth.createTitleHm')
+        : t('auth.createTitleTalent')
       }
       subtitle={
-        isHRAdmin ? 'Set up your HR admin account to start receiving AI-matched talent.'
-        : role === 'hiring_manager' ? 'Find and hire top talent through AI-powered matching.'
-        : 'Find your next role through curated AI matches.'
+        isHRAdmin ? t('auth.createSubtitleHr')
+        : role === 'hiring_manager' ? t('auth.createSubtitleHm')
+        : t('auth.createSubtitleTalent')
       }
       footer={
-        <>Already have an account?{' '}
+        <>{t('auth.haveAccount')}{' '}
           <Link
             to={isHRAdmin ? '/login?role=hr_admin' : role === 'hiring_manager' ? '/login?role=hiring_manager' : '/login'}
             className="font-medium hover:opacity-80 transition-opacity"
             style={{ color: isHiring ? '#3b82f6' : '#c9a84c' }}>
-            Sign in
+            {t('common.signIn')}
           </Link>
         </>
       }
@@ -163,31 +165,31 @@ export default function SignUp() {
           }}
         >
           <GoogleIcon />
-          Continue with Google
+          {t('auth.continueWithGoogle')}
         </button>
 
         <p className="text-center text-[11px] text-ink-400 leading-relaxed -mt-1">
-          By continuing, you agree to our{' '}
-          <Link to="/terms" className="underline hover:text-ink-700">Terms</Link>{' '}
-          and consent to AI-powered compatibility analysis of your data.
+          {t('auth.byContinuing')}{' '}
+          <Link to="/terms" className="underline hover:text-ink-700">{t('auth.byContinuingTerms')}</Link>{' '}
+          {t('auth.byContinuingTail')}
         </p>
 
         <div className="relative flex items-center gap-3">
           <div className="flex-1 border-t border-ink-200" />
-          <span className="text-xs text-ink-400">or sign up with email</span>
+          <span className="text-xs text-ink-400">{t('auth.orSignUpEmail')}</span>
           <div className="flex-1 border-t border-ink-200" />
         </div>
 
         <form onSubmit={handleSubmit} method="post" className="space-y-4">
           <Input
-            label={isHiring ? 'Your full name' : 'Full name'}
+            label={t('common.fullName')}
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             required
             autoComplete="name"
           />
           <Input
-            label="Work email"
+            label={t('common.email')}
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -195,8 +197,8 @@ export default function SignUp() {
             autoComplete="email"
           />
           <PasswordInput
-            label="Password"
-            hint="At least 8 characters."
+            label={t('common.password')}
+            hint={t('auth.passwordHint')}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -206,7 +208,7 @@ export default function SignUp() {
 
           <div className="space-y-3 pt-4 border-t border-ink-100">
             <div className="text-xs text-ink-500 uppercase tracking-widest font-semibold">
-              Consents
+              {t('auth.consentsHeading')}
             </div>
 
             {isHRAdmin ? (
@@ -282,12 +284,12 @@ export default function SignUp() {
             size="lg"
           >
             {busy
-              ? 'Creating account…'
+              ? t('common.submitting')
               : isHRAdmin
-                ? 'Create company account'
+                ? t('auth.createCompanyAccount')
                 : role === 'hiring_manager'
-                  ? 'Create hiring manager account'
-                  : 'Create account'}
+                  ? t('auth.createHm')
+                  : t('auth.createAccount')}
           </Button>
         </form>
       </div>

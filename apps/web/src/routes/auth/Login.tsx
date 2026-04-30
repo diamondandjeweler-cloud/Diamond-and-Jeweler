@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { supabase, siteUrl } from '../../lib/supabase'
 import AuthShell from '../../components/AuthShell'
 import { Button, Input, PasswordInput, Alert } from '../../components/ui'
 import { markAdminVerified } from '../../lib/adminReauth'
 
 export default function Login() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
   const [params] = useSearchParams()
@@ -48,7 +50,7 @@ export default function Login() {
     setErr(null)
     setBusy(true)
     const timeout = new Promise<{ error: { message: string } }>(resolve =>
-      setTimeout(() => resolve({ error: { message: 'Sign-in timed out — please refresh the page and try again.' } }), 15000)
+      setTimeout(() => resolve({ error: { message: t('auth.signInTimeout') } }), 15000)
     )
     const { error } = await Promise.race([
       supabase.auth.signInWithPassword({ email, password }),
@@ -63,19 +65,19 @@ export default function Login() {
   return (
     <AuthShell
       variant={isHiring ? 'hiring' : 'talent'}
-      title={isReauth ? 'Confirm it’s you' : 'Welcome back'}
+      title={isReauth ? t('auth.reauthTitle') : t('auth.welcomeBack')}
       subtitle={
-        isReauth ? 'For security, please re-enter your password to access the admin console.'
-        : isHRAdmin ? 'Sign in to your company account.'
-        : isHiringManager ? 'Sign in to your hiring manager account.'
-        : 'Sign in to continue to your matches.'
+        isReauth ? t('auth.reauthSubtitle')
+        : isHRAdmin ? t('auth.hrSubtitle')
+        : isHiringManager ? t('auth.hmSubtitle')
+        : t('auth.talentSubtitle')
       }
       footer={
         isHRAdmin
-          ? <>New here? <Link to="/signup?role=hr_admin" className="font-medium" style={{ color: '#3b82f6' }}>Create a company account</Link></>
+          ? <>{t('auth.newHere')} <Link to="/signup?role=hr_admin" className="font-medium" style={{ color: '#3b82f6' }}>{t('auth.createCompany')}</Link></>
           : isHiringManager
-            ? <>New here? <Link to="/signup?role=hiring_manager" className="font-medium" style={{ color: '#3b82f6' }}>Create a hiring manager account</Link></>
-            : <>New here? <Link to="/signup" className="font-medium text-brand-700 hover:text-brand-800">Create an account</Link></>
+            ? <>{t('auth.newHere')} <Link to="/signup?role=hiring_manager" className="font-medium" style={{ color: '#3b82f6' }}>{t('auth.createHm')}</Link></>
+            : <>{t('auth.newHere')} <Link to="/signup" className="font-medium text-brand-700 hover:text-brand-800">{t('auth.createTalent')}</Link></>
       }
     >
       <div className="space-y-4">
@@ -86,24 +88,24 @@ export default function Login() {
           className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-lg border border-ink-200 bg-white text-ink-800 text-sm font-medium hover:bg-ink-50 hover:border-ink-300 transition-all shadow-soft disabled:opacity-50"
         >
           <GoogleIcon />
-          Continue with Google
+          {t('auth.continueWithGoogle')}
         </button>
 
         <div className="relative flex items-center gap-3">
           <div className="flex-1 border-t border-ink-200" />
-          <span className="text-xs text-ink-400">or sign in with email</span>
+          <span className="text-xs text-ink-400">{t('auth.orSignInEmail')}</span>
           <div className="flex-1 border-t border-ink-200" />
         </div>
 
         <form onSubmit={handleSubmit} method="post" className="space-y-4">
-          <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
-          <PasswordInput label="Password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
+          <Input label={t('common.email')} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+          <PasswordInput label={t('common.password')} value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
           {err && <Alert tone="red">{err}</Alert>}
           <Button type="submit" loading={busy} className="w-full" size="lg">
-            {busy ? 'Signing in…' : 'Sign in'}
+            {busy ? t('auth.signingIn') : t('common.signIn')}
           </Button>
           <div className="text-center text-sm">
-            <Link to="/password-reset" className="text-ink-500 hover:text-ink-800">Forgot password?</Link>
+            <Link to="/password-reset" className="text-ink-500 hover:text-ink-800">{t('auth.forgotPassword')}</Link>
           </div>
         </form>
       </div>

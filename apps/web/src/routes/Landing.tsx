@@ -1,4 +1,5 @@
 import { Link, Navigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useSession } from '../state/useSession'
 
 /**
@@ -11,6 +12,7 @@ import { useSession } from '../state/useSession'
  * role home (RoleHome in App.tsx resolves the right dashboard).
  */
 export default function Landing() {
+  const { t } = useTranslation()
   const { session, profile, loading } = useSession()
   // Only redirect into the app once we have BOTH session and profile.
   // session-but-no-profile means useSession is signing out an orphan session.
@@ -29,13 +31,13 @@ export default function Landing() {
         <div className="max-w-4xl w-full">
           <div className="text-center mb-12 md:mb-16">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-50 border border-brand-200 text-brand-700 text-xs font-medium mb-5">
-              <span className="h-1.5 w-1.5 rounded-full bg-accent-500" /> Malaysia · Pilot
+              <span className="h-1.5 w-1.5 rounded-full bg-accent-500" /> {t('landing.pilot')}
             </div>
             <h1 className="font-display text-display-sm md:text-display text-ink-900 mb-3">
-              Which side are you on?
+              {t('landing.title')}
             </h1>
             <p className="text-ink-500 md:text-lg">
-              Pick one. We'll take it from there.
+              {t('landing.subtitle')}
             </p>
           </div>
 
@@ -47,12 +49,12 @@ export default function Landing() {
               <div className="h-24 w-24 mx-auto mb-5 flex items-center justify-center text-brand-700 group-hover:scale-105 transition-transform">
                 <DiamondIcon />
               </div>
-              <h2 className="font-display text-2xl text-ink-900 mb-2">I'm a talent</h2>
+              <h2 className="font-display text-2xl text-ink-900 mb-2">{t('landing.talent')}</h2>
               <p className="text-sm text-ink-500">
-                Looking for a role. Get three curated offers — no applications.
+                {t('landing.talentDesc')}
               </p>
               <div className="mt-5 text-sm font-medium text-brand-700 inline-flex items-center gap-1">
-                Start <Arrow />
+                {t('common.continue')} <Arrow />
               </div>
             </Link>
 
@@ -63,28 +65,28 @@ export default function Landing() {
               <div className="h-24 w-24 mx-auto mb-5 flex items-center justify-center text-ink-700 group-hover:scale-105 transition-transform">
                 <FindDiamondIcon />
               </div>
-              <h2 className="font-display text-2xl text-ink-900 mb-2">I'm hiring</h2>
+              <h2 className="font-display text-2xl text-ink-900 mb-2">{t('landing.hiring')}</h2>
               <p className="text-sm text-ink-500">
-                Looking for talent. Three curated candidates — no résumé pile.
+                {t('landing.hiringDesc')}
               </p>
               <div className="mt-5 text-sm font-medium text-ink-700 inline-flex items-center gap-1">
-                Start <Arrow />
+                {t('common.continue')} <Arrow />
               </div>
             </Link>
           </div>
 
           <div className="mt-10 text-center text-xs text-ink-500">
-            Already have an account?{' '}
-            <Link to="/login" className="font-medium text-ink-800 hover:text-brand-700 underline underline-offset-2">Sign in</Link>
+            {t('landing.haveAccount')}{' '}
+            <Link to="/login" className="font-medium text-ink-800 hover:text-brand-700 underline underline-offset-2">{t('common.signIn')}</Link>
           </div>
         </div>
       </main>
 
       <footer className="py-6 text-center text-xs text-ink-500">
         <div className="space-x-3">
-          <Link to="/privacy" className="hover:text-ink-900">Privacy</Link>
+          <Link to="/privacy" className="hover:text-ink-900">{t('footer.privacy')}</Link>
           <span>·</span>
-          <Link to="/terms" className="hover:text-ink-900">Terms</Link>
+          <Link to="/terms" className="hover:text-ink-900">{t('footer.terms')}</Link>
           <span>·</span>
           <span>© 2026 DNJ</span>
         </div>

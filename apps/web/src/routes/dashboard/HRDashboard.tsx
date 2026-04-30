@@ -29,6 +29,7 @@ export default function HRDashboard() {
   const { session } = useSession()
   const [pending, setPending] = useState<PendingRow[]>([])
   const [scheduled, setScheduled] = useState<ScheduledRow[]>([])
+  const [outcomesPending, setOutcomesPending] = useState<number>(0)
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState<string | null>(null)
   const [schedulingId, setSchedulingId] = useState<string | null>(null)
@@ -50,7 +51,7 @@ export default function HRDashboard() {
       const roleIds = (roles ?? []).map((r) => r.id)
       if (roleIds.length === 0) { setLoading(false); return }
 
-      const [{ data: pendingData, error: pendErr }, { data: scheduledData }] = await Promise.all([
+      const [{ data: pendingData, error: pendErr }, { data: scheduledData }, { data: completedMatches }] = await Promise.all([
         supabase.from('matches')
           .select('id, status, compatibility_score, roles(id, title), talents(id, profile_id)')
           .in('role_id', roleIds).in('status', ['invited_by_manager', 'hr_scheduling'])
@@ -59,6 +60,13 @@ export default function HRDashboard() {
           .select('id, scheduled_at, format, status, match_id, meeting_url, meeting_provider, matches!inner(role_id, talent_id, roles(title))')
           .in('matches.role_id', roleIds).in('status', ['scheduled', 'confirmed'])
           .order('scheduled_at', { ascending: true }),
+        // Outcomes pending: interviews finished but no feedback row yet from
+        // either side. Counted at the matches level (not interviews) so a
+        // re-scheduled interview doesn't double-count.
+        supabase.from('matches')
+          .select('id, match_feedback(id)')
+          .in('role_id', roleIds)
+          .in('status', ['interview_completed', 'hired']),
       ])
       if (cancelled) return
       if (pendErr) setErr(pendErr.message)
@@ -77,6 +85,12 @@ export default function HRDashboard() {
         meeting_provider: s.meeting_provider,
       }))
       setScheduled(mapped)
+
+      const pendingOutcomes = ((completedMatches ?? []) as unknown as Array<{
+        id: string; match_feedback: { id: string }[] | null
+      }>).filter((m) => !m.match_feedback || m.match_feedback.length === 0).length
+      setOutcomesPending(pendingOutcomes)
+
       setLoading(false)
     }
     void load()
@@ -119,7 +133,12 @@ export default function HRDashboard() {
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
         <Stat label="To schedule" value={pending.length} tone={pending.length > 0 ? 'brand' : 'default'} />
         <Stat label="Upcoming interviews" value={scheduled.length} />
-        <Stat label="Outcomes pending" value="—" hint="Interview feedback" />
+        <Stat
+          label="Outcomes pending"
+          value={outcomesPending}
+          hint={outcomesPending > 0 ? 'Awaiting feedback' : undefined}
+          tone={outcomesPending > 0 ? 'brand' : 'default'}
+        />
       </div>
 
       {err && <div className="mb-6"><Alert tone="red">{err}</Alert></div>}

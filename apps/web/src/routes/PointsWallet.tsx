@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useSession } from '../state/useSession'
 import { supabase } from '../lib/supabase'
 import { Alert, Badge, Button, Card, CardBody, EmptyState, PageHeader, Spinner, Stat } from '../components/ui'
@@ -18,18 +19,18 @@ interface Package {
   points: number
 }
 
-const REASON_LABEL: Record<string, string> = {
-  reject_with_reason:    'Rejected match + gave reason',
-  accept_interview:      'Accepted match — interview confirmed',
-  interviewer_rejects:   'Interviewer rejected (consolation)',
-  end_review:            'Submitted end-to-end review',
-  referral_onboarded:    'Friend joined via your referral',
-  referee_welcome:       'Welcome bonus (joined via referral)',
-  redeem_extra_match:    'Redeemed for extra match',
-  extra_match_purchased: 'Purchased points package',
-}
-
 export default function PointsWallet() {
+  const { t } = useTranslation()
+  const REASON_LABEL: Record<string, string> = {
+    reject_with_reason:    t('points.ruleRejectMatch'),
+    accept_interview:      t('points.ruleAcceptMatch'),
+    interviewer_rejects:   t('points.ruleConsolation'),
+    end_review:            t('points.ruleEndReview'),
+    referral_onboarded:    t('points.ruleReferral'),
+    referee_welcome:       t('points.ruleReferred'),
+    redeem_extra_match:    t('points.redeem', { cost: 21 }),
+    extra_match_purchased: t('points.buyTitle'),
+  }
   const { session, profile, refresh } = useSession()
   const [ledger, setLedger]     = useState<LedgerRow[]>([])
   const [packages, setPackages] = useState<Package[]>([])
@@ -90,86 +91,86 @@ export default function PointsWallet() {
   return (
     <div>
       <PageHeader
-        eyebrow="Diamond Points"
-        title="Your points wallet"
-        description="Earn points by engaging with the platform. Redeem them for extra matches."
+        eyebrow={t('points.eyebrow')}
+        title={t('points.title')}
+        description={t('points.subtitle')}
       />
 
       {/* Balance + how-to-earn */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <Stat label="Current balance" value={pts} tone="brand" hint={`${profile?.points_earned_total ?? 0} earned all time`} />
-        <Stat label="Cost to unlock match" value="21 pts" hint="or RM 9.90 via Billplz FPX" />
-        <Stat label="Referral reward" value="19 pts" hint="5 pts for new friend too" />
+        <Stat label={t('points.currentBalance')} value={pts} tone="brand" hint={t('points.earnedAllTime', { n: profile?.points_earned_total ?? 0 })} />
+        <Stat label={t('points.costToUnlock')} value={`21 ${t('points.balance').toLowerCase()}`} hint={t('points.costSuffix', { rm: '9.90' })} />
+        <Stat label={t('points.referralReward')} value={`19 ${t('points.balance').toLowerCase()}`} hint={t('points.referralFriendBonus', { n: 5 })} />
       </div>
 
       {/* How to earn */}
       <Card className="mb-8">
         <CardBody>
-          <h2 className="font-display text-base font-semibold mb-3">How to earn Diamond Points</h2>
+          <h2 className="font-display text-base font-semibold mb-3">{t('points.howToEarnTitle')}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-ink-700">
             {[
-              ['+5 pts', 'Reject a proposed match and explain why (each)'],
-              ['+5 pts', 'Accept a match and attend the interview'],
-              ['+5 pts', 'Interviewer rejects you — consolation award'],
-              ['+5 pts', 'Submit an end-to-end review after your journey'],
-              ['+19 pts', 'A friend joins using your referral link'],
-              ['+5 pts', 'You joined via a friend\'s referral link'],
-            ].map(([pts, desc]) => (
+              ['+5', t('points.ruleRejectMatch')],
+              ['+5', t('points.ruleAcceptMatch')],
+              ['+5', t('points.ruleConsolation')],
+              ['+5', t('points.ruleEndReview')],
+              ['+19', t('points.ruleReferral')],
+              ['+5', t('points.ruleReferred')],
+            ].map(([n, desc]) => (
               <div key={desc} className="flex items-start gap-2">
-                <span className="font-semibold text-brand-700 shrink-0 w-14">{pts}</span>
+                <span className="font-semibold text-brand-700 shrink-0 w-14">{n} {t('points.balance').toLowerCase()}</span>
                 <span>{desc}</span>
               </div>
             ))}
           </div>
           <div className="mt-4 pt-4 border-t border-ink-100">
             <Link to="/referrals" className="text-sm text-brand-600 font-medium hover:underline">
-              View your referral link →
+              {t('points.viewReferralLink')}
             </Link>
           </div>
         </CardBody>
       </Card>
 
       {/* Buy points */}
-      <h2 className="font-display text-base font-semibold mb-3">Buy Diamond Points</h2>
+      <h2 className="font-display text-base font-semibold mb-3">{t('points.buyTitle')}</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
         {packages.map((pkg) => (
           <Card key={pkg.id} className="relative overflow-hidden">
             <CardBody>
               <div className="text-lg font-bold text-ink-900 mb-0.5">{pkg.name}</div>
               <div className="text-3xl font-display font-bold text-brand-700 mb-1">
-                {pkg.points} <span className="text-base font-normal text-ink-500">pts</span>
+                {pkg.points} <span className="text-base font-normal text-ink-500">{t('points.balance').toLowerCase()}</span>
               </div>
-              <div className="text-sm text-ink-500 mb-4">RM {pkg.price_rm.toFixed(2)} via Billplz FPX</div>
+              <div className="text-sm text-ink-500 mb-4">{t('points.costSuffix', { rm: pkg.price_rm.toFixed(2) })}</div>
               <Button
                 onClick={() => void buyPackage(pkg)}
                 loading={buyingId === pkg.id}
                 className="w-full"
                 variant="brand"
               >
-                Buy — RM {pkg.price_rm.toFixed(2)}
+                {buyingId === pkg.id ? t('points.buying') : t('points.buyButton', { rm: pkg.price_rm.toFixed(2) })}
               </Button>
             </CardBody>
           </Card>
         ))}
         {packages.length === 0 && (
-          <div className="col-span-2 text-sm text-ink-500">No packages configured yet.</div>
+          <div className="col-span-2 text-sm text-ink-500">{t('common.comingSoon')}</div>
         )}
       </div>
       {buyErr && <div className="mb-4"><Alert tone="red">{buyErr}</Alert></div>}
 
       {/* Ledger */}
-      <h2 className="font-display text-base font-semibold mb-3">Points history</h2>
+      <h2 className="font-display text-base font-semibold mb-3">{t('points.history')}</h2>
       <Card>
         <CardBody className="p-0">
           {ledger.length === 0 ? (
-            <EmptyState title="No transactions yet" description="Start earning by engaging with your matches." />
+            <EmptyState title={t('points.noTransactions')} description={t('points.noTransactionsHint')} />
           ) : (
             <table className="w-full text-sm">
               <thead className="text-left text-xs text-ink-500 bg-ink-50">
                 <tr>
-                  <th className="p-3">Action</th>
-                  <th className="p-3 text-right">Points</th>
-                  <th className="p-3 text-right hidden sm:table-cell">Date</th>
+                  <th className="p-3">{t('common.submit')}</th>
+                  <th className="p-3 text-right">{t('points.balance')}</th>
+                  <th className="p-3 text-right hidden sm:table-cell">{t('common.loading').replace(/…$/, '')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -200,7 +201,7 @@ export default function PointsWallet() {
           onClick={() => void refresh()}
           className="text-xs text-ink-400 hover:text-ink-600"
         >
-          Refresh balance
+          {t('points.refresh')}
         </button>
       </div>
     </div>

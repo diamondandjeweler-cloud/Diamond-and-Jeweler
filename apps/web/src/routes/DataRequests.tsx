@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useSession } from '../state/useSession'
 import { supabase } from '../lib/supabase'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -38,6 +39,7 @@ const CORRECTION_FIELDS: Array<{ field: CorrectionField; label: string; kind: 't
 ]
 
 export default function DataRequests() {
+  const { t } = useTranslation()
   const { session } = useSession()
   const navigate = useNavigate()
 
@@ -141,45 +143,45 @@ export default function DataRequests() {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="bg-white border rounded-lg p-6">
-        <h1 className="text-2xl font-bold mb-2">Data requests</h1>
+        <h1 className="text-2xl font-bold mb-2">{t('data.title')}</h1>
         <p className="text-sm text-gray-600 mb-6">
-          Exercise your rights under Malaysia&apos;s PDPA 2010. See the{' '}
-          <Link to="/privacy" className="text-brand-600 underline">Privacy Notice</Link> for context.
-          We respond within 21 days.
+          {t('data.intro')}{' '}
+          <Link to="/privacy" className="text-brand-600 underline">{t('data.introLink')}</Link>{' '}
+          {t('data.introTail')}
         </p>
 
         {submitted && (
           <div className="bg-green-50 border border-green-200 text-green-800 rounded px-3 py-2 mb-4 text-sm">
-            Request submitted. We&apos;ll email you when it&apos;s resolved.
+            {t('data.history')} ✓
           </div>
         )}
 
         <form onSubmit={submit} className="space-y-4 mb-8">
           <div>
-            <label htmlFor="req-type" className="block text-sm mb-1">Request type</label>
+            <label htmlFor="req-type" className="block text-sm mb-1">{t('data.type')}</label>
             <select
               id="req-type"
               value={requestType}
               onChange={(e) => setRequestType(e.target.value as RequestType)}
               className="w-full border rounded px-3 py-2"
             >
-              <option value="access">Access — send me a copy of my data</option>
-              <option value="correction">Correction — fix specific fields</option>
-              <option value="portability">Portability — export my data</option>
-              <option value="deletion">Deletion — erase my data (closes account)</option>
+              <option value="access">{t('data.typeAccess')}</option>
+              <option value="correction">{t('data.typeCorrect')}</option>
+              <option value="portability">{t('data.typePort')}</option>
+              <option value="deletion">{t('data.typeDelete')}</option>
             </select>
           </div>
 
           {requestType === 'correction' && (
             <div className="border rounded p-3 bg-gray-50 space-y-2">
               <div className="flex justify-between items-center">
-                <p className="text-sm font-medium">What should we correct?</p>
+                <p className="text-sm font-medium">{t('data.fieldsToFix')}</p>
                 <button
                   type="button"
                   onClick={addItem}
                   className="text-xs text-brand-600 hover:underline"
                 >
-                  + Add field
+                  {t('data.addField')}
                 </button>
               </div>
               {items.map((it, idx) => {
@@ -214,7 +216,7 @@ export default function DataRequests() {
                         onClick={() => removeItem(idx)}
                         className="text-xs text-red-600 hover:underline px-2 py-1.5"
                       >
-                        Remove
+                        {t('data.remove')}
                       </button>
                     )}
                   </div>
@@ -227,14 +229,13 @@ export default function DataRequests() {
           )}
 
           <div>
-            <label htmlFor="req-notes" className="block text-sm mb-1">Notes (optional)</label>
+            <label htmlFor="req-notes" className="block text-sm mb-1">{t('data.notes')}</label>
             <textarea
               id="req-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               className="w-full border rounded px-3 py-2"
-              placeholder="Anything we should know to process your request."
             />
           </div>
 
@@ -245,13 +246,13 @@ export default function DataRequests() {
             disabled={busy}
             className="bg-brand-600 text-white px-4 py-2 rounded hover:bg-brand-700 disabled:bg-gray-300"
           >
-            {busy ? 'Submitting…' : 'Submit request'}
+            {busy ? t('common.submitting') : t('data.submit')}
           </button>
         </form>
 
-        <h2 className="font-semibold mb-3">Your request history</h2>
+        <h2 className="font-semibold mb-3">{t('data.history')}</h2>
         {history.length === 0 ? (
-          <p className="text-sm text-gray-500">No previous requests.</p>
+          <p className="text-sm text-gray-500">{t('data.noRequests')}</p>
         ) : (
           <table className="w-full text-sm">
             <thead>

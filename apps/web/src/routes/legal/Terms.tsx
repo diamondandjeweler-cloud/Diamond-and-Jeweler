@@ -1,12 +1,48 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { supabase } from '../../lib/supabase'
+
+interface LegalCopy {
+  legalReviewed: boolean
+  lastUpdated: string
+  version: string
+}
+
+const FALLBACK: LegalCopy = {
+  legalReviewed: false,
+  lastUpdated: '2026-04-21',
+  version: '0.1',
+}
 
 export default function Terms() {
+  const [copy, setCopy] = useState<LegalCopy>(FALLBACK)
+
+  useEffect(() => {
+    let cancelled = false
+    void supabase.from('system_config')
+      .select('key, value')
+      .in('key', ['legal_reviewed', 'legal_last_updated', 'legal_version'])
+      .then(({ data }) => {
+        if (cancelled || !data) return
+        const map = new Map<string, unknown>()
+        for (const row of data as Array<{ key: string; value: unknown }>) map.set(row.key, row.value)
+        setCopy({
+          legalReviewed: map.get('legal_reviewed') === true || map.get('legal_reviewed') === 'true',
+          lastUpdated: stringValue(map.get('legal_last_updated'), FALLBACK.lastUpdated),
+          version: stringValue(map.get('legal_version'), FALLBACK.version),
+        })
+      })
+    return () => { cancelled = true }
+  }, [])
+
   return (
     <article className="max-w-3xl mx-auto px-4 py-10">
       <Link to="/" className="text-brand-600 text-sm underline">← Home</Link>
       <h1 className="text-3xl font-bold mt-4 mb-1">Terms of Service</h1>
       <p className="text-xs text-gray-500 mb-6">
-        Last updated: 2026-04-21 · Draft pending legal review · Version: 0.1
+        Last updated: {copy.lastUpdated}
+        {!copy.legalReviewed && ' · Draft pending legal review'}
+        {' · Version: '}{copy.version}
       </p>
 
       <Section title="1. The service">
@@ -41,7 +77,9 @@ export default function Terms() {
       <Section title="5. Fees">
         <p>
           Pilot use is free. Future paid plans (subscriptions, success fees, refresh packs) will be
-          disclosed before activation. You are not billed without explicit consent.
+          disclosed before activation. You are not billed without explicit consent. Optional add-ons
+          such as Diamond Points top-ups and 1-on-1 consult bookings are billed via Billplz FPX at the
+          price shown on the relevant page.
         </p>
       </Section>
 
@@ -75,11 +113,15 @@ export default function Terms() {
         </p>
       </Section>
 
-      <hr className="my-8" />
-      <p className="text-xs text-gray-500">
-        <strong>Legal review pending.</strong> This document is a good-faith draft and will be revised
-        by Malaysian counsel before public launch.
-      </p>
+      {!copy.legalReviewed && (
+        <>
+          <hr className="my-8" />
+          <p className="text-xs text-gray-500">
+            <strong>Legal review pending.</strong> This document is a good-faith draft and will be revised
+            by Malaysian counsel before public launch.
+          </p>
+        </>
+      )}
     </article>
   )
 }
@@ -91,4 +133,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <div className="text-sm text-gray-700 space-y-2">{children}</div>
     </section>
   )
+}
+
+function stringValue(v: unknown, fallback: string): string {
+  if (typeof v === 'string' && v.trim().length > 0) return v
+  return fallback
 }

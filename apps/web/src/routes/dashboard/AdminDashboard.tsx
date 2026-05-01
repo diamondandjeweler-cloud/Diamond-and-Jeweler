@@ -7,6 +7,7 @@ import ColdStartPanel from './admin/ColdStartPanel'
 import UserPanel from './admin/UserPanel'
 import MatchPanel from './admin/MatchPanel'
 import MatchApprovalPanel from './admin/MatchApprovalPanel'
+import MonthlyBoostPanel from './admin/MonthlyBoostPanel'
 import TagPanel from './admin/TagPanel'
 import DsrPanel from './admin/DsrPanel'
 import MarketRatePanel from './admin/MarketRatePanel'
@@ -17,7 +18,7 @@ import { PageHeader } from '../../components/ui'
 
 type AdminTab =
   | 'kpi' | 'companies' | 'waitlist' | 'coldstart' | 'users' | 'approvals' | 'matches'
-  | 'tags' | 'dsr' | 'market' | 'notifications' | 'pricing' | 'config'
+  | 'monthly_boost' | 'tags' | 'dsr' | 'market' | 'notifications' | 'pricing' | 'config'
 
 const TABS: Array<{ key: AdminTab; label: string; render: () => JSX.Element }> = [
   { key: 'kpi',           label: 'Overview',      render: () => <KpiPanel /> },
@@ -26,6 +27,7 @@ const TABS: Array<{ key: AdminTab; label: string; render: () => JSX.Element }> =
   { key: 'coldstart',     label: 'Cold start',    render: () => <ColdStartPanel /> },
   { key: 'users',         label: 'Users',         render: () => <UserPanel /> },
   { key: 'approvals',     label: 'Approvals',     render: () => <MatchApprovalPanel /> },
+  { key: 'monthly_boost', label: 'Monthly boost', render: () => <MonthlyBoostPanel /> },
   { key: 'matches',       label: 'Matches',       render: () => <MatchPanel /> },
   { key: 'tags',          label: 'Tags',          render: () => <TagPanel /> },
   { key: 'dsr',           label: 'Data requests', render: () => <DsrPanel /> },

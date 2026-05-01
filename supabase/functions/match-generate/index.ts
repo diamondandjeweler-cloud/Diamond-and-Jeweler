@@ -92,7 +92,7 @@ serve(async (req) => {
   }
 
   // Matching weights, overridable via system_config.
-  const [wBehRow, wTagRow, wSalRow, wCultureRow, wEmpRow, wCharRow, wAgeRow, wLocRow, wBgRow, wFbRow, wPeakRow] = await Promise.all([
+  const [wBehRow, wTagRow, wSalRow, wCultureRow, wEmpRow, wCharRow, wAgeRow, wLocRow, wBgRow, wFbRow, wPeakRow, wBoostRow] = await Promise.all([
     db.from('system_config').select('value').eq('key', 'weight_behavioral_fitness').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_tag_compatibility').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_salary_fit').maybeSingle(),
@@ -104,6 +104,7 @@ serve(async (req) => {
     db.from('system_config').select('value').eq('key', 'weight_background').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_feedback').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_peak_age').maybeSingle(),
+    db.from('system_config').select('value').eq('key', 'weight_monthly_boost').maybeSingle(),
   ])
   let weightBehavioral = typeof wBehRow.data?.value     === 'number' ? wBehRow.data.value     : 0.20
   let weightTag        = typeof wTagRow.data?.value     === 'number' ? wTagRow.data.value     : 0.50
@@ -115,7 +116,8 @@ serve(async (req) => {
   let weightLocation   = typeof wLocRow.data?.value     === 'number' ? wLocRow.data.value     : 0.10
   let weightBackground = typeof wBgRow.data?.value      === 'number' ? wBgRow.data.value      : 0.15
   let weightFeedback   = typeof wFbRow.data?.value      === 'number' ? wFbRow.data.value      : 0.10
-  let weightPeakAge    = typeof wPeakRow.data?.value    === 'number' ? wPeakRow.data.value    : 0.10
+  let weightPeakAge      = typeof wPeakRow.data?.value    === 'number' ? wPeakRow.data.value    : 0.10
+  let weightMonthlyBoost = typeof wBoostRow.data?.value  === 'number' ? wBoostRow.data.value  : 0.12
 
   // Fix e: role-type weight presets — shift relative emphasis for different role families.
   const roleWeightPreset = ((role as { weight_preset?: string }).weight_preset ?? '').toLowerCase()
@@ -261,6 +263,16 @@ serve(async (req) => {
     if (typeof hmStageRaw === 'number') hmStage = hmStageRaw
   }
   const hmInActiveWindow = hmStage != null && (hmStage === 5 || hmStage === 6 || hmStage === 7)
+
+  // Monthly character boost — fetched once per invocation, applied per talent.
+  const currentMonthFirst = new Date(Date.UTC(currentYear, new Date().getUTCMonth(), 1))
+    .toISOString().slice(0, 10)
+  const { data: monthlyBoostRaw } = await db.rpc('get_monthly_boost_characters', {
+    p_month: currentMonthFirst,
+  })
+  const monthlyBoostedChars: Set<string> = new Set(
+    Array.isArray(monthlyBoostRaw) ? monthlyBoostRaw : []
+  )
 
   async function backgroundOverlaps(jobAreas: unknown): Promise<boolean> {
     if (!Array.isArray(jobAreas) || jobAreas.length === 0) return false
@@ -518,6 +530,9 @@ serve(async (req) => {
       if (typeof ageRaw === 'number') ageScore = ageRaw
     }
 
+    // ── Dimension 4c: monthly character boost ────────────────────────────────
+    const monthlyBoostScore: number = (talentCharacter && monthlyBoostedChars.has(talentCharacter)) ? 100 : 0
+
     // ── Dimension 4b: peak-age-window ─────────────────────────────────────────
     // Talent is in their greatest-performance age band → priority boost even
     // when year luck is weak.  Score: 100 (in window) | 0 (outside) | null (no window).
@@ -568,6 +583,7 @@ serve(async (req) => {
       { name: 'background',         score: backgroundScore,         weight: weightBackground },
       { name: 'feedback',           score: feedbackScore ?? 50,     weight: weightFeedback   * (feedbackScore != null ? 1 : 0.5) },
       { name: 'peak_age_window',    score: peakAgeScore ?? 0,       weight: peakAgeScore     != null ? weightPeakAge    : 0 },
+      { name: 'monthly_boost',      score: monthlyBoostScore,        weight: monthlyBoostedChars.size > 0 ? weightMonthlyBoost : 0 },
     ]
     const totalW = dims.reduce((acc, d) => acc + d.weight, 0)
     const rawScore = totalW > 0
@@ -649,6 +665,7 @@ serve(async (req) => {
       talentNeedsRamp,
       mustHaveItems,
       dealBreakerItems: talentDealBreakerItems,
+      monthlyBoostScore,
       talentBehavioralTags: {
         ownership:            tags['ownership']            ?? null,
         communication_clarity: tags['communication_clarity'] ?? null,
@@ -675,11 +692,12 @@ serve(async (req) => {
         character_score: characterScore,
         age_score: ageScore,
         peak_age_window_score: peakAgeScore,
+        monthly_boost_score: monthlyBoostScore,
         location_score: locationScore,
         location_matters: talentLocMatters,
         background_score: backgroundScore,
         background_note: backgroundNote,
-        weights: { behavioral: weightBehavioral, tag: weightTag, salary: weightSalary, culture: weightCulture, employment: weightEmployment, character: weightCharacter, age: weightAge, location: weightLocation, background: weightBackground, feedback: weightFeedback, peak_age: weightPeakAge },
+        weights: { behavioral: weightBehavioral, tag: weightTag, salary: weightSalary, culture: weightCulture, employment: weightEmployment, character: weightCharacter, age: weightAge, location: weightLocation, background: weightBackground, feedback: weightFeedback, peak_age: weightPeakAge, monthly_boost: weightMonthlyBoost },
         active_dimensions: activeDims,
         effective_weights: effectiveWeights,
         ghost_score: ghostScore,
@@ -806,6 +824,7 @@ interface ScoredCandidate {
   mustHaveItems: string[]
   dealBreakerItems: string[]
   talentBehavioralTags: Record<string, number | null>
+  monthlyBoostScore: number
   reasoning: { talent_tag_overlap: Record<string, number>; weight_sum: number }
 }
 
@@ -901,6 +920,9 @@ function buildPublicReasoning(s: ScoredCandidate, roleTraits: string[]) {
 
   // HR-facing nudges driven by internal signals. Wording is generic
   // professional advice — no reference to the underlying method.
+  if (s.monthlyBoostScore === 100) {
+    strengths.push('Favourable-period match — platform signals this month as a strong window for this candidate. Prioritise outreach.')
+  }
   if (s.activeWindowBoth) {
     strengths.push('Strong-momentum match — recommend moving quickly while both sides are actively engaged.')
   }

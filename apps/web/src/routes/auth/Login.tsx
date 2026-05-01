@@ -5,6 +5,7 @@ import { supabase, siteUrl } from '../../lib/supabase'
 import AuthShell from '../../components/AuthShell'
 import { Button, Input, PasswordInput, Alert } from '../../components/ui'
 import { markAdminVerified } from '../../lib/adminReauth'
+import Turnstile from '../../components/Turnstile'
 
 export default function Login() {
   const { t } = useTranslation()
@@ -22,6 +23,7 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
 
   async function handleGoogleSignIn() {
     setErr(null)
@@ -48,16 +50,17 @@ export default function Login() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setErr(null)
+    if (!captchaToken) { setErr('Please complete the verification.'); return }
     setBusy(true)
     const timeout = new Promise<{ error: { message: string } }>(resolve =>
       setTimeout(() => resolve({ error: { message: t('auth.signInTimeout') } }), 15000)
     )
     const { error } = await Promise.race([
-      supabase.auth.signInWithPassword({ email, password }),
+      supabase.auth.signInWithPassword({ email, password, options: { captchaToken } }),
       timeout,
     ])
     setBusy(false)
-    if (error) { setErr(error.message); return }
+    if (error) { setErr(error.message); setCaptchaToken(null); return }
     markAdminVerified()
     navigate(redirectTo, { replace: true })
   }
@@ -100,8 +103,9 @@ export default function Login() {
         <form onSubmit={handleSubmit} method="post" className="space-y-4">
           <Input label={t('common.email')} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
           <PasswordInput label={t('common.password')} value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
+          <Turnstile onToken={setCaptchaToken} />
           {err && <Alert tone="red">{err}</Alert>}
-          <Button type="submit" loading={busy} className="w-full" size="lg">
+          <Button type="submit" loading={busy} className="w-full" size="lg" disabled={!captchaToken}>
             {busy ? t('auth.signingIn') : t('common.signIn')}
           </Button>
           <div className="text-center text-sm">

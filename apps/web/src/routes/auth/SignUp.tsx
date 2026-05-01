@@ -5,6 +5,7 @@ import { supabase, siteUrl } from '../../lib/supabase'
 import Consent from '../../components/Consent'
 import AuthShell from '../../components/AuthShell'
 import { Button, Input, PasswordInput, Alert } from '../../components/ui'
+import Turnstile from '../../components/Turnstile'
 
 export default function SignUp() {
   const { t } = useTranslation()
@@ -22,10 +23,11 @@ export default function SignUp() {
   const [consents, setConsents] = useState({ dob: false, market: false, tos: false })
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
 
   const canSubmit =
-    email.length > 3 && password.length >= 8 && fullName.length > 1
-    && consents.dob && consents.tos
+    email.length > 3 && password.length >= 10 && fullName.length > 1
+    && consents.dob && consents.tos && !!captchaToken
 
   async function handleGoogleSignUp() {
     setErr(null)
@@ -70,6 +72,7 @@ export default function SignUp() {
       email, password,
       options: {
         emailRedirectTo: `${siteUrl}/auth/callback`,
+        captchaToken: captchaToken ?? undefined,
         data: {
           full_name: fullName, role,
           referral_code: referralCode || undefined,
@@ -83,6 +86,7 @@ export default function SignUp() {
     setBusy(false)
     if (error) {
       setErr(error.message)
+      setCaptchaToken(null)
       try { sessionStorage.removeItem('bole.referral_code') } catch { /* tolerate */ }
       return
     }
@@ -202,7 +206,7 @@ export default function SignUp() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            minLength={8}
+            minLength={10}
             autoComplete="new-password"
           />
 
@@ -273,6 +277,8 @@ export default function SignUp() {
               </>
             )}
           </div>
+
+          <Turnstile onToken={setCaptchaToken} />
 
           {err && <Alert tone="red">{err}</Alert>}
 

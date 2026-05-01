@@ -25,7 +25,7 @@ export const Optional: Story = {
         {...args}
         checked={v}
         onChange={setV}
-        label="Subscribe me to the BoLe newsletter"
+        label="Subscribe me to the DNJ newsletter"
       />
     )
   },
@@ -39,7 +39,7 @@ export const LongLabel: Story = {
         {...args}
         checked={v}
         onChange={setV}
-        label="I consent to BoLe using my date of birth for its compatibility matching algorithm. My DOB will be encrypted and never shared with employers or other users."
+        label="I consent to DNJ using my date of birth for its compatibility matching algorithm. My DOB will be encrypted and never shared with employers or other users."
         required
       />
     )

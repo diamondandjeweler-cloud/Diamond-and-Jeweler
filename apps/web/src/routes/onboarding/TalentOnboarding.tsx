@@ -28,7 +28,7 @@ type Phase = 'basics' | 'chat' | 'dob' | 'dealbreakers' | 'docs' | 'submit' | 'd
 interface ApiMessage { role: 'user' | 'assistant'; content: string }
 
 const BO_GREETING =
-  "Hi! I'm Bole — your career advisor for DNJ. I'm here to learn about your career so we can match you with employers who are genuinely a good fit.\n\nLet's start: what type of role and job scope are you targeting? Even something rough is fine — I'll help you sharpen it."
+  "Hi! I'm DNJ — your career advisor for DNJ. I'm here to learn about your career so we can match you with employers who are genuinely a good fit.\n\nLet's start: what type of role and job scope are you targeting? Even something rough is fine — I'll help you sharpen it."
 
 export default function TalentOnboarding() {
   const { session, refresh } = useSession()
@@ -447,7 +447,7 @@ export default function TalentOnboarding() {
           <p className="text-sm text-ink-700 font-medium">Welcome back — here's your progress:</p>
           <div className="space-y-1.5">
             <ProgressStep label="Name & contact" done={!!fullName} />
-            <ProgressStep label="Chat with Bole" done={chatDone} active={!chatDone} />
+            <ProgressStep label="Chat with DNJ" done={chatDone} active={!chatDone} />
             <ProgressStep label="Background & date of birth" done={dobFilled} active={chatDone && !dobFilled} />
             <ProgressStep label="Documents" done={false} active={dobFilled} />
           </div>
@@ -515,7 +515,7 @@ export default function TalentOnboarding() {
             className="w-full"
             size="lg"
           >
-            Continue to chat with Bole
+            Continue to chat with DNJ
           </Button>
         </form>
       )
@@ -954,7 +954,7 @@ export default function TalentOnboarding() {
   const headline =
     phase === 'resume'       ? 'Welcome back' :
     phase === 'basics'       ? 'About you' :
-    phase === 'chat'         ? 'Chat with Bole' :
+    phase === 'chat'         ? 'Chat with DNJ' :
     phase === 'dob'          ? 'About you' :
     phase === 'dealbreakers' ? 'Your non-negotiables' :
     phase === 'docs'         ? 'Your documents' :

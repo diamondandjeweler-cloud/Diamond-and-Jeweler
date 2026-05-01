@@ -121,7 +121,7 @@ serve(async (req) => {
     waitlist_entries: waitlist,
     _meta: {
       schema_version: '2026-04-21',
-      note: 'All personal data held by BoLe for this user. Produced in response to a PDPA ' +
+      note: 'All personal data held by DNJ for this user. Produced in response to a PDPA ' +
             `${request.request_type} request. Signed URLs to this file expire after 24 hours.`,
     },
   }

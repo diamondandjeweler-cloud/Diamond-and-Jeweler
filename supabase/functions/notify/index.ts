@@ -141,25 +141,25 @@ function compose(
   switch (type) {
     case 'match_ready': {
       const T = {
-        en: { subject: 'You have new matches on BoLe', greet: 'Hi', line: "We've curated new opportunities for you. Log in to review:", linkText: 'Review your matches' },
-        ms: { subject: 'Anda ada padanan baharu di BoLe', greet: 'Hai', line: 'Kami telah pilihkan peluang baharu untuk anda. Log masuk untuk semak:', linkText: 'Semak padanan anda' },
-        zh: { subject: '您有新的 BoLe 匹配', greet: '嗨', line: '我们为您精选了新机会。请登入查看：', linkText: '查看您的匹配' },
+        en: { subject: 'You have new matches on DNJ', greet: 'Hi', line: "We've curated new opportunities for you. Log in to review:", linkText: 'Review your matches' },
+        ms: { subject: 'Anda ada padanan baharu di DNJ', greet: 'Hai', line: 'Kami telah pilihkan peluang baharu untuk anda. Log masuk untuk semak:', linkText: 'Semak padanan anda' },
+        zh: { subject: '您有新的 DNJ 匹配', greet: '嗨', line: '我们为您精选了新机会。请登入查看：', linkText: '查看您的匹配' },
       }[locale]
       return {
         subject: T.subject,
-        body: `${T.greet} ${first},\n\n${T.line}\n${SITE}/home\n\n– BoLe`,
+        body: `${T.greet} ${first},\n\n${T.line}\n${SITE}/home\n\n– DNJ`,
         html: `<p>${T.greet} ${safeFirst},</p><p>${T.line.replace(/[:：]\s*$/, '')} <a href="${SITE}/home">${T.linkText}</a>.</p>`,
       }
     }
     case 'hm_invited': {
       const T = {
-        en: { subject: 'You have been invited as a Hiring Manager on BoLe', greet: 'Hi', body: 'Your HR team has invited you to BoLe. Check your inbox for the magic link and complete your leadership profile.', html: 'Your HR team has invited you to BoLe. The magic-link email from Supabase is on its way — click it to finish onboarding.' },
-        ms: { subject: 'Anda dijemput sebagai Pengurus Pengambilan di BoLe', greet: 'Hai', body: 'Pasukan HR anda telah menjemput anda ke BoLe. Sila semak peti masuk e-mel anda untuk pautan log masuk dan lengkapkan profil anda.', html: 'Pasukan HR anda telah menjemput anda ke BoLe. E-mel pautan log masuk dari Supabase dalam perjalanan — klik untuk selesaikan pendaftaran.' },
-        zh: { subject: '您已受邀成为 BoLe 招聘经理', greet: '嗨', body: 'HR 团队邀请您加入 BoLe。请查收邮箱中的登入链接，并完成您的负责人资料。', html: 'HR 团队邀请您加入 BoLe。Supabase 登入链接邮件即将送达 — 点击即可完成注册。' },
+        en: { subject: 'You have been invited as a Hiring Manager on DNJ', greet: 'Hi', body: 'Your HR team has invited you to DNJ. Check your inbox for the magic link and complete your leadership profile.', html: 'Your HR team has invited you to DNJ. The magic-link email from Supabase is on its way — click it to finish onboarding.' },
+        ms: { subject: 'Anda dijemput sebagai Pengurus Pengambilan di DNJ', greet: 'Hai', body: 'Pasukan HR anda telah menjemput anda ke DNJ. Sila semak peti masuk e-mel anda untuk pautan log masuk dan lengkapkan profil anda.', html: 'Pasukan HR anda telah menjemput anda ke DNJ. E-mel pautan log masuk dari Supabase dalam perjalanan — klik untuk selesaikan pendaftaran.' },
+        zh: { subject: '您已受邀成为 DNJ 招聘经理', greet: '嗨', body: 'HR 团队邀请您加入 DNJ。请查收邮箱中的登入链接，并完成您的负责人资料。', html: 'HR 团队邀请您加入 DNJ。Supabase 登入链接邮件即将送达 — 点击即可完成注册。' },
       }[locale]
       return {
         subject: T.subject,
-        body: `${T.greet} ${first},\n\n${T.body}\n\n– BoLe`,
+        body: `${T.greet} ${first},\n\n${T.body}\n\n– DNJ`,
         html: `<p>${T.greet} ${safeFirst},</p><p>${T.html}</p>`,
       }
     }
@@ -171,7 +171,7 @@ function compose(
       }[locale]
       return {
         subject: T.subject,
-        body: `${T.greet} ${first},\n\n${T.body}\n\n${T.detailsLabel}: ${SITE}/home\n\n– BoLe`,
+        body: `${T.greet} ${first},\n\n${T.body}\n\n${T.detailsLabel}: ${SITE}/home\n\n– DNJ`,
         html: `<p>${T.greet} ${safeFirst},</p><p>${T.body} <a href="${SITE}/home">${T.linkText}</a>.</p>`,
       }
     }
@@ -189,19 +189,19 @@ function compose(
       }[locale]
       return {
         subject: T.subject,
-        body: `${T.greet} ${first},\n\n${T.body(at)}\n\n${T.detailsLabel}: ${SITE}/home\n\n– BoLe`,
+        body: `${T.greet} ${first},\n\n${T.body(at)}\n\n${T.detailsLabel}: ${SITE}/home\n\n– DNJ`,
         html: `<p>${T.greet} ${safeFirst},</p><p>${T.html(safeAt)}</p>`,
       }
     }
     case 'match_expiring': {
       const T = {
-        en: { subject: 'A BoLe match is about to expire', greet: 'Hi', body: 'One of your pending matches expires in 24 hours. Log in to act on it:', linkText: 'Act now' },
-        ms: { subject: 'Padanan BoLe anda hampir tamat tempoh', greet: 'Hai', body: 'Salah satu padanan anda akan tamat tempoh dalam 24 jam. Log masuk untuk bertindak:', linkText: 'Bertindak sekarang' },
-        zh: { subject: '您的 BoLe 匹配即将到期', greet: '嗨', body: '您有一份匹配将于 24 小时内到期。请登入处理：', linkText: '立即处理' },
+        en: { subject: 'A DNJ match is about to expire', greet: 'Hi', body: 'One of your pending matches expires in 24 hours. Log in to act on it:', linkText: 'Act now' },
+        ms: { subject: 'Padanan DNJ anda hampir tamat tempoh', greet: 'Hai', body: 'Salah satu padanan anda akan tamat tempoh dalam 24 jam. Log masuk untuk bertindak:', linkText: 'Bertindak sekarang' },
+        zh: { subject: '您的 DNJ 匹配即将到期', greet: '嗨', body: '您有一份匹配将于 24 小时内到期。请登入处理：', linkText: '立即处理' },
       }[locale]
       return {
         subject: T.subject,
-        body: `${T.greet} ${first},\n\n${T.body}\n${SITE}/home\n\n– BoLe`,
+        body: `${T.greet} ${first},\n\n${T.body}\n${SITE}/home\n\n– DNJ`,
         html: `<p>${T.greet} ${safeFirst},</p><p>${T.body.replace(/[:：]\s*$/, '')} <a href="${SITE}/home">${T.linkText}</a>.</p>`,
       }
     }
@@ -209,7 +209,7 @@ function compose(
       const isHM = typeof data.audience === 'string' && data.audience === 'hiring_manager'
       const T = {
         en: {
-          subject: 'Still thinking it over? Your BoLe match is waiting',
+          subject: 'Still thinking it over? Your DNJ match is waiting',
           greet: 'Hi',
           prompt: isHM
             ? 'A candidate has accepted your offer and is waiting on your invite.'
@@ -217,7 +217,7 @@ function compose(
           linkText: 'Take a look',
         },
         ms: {
-          subject: 'Masih menimbang? Padanan BoLe anda menanti',
+          subject: 'Masih menimbang? Padanan DNJ anda menanti',
           greet: 'Hai',
           prompt: isHM
             ? 'Seorang calon telah menerima tawaran anda dan menanti jemputan daripada anda.'
@@ -225,7 +225,7 @@ function compose(
           linkText: 'Lihat sekarang',
         },
         zh: {
-          subject: '还在考虑吗? 您的 BoLe 匹配仍在等待',
+          subject: '还在考虑吗? 您的 DNJ 匹配仍在等待',
           greet: '嗨',
           prompt: isHM
             ? '有候选人已接受您的 offer，正在等候您发出邀请。'
@@ -235,7 +235,7 @@ function compose(
       }[locale]
       return {
         subject: T.subject,
-        body: `${T.greet} ${first},\n\n${T.prompt}\n\n${SITE}/home\n\n– BoLe`,
+        body: `${T.greet} ${first},\n\n${T.prompt}\n\n${SITE}/home\n\n– DNJ`,
         html: `<p>${T.greet} ${safeFirst},</p><p>${escapeHtml(T.prompt)}</p><p><a href="${SITE}/home">${T.linkText}</a>.</p>`,
       }
     }
@@ -247,7 +247,7 @@ function compose(
       }[locale]
       return {
         subject: T.subject,
-        body: `${T.greet} ${first},\n\n${T.body}\n\n${T.linkLabel}: ${SITE}/hr\n\n– BoLe`,
+        body: `${T.greet} ${first},\n\n${T.body}\n\n${T.linkLabel}: ${SITE}/hr\n\n– DNJ`,
         html: `<p>${T.greet} ${safeFirst},</p><p>${T.body} <a href="${SITE}/hr">${T.linkLabel}</a>.</p>`,
       }
     }
@@ -260,28 +260,28 @@ function compose(
         en: {
           subject: `Your ${reqType} data export is ready`,
           greet: 'Hi',
-          line1: `Your BoLe data export is ready. Download it within ${ttl} hours:`,
-          line1Html: `Your BoLe data export is ready. <a href="${safeUrl}">Download</a> within <strong>${ttl} hours</strong>.`,
+          line1: `Your DNJ data export is ready. Download it within ${ttl} hours:`,
+          line1Html: `Your DNJ data export is ready. <a href="${safeUrl}">Download</a> within <strong>${ttl} hours</strong>.`,
           warn: 'If you did not request this, contact privacy@diamondandjeweler.com immediately.',
         },
         ms: {
           subject: `Eksport data ${reqType} anda telah sedia`,
           greet: 'Hai',
-          line1: `Eksport data BoLe anda telah sedia. Sila muat turun dalam ${ttl} jam:`,
-          line1Html: `Eksport data BoLe anda telah sedia. <a href="${safeUrl}">Muat turun</a> dalam <strong>${ttl} jam</strong>.`,
+          line1: `Eksport data DNJ anda telah sedia. Sila muat turun dalam ${ttl} jam:`,
+          line1Html: `Eksport data DNJ anda telah sedia. <a href="${safeUrl}">Muat turun</a> dalam <strong>${ttl} jam</strong>.`,
           warn: 'Jika anda tidak meminta ini, sila hubungi privacy@diamondandjeweler.com dengan segera.',
         },
         zh: {
           subject: `您的 ${reqType} 数据导出已就绪`,
           greet: '嗨',
-          line1: `您的 BoLe 数据导出已就绪。请在 ${ttl} 小时内下载：`,
-          line1Html: `您的 BoLe 数据导出已就绪。请在 <strong>${ttl} 小时</strong> 内 <a href="${safeUrl}">下载</a>。`,
+          line1: `您的 DNJ 数据导出已就绪。请在 ${ttl} 小时内下载：`,
+          line1Html: `您的 DNJ 数据导出已就绪。请在 <strong>${ttl} 小时</strong> 内 <a href="${safeUrl}">下载</a>。`,
           warn: '若非您本人申请，请立即联系 privacy@diamondandjeweler.com。',
         },
       }[locale]
       return {
         subject: T.subject,
-        body: `${T.greet} ${first},\n\n${T.line1}\n\n${url}\n\n${T.warn}\n\n– BoLe`,
+        body: `${T.greet} ${first},\n\n${T.line1}\n\n${url}\n\n${T.warn}\n\n– DNJ`,
         html:
           `<p>${T.greet} ${safeFirst},</p>` +
           `<p>${T.line1Html}</p>` +

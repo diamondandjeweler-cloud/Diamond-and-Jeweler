@@ -81,7 +81,7 @@ serve(async (req) => {
   const billParams = new URLSearchParams({
     userSecretKey: tpSecret,
     categoryCode: tpCategory,
-    billName: `BoLe career consult (${tier})`.slice(0, 30),
+    billName: `DNJ career consult (${tier})`.slice(0, 30),
     billDescription: `${minutes}-minute 1:1 consult`.slice(0, 100),
     billPriceSetting: '1',
     billPayorInfo: '1',

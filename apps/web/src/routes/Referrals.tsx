@@ -83,7 +83,7 @@ export default function Referrals() {
   }, [profile?.referral_code])
 
   const shareMessage = useMemo(() => {
-    return `Join me on BoLe — Malaysia's AI-powered career matching platform. We both earn Diamond Points when you sign up. ${shareUrl}`
+    return `Join me on DNJ — Malaysia's AI-powered career matching platform. We both earn Diamond Points when you sign up. ${shareUrl}`
   }, [shareUrl])
 
   const create = async () => {
@@ -125,7 +125,7 @@ export default function Referrals() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Join me on BoLe',
+          title: 'Join me on DNJ',
           text: shareMessage,
           url: shareUrl,
         })
@@ -150,7 +150,7 @@ export default function Referrals() {
 
   const shareViaEmail = () => {
     if (!shareUrl) return
-    const subject = encodeURIComponent('Join me on BoLe')
+    const subject = encodeURIComponent('Join me on DNJ')
     const body = encodeURIComponent(shareMessage)
     window.location.href = `mailto:?subject=${subject}&body=${body}`
   }

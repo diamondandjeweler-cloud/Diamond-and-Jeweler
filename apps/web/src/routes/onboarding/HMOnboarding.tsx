@@ -26,7 +26,7 @@ type Phase = 'basics' | 'chat' | 'mustHaves' | 'dob' | 'submit' | 'done'
 interface ApiMessage { role: 'user' | 'assistant'; content: string }
 
 const BO_GREETING =
-  "Hi! I'm Bole — your hiring consultant from DNJ. I'm here to understand your team and what kind of person would genuinely thrive working with you, so we can find the right match.\n\nLet's start: what role and industry are you hiring for?"
+  "Hi! I'm DNJ — your hiring consultant from DNJ. I'm here to understand your team and what kind of person would genuinely thrive working with you, so we can find the right match.\n\nLet's start: what role and industry are you hiring for?"
 
 export default function HMOnboarding() {
   const { session, profile, refresh } = useSession()
@@ -323,7 +323,7 @@ export default function HMOnboarding() {
             className="w-full"
             size="lg"
           >
-            Continue to chat with Bole
+            Continue to chat with DNJ
           </Button>
         </form>
       )
@@ -521,7 +521,7 @@ export default function HMOnboarding() {
 
   const headline =
     phase === 'basics'    ? 'About you' :
-    phase === 'chat'      ? 'Chat with Bole' :
+    phase === 'chat'      ? 'Chat with DNJ' :
     phase === 'mustHaves' ? 'Your non-negotiables' :
     phase === 'dob'       ? 'Date of birth' :
     phase === 'submit'    ? 'Finishing up…' : ''

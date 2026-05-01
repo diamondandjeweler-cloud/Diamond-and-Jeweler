@@ -134,7 +134,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         collection_id: collectionId,
-        description: `BoLe extra match (${body.match_type})`,
+        description: `DNJ extra match (${body.match_type})`,
         email: auth.email,
         name: auth.email,
         amount: Math.round(priceRm * 100), // Billplz expects cents

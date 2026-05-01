@@ -947,7 +947,7 @@ function OrgTab({ org, orgId, isOwner, onOrgUpdated, onBranchAdded }: {
               </Select>
               <Button onClick={invite} loading={inviting}>Invite</Button>
             </div>
-            <p className="text-xs text-ink-400 mt-1">They must already have a BoLe account to be invited.</p>
+            <p className="text-xs text-ink-400 mt-1">They must already have a DNJ account to be invited.</p>
           </div>
         )}
       </CardBody></Card>

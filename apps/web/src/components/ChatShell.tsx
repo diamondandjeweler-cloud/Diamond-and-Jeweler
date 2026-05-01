@@ -126,7 +126,7 @@ function Bubble({
 function SystemAvatar() {
   return (
     <div className="h-8 w-8 shrink-0 rounded-full bg-brand-700 text-white flex items-center justify-center text-xs font-display">
-      Bole
+      DNJ
     </div>
   )
 }

@@ -398,9 +398,9 @@ function AccountingExport({ orders }: { orders: Order[]; payments: never[] }) {
     const rows = [['*Narration','*Date','*Description','*AccountCode','*TaxRate','*Amount']]
     orders.filter((o) => o.status === 'paid' || o.status === 'closed').forEach((o) => {
       const d = new Date(o.created_at).toISOString().slice(0, 10)
-      rows.push([`BoLe order ${o.id.slice(0,8)}`, d, 'Food sales', '200', 'Output Tax', String(Number(o.subtotal).toFixed(2))])
-      rows.push([`BoLe order ${o.id.slice(0,8)}`, d, 'Tax', '820', 'BAS Excluded', String(Number(o.tax).toFixed(2))])
-      rows.push([`BoLe order ${o.id.slice(0,8)}`, d, 'Cash received', '090', 'BAS Excluded', String(-Number(o.total).toFixed(2))])
+      rows.push([`DNJ order ${o.id.slice(0,8)}`, d, 'Food sales', '200', 'Output Tax', String(Number(o.subtotal).toFixed(2))])
+      rows.push([`DNJ order ${o.id.slice(0,8)}`, d, 'Tax', '820', 'BAS Excluded', String(Number(o.tax).toFixed(2))])
+      rows.push([`DNJ order ${o.id.slice(0,8)}`, d, 'Cash received', '090', 'BAS Excluded', String(-Number(o.total).toFixed(2))])
     })
     const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })

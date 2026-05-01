@@ -90,7 +90,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         collection_id: collectionId,
-        description: `BoLe Diamond Points — ${pkg.name} (${pkg.points} pts)`,
+        description: `DNJ Diamond Points — ${pkg.name} (${pkg.points} pts)`,
         email: auth.email,
         name: auth.email,
         amount: Math.round(pkg.price_rm * 100), // Billplz expects cents

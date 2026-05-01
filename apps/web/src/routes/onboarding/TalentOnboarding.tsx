@@ -22,6 +22,7 @@ import { callFunction } from '../../lib/functions'
 import { getLifeChartCharacter, type Gender } from '../../lib/lifeChartCharacter'
 import ChatShell, { ChatMessage } from '../../components/ChatShell'
 import { Button, Alert } from '../../components/ui'
+import DobConfirmModal from '../../components/DobConfirmModal'
 
 type Phase = 'basics' | 'chat' | 'dob' | 'dealbreakers' | 'docs' | 'submit' | 'done' | 'resume'
 
@@ -46,8 +47,8 @@ export default function TalentOnboarding() {
   const [locationMatters, setLocationMatters] = useState<boolean | null>(null)
   const [locationPostcode, setLocationPostcode] = useState('')
   const [openToNewField, setOpenToNewField] = useState(false)
-  const [icFile, setIcFile] = useState<File | null>(null)
   const [resumeFile, setResumeFile] = useState<File | null>(null)
+  const [dobConfirmOpen, setDobConfirmOpen] = useState(false)
   const [coverLetterFile, setCoverLetterFile] = useState<File | null>(null)
   const [race, setRace] = useState('')
   const [religion, setReligion] = useState('')
@@ -264,8 +265,7 @@ export default function TalentOnboarding() {
     try {
       const userId = session.user.id
 
-      const [icPath, resumePath, clPath, photoPath, dobEncrypted] = await Promise.all([
-        uploadPrivate('ic-documents', icFile!, userId, icFile!.name),
+      const [resumePath, clPath, photoPath, dobEncrypted] = await Promise.all([
         uploadPrivate('resumes', resumeFile!, userId, resumeFile!.name),
         coverLetterFile
           ? uploadPrivate('resumes', coverLetterFile, userId, `cover-letter-${coverLetterFile.name}`)
@@ -380,9 +380,8 @@ export default function TalentOnboarding() {
       insertedRef.current = true
 
       // Store documents in the separate talent_documents table.
-      const icPurge = new Date(Date.now() + 30 * 86400000).toISOString()
+      // IC/NRIC removed in v2.0 onboarding — PDPA minimisation (lawyer review 2026-05-01).
       const docRows = [
-        { talent_id: talentRow.id, doc_type: 'ic', storage_path: icPath, file_name: icFile!.name, purge_after: icPurge },
         { talent_id: talentRow.id, doc_type: 'resume', storage_path: resumePath, file_name: resumeFile!.name, purge_after: null },
         ...(clPath ? [{ talent_id: talentRow.id, doc_type: 'cover_letter', storage_path: clPath, file_name: coverLetterFile!.name, purge_after: null }] : []),
       ]
@@ -560,14 +559,20 @@ export default function TalentOnboarding() {
     if (phase === 'dob') {
       return (
         <div className="space-y-3">
-          <p className="text-sm text-ink-600">
-            What's your date of birth? We encrypt it and use it only for AI-powered compatibility analysis — never shown to employers.
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900">
+            <strong>Date of birth is required.</strong> Our proprietary matching algorithm uses
+            it. Without it we cannot produce matches and the platform serves no purpose for you.
+            You may decline, but in that case you cannot use the platform. DOB is encrypted at
+            rest and is <strong>never shown</strong> to employers or other users.
+          </div>
+          <p className="text-xs text-ink-500">
+            You must be <strong>18 or older</strong> to use DNJ.
           </p>
           <input
             type="date"
             value={dob}
             onChange={(e) => setDob(e.target.value)}
-            max={new Date(Date.now() - 18 * 365 * 86400000).toISOString().slice(0, 10)}
+            max={new Date(Date.now() - 18 * 365.25 * 86400000).toISOString().slice(0, 10)}
             className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
           <div className="space-y-1">
@@ -696,7 +701,19 @@ export default function TalentOnboarding() {
             </span>
           </label>
           <Button
-            onClick={() => setPhase('dealbreakers')}
+            onClick={() => {
+              // Server-side belt: also enforce 18+ here in case max attribute is bypassed.
+              if (dob) {
+                const dobMs = new Date(dob).getTime()
+                const eighteenYrsAgoMs = Date.now() - 18 * 365.25 * 86400000
+                if (dobMs > eighteenYrsAgoMs) {
+                  setErr('You must be at least 18 years old to use DNJ.')
+                  return
+                }
+              }
+              setErr(null)
+              setDobConfirmOpen(true)
+            }}
             disabled={
               !dob || !gender || locationMatters === null
               || (locationMatters === true && locationPostcode.length !== 5)
@@ -707,6 +724,7 @@ export default function TalentOnboarding() {
           >
             Continue
           </Button>
+          {err && <Alert tone="red">{err}</Alert>}
         </div>
       )
     }
@@ -884,13 +902,6 @@ export default function TalentOnboarding() {
             required
           />
           <FileRow
-            label="IC or passport"
-            accept="image/*,application/pdf"
-            file={icFile}
-            onChange={setIcFile}
-            required
-          />
-          <FileRow
             label="Résumé (PDF or Word)"
             accept="application/pdf,.doc,.docx"
             file={resumeFile}
@@ -903,10 +914,14 @@ export default function TalentOnboarding() {
             file={coverLetterFile}
             onChange={setCoverLetterFile}
           />
+          <p className="text-xs text-ink-500 italic">
+            Note: We do not require NRIC or passport scans. An optional Identity-Verification
+            Badge will be available later.
+          </p>
           {err && <Alert tone="red">{err}</Alert>}
           <Button
             onClick={() => { setPhase('submit'); void finalise() }}
-            disabled={!photoFile || !icFile || !resumeFile || busy}
+            disabled={!photoFile || !resumeFile || busy}
             loading={busy}
             className="w-full"
             size="lg"
@@ -981,6 +996,13 @@ export default function TalentOnboarding() {
     <>
       {DiamondPointsInfo}
       <ChatShell messages={log} input={composer} headline={headline} progressPct={progressPct} formMode={phase !== 'chat'} />
+      {dobConfirmOpen && (
+        <DobConfirmModal
+          dob={dob}
+          onConfirm={() => { setDobConfirmOpen(false); setPhase('dealbreakers') }}
+          onCancel={() => setDobConfirmOpen(false)}
+        />
+      )}
     </>
   )
 }

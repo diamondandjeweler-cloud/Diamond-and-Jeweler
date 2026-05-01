@@ -193,7 +193,7 @@ export default function TalentOnboarding() {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ messages: newApiMsgs }),
+          body: JSON.stringify({ messages: newApiMsgs, dob: dob || undefined, gender: gender || undefined }),
         },
       )
       if (!res.ok) throw new Error(`Server error ${res.status}`)

@@ -221,10 +221,77 @@ These are collected separately and must never enter this conversation.
 • Do not sound like a form or a robot. Sound like the best hiring conversation they have ever had.
 `.trim()
 
+// ── Timing engine (talent mode only) ─────────────────────────────────────────
+// Computes career timing signal from DOB + gender without sending any personal
+// data to the external AI. Only the resulting advice text is injected.
+
+const CYCLE_DATA: ReadonlyArray<readonly [string, string]> = [
+  ['E','W'],['W-','E-'],['W+','W+'],['E-','W-'],['W','E'],
+  ['F','G+'],['E+','G-'],['G-','E+'],['G+','F'],
+]
+const FEB_DAYS: readonly number[] = [
+  4,4,5,4,4,4,5,4,4,4, 5,4,4,4,5,4,4,4,5,4,
+  4,4,5,4,4,4,5,4,4,4, 5,4,4,4,5,4,4,4,5,4,
+  4,4,4,4,4,4,4,4,4,4, 4,4,4,4,4,4,4,4,4,4,
+  4,4,4,4,4,4,4,3,4,4, 4,3,4,4,4,3,4,4,4,3,
+  4,4,4,3,4,4,4,3,4,4, 4,3,4,4,4,3,4,4,4,3,
+  3,4,4,3,4,4,4,3,4,4, 4,3,4,4,4,3,3,4,4,3,
+  4,4,4,3,4,4,4,3,4,4, 4,3,4,4,4,3,4,4,4,3,
+  4,4,4,3,4,4,4,3,4,4, 4,
+]
+const ANCHOR: Record<string, number> = {
+  W:2026,'E-':2027,'W+':2028,'W-':2029,E:2030,'G+':2031,'G-':2032,'E+':2033,F:2034,
+}
+
+function computeCharacterLocal(dob: string, gender: string): string | null {
+  const d = new Date(dob)
+  if (isNaN(d.getTime())) return null
+  const y = d.getUTCFullYear(), m = d.getUTCMonth() + 1, day = d.getUTCDate()
+  let sy: number
+  if (m < 2) sy = y - 1
+  else if (m > 2) sy = y
+  else { const b = FEB_DAYS[y - 1950] ?? 4; sy = day < b ? y - 1 : y }
+  if (sy < 1950 || sy > 2100) return null
+  const slot = (((sy - 1950) % 9) + 9) % 9
+  return gender === 'male' ? CYCLE_DATA[slot][0] : CYCLE_DATA[slot][1]
+}
+
+function yearLuckStage(character: string, year: number): number {
+  const anchor = ANCHOR[character]
+  if (!anchor) return 1
+  return (((year - anchor) % 9) + 9) % 9 + 1
+}
+
+function buildTimingAdvice(stage: number, monthlyBoosted: boolean, peakStatus: 'in' | 'approaching' | 'past' | 'none'): string {
+  let base = ''
+  if (stage <= 3) {
+    base = `The job market right now is going through a lot of uncertainty — global economic headwinds, geopolitical tensions, and quiet restructuring across many industries. The candidates who come out strongest from periods like this are usually those who used the time to deepen their expertise and strengthen their track record in their current role. This is a good year to think about upskilling — a relevant certification, course, or stretch project over the next 12 to 18 months can significantly improve your positioning when the right opportunity appears. That said, if something truly exceptional comes along, there is nothing wrong with exploring it.`
+  } else if (stage === 4) {
+    base = `You are at an interesting crossroads right now. The market is shifting and there are opportunities, but it rewards people who are deliberate rather than reactive. Do not move just for the sake of moving — the right role is worth waiting for. If an exceptional offer comes, take it. If not, use this period to build leverage in your current role and make sure the right people can see the work you are doing.`
+  } else if (stage <= 7) {
+    base = `The timing looks genuinely good for a move right now. The market tends to reward people who are proactive during periods like this rather than waiting for roles to find them. I would suggest being intentional about it — identify the 2 or 3 companies or roles you genuinely want and reach out directly rather than waiting for job advertisements to appear. First movers in this kind of market tend to land better.`
+  } else {
+    base = `This is a decent time to move if you find the right fit — but the market right now favours candidates who are going for a clear step up, not a lateral move. Focus your energy on roles that give you a bigger platform or a meaningful promotion rather than just a change of scenery. The right move now will compound well over the next few years.`
+  }
+
+  const boostLine = monthlyBoosted
+    ? ` And this month in particular seems to be an active window for candidates with your background in the market — worth putting your feelers out sooner rather than waiting.`
+    : ''
+
+  let peakLine = ''
+  if (peakStatus === 'in') {
+    peakLine = ` You are in a strong performance phase right now — make sure the right people can see the quality of your work. This is not a time to stay invisible.`
+  } else if (peakStatus === 'past') {
+    peakLine = ` You have built a solid experience base. The key now is to find a platform that lets you lead and leverage what you have built — not just execute.`
+  }
+
+  return base + boostLine + peakLine
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────────
 
 interface Message { role: 'user' | 'assistant'; content: string }
-interface Body { messages?: Message[]; mode?: 'talent' | 'hm' }
+interface Body { messages?: Message[]; mode?: 'talent' | 'hm'; dob?: string; gender?: string }
 
 serve(async (req) => {
   const pre = handleOptions(req)
@@ -248,7 +315,55 @@ serve(async (req) => {
     })
   }
 
-  const systemPrompt = body.mode === 'hm' ? HM_PROMPT : TALENT_PROMPT
+  // Build timing advice for talent mode when DOB + gender are provided.
+  // DOB is used only for local computation — never forwarded to the AI provider.
+  let timingBlock = ''
+  if (body.mode !== 'hm' && body.dob && body.gender) {
+    try {
+      const char = computeCharacterLocal(body.dob, body.gender)
+      if (char) {
+        const currentYear = new Date().getUTCFullYear()
+        const stage = yearLuckStage(char, currentYear)
+
+        // Monthly boost check via DB (service-role context available in Edge Function).
+        const { adminClient } = await import('../_shared/supabase.ts')
+        const db = adminClient()
+        const currentMonthFirst = `${currentYear}-${String(new Date().getUTCMonth() + 1).padStart(2,'0')}-01`
+        const { data: boostedChars } = await db.rpc('get_monthly_boost_characters', { p_month: currentMonthFirst })
+        const monthlyBoosted = Array.isArray(boostedChars) && boostedChars.includes(char)
+
+        // Peak age status.
+        const dobDate = new Date(body.dob)
+        const ageNow = currentYear - dobDate.getUTCFullYear()
+        const { data: peakRaw } = await db.rpc('get_peak_age_score', {
+          p_dob: body.dob, p_character: char,
+          p_born_day: dobDate.getUTCDate(), p_uses_lunar: false,
+        })
+        const peakScore = typeof peakRaw === 'number' ? peakRaw : null
+        // Determine if peak is in the future by checking if their age is below typical windows.
+        // Peak window varies by character — if score=0 and age<30, they're approaching; if >35, past.
+        const peakStatus: 'in' | 'approaching' | 'past' | 'none' =
+          peakScore === 100 ? 'in'
+          : peakScore === 0 && ageNow < 30 ? 'approaching'
+          : peakScore === 0 && ageNow >= 30 ? 'past'
+          : 'none'
+
+        const advice = buildTimingAdvice(stage, monthlyBoosted, peakStatus)
+        timingBlock = `
+
+━━━ CLOSING ADVICE CONTEXT (private — use this to shape your closing only) ━━━
+
+When you reach the closing message (just before [PROFILE_READY]), weave the following career timing perspective naturally into your closing. Do NOT quote it verbatim — rephrase it in your own warm, conversational tone as if it is your genuine career advice. Never mention cycles, stages, frameworks, BaZi, metaphysics, or any scoring system. Frame everything as real-world career strategy and market observation.
+
+Advice to weave in:
+${advice}
+
+Blend this naturally with your personalised summary of what you heard from them. The closing should feel like thoughtful, human career advice — not a copy-paste paragraph.`
+      }
+    } catch { /* timing is best-effort — never block the chat */ }
+  }
+
+  const systemPrompt = (body.mode === 'hm' ? HM_PROMPT : TALENT_PROMPT) + timingBlock
 
   // Try Anthropic first, fall back to Groq.
   const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY')

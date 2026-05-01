@@ -10,8 +10,8 @@ interface LegalCopy {
 
 const FALLBACK: LegalCopy = {
   legalReviewed: false,
-  lastUpdated: '2026-04-21',
-  version: '0.1',
+  lastUpdated: '2026-05-01',
+  version: '2.0',
 }
 
 export default function Terms() {
@@ -45,23 +45,30 @@ export default function Terms() {
         {' · Version: '}{copy.version}
       </p>
 
-      <Section title="1. The service">
-        <p>DNJ is a curated recruitment platform operated from Malaysia. Matches are not applications; DNJ does not guarantee matches, interviews, or hires.</p>
+      <Section title="1. The Service">
+        <p>
+          DNJ is a curated recruitment platform operated from Malaysia. Matches are not
+          applications. DNJ does not guarantee matches, interviews, or hires.
+        </p>
       </Section>
 
       <Section title="2. Eligibility">
         <ul className="list-disc ml-6 space-y-1">
-          <li>You must be at least 18 years old.</li>
+          <li>You must be at least <strong>18 years old</strong> (verified at onboarding via DOB).</li>
           <li>Companies must be legally registered in Malaysia (SSM verified).</li>
-          <li>You represent that the information you provide is true and current.</li>
+          <li>Information you provide must be true and current.</li>
         </ul>
       </Section>
 
-      <Section title="3. Acceptable use">
+      <Section title="3. Acceptable Use">
         <p>You agree not to:</p>
         <ul className="list-disc ml-6 space-y-1">
           <li>Impersonate others or misrepresent your identity, education, or employment history.</li>
-          <li>Post role requirements that are discriminatory under Malaysian employment law.</li>
+          <li>
+            Post role requirements that are <strong>discriminatory under Malaysian employment
+            law and public policy</strong>, including discrimination based on race, religion,
+            gender, age, disability, or other protected categories.
+          </li>
           <li>Scrape, reverse-engineer, or extract bulk data from the platform.</li>
           <li>Use the platform to transmit spam, malware, or illegal content.</li>
         </ul>
@@ -69,47 +76,71 @@ export default function Terms() {
 
       <Section title="4. Matching">
         <p>
-          Our matching engine is proprietary. You acknowledge that matches are curated by the platform
-          and that DNJ retains sole discretion over which matches are surfaced.
+          Our matching engine is proprietary. You acknowledge that matches are curated by the
+          platform and that DNJ retains sole discretion over which matches are surfaced.
         </p>
       </Section>
 
       <Section title="5. Fees">
         <p>
-          Pilot use is free. Future paid plans (subscriptions, success fees, refresh packs) will be
-          disclosed before activation. You are not billed without explicit consent. Optional add-ons
-          such as Diamond Points top-ups and 1-on-1 consult bookings are billed via Billplz FPX at the
-          price shown on the relevant page.
+          Pilot use is free. Future paid plans (subscriptions, success fees, refresh packs) will
+          be disclosed before activation. You are not billed without explicit consent. Optional
+          add-ons such as Diamond Points top-ups and 1-on-1 consult bookings are billed via
+          Billplz FPX at the price shown on the relevant page.
         </p>
       </Section>
 
-      <Section title="6. Account termination">
+      <Section title="6. Account Termination">
         <p>
           We may suspend or terminate accounts that violate these terms, show signs of repeated
-          ghosting behaviour, or misrepresent identity. You may close your account at any time via the{' '}
-          <Link to="/data-requests" className="text-brand-600 underline">Data Requests</Link> page.
+          ghosting behaviour, or misrepresent identity. You may close your account at any time
+          via the{' '}
+          <Link to="/data-requests" className="text-brand-600 underline">Data Requests</Link>{' '}
+          page.
         </p>
       </Section>
 
-      <Section title="7. Warranties & limitation of liability">
+      <Section title="7. Employer Indemnity">
         <p>
-          The service is provided &ldquo;as is&rdquo;. To the maximum extent permitted by Malaysian law,
-          DNJ disclaims all warranties and is not liable for indirect or consequential loss arising
-          from your use of the platform.
+          Companies and hiring managers using the platform agree to <strong>indemnify and hold
+          harmless</strong> DNJ, its operators, and its affiliates from any claims arising from:
+        </p>
+        <ul className="list-disc ml-6 space-y-1">
+          <li>Discriminatory hiring practices conducted through the platform.</li>
+          <li>Misuse of candidate data after a match is surfaced.</li>
+          <li>Violations of Malaysian employment law conducted through the platform.</li>
+        </ul>
+        <p className="mt-2">
+          DNJ is a matching tool. Hiring decisions and their consequences are the company&rsquo;s
+          responsibility.
         </p>
       </Section>
 
-      <Section title="8. Governing law">
+      <Section title="8. Limitation of Liability">
         <p>
-          These terms are governed by the laws of Malaysia. Disputes are subject to the exclusive
-          jurisdiction of the Malaysian courts.
+          The service is provided &ldquo;as is&rdquo;. To the maximum extent permitted by
+          Malaysian law, DNJ&rsquo;s total liability under these terms is capped at{' '}
+          <strong>RM 5,000</strong>, except for:
+        </p>
+        <ul className="list-disc ml-6 space-y-1">
+          <li>Personal data breaches (no cap — full PDPA liability applies).</li>
+          <li>Gross negligence.</li>
+          <li>Wilful misconduct.</li>
+          <li>Any liability that cannot be excluded under Malaysian law.</li>
+        </ul>
+      </Section>
+
+      <Section title="9. Governing Law">
+        <p>
+          These terms are governed by the laws of Malaysia. Disputes are subject to the
+          exclusive jurisdiction of the Malaysian courts.
         </p>
       </Section>
 
-      <Section title="9. Changes">
+      <Section title="10. Changes">
         <p>
-          We may update these terms. Material changes will be notified by email and require re-consent
-          to continue using the platform.
+          We may update these terms. Material changes will be notified by email and require
+          re-consent to continue using the platform.
         </p>
       </Section>
 
@@ -117,8 +148,8 @@ export default function Terms() {
         <>
           <hr className="my-8" />
           <p className="text-xs text-gray-500">
-            <strong>Legal review pending.</strong> This document is a good-faith draft and will be revised
-            by Malaysian counsel before public launch.
+            <strong>Legal review pending.</strong> This document is a good-faith draft and will
+            be revised by Malaysian counsel before public launch.
           </p>
         </>
       )}

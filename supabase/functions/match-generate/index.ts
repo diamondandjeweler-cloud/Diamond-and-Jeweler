@@ -163,8 +163,17 @@ serve(async (req) => {
     if (!hmOwner) return json({ error: 'Not the role owner' }, 403)
   }
 
+  // Read approval mode: 'manual' → new matches held for admin review; 'autopilot' → immediate.
+  const { data: approvalModeCfg } = await db.from('system_config').select('value')
+    .eq('key', 'match_approval_mode').maybeSingle()
+  const approvalMode: string = typeof approvalModeCfg?.value === 'string'
+    ? approvalModeCfg.value
+    : 'manual'
+  const initialStatus = approvalMode === 'autopilot' ? 'generated' : 'pending_approval'
+
   // How many active matches does this role already have?
   const activeStatuses = [
+    'pending_approval',
     'generated','viewed','accepted_by_talent','invited_by_manager',
     'hr_scheduling','interview_scheduled','interview_completed','offer_made',
   ]
@@ -649,11 +658,6 @@ serve(async (req) => {
         location_matters: talentLocMatters,
         background_score: backgroundScore,
         background_note: backgroundNote,
-        // Internal-only fields (admin-visible, never echoed to UI). Track stage
-        // signals so we can audit the engine without exposing the method.
-        _internal_hm_stage: hmStage,
-        _internal_talent_stage: talentStage,
-        _internal_active_window_boost: activeWindowBoost,
         weights: { behavioral: weightBehavioral, tag: weightTag, salary: weightSalary, culture: weightCulture, employment: weightEmployment, character: weightCharacter, age: weightAge, location: weightLocation, background: weightBackground, feedback: weightFeedback },
         active_dimensions: activeDims,
         effective_weights: effectiveWeights,
@@ -717,7 +721,7 @@ serve(async (req) => {
     internal_reasoning: s.reasoning,
     public_reasoning: buildPublicReasoning(s, roleTraits),
     application_summary: applicationSummaries[i],
-    status: 'generated',
+    status: initialStatus,
     expires_at: expiresAt,
     is_extra_match: isExtra,
   }))
@@ -733,18 +737,21 @@ serve(async (req) => {
     })),
   )
 
-  const notifyUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/notify`
-  const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  for (const s of top) {
-    fetch(notifyUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${svcKey}` },
-      body: JSON.stringify({
-        user_id: s.profile_id,
-        type: 'match_ready',
-        data: { role_id: body.role_id, compatibility_score: s.finalScore },
-      }),
-    }).catch(() => { /* best effort */ })
+  // Only notify talent when the match is immediately visible (autopilot mode).
+  if (initialStatus === 'generated') {
+    const notifyUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/notify`
+    const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    for (const s of top) {
+      fetch(notifyUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${svcKey}` },
+        body: JSON.stringify({
+          user_id: s.profile_id,
+          type: 'match_ready',
+          data: { role_id: body.role_id, compatibility_score: s.finalScore },
+        }),
+      }).catch(() => { /* best effort */ })
+    }
   }
 
   return new Response(

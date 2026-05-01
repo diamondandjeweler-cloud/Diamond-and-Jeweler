@@ -1,4 +1,3 @@
-import type { NextRequest } from '@vercel/edge'
 
 // Simple in-process sliding window rate limiter.
 // State resets on cold start — acceptable for MVP. For production scale,
@@ -32,7 +31,7 @@ function maybeEvict() {
   }
 }
 
-export default function middleware(req: NextRequest) {
+export default function middleware(req: Request) {
   // Only rate-limit API routes, not static assets or the SPA shell.
   const { pathname } = new URL(req.url)
   if (!pathname.startsWith('/api/')) return

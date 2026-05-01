@@ -209,7 +209,12 @@
     "notes": "Notes (optional)",
     "submit": "Submit request",
     "history": "Your request history",
-    "noRequests": "No previous requests."
+    "noRequests": "No previous requests.",
+    "submitted": "Request submitted",
+    "tabRequests": "My Requests",
+    "tabAccessLog": "Access Log",
+    "accessLogIntro": "This log shows when admins or system processes accessed your personal data in the last 100 events.",
+    "noAccessLog": "No access events recorded yet."
   },
   "mfa": {
     "enrollTitle": "Set up two-factor authentication",

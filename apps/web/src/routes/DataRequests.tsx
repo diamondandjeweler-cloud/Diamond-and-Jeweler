@@ -28,6 +28,14 @@ interface DsrRow {
   created_at: string
 }
 
+interface AuditRow {
+  id: string
+  actor_role: string
+  action: string
+  resource_type: string | null
+  created_at: string
+}
+
 const CORRECTION_FIELDS: Array<{ field: CorrectionField; label: string; kind: 'text' | 'number' | 'bool' | 'privacy' }> = [
   { field: 'profiles.full_name',            label: 'Full name',                 kind: 'text' },
   { field: 'profiles.phone',                label: 'Phone number',              kind: 'text' },
@@ -43,7 +51,9 @@ export default function DataRequests() {
   const { session } = useSession()
   const navigate = useNavigate()
 
+  const [tab, setTab] = useState<'requests' | 'access-log'>('requests')
   const [history, setHistory] = useState<DsrRow[]>([])
+  const [auditLog, setAuditLog] = useState<AuditRow[]>([])
   const [loading, setLoading] = useState(true)
 
   const [requestType, setRequestType] = useState<RequestType>('access')
@@ -57,12 +67,22 @@ export default function DataRequests() {
     if (!session) { navigate('/login'); return }
     let cancelled = false
     void (async () => {
-      const { data } = await supabase
-        .from('data_requests')
-        .select('id, request_type, status, notes, correction_proposal, resolved_at, created_at')
-        .order('created_at', { ascending: false })
+      const [dsrRes, auditRes] = await Promise.all([
+        supabase
+          .from('data_requests')
+          .select('id, request_type, status, notes, correction_proposal, resolved_at, created_at')
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('audit_log')
+          .select('id, actor_role, action, resource_type, created_at')
+          .eq('subject_id', session!.user.id)
+          .in('action', ['admin_profile_view', 'admin_talent_view', 'admin_file_view', 'dsr_completed', 'dsr_export_downloaded', 'file_viewed'])
+          .order('created_at', { ascending: false })
+          .limit(100),
+      ])
       if (!cancelled) {
-        setHistory((data ?? []) as DsrRow[])
+        setHistory((dsrRes.data ?? []) as DsrRow[])
+        setAuditLog((auditRes.data ?? []) as AuditRow[])
         setLoading(false)
       }
     })()
@@ -150,13 +170,63 @@ export default function DataRequests() {
           {t('data.introTail')}
         </p>
 
-        {submitted && (
-          <div className="bg-green-50 border border-green-200 text-green-800 rounded px-3 py-2 mb-4 text-sm">
-            {t('data.history')} ✓
+        {/* Tab switcher */}
+        <div className="flex gap-1 mb-6 border-b">
+          <button
+            type="button"
+            onClick={() => setTab('requests')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === 'requests' ? 'border-brand-600 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+          >
+            {t('data.tabRequests')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('access-log')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === 'access-log' ? 'border-brand-600 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+          >
+            {t('data.tabAccessLog')}
+          </button>
+        </div>
+
+        {tab === 'access-log' && (
+          <div>
+            <p className="text-sm text-gray-600 mb-4">{t('data.accessLogIntro')}</p>
+            {auditLog.length === 0 ? (
+              <p className="text-sm text-gray-500">{t('data.noAccessLog')}</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-gray-600 border-b">
+                    <th className="py-2 pr-3">Date / Time</th>
+                    <th className="pr-3">Action</th>
+                    <th className="pr-3">Resource</th>
+                    <th>By</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {auditLog.map((row) => (
+                    <tr key={row.id} className="border-b last:border-0">
+                      <td className="py-2 pr-3 whitespace-nowrap text-gray-500">
+                        {new Date(row.created_at).toLocaleString()}
+                      </td>
+                      <td className="pr-3 capitalize">{row.action.replace(/_/g, ' ')}</td>
+                      <td className="pr-3 text-gray-500">{row.resource_type ?? '—'}</td>
+                      <td className="capitalize text-gray-500">{row.actor_role}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         )}
 
-        <form onSubmit={submit} className="space-y-4 mb-8">
+        {tab === 'requests' && submitted && (
+          <div className="bg-green-50 border border-green-200 text-green-800 rounded px-3 py-2 mb-4 text-sm">
+            {t('data.submitted')} ✓
+          </div>
+        )}
+
+        {tab === 'requests' && <form onSubmit={submit} className="space-y-4 mb-8">
           <div>
             <label htmlFor="req-type" className="block text-sm mb-1">{t('data.type')}</label>
             <select
@@ -248,32 +318,36 @@ export default function DataRequests() {
           >
             {busy ? t('common.submitting') : t('data.submit')}
           </button>
-        </form>
+        </form>}
 
-        <h2 className="font-semibold mb-3">{t('data.history')}</h2>
-        {history.length === 0 ? (
-          <p className="text-sm text-gray-500">{t('data.noRequests')}</p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-gray-600 border-b">
-                <th className="py-2">Type</th>
-                <th>Status</th>
-                <th>Submitted</th>
-                <th>Resolved</th>
-              </tr>
-            </thead>
-            <tbody>
-              {history.map((r) => (
-                <tr key={r.id} className="border-b last:border-0">
-                  <td className="py-2 capitalize">{r.request_type}</td>
-                  <td className="capitalize">{r.status.replace('_', ' ')}</td>
-                  <td>{new Date(r.created_at).toLocaleDateString()}</td>
-                  <td>{r.resolved_at ? new Date(r.resolved_at).toLocaleDateString() : '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {tab === 'requests' && (
+          <>
+            <h2 className="font-semibold mb-3">{t('data.history')}</h2>
+            {history.length === 0 ? (
+              <p className="text-sm text-gray-500">{t('data.noRequests')}</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-gray-600 border-b">
+                    <th className="py-2">Type</th>
+                    <th>Status</th>
+                    <th>Submitted</th>
+                    <th>Resolved</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.map((r) => (
+                    <tr key={r.id} className="border-b last:border-0">
+                      <td className="py-2 capitalize">{r.request_type}</td>
+                      <td className="capitalize">{r.status.replace('_', ' ')}</td>
+                      <td>{new Date(r.created_at).toLocaleDateString()}</td>
+                      <td>{r.resolved_at ? new Date(r.resolved_at).toLocaleDateString() : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -322,10 +322,6 @@ function OfferCard({
   const pct = Math.round(m.compatibility_score ?? 0)
   const busy = (suffix: string) => actionBusy === `${m.id}:${suffix}`
 
-  // Upcoming rounds (for "join" links) — scheduled, not yet passed
-  const upcomingRounds = rounds.filter((r) => r.status === 'scheduled')
-  const pastRounds = rounds.filter((r) => r.status !== 'scheduled')
-
   return (
     <Card hoverable className="animate-slide-up">
       <div className="p-6">

@@ -13,6 +13,7 @@ import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { handleOptions } from '../_shared/cors.ts'
 import { authenticate, json } from '../_shared/auth.ts'
 import { adminClient } from '../_shared/supabase.ts'
+import { logAudit } from '../_shared/audit.ts'
 
 serve(async (req) => {
   const pre = handleOptions(req); if (pre) return pre
@@ -111,8 +112,23 @@ serve(async (req) => {
       consents: {},
     }).eq('id', d.user_id)
 
+    await logAudit({
+      actorId:      null,
+      actorRole:    'system',
+      subjectId:    d.user_id,
+      action:       'data_purged',
+      resourceType: 'profile',
+      resourceId:   d.user_id,
+      metadata:     { dsr_id: d.id, retention_days: retentionDays },
+    })
     results.dsr_deletions_applied++
   }
+
+  await logAudit({
+    actorId: null, actorRole: 'system', subjectId: null,
+    action: 'cron_run', resourceType: 'system', resourceId: 'data-retention',
+    metadata: results,
+  })
 
   return json(results)
 })

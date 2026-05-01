@@ -57,7 +57,7 @@ export default function MfaEnroll() {
 
   return (
     <AuthShell variant="hiring" title={t('mfa.enrollTitle')} subtitle={t('mfa.enrollSubtitle')}>
-      {err && <Alert tone="red" className="mb-4">{err}</Alert>}
+      {err && <div className="mb-4"><Alert tone="red">{err}</Alert></div>}
 
       {step === 'qr' && enroll && (
         <div className="space-y-4">

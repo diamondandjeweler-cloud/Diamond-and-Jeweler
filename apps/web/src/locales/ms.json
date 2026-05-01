@@ -209,7 +209,12 @@
     "notes": "Nota (pilihan)",
     "submit": "Hantar permintaan",
     "history": "Sejarah permintaan anda",
-    "noRequests": "Tiada permintaan sebelum ini."
+    "noRequests": "Tiada permintaan sebelum ini.",
+    "submitted": "Permintaan dihantar",
+    "tabRequests": "Permintaan Saya",
+    "tabAccessLog": "Log Akses",
+    "accessLogIntro": "Log ini menunjukkan masa pentadbir atau proses sistem mengakses data peribadi anda (100 rekod terkini).",
+    "noAccessLog": "Tiada rekod akses buat masa ini."
   },
   "mfa": {
     "enrollTitle": "Sediakan pengesahan dua faktor",

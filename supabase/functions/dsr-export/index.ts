@@ -14,6 +14,7 @@ import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { handleOptions } from '../_shared/cors.ts'
 import { authenticate, json } from '../_shared/auth.ts'
 import { adminClient } from '../_shared/supabase.ts'
+import { logAudit, extractIp } from '../_shared/audit.ts'
 
 interface Body { request_id?: string }
 
@@ -159,6 +160,18 @@ serve(async (req) => {
       },
     }),
   }).catch(() => { /* best effort */ })
+
+  // Audit: DSR export completed + file ready for download
+  await logAudit({
+    actorId:      auth.userId ?? null,
+    actorRole:    'admin',
+    subjectId:    userId,
+    action:       'dsr_completed',
+    resourceType: 'dsr',
+    resourceId:   request.id,
+    ip:           extractIp(req),
+    metadata:     { request_type: request.request_type, size_bytes: bytes.byteLength },
+  })
 
   return json({ ok: true, file_path: filePath, size_bytes: bytes.byteLength })
 })

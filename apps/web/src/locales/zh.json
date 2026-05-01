@@ -209,7 +209,12 @@
     "notes": "备注（可选）",
     "submit": "提交请求",
     "history": "您的请求历史",
-    "noRequests": "暂无历史请求。"
+    "noRequests": "暂无历史请求。",
+    "submitted": "请求已提交",
+    "tabRequests": "我的请求",
+    "tabAccessLog": "访问日志",
+    "accessLogIntro": "此日志显示管理员或系统流程访问您个人数据的时间（最近100条记录）。",
+    "noAccessLog": "暂无访问记录。"
   },
   "mfa": {
     "enrollTitle": "设置双因素认证",

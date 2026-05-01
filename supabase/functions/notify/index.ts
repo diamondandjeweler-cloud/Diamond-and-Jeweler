@@ -26,6 +26,7 @@ import { Resend } from 'npm:resend@3.2.0'
 import { handleOptions } from '../_shared/cors.ts'
 import { authenticate, json } from '../_shared/auth.ts'
 import { adminClient } from '../_shared/supabase.ts'
+import { logAudit, extractIp } from '../_shared/audit.ts'
 
 let resendInstance: Resend | null = null
 function getResend(): Resend | null {
@@ -140,6 +141,20 @@ serve(async (req) => {
       console.error('WATI error', e)
       whatsappStatus = 'error'
     }
+  }
+
+  // Audit: notification sent (type + channel only — no message content)
+  if (emailStatus === 'sent' || whatsappStatus === 'sent') {
+    await logAudit({
+      actorId:      null,
+      actorRole:    'system',
+      subjectId:    payload.user_id,
+      action:       'admin_action',
+      resourceType: 'notification',
+      resourceId:   payload.type,
+      ip:           extractIp(req),
+      metadata:     { email: emailStatus, whatsapp: whatsappStatus },
+    })
   }
 
   return json({ ok: true, email: emailStatus, whatsapp: whatsappStatus })

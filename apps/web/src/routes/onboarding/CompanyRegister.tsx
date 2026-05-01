@@ -34,16 +34,14 @@ export default function CompanyRegister() {
     setErr(null)
     setBusy(true)
     try {
-      // Force a token refresh so the JWT reaching Postgres is always current.
-      // Zustand may hold a stale session while the actual access token has expired.
-      const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession()
-      if (refreshErr || !refreshed.session) {
+      const { data: { session: currentSession } } = await supabase.auth.getSession()
+      if (!currentSession) {
         setErr('Your session has expired. Please sign in again.')
         setBusy(false)
         navigate('/login', { replace: true })
         return
       }
-      const userId = refreshed.session.user.id
+      const userId = currentSession.user.id
 
       const timeout = <T,>(ms: number, label: string) =>
         new Promise<T>((_, reject) =>

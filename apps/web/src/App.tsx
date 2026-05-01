@@ -7,6 +7,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import OnboardingGate from './components/OnboardingGate'
 import AdminGate from './components/AdminGate'
 import ConsentGate from './components/ConsentGate'
+import CookieBanner from './components/CookieBanner'
 
 import Landing from './routes/Landing'
 import SignUp from './routes/auth/SignUp'
@@ -16,6 +17,8 @@ const Start            = lazy(() => import('./routes/Start'))
 const WaitlistConfirm  = lazy(() => import('./routes/WaitlistConfirm'))
 const PasswordReset    = lazy(() => import('./routes/auth/PasswordReset'))
 const AuthCallback     = lazy(() => import('./routes/auth/AuthCallback'))
+const MfaChallenge     = lazy(() => import('./routes/auth/MfaChallenge'))
+const MfaEnroll        = lazy(() => import('./routes/auth/MfaEnroll'))
 
 const TalentOnboarding = lazy(() => import('./routes/onboarding/TalentOnboarding'))
 const HMOnboarding     = lazy(() => import('./routes/onboarding/HMOnboarding'))
@@ -72,6 +75,7 @@ export default function App() {
 
   return (
     <Suspense fallback={<LoadingSpinner full />}>
+      <CookieBanner />
       <Routes>
         {/* Public */}
         <Route path="/" element={<Landing />} />
@@ -85,6 +89,8 @@ export default function App() {
         <Route path="/password-reset" element={<PasswordReset />} />
         <Route path="/privacy" element={<PrivacyNotice />} />
         <Route path="/terms"   element={<Terms />} />
+        <Route path="/mfa/challenge" element={<MfaChallenge />} />
+        <Route path="/mfa/enroll"    element={<MfaEnroll />} />
 
         {/* Public customer order tracker — anonymous, RLS-allowed read */}
         <Route path="/restaurant/track/:orderId" element={<RestaurantTrack />} />

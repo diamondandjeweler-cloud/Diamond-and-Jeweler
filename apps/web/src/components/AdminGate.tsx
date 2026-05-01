@@ -1,31 +1,49 @@
+import { useEffect, useState } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { useSession } from '../state/useSession'
 import LoadingSpinner from './LoadingSpinner'
-import { isAdminVerificationFresh } from '../lib/adminReauth'
+import { supabase } from '../lib/supabase'
 
-/**
- * Restricts a route to users with `profile.role === 'admin'`.
- * Non-admins are redirected to /home. In addition to ProtectedRoute (which
- * checks for a session) and server-side RLS, this gate also requires that the
- * admin actively re-entered credentials within REAUTH_WINDOW_MS — a persisted
- * Supabase session alone is not enough.
- */
+type AalState = 'loading' | 'aal2' | 'need_challenge' | 'need_enroll'
+
 export default function AdminGate({ children }: { children: ReactNode }) {
   const { loading, profile } = useSession()
   const location = useLocation()
+  const [aal, setAal] = useState<AalState>('loading')
 
-  if (loading) return <LoadingSpinner full />
+  useEffect(() => {
+    if (loading || !profile || profile.role !== 'admin') return
+    let cancelled = false
+    async function checkAal() {
+      const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+      if (cancelled) return
+      if (!data) { setAal('need_challenge'); return }
+
+      if (data.currentLevel === 'aal2') {
+        setAal('aal2')
+        return
+      }
+
+      // AAL1 — check if a verified TOTP factor exists
+      const { data: factors } = await supabase.auth.mfa.listFactors()
+      if (cancelled) return
+      const hasVerifiedTotp = factors?.totp?.some(f => f.status === 'verified')
+      setAal(hasVerifiedTotp ? 'need_challenge' : 'need_enroll')
+    }
+    void checkAal()
+    return () => { cancelled = true }
+  }, [loading, profile])
+
+  if (loading || aal === 'loading') return <LoadingSpinner full />
   if (!profile) return <Navigate to="/login" replace />
   if (profile.role !== 'admin') return <Navigate to="/home" replace />
-  if (!isAdminVerificationFresh()) {
-    return (
-      <Navigate
-        to="/login?reauth=1"
-        state={{ from: location.pathname }}
-        replace
-      />
-    )
+
+  if (aal === 'need_enroll') {
+    return <Navigate to="/mfa/enroll" state={{ from: location.pathname }} replace />
+  }
+  if (aal === 'need_challenge') {
+    return <Navigate to="/mfa/challenge" state={{ from: location.pathname }} replace />
   }
 
   return <>{children}</>

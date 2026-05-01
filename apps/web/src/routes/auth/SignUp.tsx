@@ -25,8 +25,18 @@ export default function SignUp() {
   const [busy, setBusy] = useState(false)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
 
+  // Password policy: minimum 12 chars, must include uppercase, lowercase, digit, and symbol.
+  function passwordValid(pw: string): boolean {
+    return pw.length >= 12
+      && /[A-Z]/.test(pw)
+      && /[a-z]/.test(pw)
+      && /[0-9]/.test(pw)
+      && /[^A-Za-z0-9]/.test(pw)
+  }
+  const pwOk = passwordValid(password)
+
   const canSubmit =
-    email.length > 3 && password.length >= 10 && fullName.length > 1
+    email.length > 3 && pwOk && fullName.length > 1
     && consents.dob && consents.tos && !!captchaToken
 
   async function handleGoogleSignUp() {
@@ -202,11 +212,11 @@ export default function SignUp() {
           />
           <PasswordInput
             label={t('common.password')}
-            hint={t('auth.passwordHint')}
+            hint={!password || pwOk ? t('auth.passwordHint') : t('auth.passwordWeak')}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            minLength={10}
+            minLength={12}
             autoComplete="new-password"
           />
 

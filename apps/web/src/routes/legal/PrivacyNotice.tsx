@@ -270,7 +270,45 @@ export default function PrivacyNotice() {
         </p>
       </Section>
 
-      <Section title="11. Contact">
+      <Section title="11. Browser Storage (localStorage)">
+        <p>
+          This platform does <strong>not</strong> use advertising cookies or third-party tracking
+          cookies. We use browser <code>localStorage</code> for the following strictly necessary
+          purposes only:
+        </p>
+        <ul className="list-disc ml-6 space-y-1 mt-2">
+          <li>
+            <strong>Session token</strong> — keeps you signed in across page reloads. Managed by
+            Supabase Auth and cleared on sign-out.
+          </li>
+          <li>
+            <strong>Admin re-authentication timestamp</strong> — records the time you last confirmed
+            your password for admin access. Expires after 30 minutes.
+          </li>
+          <li>
+            <strong>Signup referral code</strong> — stored temporarily during the registration flow
+            and removed once account creation completes.
+          </li>
+          <li>
+            <strong>Selected account role</strong> — stored temporarily during signup and removed
+            after account creation.
+          </li>
+          <li>
+            <strong>Storage acknowledgement flag</strong> (<code>dnj_storage_ack</code>) — records
+            that you have seen this storage notice. No personal data.
+          </li>
+        </ul>
+        <p className="mt-2">
+          All items above are strictly necessary for the platform to function. They cannot be
+          disabled without breaking core features. Because they are not optional, no opt-in or
+          opt-out is offered for these items.
+        </p>
+        <p className="mt-2">
+          No cross-site tracking, behavioural advertising, or analytics cookies are set.
+        </p>
+      </Section>
+
+      <Section title="12. Contact">
         <p>
           DPO:{' '}
           <a href={`mailto:${copy.dpoEmail}`} className="underline">{copy.dpoEmail}</a>

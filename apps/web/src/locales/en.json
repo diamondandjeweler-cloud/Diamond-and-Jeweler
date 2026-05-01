@@ -56,7 +56,8 @@
     "byContinuing": "By continuing, you agree to our",
     "byContinuingTerms": "Terms",
     "byContinuingTail": "and consent to AI-powered compatibility analysis of your data.",
-    "passwordHint": "At least 8 characters.",
+    "passwordHint": "Min. 12 characters — include uppercase, lowercase, number and symbol.",
+    "passwordWeak": "Must be 12+ characters with uppercase, lowercase, number and symbol.",
     "consentsHeading": "Consents",
     "createAccount": "Create account",
     "createCompanyAccount": "Create company account",
@@ -209,6 +210,30 @@
     "submit": "Submit request",
     "history": "Your request history",
     "noRequests": "No previous requests."
+  },
+  "mfa": {
+    "enrollTitle": "Set up two-factor authentication",
+    "enrollSubtitle": "Admin accounts require TOTP two-factor authentication. Scan the QR code with an authenticator app (Google Authenticator, Authy, 1Password, etc.).",
+    "scanInstruction": "Open your authenticator app and scan the QR code below.",
+    "manualEntry": "Can't scan? Enter the key manually",
+    "nextVerify": "I've scanned it — enter code",
+    "verifyInstruction": "Enter the 6-digit code from your authenticator app to confirm setup.",
+    "challengeTitle": "Two-factor authentication",
+    "challengeSubtitle": "Enter the 6-digit code from your authenticator app to access the admin console.",
+    "codeLabel": "Authenticator code",
+    "verifyButton": "Verify"
+  },
+  "cookieBanner": {
+    "ariaLabel": "Local storage notice",
+    "title": "This site uses browser storage",
+    "body": "We store the following data in your browser's localStorage to make the platform work:",
+    "item1": "Session token — keeps you signed in (managed by Supabase Auth)",
+    "item2": "Admin re-authentication timestamp — 30-minute window after password confirmation",
+    "item3": "Signup referral code — saved temporarily until account creation completes",
+    "item4": "Selected account role — saved temporarily during the signup flow",
+    "learnMore": "No advertising or third-party tracking cookies are used. See our",
+    "privacyLink": "Privacy Notice",
+    "ok": "I understand"
   },
   "whatsapp": {
     "title": "WhatsApp updates",

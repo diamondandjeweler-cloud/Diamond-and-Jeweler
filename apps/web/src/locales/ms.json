@@ -56,7 +56,8 @@
     "byContinuing": "Dengan meneruskan, anda bersetuju dengan",
     "byContinuingTerms": "Terma",
     "byContinuingTail": "kami dan bersetuju dengan analisis keserasian AI ke atas data anda.",
-    "passwordHint": "Sekurang-kurangnya 8 aksara.",
+    "passwordHint": "Min. 12 aksara — termasuk huruf besar, huruf kecil, nombor dan simbol.",
+    "passwordWeak": "Mesti 12+ aksara dengan huruf besar, huruf kecil, nombor dan simbol.",
     "consentsHeading": "Persetujuan",
     "createAccount": "Cipta akaun",
     "createCompanyAccount": "Cipta akaun syarikat",
@@ -209,6 +210,30 @@
     "submit": "Hantar permintaan",
     "history": "Sejarah permintaan anda",
     "noRequests": "Tiada permintaan sebelum ini."
+  },
+  "mfa": {
+    "enrollTitle": "Sediakan pengesahan dua faktor",
+    "enrollSubtitle": "Akaun admin memerlukan pengesahan dua faktor TOTP. Imbas kod QR dengan aplikasi pengesah (Google Authenticator, Authy, 1Password, dll.).",
+    "scanInstruction": "Buka aplikasi pengesah anda dan imbas kod QR di bawah.",
+    "manualEntry": "Tidak boleh imbas? Masukkan kunci secara manual",
+    "nextVerify": "Saya telah imbas — masukkan kod",
+    "verifyInstruction": "Masukkan kod 6 digit dari aplikasi pengesah anda untuk mengesahkan persediaan.",
+    "challengeTitle": "Pengesahan dua faktor",
+    "challengeSubtitle": "Masukkan kod 6 digit dari aplikasi pengesah anda untuk akses ke konsol admin.",
+    "codeLabel": "Kod pengesah",
+    "verifyButton": "Sahkan"
+  },
+  "cookieBanner": {
+    "ariaLabel": "Notis storan pelayar",
+    "title": "Laman ini menggunakan storan pelayar",
+    "body": "Kami menyimpan data berikut dalam localStorage pelayar anda untuk membolehkan platform berfungsi:",
+    "item1": "Token sesi — mengekalkan anda log masuk (diuruskan oleh Supabase Auth)",
+    "item2": "Cap masa pengesahan semula admin — tetingkap 30 minit selepas pengesahan kata laluan",
+    "item3": "Kod rujukan pendaftaran — disimpan sementara sehingga penciptaan akaun selesai",
+    "item4": "Peranan akaun yang dipilih — disimpan sementara semasa aliran pendaftaran",
+    "learnMore": "Tiada kuki pengiklanan atau penjejakan pihak ketiga digunakan. Lihat",
+    "privacyLink": "Notis Privasi",
+    "ok": "Saya faham"
   },
   "whatsapp": {
     "title": "Kemas kini melalui WhatsApp",

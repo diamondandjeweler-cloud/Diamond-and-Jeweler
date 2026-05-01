@@ -7,12 +7,19 @@
  * invoke this directly — we must not let the browser trigger arbitrary emails.
  *
  * Supported types:
- *   - match_ready           — talent has new matches
- *   - hm_invited            — hiring manager invited by HR
- *   - candidate_invited     — talent was invited by HM for interview
- *   - interview_scheduled   — HR scheduled an interview slot
- *   - match_expiring        — match expires in 24h (sent by cron; M4)
- *   - company_verified      — admin approved a company
+ *   - match_ready                  — talent has new matches
+ *   - hm_invited                   — hiring manager invited by HR
+ *   - candidate_invited            — talent was invited by HM for interview
+ *   - interview_scheduled          — HR scheduled an interview slot
+ *   - match_expiring               — match expires in 24h (sent by cron; M4)
+ *   - match_no_action_48h          — nudge for idle match
+ *   - company_verified             — admin approved a company
+ *   - dsr_export_ready             — GDPR data export ready
+ *   - interview_round_scheduled    — new Jitsi round booked (multi-round)
+ *   - interview_cancelled          — match cancelled by either party
+ *   - offer_made_notify            — HM made an offer, notify talent
+ *   - offer_accepted               — talent accepted, notify HM
+ *   - offer_declined               — talent declined, notify HM
  */
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { Resend } from 'npm:resend@3.2.0'
@@ -20,9 +27,6 @@ import { handleOptions } from '../_shared/cors.ts'
 import { authenticate, json } from '../_shared/auth.ts'
 import { adminClient } from '../_shared/supabase.ts'
 
-// Lazy: constructing `new Resend(undefined)` throws at module-load time,
-// which would crash the function even for callers that don't send email.
-// Create it on demand, only when we actually have a key.
 let resendInstance: Resend | null = null
 function getResend(): Resend | null {
   const key = Deno.env.get('RESEND_API_KEY')
@@ -37,6 +41,8 @@ type NotifyType =
   | 'match_ready' | 'hm_invited' | 'candidate_invited'
   | 'interview_scheduled' | 'match_expiring' | 'match_no_action_48h'
   | 'company_verified' | 'dsr_export_ready'
+  | 'interview_round_scheduled' | 'interview_cancelled'
+  | 'offer_made_notify' | 'offer_accepted' | 'offer_declined'
 
 interface Payload {
   user_id: string
@@ -56,13 +62,34 @@ serve(async (req) => {
     return json({ error: 'Missing user_id or type' }, 400)
   }
 
+  // Marketing-category notifications require consents.market = true.
+  const MARKETING_TYPES: NotifyType[] = ['match_expiring', 'match_no_action_48h']
+  const isMarketing = (MARKETING_TYPES as string[]).includes(payload.type)
+
   const db = adminClient()
   const { data: target } = await db.from('profiles')
-    .select('email, full_name, whatsapp_number, whatsapp_opt_in, locale')
+    .select('email, full_name, whatsapp_number, whatsapp_opt_in, locale, consents, email_bounced')
     .eq('id', payload.user_id).maybeSingle()
   if (!target) return json({ error: 'Target user not found' }, 404)
 
+  if (isMarketing) {
+    const consents = (target.consents ?? {}) as Record<string, unknown>
+    if (!consents.market) return json({ ok: true, email: 'skipped_no_marketing_consent', whatsapp: 'skipped' })
+  }
+
+  if (target.email_bounced) {
+    return json({ ok: true, email: 'skipped_bounced', whatsapp: 'skipped' })
+  }
+
   const { subject, body, html } = compose(payload.type, target.full_name, payload.data ?? {}, target.locale)
+
+  // Append unsubscribe footer to HTML emails.
+  const unsubUrl = `${SITE}/data-requests?type=optout&uid=${encodeURIComponent(payload.user_id)}`
+  const htmlWithUnsub = `${html}
+<p style="margin-top:24px;font-size:11px;color:#9ca3af;">
+  You received this because you have an account on DNJ.
+  <a href="${unsubUrl}" style="color:#6b7280;">Unsubscribe from non-essential emails</a>.
+</p>`
 
   await db.from('notifications').insert({
     user_id: payload.user_id,
@@ -75,7 +102,7 @@ serve(async (req) => {
   const resend = getResend()
   if (target.email && resend) {
     try {
-      await resend.emails.send({ from: FROM, to: target.email, subject, text: body, html })
+      await resend.emails.send({ from: FROM, to: target.email, subject, text: body, html: htmlWithUnsub })
       emailStatus = 'sent'
       await db.from('notifications').insert({
         user_id: payload.user_id,
@@ -89,10 +116,9 @@ serve(async (req) => {
     }
   }
 
-  // WhatsApp via WATI (or Twilio) — opt-in, server-only key, no PII in logs.
   let whatsappStatus: 'sent' | 'skipped' | 'error' = 'skipped'
   const watiKey = Deno.env.get('WATI_API_KEY')
-  const watiUrl = Deno.env.get('WATI_API_URL') // e.g. https://live-server.wati.io/api/v1
+  const watiUrl = Deno.env.get('WATI_API_URL')
   if (target.whatsapp_opt_in && target.whatsapp_number && watiKey && watiUrl) {
     try {
       const phone = target.whatsapp_number.replace(/[^\d]/g, '')
@@ -128,6 +154,13 @@ function pickLocale(raw: string | null | undefined): Locale {
 const DATE_LOCALE: Record<Locale, string> = { en: 'en-MY', ms: 'ms-MY', zh: 'zh-Hans-MY' }
 const TZ_LABEL: Record<Locale, string> = { en: 'MYT', ms: 'Waktu Malaysia', zh: '马来西亚时间' }
 
+function fmtDate(raw: string | null | undefined, locale: Locale): string {
+  if (!raw) return locale === 'ms' ? 'Akan ditentukan' : locale === 'zh' ? '待定' : 'TBC'
+  return new Date(raw).toLocaleString(DATE_LOCALE[locale], {
+    timeZone: 'Asia/Kuala_Lumpur', dateStyle: 'long', timeStyle: 'short',
+  })
+}
+
 function compose(
   type: NotifyType,
   fullName: string,
@@ -137,6 +170,7 @@ function compose(
   const first = fullName.split(' ')[0]
   const safeFirst = escapeHtml(first)
   const locale = pickLocale(rawLocale)
+  const tz = TZ_LABEL[locale]
 
   switch (type) {
     case 'match_ready': {
@@ -176,12 +210,8 @@ function compose(
       }
     }
     case 'interview_scheduled': {
-      const raw = typeof data.scheduled_at === 'string' ? data.scheduled_at : null
-      const at = raw
-        ? new Date(raw).toLocaleString(DATE_LOCALE[locale], { timeZone: 'Asia/Kuala_Lumpur', dateStyle: 'long', timeStyle: 'short' })
-        : (locale === 'ms' ? 'Akan ditentukan' : locale === 'zh' ? '待定' : 'TBC')
+      const at = fmtDate(data.scheduled_at as string | undefined, locale)
       const safeAt = escapeHtml(at)
-      const tz = TZ_LABEL[locale]
       const T = {
         en: { subject: 'Your interview has been scheduled', greet: 'Hi', body: (a: string) => `Your interview is scheduled for ${a} (${tz}).`, html: (a: string) => `Your interview is scheduled for <strong>${a}</strong> (${tz}).`, detailsLabel: 'Details' },
         ms: { subject: 'Temu duga anda telah dijadualkan', greet: 'Hai', body: (a: string) => `Temu duga anda dijadualkan pada ${a} (${tz}).`, html: (a: string) => `Temu duga anda dijadualkan pada <strong>${a}</strong> (${tz}).`, detailsLabel: 'Butiran' },
@@ -191,6 +221,96 @@ function compose(
         subject: T.subject,
         body: `${T.greet} ${first},\n\n${T.body(at)}\n\n${T.detailsLabel}: ${SITE}/home\n\n– DNJ`,
         html: `<p>${T.greet} ${safeFirst},</p><p>${T.html(safeAt)}</p>`,
+      }
+    }
+    case 'interview_round_scheduled': {
+      const at = fmtDate(data.scheduled_at as string | undefined, locale)
+      const safeAt = escapeHtml(at)
+      const round = typeof data.round_number === 'number' ? data.round_number : 1
+      const url = typeof data.interview_url === 'string' ? data.interview_url : `${SITE}/home`
+      const safeUrl = escapeHtml(url)
+      const T = {
+        en: {
+          subject: `Interview Round ${round} scheduled`,
+          greet: 'Hi',
+          body: (a: string) => `Round ${round} of your interview is scheduled for ${a} (${tz}). Join via video call:`,
+          html: (a: string) => `Round <strong>${round}</strong> is scheduled for <strong>${a}</strong> (${tz}).<br>Join: <a href="${safeUrl}">${safeUrl}</a>`,
+        },
+        ms: {
+          subject: `Pusingan Temu Duga ${round} dijadualkan`,
+          greet: 'Hai',
+          body: (a: string) => `Pusingan ${round} temu duga anda dijadualkan pada ${a} (${tz}). Sertai melalui panggilan video:`,
+          html: (a: string) => `Pusingan <strong>${round}</strong> dijadualkan pada <strong>${a}</strong> (${tz}).<br>Sertai: <a href="${safeUrl}">${safeUrl}</a>`,
+        },
+        zh: {
+          subject: `第 ${round} 轮面试已安排`,
+          greet: '嗨',
+          body: (a: string) => `第 ${round} 轮面试时间为 ${a} (${tz})。请通过视频通话加入：`,
+          html: (a: string) => `第 <strong>${round}</strong> 轮面试时间为 <strong>${a}</strong> (${tz})。<br>加入: <a href="${safeUrl}">${safeUrl}</a>`,
+        },
+      }[locale]
+      return {
+        subject: T.subject,
+        body: `${T.greet} ${first},\n\n${T.body(at)}\n${url}\n\n– DNJ`,
+        html: `<p>${T.greet} ${safeFirst},</p><p>${T.html(safeAt)}</p>`,
+      }
+    }
+    case 'interview_cancelled': {
+      const T = {
+        en: { subject: 'Interview cancelled', greet: 'Hi', body: 'Unfortunately the interview process for this opportunity has been cancelled. You can continue exploring other matches on DNJ.', linkText: 'View matches' },
+        ms: { subject: 'Temu duga dibatalkan', greet: 'Hai', body: 'Malangnya, proses temu duga untuk peluang ini telah dibatalkan. Anda boleh terus meneroka padanan lain di DNJ.', linkText: 'Lihat padanan' },
+        zh: { subject: '面试已取消', greet: '嗨', body: '很遗憾，此机会的面试流程已取消。您可以继续在 DNJ 探索其他匹配。', linkText: '查看匹配' },
+      }[locale]
+      return {
+        subject: T.subject,
+        body: `${T.greet} ${first},\n\n${T.body}\n\n${SITE}/home\n\n– DNJ`,
+        html: `<p>${T.greet} ${safeFirst},</p><p>${T.body} <a href="${SITE}/home">${T.linkText}</a>.</p>`,
+      }
+    }
+    case 'offer_made_notify': {
+      const roleTitle = typeof data.role_title === 'string' ? data.role_title : 'a role'
+      const safeRole = escapeHtml(roleTitle)
+      const T = {
+        en: { subject: 'You have received a job offer!', greet: 'Hi', body: `Congratulations! A hiring manager has made you an offer for ${roleTitle}. Log in to review and respond.`, linkText: 'View offer' },
+        ms: { subject: 'Anda menerima tawaran kerja!', greet: 'Hai', body: `Tahniah! Seorang pengurus pengambilan telah membuat tawaran untuk ${roleTitle}. Log masuk untuk semak dan bertindak balas.`, linkText: 'Lihat tawaran' },
+        zh: { subject: '您收到了一份工作邀约！', greet: '嗨', body: `恭喜！有招聘经理向您提出了 ${roleTitle} 的录用邀约。请登入查看并回复。`, linkText: '查看邀约' },
+      }[locale]
+      return {
+        subject: T.subject,
+        body: `${T.greet} ${first},\n\n${T.body}\n\n${SITE}/home\n\n– DNJ`,
+        html: `<p>${T.greet} ${safeFirst},</p><p>${escapeHtml(T.body).replace(escapeHtml(roleTitle), `<strong>${safeRole}</strong>`)} <a href="${SITE}/home">${T.linkText}</a>.</p>`,
+      }
+    }
+    case 'offer_accepted': {
+      const talentName = typeof data.talent_name === 'string' ? data.talent_name : 'The candidate'
+      const roleTitle = typeof data.role_title === 'string' ? data.role_title : 'your role'
+      const safeT = escapeHtml(talentName)
+      const safeR = escapeHtml(roleTitle)
+      const T = {
+        en: { subject: 'Offer accepted!', greet: 'Hi', body: `${talentName} has accepted your offer for ${roleTitle}. Log in to view contact details and next steps.`, linkText: 'View details' },
+        ms: { subject: 'Tawaran diterima!', greet: 'Hai', body: `${talentName} telah menerima tawaran anda untuk ${roleTitle}. Log masuk untuk lihat maklumat hubungan dan langkah seterusnya.`, linkText: 'Lihat butiran' },
+        zh: { subject: '邀约已接受！', greet: '嗨', body: `${talentName} 已接受您对 ${roleTitle} 的邀约。请登入查看联系方式及后续步骤。`, linkText: '查看详情' },
+      }[locale]
+      return {
+        subject: T.subject,
+        body: `${T.greet} ${first},\n\n${T.body}\n\n${SITE}/hr\n\n– DNJ`,
+        html: `<p>${T.greet} ${safeFirst},</p><p><strong>${safeT}</strong> has accepted your offer for <strong>${safeR}</strong>. <a href="${SITE}/hr">${T.linkText}</a>.</p>`,
+      }
+    }
+    case 'offer_declined': {
+      const talentName = typeof data.talent_name === 'string' ? data.talent_name : 'The candidate'
+      const roleTitle = typeof data.role_title === 'string' ? data.role_title : 'your role'
+      const safeT = escapeHtml(talentName)
+      const safeR = escapeHtml(roleTitle)
+      const T = {
+        en: { subject: 'Offer declined', greet: 'Hi', body: `${talentName} has declined your offer for ${roleTitle}. You may continue reviewing other matches.`, linkText: 'View matches' },
+        ms: { subject: 'Tawaran ditolak', greet: 'Hai', body: `${talentName} telah menolak tawaran anda untuk ${roleTitle}. Anda boleh terus menyemak padanan lain.`, linkText: 'Lihat padanan' },
+        zh: { subject: '邀约已拒绝', greet: '嗨', body: `${talentName} 已拒绝您对 ${roleTitle} 的邀约。您可以继续查看其他匹配。`, linkText: '查看匹配' },
+      }[locale]
+      return {
+        subject: T.subject,
+        body: `${T.greet} ${first},\n\n${T.body}\n\n${SITE}/hr\n\n– DNJ`,
+        html: `<p>${T.greet} ${safeFirst},</p><p><strong>${safeT}</strong> has declined your offer for <strong>${safeR}</strong>. <a href="${SITE}/hr">${T.linkText}</a>.</p>`,
       }
     }
     case 'match_expiring': {

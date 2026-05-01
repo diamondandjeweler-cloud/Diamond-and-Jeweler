@@ -63,17 +63,17 @@ serve(async (req) => {
 
     // Remove talent PII + files.
     const { data: talent } = await db.from('talents')
-      .select('id, ic_path, resume_path').eq('profile_id', d.user_id).maybeSingle()
+      .select('id, ic_path, resume_path, photo_path').eq('profile_id', d.user_id).maybeSingle()
     if (talent) {
-      const toRemove: string[] = []
-      if (talent.ic_path) toRemove.push(talent.ic_path)
-      if (toRemove.length) await db.storage.from('ic-documents').remove(toRemove).catch(() => {})
+      if (talent.ic_path) await db.storage.from('ic-documents').remove([talent.ic_path]).catch(() => {})
       if (talent.resume_path) await db.storage.from('resumes').remove([talent.resume_path]).catch(() => {})
+      if (talent.photo_path) await db.storage.from('talent-photos').remove([talent.photo_path]).catch(() => {})
 
       await db.from('talents').update({
         date_of_birth_encrypted: null,
         ic_path: null,
         resume_path: null,
+        photo_path: null,
         parsed_resume: null,
         interview_answers: null,
         preference_ratings: null,
@@ -82,12 +82,26 @@ serve(async (req) => {
       }).eq('id', talent.id)
     }
 
-    // Remove HM PII.
-    await db.from('hiring_managers').update({
-      date_of_birth_encrypted: null,
-      leadership_answers: null,
-      leadership_tags: null,
-    }).eq('profile_id', d.user_id)
+    // Remove HM/company PII + business license files.
+    const { data: hm } = await db.from('hiring_managers')
+      .select('id, date_of_birth_encrypted, leadership_answers, leadership_tags').eq('profile_id', d.user_id).maybeSingle()
+    if (hm) {
+      await db.from('hiring_managers').update({
+        date_of_birth_encrypted: null,
+        leadership_answers: null,
+        leadership_tags: null,
+      }).eq('profile_id', d.user_id)
+    }
+
+    // Purge business license files for companies owned by this user.
+    const { data: companies } = await db.from('companies')
+      .select('id, business_license_path').eq('owner_id', d.user_id)
+    for (const co of companies ?? []) {
+      if (co.business_license_path) {
+        await db.storage.from('business-licenses').remove([co.business_license_path]).catch(() => {})
+        await db.from('companies').update({ business_license_path: null }).eq('id', co.id)
+      }
+    }
 
     // Soft-ban the profile. Full row deletion would cascade to company/HM roles
     // which breaks audit trails; banning + PII-nulling is the PDPA-compliant middle path.

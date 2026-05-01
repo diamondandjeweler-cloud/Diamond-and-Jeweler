@@ -23,6 +23,7 @@ const MfaEnroll        = lazy(() => import('./routes/auth/MfaEnroll'))
 const TalentOnboarding = lazy(() => import('./routes/onboarding/TalentOnboarding'))
 const HMOnboarding     = lazy(() => import('./routes/onboarding/HMOnboarding'))
 const CompanyRegister  = lazy(() => import('./routes/onboarding/CompanyRegister'))
+const CompanyVerify    = lazy(() => import('./routes/onboarding/CompanyVerify'))
 
 const TalentDashboard  = lazy(() => import('./routes/dashboard/TalentDashboard'))
 const HMDashboard      = lazy(() => import('./routes/dashboard/HMDashboard'))
@@ -82,6 +83,7 @@ export default function App() {
         <Route path="/start/:side" element={<Start />} />
         <Route path="/waitlist/confirm" element={<WaitlistConfirm />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/onboarding/company/verify" element={<CompanyVerify />} />
         <Route path="/payment/return" element={<PaymentReturn />} />
         <Route path="/payment/mock"   element={<PaymentReturn />} />
         <Route path="/signup" element={session && profile ? <Navigate to="/home" replace /> : <SignUp />} />

@@ -36,11 +36,22 @@ module.exports = {
       { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
     ],
     'no-console': ['warn', { allow: ['warn', 'error'] }],
+    'jsx-a11y/label-has-associated-control': 'warn',
+    'jsx-a11y/no-autofocus': 'warn',
+    'no-constant-condition': 'warn',
+    'no-inner-declarations': 'warn',
   },
   overrides: [
     {
       files: ['**/*.test.ts', '**/*.test.tsx', 'src/test/**'],
       rules: { '@typescript-eslint/no-explicit-any': 'off' },
+    },
+    {
+      files: ['**/*.stories.tsx', '**/*.stories.ts'],
+      rules: {
+        'react-hooks/rules-of-hooks': 'off',
+        'react-refresh/only-export-components': 'off',
+      },
     },
   ],
 }

@@ -191,49 +191,71 @@ serve(async (req) => {
   const groqKey = Deno.env.get('GROQ_API_KEY')
 
   if (anthropicKey) {
-    const upstream = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': anthropicKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 512,
-        stream: true,
-        system: systemPrompt,
-        messages,
-      }),
-    })
-    if (upstream.ok) {
-      return new Response(upstream.body, {
-        headers: { ...corsHeaders, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' },
+    const ac = new AbortController()
+    const t = setTimeout(() => ac.abort(), 28_000)
+    try {
+      const upstream = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': anthropicKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 512,
+          stream: true,
+          system: systemPrompt,
+          messages,
+        }),
+        signal: ac.signal,
       })
+      clearTimeout(t)
+      if (upstream.ok) {
+        return new Response(upstream.body, {
+          headers: { ...corsHeaders, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' },
+        })
+      }
+      console.error('Anthropic error:', upstream.status)
+    } catch (e) {
+      clearTimeout(t)
+      console.error('Anthropic fetch failed/timed out:', e)
+      // Fall through to Groq.
     }
-    console.error('Anthropic error:', upstream.status)
   }
 
   if (groqKey) {
-    // Groq uses OpenAI-compatible format. Prepend system as first message.
     const groqMessages = [
       { role: 'system', content: systemPrompt },
       ...messages,
     ]
-    const upstream = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${groqKey}`,
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        max_tokens: 512,
-        stream: true,
-        messages: groqMessages,
-      }),
-    })
-    if (upstream.ok) {
+    const ac2 = new AbortController()
+    const t2 = setTimeout(() => ac2.abort(), 28_000)
+    let upstream: Response
+    try {
+      upstream = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${groqKey}`,
+        },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          max_tokens: 512,
+          stream: true,
+          messages: groqMessages,
+        }),
+        signal: ac2.signal,
+      })
+      clearTimeout(t2)
+    } catch (e) {
+      clearTimeout(t2)
+      console.error('Groq fetch failed/timed out:', e)
+      return new Response(JSON.stringify({ error: 'AI provider timed out. Please try again.' }), {
+        status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    if (upstream_.ok) {
       // Groq streams OpenAI SSE format — transform to match what the client expects.
       // Client already parses OpenAI format (content_block_delta) but Groq uses
       // choices[0].delta.content, so we rewrite the stream.
@@ -243,7 +265,7 @@ serve(async (req) => {
       const decoder = new TextDecoder();
 
       (async () => {
-        const reader = upstream.body!.getReader()
+        const reader = upstream_.body!.getReader()
         let buffer = ''
         try {
           while (true) {
@@ -279,7 +301,7 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' },
       })
     }
-    console.error('Groq error:', upstream.status)
+    console.error('Groq error:', upstream_.status)
   }
 
   return new Response(JSON.stringify({ error: 'No AI provider configured. Set ANTHROPIC_API_KEY or GROQ_API_KEY.' }), {

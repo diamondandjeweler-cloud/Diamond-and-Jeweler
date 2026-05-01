@@ -203,9 +203,18 @@ export default function TalentOnboarding() {
       let buffer = ''
       let accumulated = ''
 
+      // Stall detector: if no chunk arrives within 20s, abort and surface a retry message.
+      let stallTimer: ReturnType<typeof setTimeout> | undefined
+      const resetStall = () => {
+        clearTimeout(stallTimer)
+        stallTimer = setTimeout(() => { reader.cancel().catch(() => {}) }, 20_000)
+      }
+      resetStall()
+
       outer: while (true) {
         const { done, value } = await reader.read()
         if (done) break
+        resetStall()
         buffer += decoder.decode(value, { stream: true })
         const lines = buffer.split('\n')
         buffer = lines.pop() ?? ''
@@ -227,6 +236,7 @@ export default function TalentOnboarding() {
           } catch { /* skip malformed SSE lines */ }
         }
       }
+      clearTimeout(stallTimer)
 
       const finalMsgs: ApiMessage[] = [...newApiMsgs, { role: 'assistant', content: accumulated }]
       setApiMessages(finalMsgs)

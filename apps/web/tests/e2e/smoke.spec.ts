@@ -13,7 +13,8 @@ test.describe('landing + waitlist + signup smoke', () => {
   test('signup form blocks submit until required consents are checked', async ({ page }) => {
     await page.goto('/signup')
     await page.getByRole('textbox', { name: /full name/i }).fill('Test User')
-    await page.getByRole('textbox', { name: /^email$/i }).fill('playwright-smoke@example.com')
+    // Required fields render label as "Email*" (asterisk attached), so don't anchor.
+    await page.getByRole('textbox', { name: /email/i }).fill('playwright-smoke@example.com')
     await page.getByLabel(/password/i).fill('Hunter2hunter9')
 
     const createBtn = page.getByRole('button', { name: /create account/i })

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
@@ -19,7 +19,20 @@ interface MatchRow {
   roles: { id: string; title: string; description: string | null; salary_min: number | null; salary_max: number | null; location: string | null; work_arrangement: string | null; employment_type?: string; hourly_rate?: number | null; duration_days?: number | null } | null
 }
 
-const ACTIVE = ['generated', 'viewed', 'accepted_by_talent', 'invited_by_manager', 'hr_scheduling', 'interview_scheduled', 'interview_completed']
+interface InterviewRound {
+  id: string
+  round_number: number
+  scheduled_at: string
+  interview_url: string
+  status: 'scheduled' | 'completed' | 'cancelled' | 'no_show'
+}
+
+const ACTIVE = [
+  'generated', 'viewed', 'accepted_by_talent',
+  'invited_by_manager', 'hr_scheduling',
+  'interview_scheduled', 'interview_completed',
+  'offer_made',
+]
 
 const TALENT_OUTCOMES = [
   { value: '', label: 'Select outcome (optional)' },
@@ -43,6 +56,26 @@ export default function TalentDashboard() {
   const [reviving, setReviving] = useState(false)
   const [talentReputation, setTalentReputation] = useState<{ reputation_score: number | null; feedback_volume: number; phs_show_rate: number | null; phs_accept_rate: number | null } | null>(null)
   const [talentFeedbackState, setTalentFeedbackState] = useState<Record<string, { rating: number; outcome: string; freeText: string; saving: boolean; saved: boolean; pointsAwarded?: number }>>({})
+
+  // Interview flow state
+  const [roundsByMatch, setRoundsByMatch] = useState<Record<string, InterviewRound[]>>({})
+  const [actionBusy, setActionBusy] = useState<string | null>(null)
+
+  const loadRounds = useCallback(async (matchIds: string[]) => {
+    if (matchIds.length === 0) return
+    const { data } = await supabase
+      .from('interview_rounds')
+      .select('id, match_id, round_number, scheduled_at, interview_url, status')
+      .in('match_id', matchIds)
+      .order('round_number', { ascending: true })
+    if (!data) return
+    const grouped: Record<string, InterviewRound[]> = {}
+    for (const r of data) {
+      if (!grouped[r.match_id]) grouped[r.match_id] = []
+      grouped[r.match_id].push(r as InterviewRound)
+    }
+    setRoundsByMatch((prev) => ({ ...prev, ...grouped }))
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -71,7 +104,14 @@ export default function TalentDashboard() {
           .order('created_at', { ascending: false })
         if (cancelled) return
         if (error) setErr(error.message)
-        else setMatches((data ?? []) as unknown as MatchRow[])
+        else {
+          const rows = (data ?? []) as unknown as MatchRow[]
+          setMatches(rows)
+          const interviewMatchIds = rows
+            .filter((r) => ['invited_by_manager', 'interview_scheduled', 'interview_completed', 'offer_made'].includes(r.status))
+            .map((r) => r.id)
+          await loadRounds(interviewMatchIds)
+        }
       } catch (e) {
         if (!cancelled) setErr(e instanceof Error ? e.message : 'Failed to load offers')
       } finally {
@@ -94,10 +134,17 @@ export default function TalentDashboard() {
           return xs
         })
       })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'interview_rounds' }, (payload) => {
+        const round = payload.new as InterviewRound & { match_id: string }
+        setRoundsByMatch((prev) => {
+          const existing = prev[round.match_id] ?? []
+          return { ...prev, [round.match_id]: [...existing, round] }
+        })
+      })
       .subscribe()
 
     return () => { cancelled = true; void supabase.removeChannel(channel) }
-  }, [session])
+  }, [session, loadRounds])
 
   async function reviveProfile() {
     if (!session) return
@@ -125,6 +172,24 @@ export default function TalentDashboard() {
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Failed to start payment')
     } finally { setUnlocking(false) }
+  }
+
+  async function doAction(matchId: string, action: string) {
+    setErr(null)
+    setActionBusy(`${matchId}:${action}`)
+    try {
+      await callFunction('interview-action', { action, match_id: matchId })
+      const { data: updated } = await supabase
+        .from('matches')
+        .select('id, compatibility_score, status, expires_at, public_reasoning, application_summary, roles(id, title, description, salary_min, salary_max, location, work_arrangement, employment_type, hourly_rate, duration_days)')
+        .eq('id', matchId)
+        .maybeSingle()
+      if (updated) setMatches((ms) => ms.map((m) => (m.id === matchId ? (updated as unknown as MatchRow) : m)))
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : `Action failed: ${action}`)
+    } finally {
+      setActionBusy(null)
+    }
   }
 
   async function submitTalentFeedback(matchId: string) {
@@ -206,7 +271,14 @@ export default function TalentDashboard() {
       ) : (
         <div className="grid md:grid-cols-2 gap-4">
           {matches.map((m) => (
-            <OfferCard key={m.id} m={m} respond={respond}
+            <OfferCard
+              key={m.id}
+              m={m}
+              rounds={roundsByMatch[m.id] ?? []}
+              actionBusy={actionBusy}
+              respond={respond}
+              onAcceptOffer={() => void doAction(m.id, 'accept_offer')}
+              onDeclineOffer={() => void doAction(m.id, 'decline_offer')}
               feedbackEntry={talentFeedbackState[m.id] ?? { rating: 0, outcome: '', freeText: '', saving: false, saved: false }}
               onFeedbackChange={(patch) => setTalentFeedbackState((s) => ({ ...s, [m.id]: { ...(s[m.id] ?? { rating: 0, outcome: '', freeText: '', saving: false, saved: false }), ...patch } }))}
               onFeedbackSubmit={() => void submitTalentFeedback(m.id)}
@@ -215,13 +287,6 @@ export default function TalentDashboard() {
         </div>
       )}
 
-      {/*
-        Pay-per-extra-match CTA — hidden during pilot (2026-04-24).
-        Back-end (`unlock-extra-match` Edge Function, `extra_match_purchases`
-        table, `is_extra_match` flag on matches) is all deployed; just the UI
-        is dormant until ToyyibPay is configured and we decide on pricing.
-        To re-enable, uncomment this block.
-      */}
       {false && matches.length >= 3 && extraUsed < 3 && (
         <Card className="mt-8 border-dashed border-accent-500">
           <div className="p-6 text-center">
@@ -239,14 +304,28 @@ export default function TalentDashboard() {
   )
 }
 
-function OfferCard({ m, respond, feedbackEntry, onFeedbackChange, onFeedbackSubmit }: {
+function OfferCard({
+  m, rounds, actionBusy,
+  respond, onAcceptOffer, onDeclineOffer,
+  feedbackEntry, onFeedbackChange, onFeedbackSubmit,
+}: {
   m: MatchRow
+  rounds: InterviewRound[]
+  actionBusy: string | null
   respond: (id: string, next: 'accepted_by_talent' | 'declined_by_talent') => void
+  onAcceptOffer: () => void
+  onDeclineOffer: () => void
   feedbackEntry: { rating: number; outcome: string; freeText: string; saving: boolean; saved: boolean; pointsAwarded?: number }
   onFeedbackChange: (patch: Partial<{ rating: number; outcome: string; freeText: string }>) => void
   onFeedbackSubmit: () => void
 }) {
   const pct = Math.round(m.compatibility_score ?? 0)
+  const busy = (suffix: string) => actionBusy === `${m.id}:${suffix}`
+
+  // Upcoming rounds (for "join" links) — scheduled, not yet passed
+  const upcomingRounds = rounds.filter((r) => r.status === 'scheduled')
+  const pastRounds = rounds.filter((r) => r.status !== 'scheduled')
+
   return (
     <Card hoverable className="animate-slide-up">
       <div className="p-6">
@@ -291,14 +370,79 @@ function OfferCard({ m, respond, feedbackEntry, onFeedbackChange, onFeedbackSubm
 
         <MatchExplain reasoning={m.public_reasoning} />
 
+        {/* Interview rounds panel — visible once scheduling begins */}
+        {rounds.length > 0 && (
+          <div className="mt-4 border border-ink-100 rounded-lg overflow-hidden">
+            <div className="bg-ink-50 px-3 py-2 text-xs font-semibold text-ink-600 uppercase tracking-wide">
+              Your interviews
+            </div>
+            {rounds.map((r) => (
+              <div key={r.id} className="flex items-center justify-between px-3 py-2 border-t border-ink-100 first:border-t-0">
+                <div>
+                  <span className="text-xs font-medium text-ink-900">Round {r.round_number}</span>
+                  <span className="text-xs text-ink-400 ml-2">
+                    {new Date(r.scheduled_at).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur', dateStyle: 'medium', timeStyle: 'short' })} MYT
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RoundBadge status={r.status} />
+                  {r.status === 'scheduled' && (
+                    <a
+                      href={r.interview_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs px-2.5 py-1 rounded-md bg-brand-600 text-white hover:bg-brand-700 font-medium whitespace-nowrap"
+                    >
+                      Join video call
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Offer panel */}
+        {m.status === 'offer_made' && (
+          <div className="mt-4 border border-emerald-200 rounded-lg p-4 bg-emerald-50">
+            <p className="text-sm font-semibold text-emerald-900 mb-1">You have received a job offer!</p>
+            <p className="text-xs text-emerald-700 mb-3">
+              Congratulations — the hiring manager wants to hire you for <strong>{m.roles?.title}</strong>.
+              Accept to move forward, or decline if it's not the right fit.
+            </p>
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                size="sm"
+                loading={busy('accept_offer')}
+                disabled={actionBusy !== null}
+                onClick={onAcceptOffer}
+              >
+                Accept offer
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                loading={busy('decline_offer')}
+                disabled={actionBusy !== null}
+                onClick={onDeclineOffer}
+              >
+                Decline
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div className="mt-5 space-y-3">
+          {/* Stage 1: new offers — accept/decline */}
           {['generated', 'viewed'].includes(m.status) && (
             <div className="flex gap-2 flex-wrap">
               <Button onClick={() => respond(m.id, 'accepted_by_talent')} size="sm">Accept</Button>
               <Button onClick={() => respond(m.id, 'declined_by_talent')} size="sm" variant="secondary">Decline</Button>
             </div>
           )}
-          {m.status === 'interview_completed' && (
+
+          {/* Feedback widget */}
+          {['interview_completed', 'offer_made', 'hired'].includes(m.status) && (
             <div className="border border-ink-200 rounded-lg p-3 space-y-2 bg-ink-50">
               <p className="text-xs font-semibold text-ink-700 uppercase tracking-wide">Rate this opportunity</p>
               <div className="flex items-center gap-1">
@@ -355,6 +499,17 @@ function OfferCard({ m, respond, feedbackEntry, onFeedbackChange, onFeedbackSubm
   )
 }
 
+function RoundBadge({ status }: { status: InterviewRound['status'] }) {
+  const m = {
+    scheduled: { label: 'Upcoming', tone: 'brand' as const },
+    completed: { label: 'Done',     tone: 'green' as const },
+    cancelled: { label: 'Cancelled', tone: 'gray' as const },
+    no_show:   { label: 'No-show',  tone: 'amber' as const },
+  }
+  const { label, tone } = m[status] ?? { label: status, tone: 'gray' as const }
+  return <Badge tone={tone}>{label}</Badge>
+}
+
 function CompatibilityRing({ pct }: { pct: number }) {
   const radius = 20
   const circ = 2 * Math.PI * radius
@@ -382,14 +537,18 @@ function CompatibilityRing({ pct }: { pct: number }) {
 }
 
 function StatusPill({ status }: { status: string }) {
-  const m: Record<string, { label: string; tone: 'gray' | 'brand' | 'green' | 'amber' }> = {
-    generated:            { label: 'New match',          tone: 'brand' },
-    viewed:               { label: 'Viewed',             tone: 'gray' },
-    accepted_by_talent:   { label: 'You accepted',       tone: 'green' },
-    invited_by_manager:   { label: 'Hiring manager invited you', tone: 'brand' },
-    hr_scheduling:        { label: 'HR scheduling',      tone: 'amber' },
-    interview_scheduled:  { label: 'Interview scheduled', tone: 'green' },
-    interview_completed:  { label: 'Interview complete', tone: 'brand' },
+  const m: Record<string, { label: string; tone: 'gray' | 'brand' | 'green' | 'amber' | 'red' }> = {
+    generated:            { label: 'New match',              tone: 'brand' },
+    viewed:               { label: 'Viewed',                 tone: 'gray' },
+    accepted_by_talent:   { label: 'You accepted',           tone: 'green' },
+    invited_by_manager:   { label: 'Hiring manager invited', tone: 'brand' },
+    hr_scheduling:        { label: 'HR scheduling',          tone: 'amber' },
+    interview_scheduled:  { label: 'Interview scheduled',    tone: 'green' },
+    interview_completed:  { label: 'Interview complete',     tone: 'brand' },
+    offer_made:           { label: 'Offer received!',        tone: 'green' },
+    hired:                { label: 'Hired',                  tone: 'green' },
+    cancelled:            { label: 'Cancelled',              tone: 'gray' },
+    no_show:              { label: 'No-show',                tone: 'red' },
   }
   const entry = m[status] ?? { label: status.replace(/_/g, ' '), tone: 'gray' as const }
   return <Badge tone={entry.tone}>{entry.label}</Badge>

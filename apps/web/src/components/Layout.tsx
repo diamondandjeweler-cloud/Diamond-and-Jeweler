@@ -100,7 +100,7 @@ export default function Layout() {
         </div>
 
         {navItems.length > 0 && (
-          <nav className="md:hidden border-t border-ink-100 overflow-x-auto bg-white/80 backdrop-blur" aria-label="Primary mobile">
+          <nav className="md:hidden border-t border-ink-100 overflow-x-auto bg-white/80 backdrop-blur" aria-label="Primary mobile" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
             <div className="flex gap-1 px-4 py-2 whitespace-nowrap">
               {navItems.map((n) => (
                 <Link

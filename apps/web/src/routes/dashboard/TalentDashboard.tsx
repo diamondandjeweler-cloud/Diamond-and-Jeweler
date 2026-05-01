@@ -122,7 +122,7 @@ export default function TalentDashboard() {
 
     const channel = supabase
       .channel(`talent-matches-${session?.user.id ?? 'anon'}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, (payload) => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches', filter: talentId ? `talent_id=eq.${talentId}` : undefined }, (payload) => {
         if (!talentId) return
         const next = payload.new as MatchRow & { talent_id?: string } | null
         const prev = payload.old as MatchRow & { talent_id?: string } | null

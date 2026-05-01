@@ -122,8 +122,8 @@ export default function AuthCallback() {
             type="password"
             value={newPw}
             onChange={(e) => setNewPw(e.target.value)}
-            placeholder="New password (min. 8 chars)"
-            minLength={8}
+            placeholder="New password (min. 12 chars)"
+            minLength={12}
             required
             className="w-full border rounded px-3 py-2"
             autoComplete="new-password"
@@ -131,7 +131,7 @@ export default function AuthCallback() {
           {err && <p className="text-sm text-red-600">{err}</p>}
           <button
             type="submit"
-            disabled={busy || newPw.length < 8}
+            disabled={busy || newPw.length < 12}
             className="w-full bg-brand-600 text-white py-2 rounded hover:bg-brand-700 disabled:bg-gray-300"
           >
             {busy ? 'Updating…' : 'Update password'}

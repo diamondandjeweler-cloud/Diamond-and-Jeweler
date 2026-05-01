@@ -70,6 +70,7 @@ export default function ColdStartPanel() {
       .from('talents')
       .select('id, profile_id, derived_tags, expected_salary_min, expected_salary_max')
       .eq('is_open_to_offers', true)
+      .limit(500)
     const pool = (data ?? []).filter((t) => !excluded.has(t.id)) as EligibleTalent[]
     setTalents(pool)
   }

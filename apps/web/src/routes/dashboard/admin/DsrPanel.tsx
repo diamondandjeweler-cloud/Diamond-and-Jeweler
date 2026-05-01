@@ -31,7 +31,7 @@ export default function DsrPanel() {
       .select('id, user_id, request_type, status, notes, correction_proposal, created_at, resolved_at, profiles(email, full_name)')
       .order('created_at', { ascending: false })
     if (filter === 'pending') q = q.in('status', ['pending', 'in_review'])
-    const { data, error } = await q
+    const { data, error } = await q.limit(100)
     if (error) setErr(error.message)
     else setRows((data ?? []) as unknown as DsrRow[])
     setLoading(false)

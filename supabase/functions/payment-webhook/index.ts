@@ -18,7 +18,7 @@
  * Idempotency: a replayed webhook for an already-paid purchase is a no-op.
  */
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
-import { corsHeaders, handleOptions } from '../_shared/cors.ts'
+import { webhookCorsHeaders as corsHeaders, handleWebhookOptions as handleOptions } from '../_shared/cors.ts'
 import { adminClient } from '../_shared/supabase.ts'
 
 serve(async (req) => {
@@ -42,15 +42,17 @@ serve(async (req) => {
     return new Response('Bad request', { status: 400, headers: corsHeaders })
   }
 
-  // Verify Billplz X-Signature (skip in mock/dev mode when API key is absent).
+  // Verify Billplz X-Signature — fail closed if key is not configured.
   const apiKey = Deno.env.get('BILLPLZ_API_KEY')
-  if (apiKey) {
-    const sig = params['x_signature'] ?? ''
-    const verified = await verifyBillplzSignature(params, sig, apiKey)
-    if (!verified) {
-      console.error('Invalid Billplz X-Signature')
-      return new Response('Invalid signature', { status: 401, headers: corsHeaders })
-    }
+  if (!apiKey) {
+    console.error('BILLPLZ_API_KEY is not set — rejecting webhook to prevent payment fraud')
+    return new Response('Service misconfigured', { status: 500, headers: corsHeaders })
+  }
+  const sig = params['x_signature'] ?? ''
+  const verified = await verifyBillplzSignature(params, sig, apiKey)
+  if (!verified) {
+    console.error('Invalid Billplz X-Signature')
+    return new Response('Invalid signature', { status: 401, headers: corsHeaders })
   }
 
   const billId = params['id'] ?? ''

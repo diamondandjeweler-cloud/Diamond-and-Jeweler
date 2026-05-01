@@ -69,7 +69,7 @@ export default function ChatShell({
   }
 
   return (
-    <div className="max-w-2xl mx-auto flex flex-col h-[calc(100vh-8rem)] md:h-[calc(100vh-10rem)]">
+    <div className="max-w-2xl mx-auto flex flex-col h-[calc(100dvh-8rem)] md:h-[calc(100dvh-10rem)]">
       {(headline || progressPct !== undefined) && (
         <div className="mb-4">
           {headline && <div className="text-xs text-ink-500 uppercase tracking-wider font-medium mb-2">{headline}</div>}

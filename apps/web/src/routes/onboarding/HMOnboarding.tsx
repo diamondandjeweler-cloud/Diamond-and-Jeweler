@@ -39,6 +39,7 @@ export default function HMOnboarding() {
   const [apiMessages, setApiMessages] = useState<ApiMessage[]>([])
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
+  const chatInputRef = useRef<HTMLTextAreaElement>(null)
   const [dob, setDob] = useState('')
   const [gender, setGender] = useState<Gender | ''>('')
   const [dobConsent, setDobConsent] = useState(false)
@@ -46,6 +47,13 @@ export default function HMOnboarding() {
   const [mustHaveInput, setMustHaveInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+
+  // Refocus chat input after each streaming response completes
+  useEffect(() => {
+    if (!isStreaming && phase === 'chat') {
+      chatInputRef.current?.focus()
+    }
+  }, [isStreaming, phase])
 
   const idRef = useRef(0)
   const nextId = () => `m${++idRef.current}`
@@ -336,6 +344,7 @@ export default function HMOnboarding() {
           className="flex items-end gap-2"
         >
           <textarea
+            ref={chatInputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {

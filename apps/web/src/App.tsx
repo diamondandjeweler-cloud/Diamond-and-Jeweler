@@ -7,8 +7,6 @@ import ProtectedRoute from './components/ProtectedRoute'
 import OnboardingGate from './components/OnboardingGate'
 import AdminGate from './components/AdminGate'
 import ConsentGate from './components/ConsentGate'
-import CookieBanner from './components/CookieBanner'
-
 import Landing from './routes/Landing'
 import SignUp from './routes/auth/SignUp'
 import Login from './routes/auth/Login'
@@ -76,7 +74,6 @@ export default function App() {
 
   return (
     <Suspense fallback={<LoadingSpinner full />}>
-      <CookieBanner />
       <Routes>
         {/* Public */}
         <Route path="/" element={<Landing />} />

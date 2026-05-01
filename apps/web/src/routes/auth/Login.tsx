@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import CookieBanner from '../../components/CookieBanner'
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase, siteUrl } from '../../lib/supabase'
@@ -66,6 +67,8 @@ export default function Login() {
   }
 
   return (
+    <>
+    <CookieBanner />
     <AuthShell
       variant={isHiring ? 'hiring' : 'talent'}
       title={isReauth ? t('auth.reauthTitle') : t('auth.welcomeBack')}
@@ -114,6 +117,7 @@ export default function Login() {
         </form>
       </div>
     </AuthShell>
+    </>
   )
 }
 

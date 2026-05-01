@@ -208,7 +208,7 @@ serve(async (req) => {
   // Candidate pool: open, non-expired talents.
   const now = new Date().toISOString()
   const { data: talents } = await db.from('talents')
-    .select('id, profile_id, derived_tags, privacy_mode, whitelist_companies, date_of_birth_encrypted, life_chart_character, location_matters, location_postcode, open_to_new_field, parsed_resume, deal_breakers, expected_salary_min, expected_salary_max, employment_type_preferences, feedback_score, phs_show_rate, phs_accept_rate, phs_pass_probation_rate, phs_stay_6m_rate, profiles!inner(ghost_score, is_banned)')
+    .select('id, profile_id, derived_tags, privacy_mode, whitelist_companies, date_of_birth_encrypted, life_chart_character, uses_lunar_calendar, location_matters, location_postcode, open_to_new_field, parsed_resume, deal_breakers, expected_salary_min, expected_salary_max, employment_type_preferences, feedback_score, phs_show_rate, phs_accept_rate, phs_pass_probation_rate, phs_stay_6m_rate, profiles!inner(ghost_score, is_banned)')
     .eq('is_open_to_offers', true)
     .eq('profiles.is_banned', false)
     .or(`profile_expires_at.is.null,profile_expires_at.gte.${now}`)
@@ -539,10 +539,12 @@ serve(async (req) => {
     let peakAgeScore: number | null = null
     if (talentDobText && talentCharacter) {
       const bornDay = new Date(talentDobText).getUTCDate()
+      const usesLunar = (t as unknown as { uses_lunar_calendar: boolean | null }).uses_lunar_calendar === true
       const { data: peakRaw } = await db.rpc('get_peak_age_score', {
         p_dob: talentDobText,
         p_character: talentCharacter,
         p_born_day: bornDay,
+        p_uses_lunar: usesLunar,
       })
       if (typeof peakRaw === 'number') peakAgeScore = peakRaw
     }
@@ -750,10 +752,16 @@ serve(async (req) => {
   const applicationSummaries = await Promise.all(
     top.map((s) => generateApplicationSummary(role.title as string, roleTraits, s.aiSummary, s.mustHaveItems))
   )
+  const noisedScores = await Promise.all(
+    top.map(async (s) => {
+      const { data } = await db.rpc('add_score_noise', { p_score: s.finalScore })
+      return typeof data === 'number' ? Number(data.toFixed(2)) : Number(s.finalScore.toFixed(2))
+    })
+  )
   const toInsert = top.map((s, i) => ({
     role_id: body.role_id!,
     talent_id: s.talent_id,
-    compatibility_score: Number(s.finalScore.toFixed(2)),
+    compatibility_score: noisedScores[i],
     tag_compatibility: Number(s.tagComp.toFixed(2)),
     culture_fit_score: Number(s.cultureFit.toFixed(2)),
     life_chart_score: s.characterScore == null ? null : Number(s.characterScore.toFixed(2)),

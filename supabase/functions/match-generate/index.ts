@@ -92,7 +92,7 @@ serve(async (req) => {
   }
 
   // Matching weights, overridable via system_config.
-  const [wBehRow, wTagRow, wSalRow, wCultureRow, wEmpRow, wCharRow, wAgeRow, wLocRow, wBgRow, wFbRow] = await Promise.all([
+  const [wBehRow, wTagRow, wSalRow, wCultureRow, wEmpRow, wCharRow, wAgeRow, wLocRow, wBgRow, wFbRow, wPeakRow] = await Promise.all([
     db.from('system_config').select('value').eq('key', 'weight_behavioral_fitness').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_tag_compatibility').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_salary_fit').maybeSingle(),
@@ -103,6 +103,7 @@ serve(async (req) => {
     db.from('system_config').select('value').eq('key', 'weight_location').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_background').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_feedback').maybeSingle(),
+    db.from('system_config').select('value').eq('key', 'weight_peak_age').maybeSingle(),
   ])
   let weightBehavioral = typeof wBehRow.data?.value     === 'number' ? wBehRow.data.value     : 0.20
   let weightTag        = typeof wTagRow.data?.value     === 'number' ? wTagRow.data.value     : 0.50
@@ -114,6 +115,7 @@ serve(async (req) => {
   let weightLocation   = typeof wLocRow.data?.value     === 'number' ? wLocRow.data.value     : 0.10
   let weightBackground = typeof wBgRow.data?.value      === 'number' ? wBgRow.data.value      : 0.15
   let weightFeedback   = typeof wFbRow.data?.value      === 'number' ? wFbRow.data.value      : 0.10
+  let weightPeakAge    = typeof wPeakRow.data?.value    === 'number' ? wPeakRow.data.value    : 0.10
 
   // Fix e: role-type weight presets — shift relative emphasis for different role families.
   const roleWeightPreset = ((role as { weight_preset?: string }).weight_preset ?? '').toLowerCase()
@@ -141,6 +143,7 @@ serve(async (req) => {
     if (p.location    !== undefined) weightLocation   = p.location
     if (p.background  !== undefined) weightBackground = p.background
     if (p.feedback    !== undefined) weightFeedback   = p.feedback
+    if ((p as Record<string, number>).peak_age !== undefined) weightPeakAge = (p as Record<string, number>).peak_age
   }
 
   // Fix c: culture signals from onboarding chat are AI-inferred — reduce weight by half
@@ -499,18 +502,34 @@ serve(async (req) => {
       ? (BUCKET_SCORE[characterBucket] ?? null)
       : null
 
+    // ── Decrypt talent DOB once — shared by age score + peak-age-window ──
+    let talentDobText: string | null = null
+    if (t.date_of_birth_encrypted) {
+      const { data: decrypted } = await db.rpc('decrypt_dob', { encrypted: t.date_of_birth_encrypted })
+      if (typeof decrypted === 'string') talentDobText = decrypted
+    }
+
     // ── Dimension 4: age (HM same-age-or-older = 100, sliding penalty otherwise) ──
     let ageScore: number | null = null
-    if (hmDobText && t.date_of_birth_encrypted) {
-      const { data: talentDob } = await db.rpc('decrypt_dob', {
-        encrypted: t.date_of_birth_encrypted,
+    if (hmDobText && talentDobText) {
+      const { data: ageRaw } = await db.rpc('compute_age_match_score', {
+        hm_dob: hmDobText, talent_dob: talentDobText,
       })
-      if (typeof talentDob === 'string') {
-        const { data: ageRaw } = await db.rpc('compute_age_match_score', {
-          hm_dob: hmDobText, talent_dob: talentDob,
-        })
-        if (typeof ageRaw === 'number') ageScore = ageRaw
-      }
+      if (typeof ageRaw === 'number') ageScore = ageRaw
+    }
+
+    // ── Dimension 4b: peak-age-window ─────────────────────────────────────────
+    // Talent is in their greatest-performance age band → priority boost even
+    // when year luck is weak.  Score: 100 (in window) | 0 (outside) | null (no window).
+    let peakAgeScore: number | null = null
+    if (talentDobText && talentCharacter) {
+      const bornDay = new Date(talentDobText).getUTCDate()
+      const { data: peakRaw } = await db.rpc('get_peak_age_score', {
+        p_dob: talentDobText,
+        p_character: talentCharacter,
+        p_born_day: bornDay,
+      })
+      if (typeof peakRaw === 'number') peakAgeScore = peakRaw
     }
 
     // ── Dimension 5: location (gated on talent.location_matters) ──
@@ -548,6 +567,7 @@ serve(async (req) => {
       { name: 'location',           score: locationScore ?? 0,      weight: locationScore    != null ? weightLocation   : 0 },
       { name: 'background',         score: backgroundScore,         weight: weightBackground },
       { name: 'feedback',           score: feedbackScore ?? 50,     weight: weightFeedback   * (feedbackScore != null ? 1 : 0.5) },
+      { name: 'peak_age_window',    score: peakAgeScore ?? 0,       weight: peakAgeScore     != null ? weightPeakAge    : 0 },
     ]
     const totalW = dims.reduce((acc, d) => acc + d.weight, 0)
     const rawScore = totalW > 0
@@ -654,11 +674,12 @@ serve(async (req) => {
         character_bucket: characterBucket,
         character_score: characterScore,
         age_score: ageScore,
+        peak_age_window_score: peakAgeScore,
         location_score: locationScore,
         location_matters: talentLocMatters,
         background_score: backgroundScore,
         background_note: backgroundNote,
-        weights: { behavioral: weightBehavioral, tag: weightTag, salary: weightSalary, culture: weightCulture, employment: weightEmployment, character: weightCharacter, age: weightAge, location: weightLocation, background: weightBackground, feedback: weightFeedback },
+        weights: { behavioral: weightBehavioral, tag: weightTag, salary: weightSalary, culture: weightCulture, employment: weightEmployment, character: weightCharacter, age: weightAge, location: weightLocation, background: weightBackground, feedback: weightFeedback, peak_age: weightPeakAge },
         active_dimensions: activeDims,
         effective_weights: effectiveWeights,
         ghost_score: ghostScore,

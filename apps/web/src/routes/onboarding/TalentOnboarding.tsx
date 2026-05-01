@@ -102,7 +102,7 @@ export default function TalentOnboarding() {
       const savedTranscript = (prof?.interview_transcript as { messages: ApiMessage[]; saved_at: string } | null)
       const raw = draftKey ? localStorage.getItem(draftKey) : null
       const draft = raw ? (JSON.parse(raw) as {
-        phase?: Phase; fullName?: string; phone?: string; dob?: string; gender?: string
+        phase?: Phase; fullName?: string; phone?: string; gender?: string
         race?: string; religion?: string; languages?: string[]
         locationMatters?: boolean | null; locationPostcode?: string; openToNewField?: boolean
       }) : null
@@ -120,7 +120,6 @@ export default function TalentOnboarding() {
         })))
         setFullName(restoredName)
         setPhone(restoredPhone)
-        if (draft?.dob) setDob(draft.dob)
         if (draft?.gender) setGender(draft.gender as Gender)
         if (draft?.race) setRace(draft.race)
         if (draft?.religion) setReligion(draft.religion)
@@ -147,11 +146,12 @@ export default function TalentOnboarding() {
   // ── Autosave draft whenever key fields change ─────────────────────────────
   useEffect(() => {
     if (!draftKey || phase === 'basics' || phase === 'resume' || phase === 'done' || phase === 'submit') return
+    // DOB intentionally excluded — never persisted to localStorage in plaintext.
     localStorage.setItem(draftKey, JSON.stringify({
-      phase, fullName, phone, dob, gender: gender || '',
+      phase, fullName, phone, gender: gender || '',
       race, religion, languages, locationMatters, locationPostcode, openToNewField,
     }))
-  }, [draftKey, phase, fullName, phone, dob, gender, race, religion, languages, locationMatters, locationPostcode, openToNewField])
+  }, [draftKey, phase, fullName, phone, gender, race, religion, languages, locationMatters, locationPostcode, openToNewField])
 
   // Seed Bo's greeting when entering the chat phase — no API call needed.
   useEffect(() => {

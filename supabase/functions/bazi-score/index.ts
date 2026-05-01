@@ -17,6 +17,7 @@
  */
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { corsHeaders, handleOptions } from '../_shared/cors.ts'
+import { requireServiceRole } from '../_shared/auth.ts'
 
 interface Body { dob1?: string; dob2?: string }
 
@@ -28,16 +29,8 @@ serve(async (req) => {
     })
   }
 
-  // Service-role only. We compare against the SUPABASE_SERVICE_ROLE_KEY
-  // (set as a function secret automatically by Supabase) so HM/talent JWTs
-  // cannot reach this endpoint.
-  const auth = req.headers.get('authorization') ?? ''
-  const expected = `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''}`
-  if (auth !== expected) {
-    return new Response(JSON.stringify({ error: 'forbidden' }), {
-      status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  }
+  const authErr = requireServiceRole(req)
+  if (authErr) return authErr
 
   let body: Body = {}
   try { body = (await req.json()) as Body } catch { /* tolerate empty */ }

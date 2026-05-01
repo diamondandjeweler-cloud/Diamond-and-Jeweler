@@ -18,7 +18,7 @@ import { logAudit, extractIp } from '../_shared/audit.ts'
 
 interface Body { request_id?: string }
 
-const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 // 24 h
+const SIGNED_URL_TTL_SECONDS = 60 * 60 // 1 h
 
 serve(async (req) => {
   const pre = handleOptions(req); if (pre) return pre
@@ -123,7 +123,7 @@ serve(async (req) => {
     _meta: {
       schema_version: '2026-04-21',
       note: 'All personal data held by DNJ for this user. Produced in response to a PDPA ' +
-            `${request.request_type} request. Signed URLs to this file expire after 24 hours.`,
+            `${request.request_type} request. Signed URLs to this file expire after 1 hour.`,
     },
   }
 

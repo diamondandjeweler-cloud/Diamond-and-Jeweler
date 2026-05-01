@@ -81,3 +81,20 @@ export function json(body: unknown, status = 200): Response {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
 }
+
+/**
+ * Timing-safe service-role gate for functions that only accept machine callers.
+ * Returns a 403 Response when auth fails, undefined when it passes.
+ * Use instead of plain `===` to prevent response-time side-channel key enumeration.
+ */
+export function requireServiceRole(req: Request): Response | undefined {
+  const auth = req.headers.get('authorization') ?? ''
+  const expected = `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''}`
+  const enc = new TextEncoder()
+  const a = enc.encode(auth)
+  const b = enc.encode(expected)
+  const len = Math.max(a.length, b.length)
+  let mismatch = a.length ^ b.length
+  for (let i = 0; i < len; i++) mismatch |= (a[i] ?? 0) ^ (b[i] ?? 0)
+  if (mismatch !== 0) return json({ error: 'forbidden' }, 403)
+}

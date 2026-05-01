@@ -143,6 +143,7 @@ export default function HMDashboard() {
       const { data: roleRows } = await supabase.from('roles')
         .select('id, title, status, extra_matches_used')
         .eq('hiring_manager_id', hm.id)
+        .limit(200)
       hmRoleIds = (roleRows ?? []).map((r) => r.id)
 
       if (hmRoleIds.length > 0) {
@@ -172,20 +173,21 @@ export default function HMDashboard() {
       }
 
       const activeRows = ['generated','viewed','accepted_by_talent','invited_by_manager','hr_scheduling','interview_scheduled','interview_completed']
-      const extras: RoleExtraInfo[] = []
-      for (const r of roleRows ?? []) {
-        if (r.status !== 'active') continue
-        const { count: ac } = await supabase.from('matches')
-          .select('id', { count: 'exact', head: true })
-          .eq('role_id', r.id).in('status', activeRows)
-        extras.push({
-          id: r.id,
-          title: r.title,
-          activeCount: ac ?? 0,
-          extraUsed: r.extra_matches_used ?? 0,
-        })
+      const activeRoleIds = (roleRows ?? []).filter((r) => r.status === 'active').map((r) => r.id)
+      if (activeRoleIds.length > 0) {
+        const { data: activeCounts } = await supabase.from('matches')
+          .select('role_id')
+          .in('role_id', activeRoleIds)
+          .in('status', activeRows)
+        const countByRole: Record<string, number> = {}
+        for (const m of activeCounts ?? []) {
+          countByRole[m.role_id] = (countByRole[m.role_id] ?? 0) + 1
+        }
+        const extras: RoleExtraInfo[] = (roleRows ?? [])
+          .filter((r) => r.status === 'active')
+          .map((r) => ({ id: r.id, title: r.title, activeCount: countByRole[r.id] ?? 0, extraUsed: r.extra_matches_used ?? 0 }))
+        if (!cancelled) setRoleExtras(extras)
       }
-      if (!cancelled) setRoleExtras(extras)
 
       if (hmRoleIds.length > 0) {
         const { data: coldRows } = await supabase.from('cold_start_queue').select('role_id')

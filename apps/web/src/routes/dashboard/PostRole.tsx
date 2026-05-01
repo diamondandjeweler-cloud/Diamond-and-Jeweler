@@ -114,7 +114,7 @@ export default function PostRole() {
       }).select('id').single()
       if (insErr) throw insErr
       try { await callFunction('match-generate', { role_id: inserted.id }) }
-      catch (e) { console.warn('match-generate:', e) }
+      catch { setErr('Role created but match generation failed — our team will retry shortly.') }
       navigate('/hm', { replace: true })
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e))

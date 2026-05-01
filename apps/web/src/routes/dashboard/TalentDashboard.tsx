@@ -136,7 +136,10 @@ export default function TalentDashboard() {
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'interview_rounds' }, (payload) => {
         const round = payload.new as InterviewRound & { match_id: string }
+        // Only apply if this round belongs to one of our matches (client-side guard;
+        // Supabase Realtime does not support `in` filters so we filter here)
         setRoundsByMatch((prev) => {
+          if (!(round.match_id in prev) && !Object.keys(prev).includes(round.match_id)) return prev
           const existing = prev[round.match_id] ?? []
           return { ...prev, [round.match_id]: [...existing, round] }
         })

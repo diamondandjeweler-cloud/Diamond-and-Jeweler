@@ -23,6 +23,7 @@ export default function VerificationQueue() {
       .select('id, name, registration_number, primary_hr_email, business_license_path, created_at')
       .eq('verified', false)
       .order('created_at', { ascending: true })
+      .limit(100)
       .then(({ data, error }) => {
         if (cancelled) return
         if (error) setErr(error.message)

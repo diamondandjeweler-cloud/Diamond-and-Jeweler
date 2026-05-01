@@ -156,7 +156,7 @@ function RoleHome() {
   const { profile } = useSession()
   if (!profile) return <Navigate to="/" replace />
 
-  if (!profile.onboarding_complete && profile.role !== 'admin') {
+  if (!profile.onboarding_complete && profile.role !== 'admin' && profile.role !== 'restaurant_staff') {
     if (profile.role === 'talent')         return <Navigate to="/onboarding/talent" replace />
     if (profile.role === 'hiring_manager') return <Navigate to="/onboarding/hm" replace />
     if (profile.role === 'hr_admin')       return <Navigate to="/onboarding/company" replace />

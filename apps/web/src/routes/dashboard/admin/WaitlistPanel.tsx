@@ -22,6 +22,7 @@ export default function WaitlistPanel() {
       .from('waitlist')
       .select('id, email, full_name, intended_role, approved, created_at')
       .order('created_at', { ascending: false })
+      .limit(500)
       .then(({ data, error }) => {
         if (cancelled) return
         if (error) setErr(error.message)

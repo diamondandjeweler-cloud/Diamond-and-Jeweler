@@ -65,7 +65,9 @@ export default function MyRoles() {
       return
     }
     if (next === 'active') {
-      try { await callFunction('match-generate', { role_id: id }) } catch (e) { console.warn(e) }
+      try { await callFunction('match-generate', { role_id: id }) } catch (e) {
+        setErr('Role activated but match generation failed — our team will retry shortly.')
+      }
     }
   }
 

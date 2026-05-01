@@ -4,6 +4,7 @@ import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import { Button, Card, Badge, Alert, EmptyState, PageHeader, Stat, Input, Select } from '../../components/ui'
+import LinkHMPanel from './admin/LinkHMPanel'
 
 interface PendingRow {
   id: string
@@ -25,8 +26,11 @@ interface ScheduledRow {
   meeting_provider: string | null
 }
 
+type HRTab = 'scheduling' | 'link-hms'
+
 export default function HRDashboard() {
   const { session } = useSession()
+  const [hrTab, setHrTab] = useState<HRTab>('scheduling')
   const [pending, setPending] = useState<PendingRow[]>([])
   const [scheduled, setScheduled] = useState<ScheduledRow[]>([])
   const [outcomesPending, setOutcomesPending] = useState<number>(0)
@@ -125,10 +129,30 @@ export default function HRDashboard() {
   return (
     <div>
       <PageHeader
-        title="Interview scheduling"
-        description="Hiring-manager invitations awaiting a scheduled slot, plus upcoming interviews."
+        title="HR dashboard"
+        description="Manage interview scheduling and your hiring manager team."
         actions={<Link to="/hr/invite" className="btn-primary">Invite a hiring manager</Link>}
       />
+
+      {/* Tab bar */}
+      <div className="flex gap-1 border-b border-ink-200 mb-8 overflow-x-auto">
+        {(['scheduling', 'link-hms'] as HRTab[]).map((t) => (
+          <button
+            key={t}
+            onClick={() => setHrTab(t)}
+            className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+              hrTab === t
+                ? 'border-brand-600 text-brand-700'
+                : 'border-transparent text-ink-500 hover:text-ink-800'
+            }`}
+          >
+            {t === 'scheduling' ? 'Scheduling' : 'Link HMs'}
+          </button>
+        ))}
+      </div>
+
+      {hrTab === 'link-hms' && <LinkHMPanel />}
+      {hrTab === 'scheduling' && (
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
         <Stat label="To schedule" value={pending.length} tone={pending.length > 0 ? 'brand' : 'default'} />
@@ -239,6 +263,7 @@ export default function HRDashboard() {
           </div>
         )}
       </section>
+      )}
     </div>
   )
 }

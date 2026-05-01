@@ -75,6 +75,8 @@ export default function HMDashboard() {
   const [hiredAllTime, setHiredAllTime] = useState<number>(0)
   const [companyVerified, setCompanyVerified] = useState<boolean | null>(null)
   const [companyId, setCompanyId] = useState<string | null>(null)
+  const [linkRequest, setLinkRequest] = useState<{ id: string; companyName: string } | null>(null)
+  const [linkBusy, setLinkBusy] = useState(false)
 
   // Interview flow state
   const [roundsByMatch, setRoundsByMatch] = useState<Record<string, InterviewRound[]>>({})
@@ -107,13 +109,24 @@ export default function HMDashboard() {
       if (!session) return
       const { data: hm } = await supabase.from('hiring_managers').select('id, company_id, reputation_score, feedback_volume, phs_offer_accept_rate, hm_quality_factor, hm_cancel_rate').eq('profile_id', session.user.id).maybeSingle()
       if (!hm) { setLoading(false); return }
-      if ((hm as unknown as { company_id: string }).company_id) {
+      if ((hm as unknown as { company_id: string | null }).company_id) {
         const cid = (hm as unknown as { company_id: string }).company_id
         if (!cancelled) setCompanyId(cid)
         const { data: co } = await supabase.from('companies').select('verified').eq('id', cid).maybeSingle()
         if (!cancelled) setCompanyVerified(co?.verified ?? false)
       } else {
         if (!cancelled) setCompanyVerified(false)
+        // Check for a pending link request.
+        const { data: linkReq } = await supabase
+          .from('company_hm_link_requests')
+          .select('id, companies(name)')
+          .eq('hm_id', hm.id)
+          .eq('status', 'pending')
+          .maybeSingle()
+        if (!cancelled && linkReq) {
+          const co = linkReq.companies as unknown as { name: string } | null
+          setLinkRequest({ id: linkReq.id, companyName: co?.name ?? 'a company' })
+        }
       }
       if (!cancelled) setHmReputation({
         reputation_score: (hm as unknown as { reputation_score: number | null }).reputation_score ?? null,
@@ -311,8 +324,43 @@ export default function HMDashboard() {
 
   const actionNeeded = candidates.filter((c) => ['generated', 'viewed', 'accepted_by_talent'].includes(c.status)).length
 
+  async function respondToLinkRequest(action: 'accept' | 'decline') {
+    if (!linkRequest) return
+    setLinkBusy(true)
+    try {
+      await callFunction('link-hm', { request_id: linkRequest.id, action })
+      setLinkRequest(null)
+      if (action === 'accept') window.location.reload()
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e))
+    }
+    setLinkBusy(false)
+  }
+
   return (
     <div>
+      {/* Pending company link request banner */}
+      {linkRequest && (
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-blue-900">
+              {linkRequest.companyName} wants to add you to their team
+            </p>
+            <p className="text-xs text-blue-700 mt-0.5">
+              Accepting will link your profile under their company umbrella. You can still manage your own roles.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" disabled={linkBusy} loading={linkBusy} onClick={() => void respondToLinkRequest('accept')}>
+              Accept
+            </Button>
+            <Button size="sm" variant="secondary" disabled={linkBusy} onClick={() => void respondToLinkRequest('decline')}>
+              Decline
+            </Button>
+          </div>
+        </div>
+      )}
+
       <PageHeader
         eyebrow={profile && `Hiring for ${profile.full_name.split(' ')[0]}'s team`}
         title="Your candidates"

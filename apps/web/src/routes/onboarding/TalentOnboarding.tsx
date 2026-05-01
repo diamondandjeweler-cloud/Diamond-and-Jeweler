@@ -325,6 +325,18 @@ export default function TalentOnboarding() {
         career_goals: string | null
         salary_min: number | null
         salary_max: number | null
+        current_salary: number | null
+        notice_period_days: number | null
+        current_employment_status: string | null
+        reason_for_leaving_category: string | null
+        reason_for_leaving_summary: string | null
+        education_level: string | null
+        has_management_experience: boolean | null
+        management_team_size: number | null
+        work_authorization: string | null
+        preferred_management_style: string | null
+        deal_breaker_items: string[]
+        red_flags: string[]
         derived_tags: Record<string, number>
         wants_wlb: number
         wants_fair_pay: number
@@ -379,6 +391,18 @@ export default function TalentOnboarding() {
         uses_lunar_calendar: computeUsesLunarCalendar(race, religion, languages),
         is_open_to_offers: true,
         employment_type_preferences: extracted.employment_type_preferences ?? [],
+        current_employment_status: extracted.current_employment_status ?? null,
+        current_salary: extracted.current_salary ?? null,
+        notice_period_days: extracted.notice_period_days ?? null,
+        reason_for_leaving_category: extracted.reason_for_leaving_category ?? null,
+        reason_for_leaving_summary: extracted.reason_for_leaving_summary ?? null,
+        education_level: extracted.education_level ?? null,
+        has_management_experience: extracted.has_management_experience ?? null,
+        management_team_size: extracted.management_team_size ?? null,
+        work_authorization: extracted.work_authorization ?? null,
+        preferred_management_style: extracted.preferred_management_style ?? null,
+        deal_breaker_items: extracted.deal_breaker_items?.length ? extracted.deal_breaker_items : null,
+        red_flags: extracted.red_flags?.length ? extracted.red_flags : null,
         photo_url: photoPath,
         deal_breakers: {
           items: dealBreakerItems,

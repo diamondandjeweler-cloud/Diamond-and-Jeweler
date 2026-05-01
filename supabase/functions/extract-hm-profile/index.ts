@@ -16,7 +16,7 @@ interface Message { role: 'user' | 'assistant'; content: string }
 interface Body { messages?: Message[] }
 
 const buildPrompt = (transcript: string) => `
-You are a precise data extractor for a recruitment platform. Read the hiring manager conversation transcript below and extract structured leadership and culture data.
+You are a precise data extractor for a recruitment platform. Read the hiring manager conversation transcript below and extract structured leadership, culture, and role data.
 
 Return ONLY valid JSON — no markdown fences, no explanation, no extra text whatsoever.
 
@@ -29,6 +29,15 @@ Return this exact JSON structure (use null for any value not mentioned):
 {
   "industry": string | null,
   "role_type": string | null,
+  "role_open_reason": "new_headcount" | "replacement" | "backfill" | null,
+  "why_last_hire_left": string | null,
+  "team_size": number | null,
+  "hire_urgency": "urgent" | "normal" | "exploring" | null,
+  "success_at_90_days": string | null,
+  "hardest_part_of_role": string | null,
+  "work_arrangement_offered": "on_site" | "hybrid" | "remote" | null,
+  "must_have_items": string[],
+  "screening_red_flags": string[],
   "leadership_tags": {
     "supportive": number,
     "collaborator": number,
@@ -61,13 +70,22 @@ Return this exact JSON structure (use null for any value not mentioned):
   "summary": string | null
 }
 
-Rules:
-- leadership_tags: score 0.0–1.0 based on evidence of how the HM manages their team.
-- required_traits: list of talent tag names they are looking for, e.g. ["self_starter", "reliable", "customer_focused", "collaborator"]. Use only these tag names: self_starter, collaborator, growth_minded, reliable, customer_focused, detail_oriented, analytical, accountable, clear_communicator, adaptable, leadership.
-- culture_offers: what the team/company offers, inferred from what HM described. 0.0–1.0.
-- salary_offer_min / salary_offer_max: numbers only, RM per month. If single number given, use for both.
-- summary: 2-sentence recruiter-facing description of the team culture and ideal candidate — no personal or company identifiers.
-- DO NOT include any personal names, phone numbers, company names, or identifiers in the output.
+Extraction rules:
+- role_open_reason: "new_headcount" = brand new position, "replacement" = someone left/was let go, "backfill" = temporary cover.
+- why_last_hire_left: 1 sentence summary of why the previous person left — no names. null if not a replacement or not discussed.
+- team_size: number of people on the team this role joins (not including the HM). null if not mentioned.
+- hire_urgency: "urgent" = need someone ASAP / within 2 weeks, "normal" = within 1-2 months, "exploring" = no fixed timeline.
+- success_at_90_days: concrete description of what the new hire has achieved or can do after 90 days. 1-2 sentences, no names.
+- hardest_part_of_role: what the HM said is most challenging or underestimated about this role.
+- work_arrangement_offered: what the HM said they offer — on-site, hybrid, or remote.
+- must_have_items: explicit non-negotiable requirements the HM stated. E.g. ["fluent Mandarin", "own transport", "willing to travel", "minimum 3 years sales experience"]. Empty array if none stated.
+- screening_red_flags: what the HM said would disqualify a candidate. E.g. ["job-hoppers", "no sales background", "not willing to work weekends"]. Empty array if none.
+- leadership_tags: score 0.0–1.0 based on demonstrated evidence of how the HM manages. Not what they claim, what they described.
+- required_traits: talent tag names the HM wants. Use only: self_starter, collaborator, growth_minded, reliable, customer_focused, detail_oriented, analytical, accountable, clear_communicator, adaptable, leadership.
+- culture_offers: what the team/company genuinely offers, inferred from HM's descriptions. 0.0–1.0.
+- salary_offer_min / salary_offer_max: RM per month as numbers. Single number = use for both.
+- summary: 2-sentence recruiter-facing description of team culture and ideal candidate profile — no personal or company identifiers.
+- DO NOT include any personal names, phone numbers, company names, or identifiers.
 `.trim()
 
 serve(async (req) => {
@@ -112,7 +130,7 @@ async function callExtractionAI(prompt: string): Promise<Record<string, unknown>
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1024, messages: [{ role: 'user', content: prompt }] }),
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 2048, messages: [{ role: 'user', content: prompt }] }),
     })
     if (res.ok) {
       const data = await res.json() as { content: { type: string; text: string }[] }
@@ -124,7 +142,7 @@ async function callExtractionAI(prompt: string): Promise<Record<string, unknown>
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
-      body: JSON.stringify({ model: 'llama-3.3-70b-versatile', max_tokens: 1024, messages: [{ role: 'user', content: prompt }] }),
+      body: JSON.stringify({ model: 'llama-3.3-70b-versatile', max_tokens: 2048, messages: [{ role: 'user', content: prompt }] }),
     })
     if (res.ok) {
       const data = await res.json() as { choices: { message: { content: string } }[] }

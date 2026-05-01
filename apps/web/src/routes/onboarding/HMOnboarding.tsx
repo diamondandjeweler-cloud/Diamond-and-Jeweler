@@ -233,6 +233,15 @@ export default function HMOnboarding() {
       const extracted = await extRes.json() as {
         industry: string | null
         role_type: string | null
+        role_open_reason: string | null
+        why_last_hire_left: string | null
+        team_size: number | null
+        hire_urgency: string | null
+        success_at_90_days: string | null
+        hardest_part_of_role: string | null
+        work_arrangement_offered: string | null
+        must_have_items: string[]
+        screening_red_flags: string[]
         leadership_tags: Record<string, number>
         required_traits: string[]
         culture_offers: Record<string, number>
@@ -267,6 +276,14 @@ export default function HMOnboarding() {
           job_title: jobTitle.trim(),
           industry: extracted.industry,
           role_type: extracted.role_type,
+          role_open_reason: extracted.role_open_reason ?? null,
+          why_last_hire_left: extracted.why_last_hire_left ?? null,
+          team_size: extracted.team_size ?? null,
+          hire_urgency: extracted.hire_urgency ?? null,
+          success_at_90_days: extracted.success_at_90_days ?? null,
+          hardest_part_of_role: extracted.hardest_part_of_role ?? null,
+          work_arrangement_offered: extracted.work_arrangement_offered ?? null,
+          screening_red_flags: extracted.screening_red_flags?.length ? extracted.screening_red_flags : null,
           leadership_tags: extracted.leadership_tags,
           required_traits: extracted.required_traits,
           culture_offers: extracted.culture_offers,
@@ -275,6 +292,7 @@ export default function HMOnboarding() {
           ai_summary: extracted.summary,
           interview_answers: { transcript: apiMessages },
           must_haves: { items: mustHaveItems },
+          must_have_items: extracted.must_have_items?.length ? extracted.must_have_items : (mustHaveItems.length ? mustHaveItems : null),
         })
         .eq('id', hmRow.id)
       if (updateErr) throw updateErr

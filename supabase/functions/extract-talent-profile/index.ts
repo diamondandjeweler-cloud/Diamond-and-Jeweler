@@ -20,19 +20,28 @@ You are a precise data extractor for a recruitment platform. Read the career int
 
 Return ONLY valid JSON — no markdown fences, no explanation, no extra text whatsoever.
 
-The transcript contains NO personal identifiers (no names, no phone numbers, no IC numbers) — do not try to infer or add any.
+The transcript contains NO personal identifiers (no names, no phone numbers, no IC numbers, no employer names) — do not try to infer or add any.
 
 Transcript:
 ${transcript}
 
 Return this exact JSON structure (use null for any value not mentioned):
 {
-  "job_areas": string[],
+  "current_employment_status": "employed" | "unemployed" | "freelancing" | "studying" | null,
+  "current_salary": number | null,
+  "notice_period_days": number | null,
+  "reason_for_leaving_category": "salary" | "growth" | "culture" | "personal" | "redundancy" | "contract_end" | "relocation" | "career_pivot" | "other" | null,
+  "reason_for_leaving_summary": string | null,
   "years_experience": number | null,
+  "education_level": "spm" | "diploma" | "degree" | "masters" | "phd" | "professional_cert" | "other" | null,
+  "has_management_experience": boolean | null,
+  "management_team_size": number | null,
+  "job_areas": string[],
   "key_skills": string[],
   "career_goals": string | null,
   "salary_min": number | null,
   "salary_max": number | null,
+  "work_authorization": "citizen" | "pr" | "ep" | "rpt" | "dp" | "student_pass" | "other" | null,
   "derived_tags": {
     "self_starter": number,
     "collaborator": number,
@@ -63,29 +72,44 @@ Return this exact JSON structure (use null for any value not mentioned):
   "wants_recognition": number,
   "wants_mission": number,
   "wants_team_culture": number,
+  "preferred_management_style": "hands_on" | "autonomous" | "collaborative" | null,
+  "deal_breaker_items": string[],
+  "red_flags": string[],
   "summary": string | null,
   "employment_type_preferences": string[]
 }
 
-Rules:
-- job_areas: include specific role AND industry, e.g. ["barista", "F&B", "cafe management"]
-- key_skills: concrete skills mentioned, not generic traits
-- salary_min / salary_max: numbers only, RM per month. If single number given, use for both.
-- derived_tags: score 0.0–1.0 based on evidence. 0.0 = no evidence, 1.0 = strong explicit evidence.
-  Behavioural assessment tags — score these from their interview answers:
-  · ownership: uses "I/me/my" for their own actions (not "we/they"); takes personal responsibility for outcomes, including failures. Score 0 if they consistently deflect or credit/blame the team.
-  · communication_clarity: answers are structured, specific, and measurable (STAR format). Score 0 if answers are vague, rambling, or generic.
-  · emotional_maturity: calm and professional when discussing conflict, feedback, or difficult managers. Doesn't bad-mouth previous employers. Score 0 if hostile or dismissive.
-  · problem_solving: demonstrates clear analytical framework, states trade-offs, and shows measurable outcomes when solving hard problems. Score 0 if solution steps are absent or illogical.
-  · resilience: owns failures, articulates clear lessons learned, and shows changed behaviour afterward. Score 0 if they deny failure, minimise it, or show no learning arc.
-  · results_orientation: consistently quantifies impact — RM, %, time saved, volume, headcount. Score 0 if answers are entirely activity-based with no outcomes.
-  · professional_attitude: frames past employers and managers positively even when things went wrong. Score 0 if they openly blame, mock, or disparage previous organisations.
-  · confidence: backs strong claims with concrete evidence. Shows conviction without arrogance. Score 0 if they hedge every statement or are unable to state a clear value proposition.
-  · coachability: gives a specific, concrete before/after example of feedback they received and acted on. Score 0 if they cannot give a real example ("I'm always open to feedback" with no story = 0).
-- wants_* tags: infer from what candidate said they value. 0.0–1.0. wants_team_culture reflects how much they value camaraderie, close teamwork, and a collaborative environment.
-- summary: 2-sentence recruiter-facing summary of career background and strengths only — no personal details.
-- employment_type_preferences: array of preferred employment types mentioned or strongly implied. Use only these values: "full_time", "part_time", "contract", "gig", "internship". Empty array if not mentioned.
-- DO NOT include name, phone, email, company names, or any personal identifiers in the output.
+Extraction rules:
+- current_employment_status: "employed" if currently working, "unemployed" if between jobs, "freelancing" if self-employed/contract, "studying" if full-time student.
+- current_salary: RM per month as a number. Extract even if given as a range (use midpoint). null if never mentioned or refused.
+- notice_period_days: convert to days. "1 month" = 30, "2 weeks" = 14, "immediate" = 0, "3 months" = 90.
+- reason_for_leaving_category: pick the single best fit. "salary" = underpaid. "growth" = career ceiling. "culture" = bad environment/manager. "personal" = family, health, relocation. "redundancy" = laid off. "contract_end" = fixed-term ended. "career_pivot" = changing field entirely. "other" = anything else.
+- reason_for_leaving_summary: 1 sentence max, no employer names. Captures the honest reason stated.
+- years_experience: total years working, across all roles. If they say "5 years in F&B and 2 years in retail", output 7.
+- education_level: "spm" = high school cert, "diploma", "degree" = bachelor, "masters", "phd", "professional_cert" = ACCA/CPA/CIMA/etc.
+- has_management_experience: true if they have ever managed or led people formally. false if explicitly never. null if not discussed.
+- management_team_size: largest team they have directly managed. null if no management experience.
+- job_areas: include specific role AND industry, e.g. ["barista", "F&B", "cafe management", "team lead"].
+- key_skills: concrete skills, tools, or domain knowledge mentioned — not generic traits.
+- salary_min / salary_max: expected salary range in RM per month. If single number given, use for both.
+- work_authorization: "citizen" = Malaysian IC, "pr" = permanent resident, "ep" = Employment Pass, "rpt" = Residence Pass-Talent, "dp" = Dependant Pass, "student_pass" = ineligible to work, "other" = any other pass.
+- derived_tags: score 0.0–1.0 from interview evidence only:
+  · ownership: uses "I/me/my" for actions and outcomes (not "we/they"). Takes personal responsibility for failures. 0 = consistent deflection.
+  · communication_clarity: structured, specific, measurable STAR-format answers. 0 = vague, rambling, generic.
+  · emotional_maturity: calm discussing conflict, bad managers, feedback. No employer bad-mouthing. 0 = hostile or dismissive.
+  · problem_solving: clear analytical framework, states trade-offs, measurable outcomes. 0 = absent or illogical reasoning.
+  · resilience: owns failures, articulates clear lessons, shows changed behaviour. 0 = denies failure or shows no learning.
+  · results_orientation: quantifies impact with RM, %, time, volume, headcount. 0 = entirely activity-based, no outcomes.
+  · professional_attitude: frames past employers positively even when things went wrong. 0 = blames, mocks, or disparages.
+  · confidence: backs claims with concrete evidence, shows conviction without arrogance. 0 = hedges every statement.
+  · coachability: gives specific before/after example of feedback received and acted on. 0 = "I'm always open to feedback" with no story.
+- wants_* tags: infer 0.0–1.0 from what candidate said they value.
+- preferred_management_style: how they prefer to be managed based on what they said.
+- deal_breaker_items: explicit hard nos mentioned — e.g. ["no weekend work", "no commission-only", "no relocation"]. Empty array if none stated.
+- red_flags: specific concerns observed in the conversation — e.g. ["bad-mouths previous employer", "vague on all behavioural questions", "unemployed 8+ months with no explanation", "job-hopped 4 times in 3 years", "unrealistic salary expectation", "contradicts own stated values"]. Empty array if none.
+- summary: 2-sentence recruiter-facing summary of career background and strengths — no personal details, no employer names.
+- employment_type_preferences: use only "full_time", "part_time", "contract", "gig", "internship". Empty array if not mentioned.
+- DO NOT include name, phone, email, company names, or any personal identifiers.
 `.trim()
 
 serve(async (req) => {
@@ -133,7 +157,7 @@ async function callExtractionAI(prompt: string): Promise<Record<string, unknown>
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1024, messages: [{ role: 'user', content: prompt }] }),
+        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 2048, messages: [{ role: 'user', content: prompt }] }),
         signal: ac.signal,
       })
       if (res.ok) {
@@ -150,7 +174,7 @@ async function callExtractionAI(prompt: string): Promise<Record<string, unknown>
       const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
-        body: JSON.stringify({ model: 'llama-3.3-70b-versatile', max_tokens: 1024, messages: [{ role: 'user', content: prompt }] }),
+        body: JSON.stringify({ model: 'llama-3.3-70b-versatile', max_tokens: 2048, messages: [{ role: 'user', content: prompt }] }),
         signal: ac.signal,
       })
       if (res.ok) {

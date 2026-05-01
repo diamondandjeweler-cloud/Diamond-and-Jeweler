@@ -152,7 +152,7 @@ export default function HRDashboard() {
       </div>
 
       {hrTab === 'link-hms' && <LinkHMPanel />}
-      {hrTab === 'scheduling' && (
+      {hrTab === 'scheduling' && (<>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
         <Stat label="To schedule" value={pending.length} tone={pending.length > 0 ? 'brand' : 'default'} />
@@ -263,7 +263,7 @@ export default function HRDashboard() {
           </div>
         )}
       </section>
-      )}
+      </>)}
     </div>
   )
 }

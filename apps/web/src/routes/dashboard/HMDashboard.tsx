@@ -73,6 +73,8 @@ export default function HMDashboard() {
   const [feedbackState, setFeedbackState] = useState<Record<string, { rating: number; hired: boolean; notes: string; outcome: string; freeText: string; saving: boolean; saved: boolean; pointsAwarded?: number }>>({})
   const [hmReputation, setHmReputation] = useState<{ reputation_score: number | null; feedback_volume: number; phs_offer_accept_rate: number | null; hm_quality_factor: number | null; hm_cancel_rate: number | null } | null>(null)
   const [hiredAllTime, setHiredAllTime] = useState<number>(0)
+  const [companyVerified, setCompanyVerified] = useState<boolean | null>(null)
+  const [companyId, setCompanyId] = useState<string | null>(null)
 
   // Interview flow state
   const [roundsByMatch, setRoundsByMatch] = useState<Record<string, InterviewRound[]>>({})
@@ -103,8 +105,16 @@ export default function HMDashboard() {
 
     async function load() {
       if (!session) return
-      const { data: hm } = await supabase.from('hiring_managers').select('id, reputation_score, feedback_volume, phs_offer_accept_rate, hm_quality_factor, hm_cancel_rate').eq('profile_id', session.user.id).maybeSingle()
+      const { data: hm } = await supabase.from('hiring_managers').select('id, company_id, reputation_score, feedback_volume, phs_offer_accept_rate, hm_quality_factor, hm_cancel_rate').eq('profile_id', session.user.id).maybeSingle()
       if (!hm) { setLoading(false); return }
+      if ((hm as unknown as { company_id: string }).company_id) {
+        const cid = (hm as unknown as { company_id: string }).company_id
+        if (!cancelled) setCompanyId(cid)
+        const { data: co } = await supabase.from('companies').select('verified').eq('id', cid).maybeSingle()
+        if (!cancelled) setCompanyVerified(co?.verified ?? false)
+      } else {
+        if (!cancelled) setCompanyVerified(false)
+      }
       if (!cancelled) setHmReputation({
         reputation_score: (hm as unknown as { reputation_score: number | null }).reputation_score ?? null,
         feedback_volume: (hm as unknown as { feedback_volume: number }).feedback_volume ?? 0,
@@ -212,6 +222,10 @@ export default function HMDashboard() {
   }
 
   async function respond(id: string, next: 'invited_by_manager' | 'declined_by_manager') {
+    if (next === 'invited_by_manager' && companyVerified === false) {
+      setErr('Company verification required before inviting candidates to interview.')
+      return
+    }
     const prevStatus = candidates.find((c) => c.id === id)?.status
     setCandidates((cs) => cs.map((c) => (c.id === id ? { ...c, status: next } : c)))
     const { error } = await supabase.from('matches').update({
@@ -227,6 +241,10 @@ export default function HMDashboard() {
   }
 
   async function doAction(matchId: string, action: string, extra?: Record<string, unknown>) {
+    if (['schedule_round', 'make_offer', 'mark_hired'].includes(action) && companyVerified === false) {
+      setErr('Company verification required before proceeding with interviews.')
+      return
+    }
     setErr(null)
     setActionBusy(`${matchId}:${action}`)
     try {
@@ -251,6 +269,10 @@ export default function HMDashboard() {
   }
 
   async function revealContact(matchId: string) {
+    if (companyVerified === false) {
+      setErr('Company verification required before revealing candidate contact details.')
+      return
+    }
     setErr(null)
     try {
       const { data, error } = await supabase.rpc('get_talent_contact', { p_match_id: matchId })
@@ -317,6 +339,24 @@ export default function HMDashboard() {
       )}
 
       {err && <div className="mb-6"><Alert tone="red">{err}</Alert></div>}
+
+      {companyVerified === false && companyId && (
+        <div className="mb-6">
+          <Alert tone="amber" title="Company verification pending">
+            You can post roles and receive matches freely. To invite a candidate to interview or reveal contact details,
+            your HR Admin needs to complete company verification first.{' '}
+            <a
+              href={`/onboarding/company/verify?company=${companyId}`}
+              className="font-semibold underline"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Share this link with your HR Admin
+            </a>
+            {' '}to upload your SSM certificate and business license.
+          </Alert>
+        </div>
+      )}
 
       {waiting && (
         <div className="mb-6">

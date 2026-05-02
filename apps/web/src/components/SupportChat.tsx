@@ -27,9 +27,6 @@ export default function SupportChat() {
   const endRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
 
-  // Don't render on public pages (no session)
-  if (!session || !profile) return null
-
   // Scroll to bottom on new messages
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -48,6 +45,7 @@ export default function SupportChat() {
 
   // Greet on first open
   useEffect(() => {
+    if (!profile) return
     if (open && messages.length === 0) {
       setMessages([{
         id: 'greeting',
@@ -55,7 +53,7 @@ export default function SupportChat() {
         content: `Hi${profile.full_name ? ` ${profile.full_name.split(' ')[0]}` : ''}! I'm your AI Support Officer. How can I help you today? Feel free to ask about the platform, report an issue, or let me know if there's a payment problem.`,
       }])
     }
-  }, [open])
+  }, [open, profile])
 
   const sendMessage = useCallback(async () => {
     const text = input.trim()
@@ -182,6 +180,9 @@ export default function SupportChat() {
       void sendMessage()
     }
   }
+
+  // Don't render on public pages (no session)
+  if (!session || !profile) return null
 
   return (
     <>

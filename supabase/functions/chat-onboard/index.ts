@@ -383,10 +383,14 @@ Blend this naturally with your personalised summary of what you heard from them.
 
   const systemPrompt = (body.mode === 'hm' ? HM_PROMPT : TALENT_PROMPT) + timingBlock
 
-  // Try Anthropic first, fall back to Groq.
+  // Provider chain: Anthropic → Groq primary → Groq secondary → OpenRouter
+  // Add keys as Supabase secrets; any subset works — chain skips missing/failed providers.
   const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY')
   const groqKey = Deno.env.get('GROQ_API_KEY')
+  const groqKey2 = Deno.env.get('GROQ_API_KEY_2')
+  const openrouterKey = Deno.env.get('OPENROUTER_API_KEY')
 
+  // ── 1. Anthropic (Claude Haiku) ───────────────────────────────────────────
   if (anthropicKey) {
     const ac = new AbortController()
     const t = setTimeout(() => ac.abort(), 28_000)
@@ -417,91 +421,113 @@ Blend this naturally with your personalised summary of what you heard from them.
     } catch (e) {
       clearTimeout(t)
       console.error('Anthropic fetch failed/timed out:', e)
-      // Fall through to Groq.
     }
   }
 
-  if (groqKey) {
-    const groqMessages = [
-      { role: 'system', content: systemPrompt },
-      ...messages,
-    ]
-    const ac2 = new AbortController()
-    const t2 = setTimeout(() => ac2.abort(), 28_000)
+  // ── Helper: stream an OpenAI-compatible provider (Groq / OpenRouter) ──────
+  async function tryOpenAICompatible(
+    url: string,
+    authHeader: string,
+    model: string,
+    label: string,
+  ): Promise<Response | null> {
+    const msgs = [{ role: 'system', content: systemPrompt }, ...messages]
+    const ac = new AbortController()
+    const t = setTimeout(() => ac.abort(), 28_000)
     let upstream: Response
     try {
-      upstream = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      upstream = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${groqKey}`,
-        },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          max_tokens: 512,
-          stream: true,
-          messages: groqMessages,
-        }),
-        signal: ac2.signal,
+        headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+        body: JSON.stringify({ model, max_tokens: 512, stream: true, messages: msgs }),
+        signal: ac.signal,
       })
-      clearTimeout(t2)
+      clearTimeout(t)
     } catch (e) {
-      clearTimeout(t2)
-      console.error('Groq fetch failed/timed out:', e)
-      return new Response(JSON.stringify({ error: 'AI provider timed out. Please try again.' }), {
-        status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      clearTimeout(t)
+      console.error(`${label} fetch failed/timed out:`, e)
+      return null
     }
-    if (upstream_.ok) {
-      // Groq streams OpenAI SSE format — transform to match what the client expects.
-      // Client already parses OpenAI format (content_block_delta) but Groq uses
-      // choices[0].delta.content, so we rewrite the stream.
-      const { readable, writable } = new TransformStream()
-      const writer = writable.getWriter()
-      const encoder = new TextEncoder()
-      const decoder = new TextDecoder();
-
-      (async () => {
-        const reader = upstream_.body!.getReader()
-        let buffer = ''
-        try {
-          while (true) {
-            const { done, value } = await reader.read()
-            if (done) break
-            buffer += decoder.decode(value, { stream: true })
-            const lines = buffer.split('\n')
-            buffer = lines.pop() ?? ''
-            for (const line of lines) {
-              if (!line.startsWith('data: ')) continue
-              const raw = line.slice(6).trim()
-              if (raw === '[DONE]') {
-                await writer.write(encoder.encode('event: message_stop\ndata: {"type":"message_stop"}\n\n'))
-                break
-              }
-              try {
-                const evt = JSON.parse(raw)
-                const text = evt.choices?.[0]?.delta?.content
-                if (typeof text === 'string' && text.length > 0) {
-                  // Emit in Anthropic content_block_delta format so client parser works unchanged.
-                  const out = JSON.stringify({ type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text } })
-                  await writer.write(encoder.encode(`event: content_block_delta\ndata: ${out}\n\n`))
-                }
-              } catch { /* skip bad lines */ }
+    if (!upstream.ok) {
+      console.error(`${label} error:`, upstream.status)
+      return null
+    }
+    // Rewrite OpenAI SSE → Anthropic content_block_delta format so the client parser works unchanged.
+    const { readable, writable } = new TransformStream()
+    const writer = writable.getWriter()
+    const encoder = new TextEncoder()
+    const decoder = new TextDecoder();
+    (async () => {
+      const reader = upstream.body!.getReader()
+      let buffer = ''
+      try {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n')
+          buffer = lines.pop() ?? ''
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue
+            const raw = line.slice(6).trim()
+            if (raw === '[DONE]') {
+              await writer.write(encoder.encode('event: message_stop\ndata: {"type":"message_stop"}\n\n'))
+              break
             }
+            try {
+              const evt = JSON.parse(raw)
+              const text = evt.choices?.[0]?.delta?.content
+              if (typeof text === 'string' && text.length > 0) {
+                const out = JSON.stringify({ type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text } })
+                await writer.write(encoder.encode(`event: content_block_delta\ndata: ${out}\n\n`))
+              }
+            } catch { /* skip bad lines */ }
           }
-        } finally {
-          await writer.close().catch(() => {})
         }
-      })()
-
-      return new Response(readable, {
-        headers: { ...corsHeaders, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' },
-      })
-    }
-    console.error('Groq error:', upstream_.status)
+      } finally {
+        await writer.close().catch(() => {})
+      }
+    })()
+    return new Response(readable, {
+      headers: { ...corsHeaders, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' },
+    })
   }
 
-  return new Response(JSON.stringify({ error: 'No AI provider configured. Set ANTHROPIC_API_KEY or GROQ_API_KEY.' }), {
+  // ── 2. Groq primary ───────────────────────────────────────────────────────
+  if (groqKey) {
+    const res = await tryOpenAICompatible(
+      'https://api.groq.com/openai/v1/chat/completions',
+      `Bearer ${groqKey}`,
+      'llama-3.3-70b-versatile',
+      'Groq-primary',
+    )
+    if (res) return res
+  }
+
+  // ── 3. Groq secondary (GROQ_API_KEY_2) ───────────────────────────────────
+  if (groqKey2) {
+    const res = await tryOpenAICompatible(
+      'https://api.groq.com/openai/v1/chat/completions',
+      `Bearer ${groqKey2}`,
+      'llama-3.3-70b-versatile',
+      'Groq-secondary',
+    )
+    if (res) return res
+  }
+
+  // ── 4. OpenRouter (free tier — no credit card required) ───────────────────
+  // Sign up at openrouter.ai, copy API key, set as OPENROUTER_API_KEY secret.
+  if (openrouterKey) {
+    const res = await tryOpenAICompatible(
+      'https://openrouter.ai/api/v1/chat/completions',
+      `Bearer ${openrouterKey}`,
+      'meta-llama/llama-3.3-70b-instruct:free',
+      'OpenRouter',
+    )
+    if (res) return res
+  }
+
+  return new Response(JSON.stringify({ error: 'No AI provider available. Set ANTHROPIC_API_KEY, GROQ_API_KEY, GROQ_API_KEY_2, or OPENROUTER_API_KEY as Supabase secrets.' }), {
     status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
 })

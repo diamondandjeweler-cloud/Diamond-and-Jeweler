@@ -172,11 +172,16 @@ serve(async (req) => {
   // ── Log outcome for PHS calibration ──────────────────────────────────────
   const outcomeCode = body.outcome ? OUTCOME_LOG_MAP[body.outcome] : null
   if (outcomeCode) {
-    await db.from('match_outcomes').upsert({
-      match_id: body.match_id,
-      outcome: outcomeCode,
-      recorded_by: body.from_party,
-    }, { onConflict: 'match_id,outcome' }).catch(() => {/* ignore dup */})
+    try {
+      const { error: outcomeErr } = await db.from('match_outcomes').upsert({
+        match_id: body.match_id,
+        outcome: outcomeCode,
+        recorded_by: body.from_party,
+      }, { onConflict: 'match_id,outcome' })
+      if (outcomeErr) console.error('match_outcomes upsert error:', outcomeErr)
+    } catch (e) {
+      console.error('match_outcomes upsert threw:', e)
+    }
   }
 
   return new Response(JSON.stringify({

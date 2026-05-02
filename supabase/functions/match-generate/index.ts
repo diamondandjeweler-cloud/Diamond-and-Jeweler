@@ -251,7 +251,7 @@ serve(async (req) => {
   // Candidate pool: open, non-expired talents.
   const now = new Date().toISOString()
   const { data: talents } = await db.from('talents')
-    .select('id, profile_id, derived_tags, privacy_mode, whitelist_companies, date_of_birth_encrypted, life_chart_character, uses_lunar_calendar, location_matters, location_postcode, open_to_new_field, parsed_resume, deal_breakers, expected_salary_min, expected_salary_max, employment_type_preferences, feedback_score, education_level, has_noncompete, noncompete_industry_scope, salary_structure_preference, career_goal_horizon, job_intention, shortest_tenure_months, red_flags, phs_show_rate, phs_accept_rate, phs_pass_probation_rate, phs_stay_6m_rate, preferred_management_style, notice_period_days, work_arrangement_preference, profiles!inner(ghost_score, is_banned)')
+    .select('id, profile_id, derived_tags, privacy_mode, whitelist_companies, date_of_birth_encrypted, life_chart_character, uses_lunar_calendar, location_matters, location_postcode, open_to_new_field, parsed_resume, deal_breakers, expected_salary_min, expected_salary_max, employment_type_preferences, feedback_score, education_level, has_noncompete, noncompete_industry_scope, salary_structure_preference, career_goal_horizon, job_intention, shortest_tenure_months, red_flags, phs_show_rate, phs_accept_rate, phs_pass_probation_rate, phs_stay_6m_rate, preferred_management_style, notice_period_days, work_arrangement_preference, role_scope_preference, profiles!inner(ghost_score, is_banned)')
     .eq('is_open_to_offers', true)
     .eq('profiles.is_banned', false)
     .or(`profile_expires_at.is.null,profile_expires_at.gte.${now}`)
@@ -839,6 +839,7 @@ serve(async (req) => {
       managementStyleFit,
       urgencyFit,
       workArrangementFit,
+      talentRoleScopePref: (t as unknown as { role_scope_preference: string | null }).role_scope_preference ?? null,
       finalScore,
       ghostScore,
       ghostThreshold,
@@ -1031,6 +1032,7 @@ interface ScoredCandidate {
   managementStyleFit: number | null
   urgencyFit: number | null
   workArrangementFit: number | null
+  talentRoleScopePref: string | null
   finalScore: number
   ghostScore: number
   ghostThreshold: number
@@ -1144,6 +1146,10 @@ function buildPublicReasoning(s: ScoredCandidate, roleTraits: string[]) {
 
   if (s.jobIntentionFit != null && s.jobIntentionFit < 70) {
     watchouts.push('Candidate indicated they are looking to gain specific experience before moving on — confirm long-term commitment expectations early.')
+  }
+
+  if (s.talentRoleScopePref === 'specialist') {
+    watchouts.push('Candidate prefers a specialist scope — confirm this role does not require wearing multiple hats or switching between unrelated functions.')
   }
 
   if (s.managementStyleFit != null) {

@@ -30,7 +30,7 @@ type Phase = 'basics' | 'chat' | 'mustHaves' | 'demographics' | 'hiringDetails' 
 interface ApiMessage { role: 'user' | 'assistant'; content: string }
 
 const BO_GREETING =
-  "Hi! I'm DNJ — your hiring consultant from DNJ. I'm here to understand your team and what kind of person would genuinely thrive working with you, so we can find the right match.\n\nLet's start: what role and industry are you hiring for?"
+  "Hey! I'm Bo, your hiring buddy at DNJ. Let's start with just a few quick basics about the role — nothing heavy yet.\n\nFirst up: what role are you hiring for and which industry are you in?"
 
 export default function HMOnboarding() {
   const { session, profile, refresh } = useSession()

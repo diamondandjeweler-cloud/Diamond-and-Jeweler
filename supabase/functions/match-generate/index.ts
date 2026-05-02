@@ -1147,7 +1147,7 @@ function buildPublicReasoning(s: ScoredCandidate, roleTraits: string[]) {
   }
 
   if (s.managementStyleFit != null) {
-    if (s.managementStyleFit >= 85) strengths.push('Management style aligns well with this candidate's preference — smooth working dynamic expected.')
+    if (s.managementStyleFit >= 85) strengths.push("Management style aligns well with this candidate's preference — smooth working dynamic expected.")
     else if (s.managementStyleFit < 50) watchouts.push('Management style mismatch — candidate may struggle with how this team is led. Discuss expectations explicitly.')
   }
 

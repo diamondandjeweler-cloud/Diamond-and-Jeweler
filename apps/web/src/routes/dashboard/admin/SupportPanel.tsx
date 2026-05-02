@@ -88,7 +88,6 @@ export default function SupportPanel() {
     setWorking(null)
   }
 
-  const counts = { all: tickets.length } as Record<string, number>
   const filterTabs: Array<{ key: 'all' | TicketStatus; label: string }> = [
     { key: 'open',        label: 'Open' },
     { key: 'in_progress', label: 'In progress' },

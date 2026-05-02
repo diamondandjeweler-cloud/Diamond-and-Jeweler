@@ -1,12 +1,11 @@
-{
+﻿{
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "bole-web",
+      "name": "dnj-web",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "cwd": "apps/web",
-      "port": 3000
+      "runtimeArgs": ["run", "dev", "--workspace=apps/web"],
+      "port": 5173
     }
   ]
 }

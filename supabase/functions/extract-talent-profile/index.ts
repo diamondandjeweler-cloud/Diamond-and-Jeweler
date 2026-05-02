@@ -76,7 +76,15 @@ Return this exact JSON structure (use null for any value not mentioned):
   "deal_breaker_items": string[],
   "red_flags": string[],
   "summary": string | null,
-  "employment_type_preferences": string[]
+  "employment_type_preferences": string[],
+  "has_noncompete": boolean | null,
+  "noncompete_industry_scope": "same_industry" | "any_industry" | "none" | null,
+  "salary_structure_preference": "fixed_only" | "fixed_plus_variable" | "commission_ok" | "fully_commission_ok" | null,
+  "role_scope_preference": "specialist" | "generalist" | "flexible" | null,
+  "career_goal_horizon": "senior_specialist" | "people_manager" | "career_pivot" | "entrepreneurial" | "undecided" | null,
+  "job_intention": "long_term_commitment" | "skill_building" | "undecided" | null,
+  "shortest_tenure_months": number | null,
+  "avg_tenure_months": number | null
 }
 
 Extraction rules:
@@ -109,6 +117,15 @@ Extraction rules:
 - red_flags: specific concerns observed in the conversation — e.g. ["bad-mouths previous employer", "vague on all behavioural questions", "unemployed 8+ months with no explanation", "job-hopped 4 times in 3 years", "unrealistic salary expectation", "contradicts own stated values"]. Empty array if none.
 - summary: 2-sentence recruiter-facing summary of career background and strengths — no personal details, no employer names.
 - employment_type_preferences: use only "full_time", "part_time", "contract", "gig", "internship". Empty array if not mentioned.
+- has_noncompete: true if they mentioned having a non-compete, service bond, or IP restriction. false if explicitly said they have none. null if not discussed.
+- noncompete_industry_scope: "same_industry" if their non-compete restricts the same industry/field they are targeting. "any_industry" if it restricts broadly. "none" if no restriction. null if has_noncompete is null.
+- salary_structure_preference: "fixed_only" = needs 100% guaranteed salary, no commission. "fixed_plus_variable" = ok with fixed base plus bonus. "commission_ok" = comfortable with partial commission. "fully_commission_ok" = ok with fully commission-based pay.
+- role_scope_preference: "specialist" = wants clearly defined, narrow scope. "generalist" = comfortable handling many different things. "flexible" = open to either.
+- career_goal_horizon: "senior_specialist" = wants to deepen expertise in the same field. "people_manager" = wants to grow into managing people. "career_pivot" = wants to change field or function entirely. "entrepreneurial" = building toward running their own business. "undecided" = not sure or not stated.
+- job_intention: "long_term_commitment" = explicitly looking for a company to grow with long-term. "skill_building" = stated they want to gain specific experience and may move on in 2–3 years. "undecided" = not stated or unclear.
+- shortest_tenure_months: the shortest time they stayed in any single role mentioned in the conversation. If they mentioned "6 months at one place" and "2 years at another", output 6. null if only one role ever discussed.
+- avg_tenure_months: rough average months per role based on total years experience divided by number of roles mentioned. null if cannot be reasonably estimated.
+- red_flags: specific concerns observed — e.g. ["bad-mouths previous employer", "vague on all behavioural questions", "unemployed 8+ months with no explanation", "job-hopped 4 times in 3 years", "unrealistic salary expectation", "contradicts own stated values", "story inconsistency: claimed X years but timeline does not add up", "shifted reason for leaving mid-conversation"]. Flag timeline contradictions and story shifts explicitly.
 - DO NOT include name, phone, email, company names, or any personal identifiers.
 `.trim()
 
@@ -157,7 +174,7 @@ async function callExtractionAI(prompt: string): Promise<Record<string, unknown>
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 2048, messages: [{ role: 'user', content: prompt }] }),
+        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 3000, messages: [{ role: 'user', content: prompt }] }),
         signal: ac.signal,
       })
       if (res.ok) {
@@ -174,7 +191,7 @@ async function callExtractionAI(prompt: string): Promise<Record<string, unknown>
       const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
-        body: JSON.stringify({ model: 'llama-3.3-70b-versatile', max_tokens: 2048, messages: [{ role: 'user', content: prompt }] }),
+        body: JSON.stringify({ model: 'llama-3.3-70b-versatile', max_tokens: 3000, messages: [{ role: 'user', content: prompt }] }),
         signal: ac.signal,
       })
       if (res.ok) {

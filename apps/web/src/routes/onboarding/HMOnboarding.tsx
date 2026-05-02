@@ -247,6 +247,10 @@ export default function HMOnboarding() {
         culture_offers: Record<string, number>
         salary_offer_min: number | null
         salary_offer_max: number | null
+        career_growth_potential: string | null
+        interview_stages: number | null
+        panel_involved: boolean | null
+        required_work_authorization: string[]
         summary: string | null
       }
 
@@ -293,6 +297,10 @@ export default function HMOnboarding() {
           interview_answers: { transcript: apiMessages },
           must_haves: { items: mustHaveItems },
           must_have_items: extracted.must_have_items?.length ? extracted.must_have_items : (mustHaveItems.length ? mustHaveItems : null),
+          career_growth_potential: extracted.career_growth_potential ?? null,
+          interview_stages: extracted.interview_stages ?? null,
+          panel_involved: extracted.panel_involved ?? null,
+          required_work_authorization: extracted.required_work_authorization?.length ? extracted.required_work_authorization : null,
         })
         .eq('id', hmRow.id)
       if (updateErr) throw updateErr

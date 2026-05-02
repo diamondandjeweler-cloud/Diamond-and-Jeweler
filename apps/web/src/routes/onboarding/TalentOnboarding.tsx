@@ -348,6 +348,14 @@ export default function TalentOnboarding() {
         wants_team_culture: number
         summary: string | null
         employment_type_preferences: string[]
+        has_noncompete: boolean | null
+        noncompete_industry_scope: string | null
+        salary_structure_preference: string | null
+        role_scope_preference: string | null
+        career_goal_horizon: string | null
+        job_intention: string | null
+        shortest_tenure_months: number | null
+        avg_tenure_months: number | null
       }
 
       const allTags: Record<string, number> = {
@@ -403,6 +411,14 @@ export default function TalentOnboarding() {
         preferred_management_style: extracted.preferred_management_style ?? null,
         deal_breaker_items: extracted.deal_breaker_items?.length ? extracted.deal_breaker_items : null,
         red_flags: extracted.red_flags?.length ? extracted.red_flags : null,
+        has_noncompete: extracted.has_noncompete ?? null,
+        noncompete_industry_scope: extracted.noncompete_industry_scope ?? null,
+        salary_structure_preference: extracted.salary_structure_preference ?? null,
+        role_scope_preference: extracted.role_scope_preference ?? null,
+        career_goal_horizon: extracted.career_goal_horizon ?? null,
+        job_intention: extracted.job_intention ?? null,
+        shortest_tenure_months: extracted.shortest_tenure_months ?? null,
+        avg_tenure_months: extracted.avg_tenure_months ?? null,
         photo_url: photoPath,
         deal_breakers: {
           items: dealBreakerItems,

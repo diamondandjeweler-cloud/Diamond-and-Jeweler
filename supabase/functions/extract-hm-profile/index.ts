@@ -67,6 +67,10 @@ Return this exact JSON structure (use null for any value not mentioned):
   },
   "salary_offer_min": number | null,
   "salary_offer_max": number | null,
+  "career_growth_potential": "dead_end" | "structured_path" | "ad_hoc" | null,
+  "interview_stages": number | null,
+  "panel_involved": boolean | null,
+  "required_work_authorization": string[],
   "summary": string | null
 }
 
@@ -84,6 +88,10 @@ Extraction rules:
 - required_traits: talent tag names the HM wants. Use only: self_starter, collaborator, growth_minded, reliable, customer_focused, detail_oriented, analytical, accountable, clear_communicator, adaptable, leadership.
 - culture_offers: what the team/company genuinely offers, inferred from HM's descriptions. 0.0–1.0.
 - salary_offer_min / salary_offer_max: RM per month as numbers. Single number = use for both.
+- career_growth_potential: "dead_end" = the HM explicitly said or implied there is no promotion path from this role. "structured_path" = there is a clear, stated path to grow or be promoted. "ad_hoc" = growth is possible but not structured or guaranteed.
+- interview_stages: total number of interview rounds in their process. 1 = single interview. 2 = two rounds. null if not mentioned.
+- panel_involved: true if there will be a panel interview or multiple interviewers in any round. false if it is always 1-on-1. null if not mentioned.
+- required_work_authorization: list of work authorization types the HM will accept. Use only: "citizen", "pr", "ep", "rpt", "dp". Empty array if no restriction stated (anyone considered). Example: ["citizen", "pr"] if they said citizens and PRs only.
 - summary: 2-sentence recruiter-facing description of team culture and ideal candidate profile — no personal or company identifiers.
 - DO NOT include any personal names, phone numbers, company names, or identifiers.
 `.trim()

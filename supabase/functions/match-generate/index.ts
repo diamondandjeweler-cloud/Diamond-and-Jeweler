@@ -75,7 +75,7 @@ serve(async (req) => {
 
   // Resolve HM data: DOB + character + culture_offers.
   const { data: hm } = await db.from('hiring_managers')
-    .select('date_of_birth_encrypted, culture_offers, life_chart_character, must_haves, culture_data_source, hm_quality_factor, hm_cancel_rate')
+    .select('date_of_birth_encrypted, culture_offers, life_chart_character, must_haves, culture_data_source, hm_quality_factor, hm_cancel_rate, required_work_authorization, career_growth_potential')
     .eq('id', role.hiring_manager_id).maybeSingle()
   let hmDobText: string | null = null
   let cultureOffers: Record<string, number> | null = null
@@ -90,9 +90,13 @@ serve(async (req) => {
   if (hm?.culture_offers && typeof hm.culture_offers === 'object') {
     cultureOffers = hm.culture_offers as Record<string, number>
   }
+  const hmRequiredWorkAuth: string[] = Array.isArray((hm as unknown as { required_work_authorization: string[] | null } | null)?.required_work_authorization)
+    ? (hm as unknown as { required_work_authorization: string[] }).required_work_authorization
+    : []
+  const hmCareerGrowthPotential: string | null = (hm as unknown as { career_growth_potential: string | null } | null)?.career_growth_potential ?? null
 
   // Matching weights, overridable via system_config.
-  const [wBehRow, wTagRow, wSalRow, wCultureRow, wEmpRow, wCharRow, wAgeRow, wLocRow, wBgRow, wFbRow, wPeakRow, wBoostRow, wExpRow, wEduRow] = await Promise.all([
+  const [wBehRow, wTagRow, wSalRow, wCultureRow, wEmpRow, wCharRow, wAgeRow, wLocRow, wBgRow, wFbRow, wPeakRow, wBoostRow, wExpRow, wEduRow, wCGRow, wJIRow] = await Promise.all([
     db.from('system_config').select('value').eq('key', 'weight_behavioral_fitness').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_tag_compatibility').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_salary_fit').maybeSingle(),
@@ -107,6 +111,8 @@ serve(async (req) => {
     db.from('system_config').select('value').eq('key', 'weight_monthly_boost').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_experience_fit').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_education_fit').maybeSingle(),
+    db.from('system_config').select('value').eq('key', 'weight_career_goal_fit').maybeSingle(),
+    db.from('system_config').select('value').eq('key', 'weight_job_intention_fit').maybeSingle(),
   ])
   let weightBehavioral = typeof wBehRow.data?.value     === 'number' ? wBehRow.data.value     : 0.20
   let weightTag        = typeof wTagRow.data?.value     === 'number' ? wTagRow.data.value     : 0.50
@@ -120,8 +126,10 @@ serve(async (req) => {
   let weightFeedback   = typeof wFbRow.data?.value      === 'number' ? wFbRow.data.value      : 0.10
   let weightPeakAge      = typeof wPeakRow.data?.value    === 'number' ? wPeakRow.data.value    : 0.10
   let weightMonthlyBoost = typeof wBoostRow.data?.value  === 'number' ? wBoostRow.data.value  : 0.12
-  let weightExperience   = typeof wExpRow.data?.value    === 'number' ? wExpRow.data.value    : 0.08
-  let weightEducation    = typeof wEduRow.data?.value    === 'number' ? wEduRow.data.value    : 0.05
+  let weightExperience    = typeof wExpRow.data?.value === 'number' ? wExpRow.data.value : 0.08
+  let weightEducation     = typeof wEduRow.data?.value === 'number' ? wEduRow.data.value : 0.05
+  let weightCareerGoal    = typeof wCGRow.data?.value  === 'number' ? wCGRow.data.value  : 0.06
+  let weightJobIntention  = typeof wJIRow.data?.value  === 'number' ? wJIRow.data.value  : 0.04
 
   // Fix e: role-type weight presets — shift relative emphasis for different role families.
   const roleWeightPreset = ((role as { weight_preset?: string }).weight_preset ?? '').toLowerCase()
@@ -150,8 +158,10 @@ serve(async (req) => {
     if (p.background  !== undefined) weightBackground = p.background
     if (p.feedback    !== undefined) weightFeedback   = p.feedback
     if ((p as Record<string, number>).peak_age   !== undefined) weightPeakAge   = (p as Record<string, number>).peak_age
-    if ((p as Record<string, number>).experience  !== undefined) weightExperience = (p as Record<string, number>).experience
-    if ((p as Record<string, number>).education   !== undefined) weightEducation  = (p as Record<string, number>).education
+    if ((p as Record<string, number>).experience    !== undefined) weightExperience   = (p as Record<string, number>).experience
+    if ((p as Record<string, number>).education     !== undefined) weightEducation    = (p as Record<string, number>).education
+    if ((p as Record<string, number>).career_goal   !== undefined) weightCareerGoal   = (p as Record<string, number>).career_goal
+    if ((p as Record<string, number>).job_intention !== undefined) weightJobIntention = (p as Record<string, number>).job_intention
   }
 
   // Fix c: culture signals from onboarding chat are AI-inferred — reduce weight by half
@@ -214,7 +224,7 @@ serve(async (req) => {
   // Candidate pool: open, non-expired talents.
   const now = new Date().toISOString()
   const { data: talents } = await db.from('talents')
-    .select('id, profile_id, derived_tags, privacy_mode, whitelist_companies, date_of_birth_encrypted, life_chart_character, uses_lunar_calendar, location_matters, location_postcode, open_to_new_field, parsed_resume, deal_breakers, expected_salary_min, expected_salary_max, employment_type_preferences, feedback_score, education_level, phs_show_rate, phs_accept_rate, phs_pass_probation_rate, phs_stay_6m_rate, profiles!inner(ghost_score, is_banned)')
+    .select('id, profile_id, derived_tags, privacy_mode, whitelist_companies, date_of_birth_encrypted, life_chart_character, uses_lunar_calendar, location_matters, location_postcode, open_to_new_field, parsed_resume, deal_breakers, expected_salary_min, expected_salary_max, employment_type_preferences, feedback_score, education_level, has_noncompete, noncompete_industry_scope, salary_structure_preference, career_goal_horizon, job_intention, shortest_tenure_months, red_flags, phs_show_rate, phs_accept_rate, phs_pass_probation_rate, phs_stay_6m_rate, profiles!inner(ghost_score, is_banned)')
     .eq('is_open_to_offers', true)
     .eq('profiles.is_banned', false)
     .or(`profile_expires_at.is.null,profile_expires_at.gte.${now}`)
@@ -384,6 +394,20 @@ serve(async (req) => {
     if (edb.no_relocation    && roleRequiresRelocation) return null
     if (edb.no_overtime      && roleRequiresOvertime) return null
     if (edb.no_commission_only && roleIsCommissionBased) return null
+
+    // Salary structure vs commission-based role
+    const talentSalaryStructure = (t as unknown as { salary_structure_preference: string | null }).salary_structure_preference ?? null
+    if (talentSalaryStructure === 'fixed_only' && roleIsCommissionBased) return null
+
+    // Non-compete same-industry hard filter (applied after bgOverlaps is computed later)
+    const talentHasNoncompete = (t as unknown as { has_noncompete: boolean | null }).has_noncompete === true
+    const talentNoncompeteScope = (t as unknown as { noncompete_industry_scope: string | null }).noncompete_industry_scope ?? null
+
+    // Work authorization filter: if HM has a whitelist, talent must be in it
+    if (hmRequiredWorkAuth.length > 0) {
+      const talentWorkAuth = (t as unknown as { work_authorization: string | null }).work_authorization ?? null
+      if (!talentWorkAuth || !hmRequiredWorkAuth.includes(talentWorkAuth)) return null
+    }
     // ─────────────────────────────────────────────────────────────────────────
 
     // ── Behavioral fitness: weighted avg of 9 behavioural interview tags ──────
@@ -469,6 +493,44 @@ serve(async (req) => {
       const minRank    = EDU_ORDER[EDU_MIN[experienceLevel]] ?? 0
       educationFit = talentRank >= minRank ? 100 : Math.max(20, 100 - (minRank - talentRank) * 30)
     }
+
+    // ── Non-compete same-industry check (now that bgOverlaps is available) ─────
+    // bgOverlaps is computed later — we defer this check by computing it inline
+    const bgOverlapsForNoncompete = await backgroundOverlaps(
+      (parsedResume as { job_areas?: unknown } | null)?.job_areas
+    )
+    if (talentHasNoncompete && talentNoncompeteScope === 'same_industry' && bgOverlapsForNoncompete) {
+      return null  // non-compete blocks same-industry match
+    }
+
+    // ── Career goal fit ───────────────────────────────────────────────────────
+    const talentCareerGoal = (t as unknown as { career_goal_horizon: string | null }).career_goal_horizon ?? null
+    let careerGoalFit: number | null = null
+    if (talentCareerGoal && hmCareerGrowthPotential) {
+      if (hmCareerGrowthPotential === 'dead_end') {
+        const wantsGrowth = tags['wants_growth'] ?? 0
+        careerGoalFit = wantsGrowth >= 0.6 ? 25 : 55  // high growth want + dead-end = mismatch
+      } else if (hmCareerGrowthPotential === 'structured_path') {
+        careerGoalFit = talentCareerGoal === 'entrepreneurial' ? 55 : 90
+      } else {  // ad_hoc
+        careerGoalFit = talentCareerGoal === 'undecided' || talentCareerGoal === 'skill_building' ? 75 : 65
+      }
+    }
+
+    // ── Job intention fit ─────────────────────────────────────────────────────
+    const talentJobIntention = (t as unknown as { job_intention: string | null }).job_intention ?? null
+    let jobIntentionFit: number | null = null
+    if (talentJobIntention) {
+      if (talentJobIntention === 'long_term_commitment') jobIntentionFit = 100
+      else if (talentJobIntention === 'skill_building') jobIntentionFit = 55
+      else jobIntentionFit = 75  // undecided = neutral
+    }
+
+    // ── Tenure signals (for Golden Rule and public reasoning) ─────────────────
+    const talentShortestTenure = (t as unknown as { shortest_tenure_months: number | null }).shortest_tenure_months ?? null
+    const talentRedFlags: string[] = Array.isArray((t as unknown as { red_flags: string[] | null }).red_flags)
+      ? (t as unknown as { red_flags: string[] }).red_flags
+      : []
 
     // ── Internal stage signals for the talent (private). ──
     let talentStage: number | null = null
@@ -625,7 +687,9 @@ serve(async (req) => {
       { name: 'peak_age_window',    score: peakAgeScore ?? 0,       weight: peakAgeScore     != null ? weightPeakAge    : 0 },
       { name: 'monthly_boost',      score: monthlyBoostScore,        weight: monthlyBoostedChars.size > 0 ? weightMonthlyBoost : 0 },
       { name: 'experience_fit',     score: experienceFit ?? 0,       weight: experienceFit    != null ? weightExperience : 0 },
-      { name: 'education_fit',      score: educationFit ?? 0,        weight: educationFit     != null ? weightEducation  : 0 },
+      { name: 'education_fit',      score: educationFit ?? 0,        weight: educationFit     != null ? weightEducation    : 0 },
+      { name: 'career_goal_fit',    score: careerGoalFit ?? 0,       weight: careerGoalFit    != null ? weightCareerGoal   : 0 },
+      { name: 'job_intention_fit',  score: jobIntentionFit ?? 0,     weight: jobIntentionFit  != null ? weightJobIntention : 0 },
     ]
     const totalW = dims.reduce((acc, d) => acc + d.weight, 0)
     const rawScore = totalW > 0
@@ -700,6 +764,10 @@ serve(async (req) => {
       feedbackScore,
       experienceFit,
       educationFit,
+      careerGoalFit,
+      jobIntentionFit,
+      talentShortestTenure,
+      talentRedFlagsCount: talentRedFlags.length,
       finalScore,
       ghostScore,
       ghostThreshold,
@@ -745,7 +813,13 @@ serve(async (req) => {
         education_fit:  educationFit  != null ? Number(educationFit.toFixed(2))  : null,
         talent_years_experience: talentYearsExp,
         talent_education_level:  talentEduLevel,
-        weights: { behavioral: weightBehavioral, tag: weightTag, salary: weightSalary, culture: weightCulture, employment: weightEmployment, character: weightCharacter, age: weightAge, location: weightLocation, background: weightBackground, feedback: weightFeedback, peak_age: weightPeakAge, monthly_boost: weightMonthlyBoost, experience: weightExperience, education: weightEducation },
+        career_goal_fit:  careerGoalFit  != null ? Number(careerGoalFit.toFixed(2))  : null,
+        job_intention_fit: jobIntentionFit != null ? Number(jobIntentionFit.toFixed(2)) : null,
+        talent_career_goal: talentCareerGoal,
+        talent_job_intention: talentJobIntention,
+        talent_shortest_tenure_months: talentShortestTenure,
+        hm_career_growth_potential: hmCareerGrowthPotential,
+        weights: { behavioral: weightBehavioral, tag: weightTag, salary: weightSalary, culture: weightCulture, employment: weightEmployment, character: weightCharacter, age: weightAge, location: weightLocation, background: weightBackground, feedback: weightFeedback, peak_age: weightPeakAge, monthly_boost: weightMonthlyBoost, experience: weightExperience, education: weightEducation, career_goal: weightCareerGoal, job_intention: weightJobIntention },
         active_dimensions: activeDims,
         effective_weights: effectiveWeights,
         ghost_score: ghostScore,
@@ -870,6 +944,10 @@ interface ScoredCandidate {
   feedbackScore: number | null
   experienceFit: number | null
   educationFit: number | null
+  careerGoalFit: number | null
+  jobIntentionFit: number | null
+  talentShortestTenure: number | null
+  talentRedFlagsCount: number
   finalScore: number
   ghostScore: number
   ghostThreshold: number
@@ -973,6 +1051,34 @@ function buildPublicReasoning(s: ScoredCandidate, roleTraits: string[]) {
 
   if (s.educationFit != null && s.educationFit < 80) {
     watchouts.push('Education level may be below the typical minimum for this role — verify qualifications before shortlisting.')
+  }
+
+  if (s.careerGoalFit != null && s.careerGoalFit < 50) {
+    watchouts.push('Career goal may not align with what this role offers — clarify growth expectations and promotion path in the interview.')
+  } else if (s.careerGoalFit != null && s.careerGoalFit >= 85) {
+    strengths.push('Career direction aligns well with what this role offers.')
+  }
+
+  if (s.jobIntentionFit != null && s.jobIntentionFit < 70) {
+    watchouts.push('Candidate indicated they are looking to gain specific experience before moving on — confirm long-term commitment expectations early.')
+  }
+
+  if (s.talentShortestTenure != null && s.talentShortestTenure < 12) {
+    watchouts.push(`Shortest recorded tenure is under 12 months — probe reasons for short stints and test commitment to this role.`)
+  }
+
+  // ── Golden Rule: 4+ uncertain dimensions = structured second interview recommended ──
+  let doubtCount = 0
+  if (s.tagComp < 50) doubtCount++
+  if (s.behavioralFitness != null && s.behavioralFitness < 50) doubtCount++
+  if (s.salaryFit != null && s.salaryFit < 40) doubtCount++
+  if (s.backgroundScore < 50) doubtCount++
+  if (s.experienceFit != null && s.experienceFit < 60) doubtCount++
+  if (s.educationFit != null && s.educationFit < 60) doubtCount++
+  if (s.talentRedFlagsCount > 0) doubtCount++
+  if (s.talentShortestTenure != null && s.talentShortestTenure < 12) doubtCount++
+  if (doubtCount >= 4) {
+    watchouts.push(`Platform signals ${doubtCount}/8 evaluation dimensions as uncertain. A wrong hire costs 3+ months' salary plus team morale — a structured second-round interview is strongly recommended before shortlisting.`)
   }
 
   // Fix f: surface ghost-score penalty when candidate has a pattern of slow/no responses.

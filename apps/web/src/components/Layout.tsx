@@ -38,7 +38,7 @@ export default function Layout() {
               className="flex items-center gap-2.5 group"
             >
               <Logo />
-              <span className="font-display text-xl text-ink-900 tracking-tight group-hover:text-brand-700 transition-colors">DNJ</span>
+              <span className="font-sans font-semibold text-xl text-ink-900 tracking-tight group-hover:text-brand-700 transition-colors">DNJ</span>
             </Link>
 
             {navItems.length > 0 && (

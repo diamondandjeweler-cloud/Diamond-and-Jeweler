@@ -23,7 +23,7 @@ export default function Landing() {
       <header className="px-6 py-5">
         <Link to="/" className="inline-flex items-center gap-2" aria-label="DNJ home">
           <Logo />
-          <span className="font-display text-xl text-ink-900">DNJ</span>
+          <span className="font-sans font-semibold text-xl text-ink-900">DNJ</span>
         </Link>
       </header>
 

@@ -92,7 +92,7 @@ export default function AuthShell({
           {/* Logo */}
           <Link to="/" className="inline-flex items-center gap-2 mb-8" aria-label="DNJ home">
             <Logo gradFrom={cfg.logoGradFrom} gradTo={cfg.logoGradTo} />
-            <span className="font-display text-xl tracking-wide" style={{ color: '#0a0a0f' }}>
+            <span className="font-sans font-semibold text-xl tracking-wide" style={{ color: '#0a0a0f' }}>
               DNJ
             </span>
           </Link>

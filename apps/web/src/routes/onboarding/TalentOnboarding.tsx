@@ -30,7 +30,7 @@ type Phase = 'basics' | 'chat' | 'dob' | 'dealbreakers' | 'docs' | 'review' | 's
 interface ApiMessage { role: 'user' | 'assistant'; content: string }
 
 const BO_GREETING =
-  "Hi! I'm DNJ — your career advisor for DNJ. I'm here to learn about your career so we can match you with employers who are genuinely a good fit.\n\nLet's start: what type of role and job scope are you targeting? Even something rough is fine — I'll help you sharpen it."
+  "Hey there! I'm DNJ, your career buddy. Let's keep this easy — just a few quick questions to get a feel for what you're after. Nothing heavy, I promise.\n\nTo kick things off: what kind of role are you hoping to land next? Even a rough idea works perfectly."
 
 export default function TalentOnboarding() {
   const { session, refresh } = useSession()

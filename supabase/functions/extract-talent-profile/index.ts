@@ -13,9 +13,9 @@ import { corsHeaders, handleOptions } from '../_shared/cors.ts'
 import { authenticate } from '../_shared/auth.ts'
 
 interface Message { role: 'user' | 'assistant'; content: string }
-interface Body { messages?: Message[] }
+interface Body { messages?: Message[]; resume_text?: string }
 
-const buildPrompt = (transcript: string) => `
+const buildPrompt = (transcript: string, resumeText?: string) => `
 You are a precise data extractor for a recruitment platform. Read the career interview transcript below and extract structured career profile data.
 
 Return ONLY valid JSON — no markdown fences, no explanation, no extra text whatsoever.
@@ -23,7 +23,10 @@ Return ONLY valid JSON — no markdown fences, no explanation, no extra text wha
 The transcript contains NO personal identifiers (no names, no phone numbers, no IC numbers, no employer names) — do not try to infer or add any.
 
 Transcript:
-${transcript}
+${transcript}${resumeText ? `
+
+Résumé text (use to cross-reference transcript claims, fill gaps, and flag inconsistencies — e.g. tenure mismatch, skills not mentioned verbally, undisclosed gaps):
+${resumeText.slice(0, 3500)}` : ''}
 
 Return this exact JSON structure (use null for any value not mentioned):
 {
@@ -155,7 +158,7 @@ serve(async (req) => {
     .map((m) => `${m.role === 'assistant' ? 'Bo' : 'Candidate'}: ${m.content}`)
     .join('\n\n')
 
-  const result = await callExtractionAI(buildPrompt(transcript))
+  const result = await callExtractionAI(buildPrompt(transcript, body.resume_text))
   if (result instanceof Response) return result
 
   return new Response(JSON.stringify(result), {

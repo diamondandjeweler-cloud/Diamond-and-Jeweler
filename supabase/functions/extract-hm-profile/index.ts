@@ -71,6 +71,8 @@ Return this exact JSON structure (use null for any value not mentioned):
   "interview_stages": number | null,
   "panel_involved": boolean | null,
   "required_work_authorization": string[],
+  "failure_at_90_days": string | null,
+  "failure_pattern": string | null,
   "summary": string | null
 }
 
@@ -92,6 +94,8 @@ Extraction rules:
 - interview_stages: total number of interview rounds in their process. 1 = single interview. 2 = two rounds. null if not mentioned.
 - panel_involved: true if there will be a panel interview or multiple interviewers in any round. false if it is always 1-on-1. null if not mentioned.
 - required_work_authorization: list of work authorization types the HM will accept. Use only: "citizen", "pr", "ep", "rpt", "dp". Empty array if no restriction stated (anyone considered). Example: ["citizen", "pr"] if they said citizens and PRs only.
+- failure_at_90_days: what the HM described as failure at day 90 — specific observable outcomes or missed deliverables. 1-2 sentences. null if not discussed.
+- failure_pattern: the pattern of failure the HM has observed in past candidates for this type of role — what looked good on paper but broke down in practice. 1-2 sentences. null if not discussed.
 - summary: 2-sentence recruiter-facing description of team culture and ideal candidate profile — no personal or company identifiers.
 - DO NOT include any personal names, phone numbers, company names, or identifiers.
 `.trim()

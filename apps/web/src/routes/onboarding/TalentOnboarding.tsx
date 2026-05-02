@@ -23,8 +23,9 @@ import { getLifeChartCharacter, type Gender } from '../../lib/lifeChartCharacter
 import ChatShell, { ChatMessage } from '../../components/ChatShell'
 import { Button, Alert } from '../../components/ui'
 import DobConfirmModal from '../../components/DobConfirmModal'
+import Consent from '../../components/Consent'
 
-type Phase = 'basics' | 'chat' | 'dob' | 'dealbreakers' | 'docs' | 'submit' | 'done' | 'resume'
+type Phase = 'basics' | 'chat' | 'dob' | 'dealbreakers' | 'docs' | 'review' | 'submit' | 'done' | 'resume'
 
 interface ApiMessage { role: 'user' | 'assistant'; content: string }
 
@@ -67,6 +68,7 @@ export default function TalentOnboarding() {
   const [noRelocation, setNoRelocation] = useState(false)
   const [noOvertime, setNoOvertime] = useState(false)
   const [noCommissionOnly, setNoCommissionOnly] = useState(false)
+  const [dobConsent, setDobConsent] = useState(false)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
@@ -296,6 +298,17 @@ export default function TalentOnboarding() {
       const token = authData.session?.access_token
       if (!token) throw new Error('Not authenticated')
 
+      // Best-effort: read resume as text for cross-referencing in the extract prompt.
+      // Works for plain-text and some simple PDFs; silently skipped for binary formats.
+      let resumeText: string | undefined
+      try {
+        const raw = await resumeFile!.text()
+        // Discard if it looks like raw binary (PDF/DOCX binary headers)
+        if (raw.length > 50 && raw.charCodeAt(0) >= 32) {
+          resumeText = raw.slice(0, 4000)
+        }
+      } catch { /* best effort */ }
+
       const extAbort = new AbortController()
       const extTimeout = setTimeout(() => extAbort.abort(), 120_000)
       let extRes: Response
@@ -305,7 +318,7 @@ export default function TalentOnboarding() {
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ messages: apiMessages }),
+            body: JSON.stringify({ messages: apiMessages, resume_text: resumeText }),
             signal: extAbort.signal,
           },
         )
@@ -759,6 +772,12 @@ export default function TalentOnboarding() {
               </span>
             </span>
           </label>
+          <Consent
+            checked={dobConsent}
+            onChange={setDobConsent}
+            label="I consent to DNJ collecting my date of birth for career timing and compatibility analysis. It is encrypted and never shown to employers."
+            required
+          />
           <Button
             onClick={() => {
               // Server-side belt: also enforce 18+ here in case max attribute is bypassed.
@@ -777,6 +796,7 @@ export default function TalentOnboarding() {
               !dob || !gender || locationMatters === null
               || (locationMatters === true && locationPostcode.length !== 5)
               || !race || !religion || languages.length === 0
+              || !dobConsent
             }
             className="w-full"
             size="lg"
@@ -979,14 +999,71 @@ export default function TalentOnboarding() {
           </p>
           {err && <Alert tone="red">{err}</Alert>}
           <Button
+            onClick={() => setPhase('review')}
+            disabled={!photoFile || !resumeFile}
+            className="w-full"
+            size="lg"
+          >
+            Review &amp; confirm
+          </Button>
+        </div>
+      )
+    }
+
+    if (phase === 'review') {
+      const activeConstraints = [
+        noWeekendWork && 'No weekend work',
+        noDrivingLicense && 'No driving licence required',
+        noTravel && 'No travel',
+        noNightShifts && 'No night shifts',
+        noOwnCar && 'No own car required',
+        remoteOnly && 'Remote / hybrid only',
+        noRelocation && 'No relocation',
+        noOvertime && 'No overtime',
+        noCommissionOnly && 'No commission-only pay',
+      ].filter(Boolean) as string[]
+
+      return (
+        <div className="space-y-4">
+          <p className="text-sm text-ink-600 leading-relaxed">
+            Here's what we've captured. Take a moment to review — once you click <strong>Build my profile</strong> it will take 3–5 minutes to process.
+          </p>
+
+          <ReviewRow label="Chat" value="Completed ✓" ok />
+          <ReviewRow label="Date of birth" value={dob ? `${dob} (encrypted)` : '—'} ok={!!dob} />
+          <ReviewRow label="Gender" value={gender || '—'} ok={!!gender} />
+          <ReviewRow label="Race" value={race || '—'} ok={!!race} />
+          <ReviewRow label="Religion" value={religion || '—'} ok={!!religion} />
+          <ReviewRow label="Languages" value={languages.length > 0 ? languages.join(', ') : '—'} ok={languages.length > 0} />
+          <ReviewRow label="Location" value={locationMatters === true ? `Postcode ${locationPostcode}` : locationMatters === false ? 'Flexible' : '—'} ok={locationMatters !== null} />
+          <ReviewRow
+            label="Hard constraints"
+            value={activeConstraints.length > 0 ? activeConstraints.join(' · ') : 'None set'}
+            ok
+          />
+          {minSalaryHard != null && (
+            <ReviewRow label="Minimum salary" value={`RM ${minSalaryHard.toLocaleString()} / month`} ok />
+          )}
+          <ReviewRow label="Photo" value={photoFile?.name ?? '—'} ok={!!photoFile} />
+          <ReviewRow label="Résumé" value={resumeFile?.name ?? '—'} ok={!!resumeFile} />
+          {coverLetterFile && <ReviewRow label="Cover letter" value={coverLetterFile.name} ok />}
+
+          {err && <Alert tone="red">{err}</Alert>}
+          <Button
             onClick={() => { setPhase('submit'); void finalise() }}
-            disabled={!photoFile || !resumeFile || busy}
             loading={busy}
             className="w-full"
             size="lg"
           >
-            Finish &amp; build my profile
+            Build my profile
           </Button>
+          <button
+            type="button"
+            onClick={() => setPhase('docs')}
+            className="w-full text-xs text-ink-400 hover:text-ink-600 py-1"
+          >
+            ← Go back and change something
+          </button>
         </div>
       )
     }
@@ -1032,6 +1109,7 @@ export default function TalentOnboarding() {
     phase === 'dob'          ? 'About you' :
     phase === 'dealbreakers' ? 'Your non-negotiables' :
     phase === 'docs'         ? 'Your documents' :
+    phase === 'review'       ? 'Review your profile' :
     phase === 'submit' || phase === 'done' ? 'Finishing up…' : ''
 
   const progressPct =
@@ -1041,6 +1119,7 @@ export default function TalentOnboarding() {
     phase === 'dob'          ? 65 :
     phase === 'dealbreakers' ? 80 :
     phase === 'docs'         ? 90 :
+    phase === 'review'       ? 95 :
     phase === 'submit'       ? 97 : 100
 
   const DiamondPointsInfo = phase === 'basics' ? (
@@ -1112,6 +1191,7 @@ function FileRow({
 }) {
   return (
     <label className="block border border-dashed border-ink-300 rounded-lg p-3 hover:border-ink-400 transition cursor-pointer bg-white">
+
       <div className="flex items-center gap-3">
         <div className="h-8 w-8 rounded-md bg-ink-100 flex items-center justify-center text-ink-500 shrink-0">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -1142,5 +1222,21 @@ function FileRow({
         className="sr-only"
       />
     </label>
+  )
+}
+
+// ── ReviewRow ─────────────────────────────────────────────────────────────────
+
+function ReviewRow({ label, value, ok }: { label: string; value: string; ok?: boolean }) {
+  return (
+    <div className="flex items-start gap-3 border border-ink-100 rounded-lg px-3 py-2 bg-white">
+      <span className={`mt-0.5 h-4 w-4 rounded-full flex items-center justify-center shrink-0 text-xs ${ok ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
+        {ok ? '✓' : '!'}
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs text-ink-400 uppercase tracking-wide">{label}</p>
+        <p className="text-sm text-ink-800 break-words">{value}</p>
+      </div>
+    </div>
   )
 }

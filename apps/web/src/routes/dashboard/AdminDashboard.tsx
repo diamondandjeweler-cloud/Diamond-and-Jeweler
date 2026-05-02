@@ -14,11 +14,13 @@ import MarketRatePanel from './admin/MarketRatePanel'
 import NotificationLogPanel from './admin/NotificationLogPanel'
 import SystemConfigPanel from './admin/SystemConfigPanel'
 import PricingPanel from './admin/PricingPanel'
+import SupportPanel from './admin/SupportPanel'
 import { PageHeader } from '../../components/ui'
 
 type AdminTab =
   | 'kpi' | 'companies' | 'waitlist' | 'coldstart' | 'users' | 'approvals' | 'matches'
   | 'monthly_boost' | 'tags' | 'dsr' | 'market' | 'notifications' | 'pricing' | 'config'
+  | 'support'
 
 const TABS: Array<{ key: AdminTab; label: string; render: () => JSX.Element }> = [
   { key: 'kpi',           label: 'Overview',      render: () => <KpiPanel /> },
@@ -35,6 +37,7 @@ const TABS: Array<{ key: AdminTab; label: string; render: () => JSX.Element }> =
   { key: 'notifications', label: 'Notifications', render: () => <NotificationLogPanel /> },
   { key: 'pricing',       label: 'Pricing',       render: () => <PricingPanel /> },
   { key: 'config',        label: 'Config (raw)',  render: () => <SystemConfigPanel /> },
+  { key: 'support',       label: 'Support',       render: () => <SupportPanel /> },
 ]
 
 export default function AdminDashboard() {

@@ -246,7 +246,10 @@ export default function TalentDashboard() {
     if (error) {
       setErr(error.message)
       setMatches((ms) => ms.map((m) => (m.id === id ? { ...m, status: current?.status ?? 'generated' } : m)))
+      return
     }
+    const event_type = next === 'accepted_by_talent' ? 'accept_interview' : 'reject_with_reason'
+    try { await callFunction('award-points', { event_type, match_id: id }) } catch { /* tolerate */ }
   }
 
   if (loading) return <LoadingSpinner />

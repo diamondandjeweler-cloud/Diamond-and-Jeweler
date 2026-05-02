@@ -253,7 +253,10 @@ export default function HMDashboard() {
       if (prevStatus) {
         setCandidates((cs) => cs.map((c) => (c.id === id ? { ...c, status: prevStatus } : c)))
       }
+      return
     }
+    const event_type = next === 'invited_by_manager' ? 'accept_interview' : 'reject_with_reason'
+    try { await callFunction('award-points', { event_type, match_id: id }) } catch { /* tolerate */ }
   }
 
   async function doAction(matchId: string, action: string, extra?: Record<string, unknown>) {

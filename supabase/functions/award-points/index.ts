@@ -66,14 +66,16 @@ serve(async (req) => {
   // If a match_id is supplied, verify the match exists AND the caller is a
   // participant (talent on it, or HM owning the role). This blocks crafted
   // calls that name an arbitrary match the caller doesn't own.
+  let talentProfileId: string | undefined
+  let hmProfileId: string | undefined
   if (match_id) {
     const { data: m } = await db.from('matches')
       .select('id, role_id, talent_id, roles!inner(hiring_manager_id, hiring_managers!inner(profile_id)), talents!inner(profile_id)')
       .eq('id', match_id).maybeSingle()
     if (!m) return json({ error: 'Match not found' }, 404)
+    talentProfileId = (m as unknown as { talents?: { profile_id: string } })?.talents?.profile_id
+    hmProfileId = (m as unknown as { roles?: { hiring_managers?: { profile_id: string } } })?.roles?.hiring_managers?.profile_id
     if (auth.role !== 'admin') {
-      const talentProfileId = (m as unknown as { talents?: { profile_id: string } })?.talents?.profile_id
-      const hmProfileId = (m as unknown as { roles?: { hiring_managers?: { profile_id: string } } })?.roles?.hiring_managers?.profile_id
       const isParticipant = talentProfileId === auth.userId || hmProfileId === auth.userId
       if (!isParticipant) return json({ error: 'Not a participant of this match' }, 403)
     }
@@ -85,10 +87,16 @@ serve(async (req) => {
   const pts = typeof cfg?.value === 'number' ? cfg.value : 5
   if (pts <= 0) return json({ message: 'Earn rate is zero — no points awarded' })
 
+  // interviewer_rejects is a consolation award to the TALENT, called by the
+  // HM. All other event_types credit the caller.
+  const recipient = event_type === 'interviewer_rejects' && talentProfileId
+    ? talentProfileId
+    : auth.userId
+
   const key = idempotency_key ?? `${event_type}:${match_id}`
 
   const { data: awarded, error } = await db.rpc('award_points', {
-    p_user_id: auth.userId,
+    p_user_id: recipient,
     p_delta: pts,
     p_reason: event_type,
     p_reference: match_id ? { match_id } : {},

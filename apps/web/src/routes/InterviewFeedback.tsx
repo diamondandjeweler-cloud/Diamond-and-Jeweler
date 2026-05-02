@@ -108,9 +108,10 @@ export default function InterviewFeedback() {
       try {
         await supabase.rpc('award_points', {
           p_user_id: session.user.id,
-          p_delta: 1,
+          p_delta: 5,
           p_reason: 'feedback_submitted',
           p_reference: { match_id: matchId, side: resolved.side },
+          p_idempotency_key: `feedback_legacy:${matchId}:${session.user.id}`,
         })
       } catch { /* tolerate */ }
     } else if (!isDup) {

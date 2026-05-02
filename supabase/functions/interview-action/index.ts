@@ -231,6 +231,23 @@ serve(async (req) => {
         company_name: companyName,
       })
 
+      // Consolation: when HM cancels after at least one interview round,
+      // credit the talent +5 (interviewer_rejects). Idempotent per match.
+      if (isHM && ['interview_scheduled', 'interview_completed', 'offer_made'].includes(match.status)) {
+        const { data: cfg } = await db.from('system_config').select('value')
+          .eq('key', 'earn_interviewer_rejects').maybeSingle()
+        const pts = typeof cfg?.value === 'number' ? cfg.value : 5
+        if (pts > 0) {
+          await db.rpc('award_points', {
+            p_user_id: talentProfileId,
+            p_delta: pts,
+            p_reason: 'interviewer_rejects',
+            p_reference: { match_id },
+            p_idempotency_key: `interviewer_rejects:${match_id}`,
+          })
+        }
+      }
+
       return json({ ok: true })
     }
 

@@ -157,13 +157,16 @@ serve(async (req) => {
   }
 
   // ── Award Diamond Points to submitter ────────────────────────────────────
+  // Use award_points RPC so profiles.points (spendable balance) and
+  // points_earned_total stay in sync — the wallet UI reads `points`.
   if (isNew && pointsAwarded > 0) {
-    const { data: prof } = await db.from('profiles').select('diamond_points').eq('id', auth.userId).single()
-    if (prof) {
-      await db.from('profiles')
-        .update({ diamond_points: ((prof as unknown as { diamond_points: number | null }).diamond_points ?? 0) + pointsAwarded })
-        .eq('id', auth.userId)
-    }
+    await db.rpc('award_points', {
+      p_user_id: auth.userId,
+      p_delta: pointsAwarded,
+      p_reason: 'feedback_submitted',
+      p_reference: { match_id: body.match_id, stage: body.stage, from_party: body.from_party },
+      p_idempotency_key: `feedback:${body.match_id}:${body.stage}:${body.from_party}`,
+    })
   }
 
   // ── Log outcome for PHS calibration ──────────────────────────────────────

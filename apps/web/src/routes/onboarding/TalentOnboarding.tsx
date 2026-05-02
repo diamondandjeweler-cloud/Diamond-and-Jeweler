@@ -476,7 +476,7 @@ export default function TalentOnboarding() {
       await markOnboardingComplete(userId)
 
       try {
-        const code = localStorage.getItem('bole.referral_code')
+        const code = localStorage.getItem('bole.referral_code') ?? sessionStorage.getItem('bole.referral_code')
         if (code) {
           await fetch(
             `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-referral`,
@@ -487,6 +487,7 @@ export default function TalentOnboarding() {
             },
           )
           localStorage.removeItem('bole.referral_code')
+          sessionStorage.removeItem('bole.referral_code')
         }
       } catch { /* best effort */ }
 

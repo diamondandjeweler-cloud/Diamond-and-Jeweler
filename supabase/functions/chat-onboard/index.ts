@@ -518,8 +518,9 @@ Blend this naturally with your personalised summary of what you heard from them.
     (async () => {
       const reader = upstream.body!.getReader()
       let buffer = ''
+      let finished = false
       try {
-        while (true) {
+        while (!finished) {
           const { done, value } = await reader.read()
           if (done) break
           buffer += decoder.decode(value, { stream: true })
@@ -530,6 +531,7 @@ Blend this naturally with your personalised summary of what you heard from them.
             const raw = line.slice(6).trim()
             if (raw === '[DONE]') {
               await writer.write(encoder.encode('event: message_stop\ndata: {"type":"message_stop"}\n\n'))
+              finished = true
               break
             }
             try {

@@ -55,6 +55,7 @@ export default function TalentDashboard() {
   const [profileExpiresAt, setProfileExpiresAt] = useState<string | null>(null)
   const [reviving, setReviving] = useState(false)
   const [talentReputation, setTalentReputation] = useState<{ reputation_score: number | null; feedback_volume: number; phs_show_rate: number | null; phs_accept_rate: number | null } | null>(null)
+  const [profileGaps, setProfileGaps] = useState<string[]>([])
   const [talentFeedbackState, setTalentFeedbackState] = useState<Record<string, { rating: number; outcome: string; freeText: string; saving: boolean; saved: boolean; pointsAwarded?: number }>>({})
 
   // Interview flow state
@@ -84,7 +85,7 @@ export default function TalentDashboard() {
     async function load() {
       if (!session) { setLoading(false); return }
       try {
-        const { data: talent } = await supabase.from('talents').select('id, extra_matches_used, profile_expires_at, reputation_score, feedback_volume, phs_show_rate, phs_accept_rate').eq('profile_id', session.user.id).maybeSingle()
+        const { data: talent } = await supabase.from('talents').select('id, extra_matches_used, profile_expires_at, reputation_score, feedback_volume, phs_show_rate, phs_accept_rate, current_employment_status, current_salary, notice_period_days, education_level, has_management_experience, work_authorization, preferred_management_style, expected_salary_min, expected_salary_max, employment_type_preferences, location_matters, career_goal_horizon, job_intention, has_noncompete, salary_structure_preference, role_scope_preference, reason_for_leaving_category').eq('profile_id', session.user.id).maybeSingle()
         if (cancelled) return
         if (!talent) return
         talentId = talent.id
@@ -96,6 +97,22 @@ export default function TalentDashboard() {
           phs_show_rate: (talent as unknown as { phs_show_rate: number | null }).phs_show_rate ?? null,
           phs_accept_rate: (talent as unknown as { phs_accept_rate: number | null }).phs_accept_rate ?? null,
         })
+        const t2 = talent as unknown as Record<string, unknown>
+        const gaps: string[] = []
+        if (!t2.current_employment_status)                gaps.push('Current employment status')
+        if (t2.current_salary == null)                    gaps.push('Current salary')
+        if (!t2.education_level)                          gaps.push('Education level')
+        if (!t2.work_authorization)                       gaps.push('Work authorization')
+        if (t2.expected_salary_min == null)               gaps.push('Expected salary range')
+        if (!Array.isArray(t2.employment_type_preferences) || (t2.employment_type_preferences as unknown[]).length === 0)
+                                                          gaps.push('Employment type preference')
+        if (!t2.preferred_management_style)               gaps.push('Management style preference')
+        if (!t2.career_goal_horizon)                      gaps.push('Career goal')
+        if (!t2.job_intention)                            gaps.push('Long-term intention')
+        if (t2.has_noncompete == null)                    gaps.push('Non-compete status')
+        if (!t2.salary_structure_preference)              gaps.push('Salary structure preference')
+        if (t2.notice_period_days == null)                gaps.push('Notice period')
+        if (!cancelled) setProfileGaps(gaps)
         const { data, error } = await supabase
           .from('matches')
           .select('id, compatibility_score, status, expires_at, public_reasoning, application_summary, roles(id, title, description, salary_min, salary_max, location, work_arrangement, employment_type, hourly_rate, duration_days)')
@@ -256,6 +273,10 @@ export default function TalentDashboard() {
       </div>
 
       <CareerNudgePanel side="talent" />
+
+      {profileGaps.length > 0 && (
+        <ProfileCompletenessBar gaps={profileGaps} />
+      )}
 
       {talentReputation && talentReputation.feedback_volume > 0 && (
         <CareerHealthPanel reputation={talentReputation} />
@@ -614,4 +635,60 @@ function CareerHealthPanel({ reputation }: {
 function fmt(v: number | null | undefined): string {
   if (v == null) return '—'
   return v.toLocaleString()
+}
+
+const TOTAL_PROFILE_FIELDS = 12
+
+function ProfileCompletenessBar({ gaps }: { gaps: string[] }) {
+  const [expanded, setExpanded] = useState(false)
+  const filled = TOTAL_PROFILE_FIELDS - gaps.length
+  const pct = Math.round((filled / TOTAL_PROFILE_FIELDS) * 100)
+  const barTone = pct >= 80 ? 'bg-emerald-500' : pct >= 50 ? 'bg-amber-400' : 'bg-red-400'
+
+  return (
+    <Card className="mb-6">
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Profile completeness</p>
+            <p className="text-xs text-ink-400 mt-0.5">
+              {pct >= 80
+                ? 'Great — your profile gives employers a strong picture.'
+                : pct >= 50
+                ? 'Good start — a few more details will improve your match quality.'
+                : 'Complete your profile to get better-matched opportunities.'}
+            </p>
+          </div>
+          <span className={`text-sm font-bold ${pct >= 80 ? 'text-emerald-700' : pct >= 50 ? 'text-amber-700' : 'text-red-600'}`}>
+            {pct}%
+          </span>
+        </div>
+        <div className="h-2 bg-ink-100 rounded-full overflow-hidden mb-3">
+          <div className={`h-full rounded-full transition-all ${barTone}`} style={{ width: `${pct}%` }} />
+        </div>
+        {gaps.length > 0 && (
+          <>
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="text-xs text-brand-600 hover:text-brand-700 font-medium"
+            >
+              {expanded ? 'Hide' : `${gaps.length} field${gaps.length === 1 ? '' : 's'} missing — see what to add`}
+            </button>
+            {expanded && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {gaps.map((g) => (
+                  <span key={g} className="text-xs bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full">
+                    {g}
+                  </span>
+                ))}
+                <a href="/talent/profile" className="text-xs text-brand-600 hover:text-brand-700 underline ml-1">
+                  Update profile →
+                </a>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </Card>
+  )
 }

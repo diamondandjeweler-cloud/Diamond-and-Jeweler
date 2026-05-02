@@ -6,6 +6,7 @@ import { callFunction } from '../../lib/functions'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import { Button, Card, Badge, Alert, EmptyState, PageHeader, Stat } from '../../components/ui'
 import MatchExplain from '../../components/MatchExplain'
+import ScreeningChecklist from '../../components/ScreeningChecklist'
 import CareerNudgePanel from '../../components/CareerNudgePanel'
 import type { PublicReasoning, CultureComparison } from '../../types/db'
 
@@ -597,6 +598,11 @@ function CandidateCard({
         {row.public_reasoning?.culture_comparison && (
           <CultureCompare comparison={row.public_reasoning.culture_comparison} />
         )}
+        <ScreeningChecklist
+          reasoning={row.public_reasoning}
+          salaryMin={row.talents?.expected_salary_min ?? null}
+          salaryMax={row.talents?.expected_salary_max ?? null}
+        />
 
         {/* Interview rounds panel */}
         {rounds.length > 0 && (

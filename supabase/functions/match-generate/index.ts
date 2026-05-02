@@ -92,7 +92,7 @@ serve(async (req) => {
   }
 
   // Matching weights, overridable via system_config.
-  const [wBehRow, wTagRow, wSalRow, wCultureRow, wEmpRow, wCharRow, wAgeRow, wLocRow, wBgRow, wFbRow, wPeakRow, wBoostRow] = await Promise.all([
+  const [wBehRow, wTagRow, wSalRow, wCultureRow, wEmpRow, wCharRow, wAgeRow, wLocRow, wBgRow, wFbRow, wPeakRow, wBoostRow, wExpRow, wEduRow] = await Promise.all([
     db.from('system_config').select('value').eq('key', 'weight_behavioral_fitness').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_tag_compatibility').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_salary_fit').maybeSingle(),
@@ -105,6 +105,8 @@ serve(async (req) => {
     db.from('system_config').select('value').eq('key', 'weight_feedback').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_peak_age').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_monthly_boost').maybeSingle(),
+    db.from('system_config').select('value').eq('key', 'weight_experience_fit').maybeSingle(),
+    db.from('system_config').select('value').eq('key', 'weight_education_fit').maybeSingle(),
   ])
   let weightBehavioral = typeof wBehRow.data?.value     === 'number' ? wBehRow.data.value     : 0.20
   let weightTag        = typeof wTagRow.data?.value     === 'number' ? wTagRow.data.value     : 0.50
@@ -118,6 +120,8 @@ serve(async (req) => {
   let weightFeedback   = typeof wFbRow.data?.value      === 'number' ? wFbRow.data.value      : 0.10
   let weightPeakAge      = typeof wPeakRow.data?.value    === 'number' ? wPeakRow.data.value    : 0.10
   let weightMonthlyBoost = typeof wBoostRow.data?.value  === 'number' ? wBoostRow.data.value  : 0.12
+  let weightExperience   = typeof wExpRow.data?.value    === 'number' ? wExpRow.data.value    : 0.08
+  let weightEducation    = typeof wEduRow.data?.value    === 'number' ? wEduRow.data.value    : 0.05
 
   // Fix e: role-type weight presets — shift relative emphasis for different role families.
   const roleWeightPreset = ((role as { weight_preset?: string }).weight_preset ?? '').toLowerCase()
@@ -145,7 +149,9 @@ serve(async (req) => {
     if (p.location    !== undefined) weightLocation   = p.location
     if (p.background  !== undefined) weightBackground = p.background
     if (p.feedback    !== undefined) weightFeedback   = p.feedback
-    if ((p as Record<string, number>).peak_age !== undefined) weightPeakAge = (p as Record<string, number>).peak_age
+    if ((p as Record<string, number>).peak_age   !== undefined) weightPeakAge   = (p as Record<string, number>).peak_age
+    if ((p as Record<string, number>).experience  !== undefined) weightExperience = (p as Record<string, number>).experience
+    if ((p as Record<string, number>).education   !== undefined) weightEducation  = (p as Record<string, number>).education
   }
 
   // Fix c: culture signals from onboarding chat are AI-inferred — reduce weight by half
@@ -208,7 +214,7 @@ serve(async (req) => {
   // Candidate pool: open, non-expired talents.
   const now = new Date().toISOString()
   const { data: talents } = await db.from('talents')
-    .select('id, profile_id, derived_tags, privacy_mode, whitelist_companies, date_of_birth_encrypted, life_chart_character, uses_lunar_calendar, location_matters, location_postcode, open_to_new_field, parsed_resume, deal_breakers, expected_salary_min, expected_salary_max, employment_type_preferences, feedback_score, phs_show_rate, phs_accept_rate, phs_pass_probation_rate, phs_stay_6m_rate, profiles!inner(ghost_score, is_banned)')
+    .select('id, profile_id, derived_tags, privacy_mode, whitelist_companies, date_of_birth_encrypted, life_chart_character, uses_lunar_calendar, location_matters, location_postcode, open_to_new_field, parsed_resume, deal_breakers, expected_salary_min, expected_salary_max, employment_type_preferences, feedback_score, education_level, phs_show_rate, phs_accept_rate, phs_pass_probation_rate, phs_stay_6m_rate, profiles!inner(ghost_score, is_banned)')
     .eq('is_open_to_offers', true)
     .eq('profiles.is_banned', false)
     .or(`profile_expires_at.is.null,profile_expires_at.gte.${now}`)
@@ -432,6 +438,38 @@ serve(async (req) => {
     const talentFeedbackRaw = (t as unknown as { feedback_score: number | null }).feedback_score
     const feedbackScore: number | null = talentFeedbackRaw != null ? talentFeedbackRaw * 100 : null
 
+    // ── Experience fit ────────────────────────────────────────────────────────
+    const EXP_RANGES: Record<string, [number, number]> = {
+      junior: [0, 2], internship: [0, 1], mid: [2, 5], senior: [5, 10], lead: [8, 99],
+    }
+    const talentYearsExp = (parsedResume as { years_experience?: number | null } | null)?.years_experience ?? null
+    let experienceFit: number | null = null
+    if (talentYearsExp != null && experienceLevel && EXP_RANGES[experienceLevel]) {
+      const [rMin, rMax] = EXP_RANGES[experienceLevel]
+      if (talentYearsExp >= rMin && talentYearsExp <= rMax) {
+        experienceFit = 100
+      } else if (talentYearsExp > rMax) {
+        experienceFit = Math.max(30, 90 - (talentYearsExp - rMax) * 10)  // overqualified
+      } else {
+        experienceFit = Math.max(10, 80 - (rMin - talentYearsExp) * 20)  // underqualified
+      }
+    }
+
+    // ── Education fit ─────────────────────────────────────────────────────────
+    const EDU_ORDER: Record<string, number> = {
+      spm: 1, diploma: 2, degree: 3, masters: 4, phd: 5, professional_cert: 3, other: 2,
+    }
+    const EDU_MIN: Record<string, string> = {
+      junior: 'spm', internship: 'spm', mid: 'diploma', senior: 'degree', lead: 'degree',
+    }
+    const talentEduLevel = (t as unknown as { education_level: string | null }).education_level ?? null
+    let educationFit: number | null = null
+    if (talentEduLevel && experienceLevel && EDU_MIN[experienceLevel]) {
+      const talentRank = EDU_ORDER[talentEduLevel] ?? 0
+      const minRank    = EDU_ORDER[EDU_MIN[experienceLevel]] ?? 0
+      educationFit = talentRank >= minRank ? 100 : Math.max(20, 100 - (minRank - talentRank) * 30)
+    }
+
     // ── Internal stage signals for the talent (private). ──
     let talentStage: number | null = null
     if (talentCharacter) {
@@ -586,6 +624,8 @@ serve(async (req) => {
       { name: 'feedback',           score: feedbackScore ?? 50,     weight: weightFeedback   * (feedbackScore != null ? 1 : 0.5) },
       { name: 'peak_age_window',    score: peakAgeScore ?? 0,       weight: peakAgeScore     != null ? weightPeakAge    : 0 },
       { name: 'monthly_boost',      score: monthlyBoostScore,        weight: monthlyBoostedChars.size > 0 ? weightMonthlyBoost : 0 },
+      { name: 'experience_fit',     score: experienceFit ?? 0,       weight: experienceFit    != null ? weightExperience : 0 },
+      { name: 'education_fit',      score: educationFit ?? 0,        weight: educationFit     != null ? weightEducation  : 0 },
     ]
     const totalW = dims.reduce((acc, d) => acc + d.weight, 0)
     const rawScore = totalW > 0
@@ -658,6 +698,8 @@ serve(async (req) => {
       salaryFit,
       employmentFit,
       feedbackScore,
+      experienceFit,
+      educationFit,
       finalScore,
       ghostScore,
       ghostThreshold,
@@ -699,7 +741,11 @@ serve(async (req) => {
         location_matters: talentLocMatters,
         background_score: backgroundScore,
         background_note: backgroundNote,
-        weights: { behavioral: weightBehavioral, tag: weightTag, salary: weightSalary, culture: weightCulture, employment: weightEmployment, character: weightCharacter, age: weightAge, location: weightLocation, background: weightBackground, feedback: weightFeedback, peak_age: weightPeakAge, monthly_boost: weightMonthlyBoost },
+        experience_fit: experienceFit != null ? Number(experienceFit.toFixed(2)) : null,
+        education_fit:  educationFit  != null ? Number(educationFit.toFixed(2))  : null,
+        talent_years_experience: talentYearsExp,
+        talent_education_level:  talentEduLevel,
+        weights: { behavioral: weightBehavioral, tag: weightTag, salary: weightSalary, culture: weightCulture, employment: weightEmployment, character: weightCharacter, age: weightAge, location: weightLocation, background: weightBackground, feedback: weightFeedback, peak_age: weightPeakAge, monthly_boost: weightMonthlyBoost, experience: weightExperience, education: weightEducation },
         active_dimensions: activeDims,
         effective_weights: effectiveWeights,
         ghost_score: ghostScore,
@@ -822,6 +868,8 @@ interface ScoredCandidate {
   salaryFit: number | null
   employmentFit: number | null
   feedbackScore: number | null
+  experienceFit: number | null
+  educationFit: number | null
   finalScore: number
   ghostScore: number
   ghostThreshold: number
@@ -914,6 +962,17 @@ function buildPublicReasoning(s: ScoredCandidate, roleTraits: string[]) {
     watchouts.push('Off-field background — interview should probe motivation and learning curve.')
   } else if (s.backgroundScore >= 100) {
     strengths.push('Background experience aligns with the role.')
+  }
+
+  if (s.experienceFit != null) {
+    if (s.experienceFit >= 90) strengths.push('Years of experience matches role seniority level.')
+    else if (s.experienceFit >= 60) watchouts.push('Experience level is slightly mismatched — confirm scope expectations in interview.')
+    else if (s.experienceFit >= 40) watchouts.push('Noticeable experience gap — candidate may be over or underqualified. Probe role fit explicitly.')
+    else watchouts.push('Significant experience mismatch — validate whether candidate can meet role demands or will be unchallenged.')
+  }
+
+  if (s.educationFit != null && s.educationFit < 80) {
+    watchouts.push('Education level may be below the typical minimum for this role — verify qualifications before shortlisting.')
   }
 
   // Fix f: surface ghost-score penalty when candidate has a pattern of slow/no responses.

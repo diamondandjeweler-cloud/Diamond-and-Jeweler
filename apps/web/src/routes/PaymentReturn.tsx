@@ -129,7 +129,7 @@ export default function PaymentReturn() {
             </Alert>
           )}
 
-          {isMock && (status === 'pending' || status === 'timeout') && purchaseId && (
+          {isMock && import.meta.env.DEV && (status === 'pending' || status === 'timeout') && purchaseId && (
             <div className="mt-4 pt-4 border-t border-ink-100">
               <p className="text-xs text-amber-700 mb-2">
                 <strong>Dev mode:</strong> Click below to simulate a paid webhook (only works when Billplz credentials are not configured).

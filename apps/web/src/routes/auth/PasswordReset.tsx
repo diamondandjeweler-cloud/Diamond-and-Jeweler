@@ -3,22 +3,26 @@ import { Link } from 'react-router-dom'
 import { supabase, siteUrl } from '../../lib/supabase'
 import AuthShell from '../../components/AuthShell'
 import { Button, Input, Alert } from '../../components/ui'
+import Turnstile from '../../components/Turnstile'
 
 export default function PasswordReset() {
   const [email, setEmail] = useState('')
   const [busy, setBusy] = useState(false)
   const [sent, setSent] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setErr(null)
+    if (!captchaToken) { setErr('Please complete the verification.'); return }
     setBusy(true)
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${siteUrl}/auth/callback?type=recovery`,
+      captchaToken,
     })
     setBusy(false)
-    if (error) { setErr(error.message); return }
+    if (error) { setErr(error.message); setCaptchaToken(null); return }
     setSent(true)
   }
 
@@ -35,8 +39,9 @@ export default function PasswordReset() {
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+          <Turnstile onToken={setCaptchaToken} />
           {err && <Alert tone="red">{err}</Alert>}
-          <Button type="submit" loading={busy} className="w-full" size="lg">
+          <Button type="submit" loading={busy} className="w-full" size="lg" disabled={!captchaToken}>
             {busy ? 'Sending…' : 'Send reset link'}
           </Button>
         </form>

@@ -31,10 +31,10 @@ export default function MatchExplain({ reasoning }: { reasoning: PublicReasoning
   if (!reasoning) return null
 
   // Separate the Golden Rule watchout so it renders as a dedicated banner.
-  const goldenRule = reasoning.watchouts.find(
+  const goldenRule = (reasoning.watchouts ?? []).find(
     (w) => w.includes('Platform signals') && w.includes('evaluation dimensions'),
   )
-  const regularWatchouts = reasoning.watchouts.filter(
+  const regularWatchouts = (reasoning.watchouts ?? []).filter(
     (w) => !(w.includes('Platform signals') && w.includes('evaluation dimensions')),
   )
 
@@ -78,11 +78,11 @@ export default function MatchExplain({ reasoning }: { reasoning: PublicReasoning
 
           {/* Strengths + Watchouts grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {reasoning.strengths.length > 0 && (
+            {(reasoning.strengths ?? []).length > 0 && (
               <div>
                 <div className="font-semibold text-emerald-700 uppercase tracking-wide text-[11px] mb-1">{t('match.strengths')}</div>
                 <ul className="space-y-1 text-ink-700">
-                  {reasoning.strengths.map((s, i) => (
+                  {(reasoning.strengths ?? []).map((s, i) => (
                     <li key={i} className="flex items-start gap-1.5">
                       <span className="text-emerald-500 mt-0.5 shrink-0">✓</span> {s}
                     </li>
@@ -129,19 +129,19 @@ export default function MatchExplain({ reasoning }: { reasoning: PublicReasoning
           )}
 
           {/* Matched / missing traits */}
-          {reasoning.matched_traits.length > 0 && (
+          {(reasoning.matched_traits ?? []).length > 0 && (
             <div>
               <div className="text-[11px] font-semibold text-ink-500 uppercase tracking-wide mb-1">{t('match.matchedTraits')}</div>
               <div className="flex flex-wrap gap-1">
-                {reasoning.matched_traits.map((tr) => <Badge key={tr} tone="green">{tr.replace(/_/g, ' ')}</Badge>)}
+                {(reasoning.matched_traits ?? []).map((tr) => <Badge key={tr} tone="green">{tr.replace(/_/g, ' ')}</Badge>)}
               </div>
             </div>
           )}
-          {reasoning.missing_traits.length > 0 && (
+          {(reasoning.missing_traits ?? []).length > 0 && (
             <div>
               <div className="text-[11px] font-semibold text-ink-500 uppercase tracking-wide mb-1">{t('match.missingTraits')}</div>
               <div className="flex flex-wrap gap-1">
-                {reasoning.missing_traits.map((tr) => <Badge key={tr} tone="amber">{tr.replace(/_/g, ' ')}</Badge>)}
+                {(reasoning.missing_traits ?? []).map((tr) => <Badge key={tr} tone="amber">{tr.replace(/_/g, ' ')}</Badge>)}
               </div>
             </div>
           )}

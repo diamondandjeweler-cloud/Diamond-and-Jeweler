@@ -18,8 +18,8 @@ function buildItems(
   salaryMax: number | null,
 ): string[] {
   const items: string[] = []
-  const w = reasoning.watchouts.join(' ').toLowerCase()
-  const s = reasoning.strengths.join(' ').toLowerCase()
+  const w = (reasoning.watchouts ?? []).join(' ').toLowerCase()
+  const s = (reasoning.strengths ?? []).join(' ').toLowerCase()
   void s
 
   // Always: salary confirmation

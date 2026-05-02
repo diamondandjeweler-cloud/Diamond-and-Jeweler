@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
 import { useSession, bootstrapSession } from './state/useSession'
+import { supabase } from './lib/supabase'
 import Layout from './components/Layout'
 import LoadingSpinner from './components/LoadingSpinner'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -83,7 +84,8 @@ export default function App() {
         <Route path="/onboarding/company/verify" element={<CompanyVerify />} />
         <Route path="/payment/return" element={<PaymentReturn />} />
         <Route path="/payment/mock"   element={<PaymentReturn />} />
-        <Route path="/signup" element={session && profile ? <Navigate to="/home" replace /> : <SignUp />} />
+        <Route path="/signup" element={session && profile ? <SignupLoggedIn /> : <SignUp />} />
+        <Route path="/signout" element={<Signout />} />
         <Route path="/login"  element={session && profile ? <Navigate to="/home" replace /> : <Login />} />
         <Route path="/password-reset" element={<PasswordReset />} />
         <Route path="/privacy" element={<PrivacyNotice />} />
@@ -150,6 +152,26 @@ export default function App() {
       </Routes>
     </Suspense>
   )
+}
+
+/** Handles /signup when the user is already logged in.
+ * If a ?ref= code is present, redirect to /referrals so they can see their own referral page.
+ * Otherwise just go /home. */
+function SignupLoggedIn() {
+  const [params] = useSearchParams()
+  const ref = params.get('ref')
+  if (ref) return <Navigate to={`/referrals?notice=already_signed_in&ref=${ref}`} replace />
+  return <Navigate to="/home" replace />
+}
+
+/** /signout — signs the user out and returns to the landing page. */
+function Signout() {
+  useEffect(() => {
+    void supabase.auth.signOut().then(() => {
+      window.location.replace('/')
+    })
+  }, [])
+  return <LoadingSpinner full />
 }
 
 function RoleHome() {

@@ -35,9 +35,10 @@ export default function AdminGate({ children }: { children: ReactNode }) {
     return () => { cancelled = true }
   }, [loading, profile])
 
-  if (loading || aal === 'loading') return <LoadingSpinner full />
+  if (loading) return <LoadingSpinner full />
   if (!profile) return <Navigate to="/login" replace />
   if (profile.role !== 'admin') return <Navigate to="/home" replace />
+  if (aal === 'loading') return <LoadingSpinner full />
 
   if (aal === 'need_enroll') {
     return <Navigate to="/mfa/enroll" state={{ from: location.pathname }} replace />

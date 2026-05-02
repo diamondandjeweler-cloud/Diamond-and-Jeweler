@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../state/useSession'
 import { supabase } from '../lib/supabase'
@@ -23,6 +24,8 @@ interface RoleOption {
 export default function Referrals() {
   const { t } = useTranslation()
   const { session, profile, refresh } = useSession()
+  const [searchParams] = useSearchParams()
+  const alreadySignedInNotice = searchParams.get('notice') === 'already_signed_in'
   const [list, setList] = useState<Referral[]>([])
   const [loading, setLoading] = useState(true)
   const [email, setEmail] = useState('')
@@ -116,8 +119,17 @@ export default function Referrals() {
     const url = `${window.location.origin}/signup?ref=${code}`
     try {
       await navigator.clipboard.writeText(url)
-      flashCopy(t('referral.copied') ?? 'Link copied!')
-    } catch { /* ignore */ }
+    } catch {
+      // Clipboard API unavailable — fall back to execCommand
+      try {
+        const ta = document.createElement('textarea')
+        ta.value = url; ta.style.position = 'fixed'; ta.style.opacity = '0'
+        document.body.appendChild(ta); ta.focus(); ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+      } catch { /* ignore */ }
+    }
+    flashCopy(t('referral.copied') ?? 'Link copied!')
   }
 
   const handleNativeShare = async () => {
@@ -219,6 +231,14 @@ export default function Referrals() {
         title={t('referral.title')}
         description={t('referral.subtitle', { points: pointsCfg.perReferral })}
       />
+
+      {alreadySignedInNotice && (
+        <div className="mb-4">
+          <Alert tone="amber">
+            You're already signed in — referral links are for new users signing up. Share your own link below to earn points when friends join.
+          </Alert>
+        </div>
+      )}
 
       {/* Share card — the main CTA */}
       {profile?.referral_code && (

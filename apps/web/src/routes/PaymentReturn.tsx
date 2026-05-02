@@ -19,9 +19,10 @@ export default function PaymentReturn() {
   const kind = (params.get('kind') ?? 'extra_match') as 'points' | 'extra_match'
   const isMock = window.location.pathname.startsWith('/payment/mock')
   const { refresh } = useSession()
-  const [status, setStatus] = useState<'pending' | 'paid' | 'failed' | 'unknown'>('pending')
+  const [status, setStatus] = useState<'pending' | 'paid' | 'failed' | 'unknown' | 'timeout'>('pending')
   const [tries, setTries] = useState(0)
   const [confirming, setConfirming] = useState(false)
+  const [simError, setSimError] = useState<string | null>(null)
 
   const table = kind === 'points' ? 'point_purchases' : 'extra_match_purchases'
 
@@ -43,7 +44,7 @@ export default function PaymentReturn() {
         setTries(i + 1)
         await new Promise((r) => setTimeout(r, 1500))
       }
-      if (alive) setStatus('pending') // still pending — show "we'll email you" UX
+      if (alive) setStatus('timeout') // timed out — show error with support CTA
     })()
     return () => { alive = false }
   }, [purchaseId, table, refresh])
@@ -52,8 +53,9 @@ export default function PaymentReturn() {
   async function confirmMock() {
     if (!purchaseId) return
     setConfirming(true)
+    setSimError(null)
     try {
-      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/payment-webhook`, {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/payment-webhook`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -63,6 +65,11 @@ export default function PaymentReturn() {
           reference_1: purchaseId,
         }),
       })
+      if (!res.ok) {
+        // Billplz credentials are configured — simulation not available here.
+        setSimError('Simulation unavailable: Billplz credentials are active on this environment. Real payments go through Billplz normally. Contact support if you need to test.')
+        return
+      }
       // Re-poll once.
       const { data } = await supabase.from(table)
         .select('payment_status').eq('id', purchaseId).maybeSingle()
@@ -81,7 +88,7 @@ export default function PaymentReturn() {
     <div className="max-w-xl mx-auto py-12 px-4">
       <PageHeader
         eyebrow="Payment"
-        title={status === 'paid' ? 'Payment confirmed' : status === 'failed' ? 'Payment failed' : 'Confirming payment…'}
+        title={status === 'paid' ? 'Payment confirmed' : status === 'failed' ? 'Payment failed' : status === 'timeout' ? 'Waiting for confirmation' : 'Confirming payment…'}
         description={kind === 'points' ? 'Diamond Points are credited as soon as Billplz confirms the bill.' : 'Your extra match is generated as soon as Billplz confirms the bill.'}
       />
 
@@ -103,6 +110,13 @@ export default function PaymentReturn() {
             </div>
           )}
 
+          {purchaseId && status === 'timeout' && (
+            <Alert tone="amber" title="Still waiting on Billplz">
+              We couldn't auto-confirm your payment after 10 checks. If you completed the payment, points will be credited once Billplz sends the webhook (usually within a few minutes). Check your email for confirmation, or{' '}
+              <a href="mailto:support@diamondandjeweler.com" className="underline font-medium">contact support</a> with your purchase reference: <span className="font-mono text-xs">{purchaseId}</span>
+            </Alert>
+          )}
+
           {purchaseId && status === 'paid' && (
             <Alert tone="green" title="Confirmed">
               Thanks! {kind === 'points' ? 'Your Diamond Points have been credited to your wallet.' : 'Your extra match is being generated now and will appear on your dashboard shortly.'}
@@ -115,14 +129,19 @@ export default function PaymentReturn() {
             </Alert>
           )}
 
-          {isMock && status === 'pending' && purchaseId && (
+          {isMock && (status === 'pending' || status === 'timeout') && purchaseId && (
             <div className="mt-4 pt-4 border-t border-ink-100">
               <p className="text-xs text-amber-700 mb-2">
-                <strong>Dev mode:</strong> Billplz credentials aren't configured. Click below to simulate a paid webhook.
+                <strong>Dev mode:</strong> Click below to simulate a paid webhook (only works when Billplz credentials are not configured).
               </p>
               <Button onClick={() => void confirmMock()} loading={confirming} variant="brand" size="sm">
                 Simulate payment success
               </Button>
+              {simError && (
+                <div className="mt-2">
+                  <Alert tone="red">{simError}</Alert>
+                </div>
+              )}
             </div>
           )}
 

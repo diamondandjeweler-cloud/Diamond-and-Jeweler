@@ -14,6 +14,7 @@ interface TalentRow {
   expected_salary_max: number | null
   is_open_to_offers: boolean
   privacy_mode: PrivacyMode
+  whitelist_companies: string[] | null
   preference_ratings: Record<string, number> | null
   parsed_resume: { ai_summary?: string | null } | null
 }
@@ -31,6 +32,8 @@ export default function TalentProfile() {
   const [salaryMax, setSalaryMax] = useState(0)
   const [openToOffers, setOpenToOffers] = useState(true)
   const [privacy, setPrivacy] = useState<PrivacyMode>('public')
+  const [whitelistCompanies, setWhitelistCompanies] = useState<string[]>([])
+  const [whitelistInput, setWhitelistInput] = useState('')
   const [ratings, setRatings] = useState<Record<string, number>>({})
 
   // WhatsApp prefs (live in profiles, not talents)
@@ -75,7 +78,7 @@ export default function TalentProfile() {
     void (async () => {
       const { data, error } = await supabase
         .from('talents')
-        .select('id, expected_salary_min, expected_salary_max, is_open_to_offers, privacy_mode, preference_ratings, parsed_resume')
+        .select('id, expected_salary_min, expected_salary_max, is_open_to_offers, privacy_mode, whitelist_companies, preference_ratings, parsed_resume')
         .eq('profile_id', session.user.id)
         .maybeSingle()
       if (cancelled) return
@@ -87,6 +90,7 @@ export default function TalentProfile() {
         setSalaryMax(row.expected_salary_max ?? 0)
         setOpenToOffers(row.is_open_to_offers)
         setPrivacy(row.privacy_mode)
+        setWhitelistCompanies(row.whitelist_companies ?? [])
         setRatings(row.preference_ratings ?? {})
         setAiSummary((row.parsed_resume?.ai_summary as string | null) ?? null)
       }
@@ -106,6 +110,7 @@ export default function TalentProfile() {
       expected_salary_max: salaryMax || null,
       is_open_to_offers: openToOffers,
       privacy_mode: privacy,
+      whitelist_companies: privacy === 'whitelist' && whitelistCompanies.length > 0 ? whitelistCompanies : null,
       preference_ratings: ratings,
     }).eq('id', talent.id)
     setBusy(false)
@@ -212,6 +217,49 @@ export default function TalentProfile() {
               <option value="whitelist">Whitelist — only specific companies (manage separately)</option>
             </select>
           </section>
+
+          {privacy === 'whitelist' && (
+            <section className="border-t pt-4">
+              <h2 className="font-semibold mb-1">Whitelisted companies</h2>
+              <p className="text-xs text-gray-500 mb-2">Only these companies will see you as a match. Enter each company name and press Enter.</p>
+              <div className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  value={whitelistInput}
+                  onChange={(e) => setWhitelistInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      const v = whitelistInput.trim()
+                      if (v && !whitelistCompanies.includes(v)) setWhitelistCompanies((c) => [...c, v])
+                      setWhitelistInput('')
+                    }
+                  }}
+                  placeholder="Company name…"
+                  className="flex-1 border rounded px-3 py-2 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const v = whitelistInput.trim()
+                    if (v && !whitelistCompanies.includes(v)) setWhitelistCompanies((c) => [...c, v])
+                    setWhitelistInput('')
+                  }}
+                  className="px-3 py-2 border rounded text-sm hover:bg-gray-50"
+                >
+                  Add
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {whitelistCompanies.map((co) => (
+                  <span key={co} className="flex items-center gap-1 bg-brand-50 border border-brand-200 text-brand-800 text-xs px-2 py-0.5 rounded-full">
+                    {co}
+                    <button type="button" onClick={() => setWhitelistCompanies((c) => c.filter((x) => x !== co))} className="text-brand-400 hover:text-brand-700 leading-none">×</button>
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
 
           <section>
             <h2 className="font-semibold mb-2">Salary expectation (RM / month)</h2>

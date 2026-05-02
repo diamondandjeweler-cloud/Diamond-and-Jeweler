@@ -369,6 +369,7 @@ export default function TalentOnboarding() {
         job_intention: string | null
         shortest_tenure_months: number | null
         avg_tenure_months: number | null
+        work_arrangement_preference: string | null
       }
 
       const allTags: Record<string, number> = {
@@ -432,6 +433,7 @@ export default function TalentOnboarding() {
         job_intention: extracted.job_intention ?? null,
         shortest_tenure_months: extracted.shortest_tenure_months ?? null,
         avg_tenure_months: extracted.avg_tenure_months ?? null,
+        work_arrangement_preference: extracted.work_arrangement_preference ?? null,
         photo_url: photoPath,
         deal_breakers: {
           items: dealBreakerItems,

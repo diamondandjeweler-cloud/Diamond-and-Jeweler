@@ -75,7 +75,7 @@ serve(async (req) => {
 
   // Resolve HM data: DOB + character + culture_offers.
   const { data: hm } = await db.from('hiring_managers')
-    .select('date_of_birth_encrypted, culture_offers, life_chart_character, must_haves, culture_data_source, hm_quality_factor, hm_cancel_rate, required_work_authorization, career_growth_potential')
+    .select('date_of_birth_encrypted, culture_offers, life_chart_character, must_haves, culture_data_source, hm_quality_factor, hm_cancel_rate, required_work_authorization, career_growth_potential, leadership_tags, hire_urgency')
     .eq('id', role.hiring_manager_id).maybeSingle()
   let hmDobText: string | null = null
   let cultureOffers: Record<string, number> | null = null
@@ -94,9 +94,27 @@ serve(async (req) => {
     ? (hm as unknown as { required_work_authorization: string[] }).required_work_authorization
     : []
   const hmCareerGrowthPotential: string | null = (hm as unknown as { career_growth_potential: string | null } | null)?.career_growth_potential ?? null
+  const hmLeadershipTags: Record<string, number> = (typeof (hm as unknown as { leadership_tags: unknown } | null)?.leadership_tags === 'object' && (hm as unknown as { leadership_tags: unknown } | null)?.leadership_tags !== null)
+    ? (hm as unknown as { leadership_tags: Record<string, number> }).leadership_tags
+    : {}
+  const hmHireUrgency: string | null = (hm as unknown as { hire_urgency: string | null } | null)?.hire_urgency ?? null
+
+  // Infer HM management style from leadership_tags
+  // offers_autonomy → autonomous; supportive+collaborator → collaborative; high_performance+analytical → hands_on
+  function inferHmManagementStyle(): 'hands_on' | 'autonomous' | 'collaborative' | null {
+    if (Object.keys(hmLeadershipTags).length === 0) return null
+    const auto    = hmLeadershipTags['offers_autonomy'] ?? 0
+    const support = (hmLeadershipTags['supportive'] ?? 0) + (hmLeadershipTags['collaborator'] ?? 0)
+    const directive = (hmLeadershipTags['high_performance'] ?? 0) + (hmLeadershipTags['analytical'] ?? 0)
+    if (auto > support && auto > directive / 2) return 'autonomous'
+    if (support > directive) return 'collaborative'
+    if (directive > 0) return 'hands_on'
+    return null
+  }
+  const hmManagementStyle = inferHmManagementStyle()
 
   // Matching weights, overridable via system_config.
-  const [wBehRow, wTagRow, wSalRow, wCultureRow, wEmpRow, wCharRow, wAgeRow, wLocRow, wBgRow, wFbRow, wPeakRow, wBoostRow, wExpRow, wEduRow, wCGRow, wJIRow] = await Promise.all([
+  const [wBehRow, wTagRow, wSalRow, wCultureRow, wEmpRow, wCharRow, wAgeRow, wLocRow, wBgRow, wFbRow, wPeakRow, wBoostRow, wExpRow, wEduRow, wCGRow, wJIRow, wMgmtRow, wUrgRow, wWARow] = await Promise.all([
     db.from('system_config').select('value').eq('key', 'weight_behavioral_fitness').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_tag_compatibility').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_salary_fit').maybeSingle(),
@@ -113,6 +131,9 @@ serve(async (req) => {
     db.from('system_config').select('value').eq('key', 'weight_education_fit').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_career_goal_fit').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_job_intention_fit').maybeSingle(),
+    db.from('system_config').select('value').eq('key', 'weight_management_style_fit').maybeSingle(),
+    db.from('system_config').select('value').eq('key', 'weight_urgency_fit').maybeSingle(),
+    db.from('system_config').select('value').eq('key', 'weight_work_arrangement_fit').maybeSingle(),
   ])
   let weightBehavioral = typeof wBehRow.data?.value     === 'number' ? wBehRow.data.value     : 0.20
   let weightTag        = typeof wTagRow.data?.value     === 'number' ? wTagRow.data.value     : 0.50
@@ -130,6 +151,9 @@ serve(async (req) => {
   let weightEducation     = typeof wEduRow.data?.value === 'number' ? wEduRow.data.value : 0.05
   let weightCareerGoal    = typeof wCGRow.data?.value  === 'number' ? wCGRow.data.value  : 0.06
   let weightJobIntention  = typeof wJIRow.data?.value  === 'number' ? wJIRow.data.value  : 0.04
+  let weightMgmtStyle     = typeof wMgmtRow.data?.value === 'number' ? wMgmtRow.data.value : 0.07
+  let weightUrgency       = typeof wUrgRow.data?.value  === 'number' ? wUrgRow.data.value  : 0.06
+  let weightWorkArrangement = typeof wWARow.data?.value === 'number' ? wWARow.data.value  : 0.08
 
   // Fix e: role-type weight presets — shift relative emphasis for different role families.
   const roleWeightPreset = ((role as { weight_preset?: string }).weight_preset ?? '').toLowerCase()
@@ -162,6 +186,9 @@ serve(async (req) => {
     if ((p as Record<string, number>).education     !== undefined) weightEducation    = (p as Record<string, number>).education
     if ((p as Record<string, number>).career_goal   !== undefined) weightCareerGoal   = (p as Record<string, number>).career_goal
     if ((p as Record<string, number>).job_intention !== undefined) weightJobIntention = (p as Record<string, number>).job_intention
+    if ((p as Record<string, number>).mgmt_style       !== undefined) weightMgmtStyle       = (p as Record<string, number>).mgmt_style
+    if ((p as Record<string, number>).urgency          !== undefined) weightUrgency          = (p as Record<string, number>).urgency
+    if ((p as Record<string, number>).work_arrangement !== undefined) weightWorkArrangement  = (p as Record<string, number>).work_arrangement
   }
 
   // Fix c: culture signals from onboarding chat are AI-inferred — reduce weight by half
@@ -224,7 +251,7 @@ serve(async (req) => {
   // Candidate pool: open, non-expired talents.
   const now = new Date().toISOString()
   const { data: talents } = await db.from('talents')
-    .select('id, profile_id, derived_tags, privacy_mode, whitelist_companies, date_of_birth_encrypted, life_chart_character, uses_lunar_calendar, location_matters, location_postcode, open_to_new_field, parsed_resume, deal_breakers, expected_salary_min, expected_salary_max, employment_type_preferences, feedback_score, education_level, has_noncompete, noncompete_industry_scope, salary_structure_preference, career_goal_horizon, job_intention, shortest_tenure_months, red_flags, phs_show_rate, phs_accept_rate, phs_pass_probation_rate, phs_stay_6m_rate, profiles!inner(ghost_score, is_banned)')
+    .select('id, profile_id, derived_tags, privacy_mode, whitelist_companies, date_of_birth_encrypted, life_chart_character, uses_lunar_calendar, location_matters, location_postcode, open_to_new_field, parsed_resume, deal_breakers, expected_salary_min, expected_salary_max, employment_type_preferences, feedback_score, education_level, has_noncompete, noncompete_industry_scope, salary_structure_preference, career_goal_horizon, job_intention, shortest_tenure_months, red_flags, phs_show_rate, phs_accept_rate, phs_pass_probation_rate, phs_stay_6m_rate, preferred_management_style, notice_period_days, work_arrangement_preference, profiles!inner(ghost_score, is_banned)')
     .eq('is_open_to_offers', true)
     .eq('profiles.is_banned', false)
     .or(`profile_expires_at.is.null,profile_expires_at.gte.${now}`)
@@ -526,6 +553,44 @@ serve(async (req) => {
       else jobIntentionFit = 75  // undecided = neutral
     }
 
+    // ── Management style fit ──────────────────────────────────────────────────
+    const talentMgmtStyle = (t as unknown as { preferred_management_style: string | null }).preferred_management_style ?? null
+    const MGMT_COMPAT: Record<string, Record<string, number>> = {
+      autonomous:    { autonomous: 100, collaborative: 70, hands_on: 30 },
+      collaborative: { collaborative: 100, hands_on: 75, autonomous: 65 },
+      hands_on:      { hands_on: 100, collaborative: 75, autonomous: 50 },
+    }
+    let managementStyleFit: number | null = null
+    if (talentMgmtStyle && hmManagementStyle) {
+      managementStyleFit = MGMT_COMPAT[talentMgmtStyle]?.[hmManagementStyle] ?? 50
+    }
+
+    // ── Urgency fit ───────────────────────────────────────────────────────────
+    const talentNoticePeriod = (t as unknown as { notice_period_days: number | null }).notice_period_days ?? null
+    let urgencyFit: number | null = null
+    if (hmHireUrgency && talentNoticePeriod != null) {
+      if (hmHireUrgency === 'urgent') {
+        urgencyFit = talentNoticePeriod <= 14 ? 100 : talentNoticePeriod <= 30 ? 75 : talentNoticePeriod <= 60 ? 50 : 25
+      } else if (hmHireUrgency === 'normal') {
+        urgencyFit = talentNoticePeriod <= 30 ? 100 : talentNoticePeriod <= 60 ? 85 : talentNoticePeriod <= 90 ? 70 : 50
+      } else {  // exploring
+        urgencyFit = 85
+      }
+    }
+
+    // ── Work arrangement fit ──────────────────────────────────────────────────
+    const talentWorkPref = (t as unknown as { work_arrangement_preference: string | null }).work_arrangement_preference ?? null
+    const roleWorkArrangementStr = roleWorkArrangement  // already read above from role
+    const WA_COMPAT: Record<string, Record<string, number>> = {
+      remote:      { remote: 100, hybrid: 60,  on_site: 10 },
+      hybrid:      { hybrid: 100, remote: 80,  on_site: 60 },
+      on_site:     { on_site: 100, hybrid: 85, remote: 70 },
+    }
+    let workArrangementFit: number | null = null
+    if (talentWorkPref && roleWorkArrangementStr) {
+      workArrangementFit = WA_COMPAT[talentWorkPref]?.[roleWorkArrangementStr] ?? 50
+    }
+
     // ── Tenure signals (for Golden Rule and public reasoning) ─────────────────
     const talentShortestTenure = (t as unknown as { shortest_tenure_months: number | null }).shortest_tenure_months ?? null
     const talentRedFlags: string[] = Array.isArray((t as unknown as { red_flags: string[] | null }).red_flags)
@@ -690,6 +755,9 @@ serve(async (req) => {
       { name: 'education_fit',      score: educationFit ?? 0,        weight: educationFit     != null ? weightEducation    : 0 },
       { name: 'career_goal_fit',    score: careerGoalFit ?? 0,       weight: careerGoalFit    != null ? weightCareerGoal   : 0 },
       { name: 'job_intention_fit',  score: jobIntentionFit ?? 0,     weight: jobIntentionFit  != null ? weightJobIntention : 0 },
+      { name: 'management_style_fit', score: managementStyleFit ?? 0, weight: managementStyleFit != null ? weightMgmtStyle : 0 },
+      { name: 'urgency_fit',          score: urgencyFit ?? 0,          weight: urgencyFit         != null ? weightUrgency    : 0 },
+      { name: 'work_arrangement_fit', score: workArrangementFit ?? 0,  weight: workArrangementFit != null ? weightWorkArrangement : 0 },
     ]
     const totalW = dims.reduce((acc, d) => acc + d.weight, 0)
     const rawScore = totalW > 0
@@ -768,6 +836,9 @@ serve(async (req) => {
       jobIntentionFit,
       talentShortestTenure,
       talentRedFlagsCount: talentRedFlags.length,
+      managementStyleFit,
+      urgencyFit,
+      workArrangementFit,
       finalScore,
       ghostScore,
       ghostThreshold,
@@ -819,7 +890,16 @@ serve(async (req) => {
         talent_job_intention: talentJobIntention,
         talent_shortest_tenure_months: talentShortestTenure,
         hm_career_growth_potential: hmCareerGrowthPotential,
-        weights: { behavioral: weightBehavioral, tag: weightTag, salary: weightSalary, culture: weightCulture, employment: weightEmployment, character: weightCharacter, age: weightAge, location: weightLocation, background: weightBackground, feedback: weightFeedback, peak_age: weightPeakAge, monthly_boost: weightMonthlyBoost, experience: weightExperience, education: weightEducation, career_goal: weightCareerGoal, job_intention: weightJobIntention },
+        management_style_fit: managementStyleFit != null ? Number(managementStyleFit.toFixed(2)) : null,
+        urgency_fit: urgencyFit != null ? Number(urgencyFit.toFixed(2)) : null,
+        work_arrangement_fit: workArrangementFit != null ? Number(workArrangementFit.toFixed(2)) : null,
+        talent_mgmt_style: talentMgmtStyle,
+        hm_mgmt_style: hmManagementStyle,
+        hm_hire_urgency: hmHireUrgency,
+        talent_notice_period_days: talentNoticePeriod,
+        talent_work_arrangement_pref: talentWorkPref,
+        role_work_arrangement: roleWorkArrangementStr,
+        weights: { behavioral: weightBehavioral, tag: weightTag, salary: weightSalary, culture: weightCulture, employment: weightEmployment, character: weightCharacter, age: weightAge, location: weightLocation, background: weightBackground, feedback: weightFeedback, peak_age: weightPeakAge, monthly_boost: weightMonthlyBoost, experience: weightExperience, education: weightEducation, career_goal: weightCareerGoal, job_intention: weightJobIntention, mgmt_style: weightMgmtStyle, urgency: weightUrgency, work_arrangement: weightWorkArrangement },
         active_dimensions: activeDims,
         effective_weights: effectiveWeights,
         ghost_score: ghostScore,
@@ -948,6 +1028,9 @@ interface ScoredCandidate {
   jobIntentionFit: number | null
   talentShortestTenure: number | null
   talentRedFlagsCount: number
+  managementStyleFit: number | null
+  urgencyFit: number | null
+  workArrangementFit: number | null
   finalScore: number
   ghostScore: number
   ghostThreshold: number
@@ -1061,6 +1144,20 @@ function buildPublicReasoning(s: ScoredCandidate, roleTraits: string[]) {
 
   if (s.jobIntentionFit != null && s.jobIntentionFit < 70) {
     watchouts.push('Candidate indicated they are looking to gain specific experience before moving on — confirm long-term commitment expectations early.')
+  }
+
+  if (s.managementStyleFit != null) {
+    if (s.managementStyleFit >= 85) strengths.push('Management style aligns well with this candidate's preference — smooth working dynamic expected.')
+    else if (s.managementStyleFit < 50) watchouts.push('Management style mismatch — candidate may struggle with how this team is led. Discuss expectations explicitly.')
+  }
+
+  if (s.urgencyFit != null && s.urgencyFit < 50) {
+    watchouts.push('Notice period may be too long for the role timeline — confirm availability date upfront.')
+  }
+
+  if (s.workArrangementFit != null) {
+    if (s.workArrangementFit >= 90) strengths.push('Work arrangement preference matches role offering.')
+    else if (s.workArrangementFit < 50) watchouts.push('Work arrangement preference does not match this role — confirm candidate is willing to adapt before progressing.')
   }
 
   if (s.talentShortestTenure != null && s.talentShortestTenure < 12) {

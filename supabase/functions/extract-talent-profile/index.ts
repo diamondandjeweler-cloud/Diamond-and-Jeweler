@@ -87,7 +87,8 @@ Return this exact JSON structure (use null for any value not mentioned):
   "career_goal_horizon": "senior_specialist" | "people_manager" | "career_pivot" | "entrepreneurial" | "undecided" | null,
   "job_intention": "long_term_commitment" | "skill_building" | "undecided" | null,
   "shortest_tenure_months": number | null,
-  "avg_tenure_months": number | null
+  "avg_tenure_months": number | null,
+  "work_arrangement_preference": "on_site" | "hybrid" | "remote" | null
 }
 
 Extraction rules:
@@ -128,6 +129,7 @@ Extraction rules:
 - job_intention: "long_term_commitment" = explicitly looking for a company to grow with long-term. "skill_building" = stated they want to gain specific experience and may move on in 2–3 years. "undecided" = not stated or unclear.
 - shortest_tenure_months: the shortest time they stayed in any single role mentioned in the conversation. If they mentioned "6 months at one place" and "2 years at another", output 6. null if only one role ever discussed.
 - avg_tenure_months: rough average months per role based on total years experience divided by number of roles mentioned. null if cannot be reasonably estimated.
+- work_arrangement_preference: how they prefer to work based on what they said. "on_site" = wants to be in the office. "hybrid" = ok with a mix. "remote" = prefers or requires working from home.
 - red_flags: specific concerns observed — e.g. ["bad-mouths previous employer", "vague on all behavioural questions", "unemployed 8+ months with no explanation", "job-hopped 4 times in 3 years", "unrealistic salary expectation", "contradicts own stated values", "story inconsistency: claimed X years but timeline does not add up", "shifted reason for leaving mid-conversation"]. Flag timeline contradictions and story shifts explicitly.
 - DO NOT include name, phone, email, company names, or any personal identifiers.
 `.trim()

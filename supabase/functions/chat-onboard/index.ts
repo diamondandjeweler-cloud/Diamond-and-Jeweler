@@ -383,11 +383,12 @@ Blend this naturally with your personalised summary of what you heard from them.
 
   const systemPrompt = (body.mode === 'hm' ? HM_PROMPT : TALENT_PROMPT) + timingBlock
 
-  // Provider chain: Groq primary → Groq secondary → Anthropic → OpenRouter
+  // Provider chain: Groq-1 → Groq-2 → Groq-3 → Anthropic → OpenRouter
   // Add keys as Supabase secrets; any subset works — chain skips missing/failed providers.
   const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY')
   const groqKey = Deno.env.get('GROQ_API_KEY')
   const groqKey2 = Deno.env.get('GROQ_API_KEY_2')
+  const groqKey3 = Deno.env.get('GROQ_API_KEY_3')
   const openrouterKey = Deno.env.get('OPENROUTER_API_KEY')
 
   // ── 1. Groq primary ───────────────────────────────────────────────────────
@@ -396,7 +397,7 @@ Blend this naturally with your personalised summary of what you heard from them.
       'https://api.groq.com/openai/v1/chat/completions',
       `Bearer ${groqKey}`,
       'llama-3.3-70b-versatile',
-      'Groq-primary',
+      'Groq-1',
     )
     if (res) return res
   }
@@ -407,12 +408,23 @@ Blend this naturally with your personalised summary of what you heard from them.
       'https://api.groq.com/openai/v1/chat/completions',
       `Bearer ${groqKey2}`,
       'llama-3.3-70b-versatile',
-      'Groq-secondary',
+      'Groq-2',
     )
     if (res) return res
   }
 
-  // ── 3. Anthropic (Claude Haiku) — backup ──────────────────────────────────
+  // ── 3. Groq tertiary ─────────────────────────────────────────────────────
+  if (groqKey3) {
+    const res = await tryOpenAICompatible(
+      'https://api.groq.com/openai/v1/chat/completions',
+      `Bearer ${groqKey3}`,
+      'llama-3.3-70b-versatile',
+      'Groq-3',
+    )
+    if (res) return res
+  }
+
+  // ── 4. Anthropic (Claude Sonnet) — backup ─────────────────────────────────
   if (anthropicKey) {
     const ac = new AbortController()
     const t = setTimeout(() => ac.abort(), 28_000)

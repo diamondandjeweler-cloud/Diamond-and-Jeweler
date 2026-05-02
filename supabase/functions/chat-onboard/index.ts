@@ -383,14 +383,36 @@ Blend this naturally with your personalised summary of what you heard from them.
 
   const systemPrompt = (body.mode === 'hm' ? HM_PROMPT : TALENT_PROMPT) + timingBlock
 
-  // Provider chain: Anthropic → Groq primary → Groq secondary → OpenRouter
+  // Provider chain: Groq primary → Groq secondary → Anthropic → OpenRouter
   // Add keys as Supabase secrets; any subset works — chain skips missing/failed providers.
   const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY')
   const groqKey = Deno.env.get('GROQ_API_KEY')
   const groqKey2 = Deno.env.get('GROQ_API_KEY_2')
   const openrouterKey = Deno.env.get('OPENROUTER_API_KEY')
 
-  // ── 1. Anthropic (Claude Haiku) ───────────────────────────────────────────
+  // ── 1. Groq primary ───────────────────────────────────────────────────────
+  if (groqKey) {
+    const res = await tryOpenAICompatible(
+      'https://api.groq.com/openai/v1/chat/completions',
+      `Bearer ${groqKey}`,
+      'llama-3.3-70b-versatile',
+      'Groq-primary',
+    )
+    if (res) return res
+  }
+
+  // ── 2. Groq secondary ────────────────────────────────────────────────────
+  if (groqKey2) {
+    const res = await tryOpenAICompatible(
+      'https://api.groq.com/openai/v1/chat/completions',
+      `Bearer ${groqKey2}`,
+      'llama-3.3-70b-versatile',
+      'Groq-secondary',
+    )
+    if (res) return res
+  }
+
+  // ── 3. Anthropic (Claude Haiku) — backup ──────────────────────────────────
   if (anthropicKey) {
     const ac = new AbortController()
     const t = setTimeout(() => ac.abort(), 28_000)
@@ -403,7 +425,7 @@ Blend this naturally with your personalised summary of what you heard from them.
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
+          model: 'claude-sonnet-4-6',
           max_tokens: 512,
           stream: true,
           system: systemPrompt,
@@ -493,27 +515,7 @@ Blend this naturally with your personalised summary of what you heard from them.
     })
   }
 
-  // ── 2. Groq primary ───────────────────────────────────────────────────────
-  if (groqKey) {
-    const res = await tryOpenAICompatible(
-      'https://api.groq.com/openai/v1/chat/completions',
-      `Bearer ${groqKey}`,
-      'llama-3.3-70b-versatile',
-      'Groq-primary',
-    )
-    if (res) return res
-  }
 
-  // ── 3. Groq secondary (GROQ_API_KEY_2) ───────────────────────────────────
-  if (groqKey2) {
-    const res = await tryOpenAICompatible(
-      'https://api.groq.com/openai/v1/chat/completions',
-      `Bearer ${groqKey2}`,
-      'llama-3.3-70b-versatile',
-      'Groq-secondary',
-    )
-    if (res) return res
-  }
 
   // ── 4. OpenRouter (free tier — no credit card required) ───────────────────
   // Sign up at openrouter.ai, copy API key, set as OPENROUTER_API_KEY secret.

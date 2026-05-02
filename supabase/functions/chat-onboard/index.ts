@@ -389,6 +389,8 @@ Blend this naturally with your personalised summary of what you heard from them.
   const groqKey = Deno.env.get('GROQ_API_KEY')
   const groqKey2 = Deno.env.get('GROQ_API_KEY_2')
   const groqKey3 = Deno.env.get('GROQ_API_KEY_3')
+  const groqKey4 = Deno.env.get('GROQ_API_KEY_4')
+  const groqKey5 = Deno.env.get('GROQ_API_KEY_5')
   const openrouterKey = Deno.env.get('OPENROUTER_API_KEY')
 
   // ── 1. Groq primary ───────────────────────────────────────────────────────
@@ -424,7 +426,29 @@ Blend this naturally with your personalised summary of what you heard from them.
     if (res) return res
   }
 
-  // ── 4. Anthropic (Claude Sonnet) — backup ─────────────────────────────────
+  // ── 4. Groq key 4 ────────────────────────────────────────────────────────
+  if (groqKey4) {
+    const res = await tryOpenAICompatible(
+      'https://api.groq.com/openai/v1/chat/completions',
+      `Bearer ${groqKey4}`,
+      'llama-3.3-70b-versatile',
+      'Groq-4',
+    )
+    if (res) return res
+  }
+
+  // ── 5. Groq key 5 ────────────────────────────────────────────────────────
+  if (groqKey5) {
+    const res = await tryOpenAICompatible(
+      'https://api.groq.com/openai/v1/chat/completions',
+      `Bearer ${groqKey5}`,
+      'llama-3.3-70b-versatile',
+      'Groq-5',
+    )
+    if (res) return res
+  }
+
+  // ── 6. Anthropic (Claude Sonnet) — backup ─────────────────────────────────
   if (anthropicKey) {
     const ac = new AbortController()
     const t = setTimeout(() => ac.abort(), 28_000)

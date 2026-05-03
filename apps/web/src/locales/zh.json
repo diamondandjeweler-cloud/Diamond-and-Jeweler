@@ -110,7 +110,8 @@
     "agreeLabel": "我已阅读并同意上述同意书与责任豁免条款。",
     "agreeButton": "同意并继续",
     "saving": "保存中…",
-    "errorRequired": "请勾选此框以继续。"
+    "errorRequired": "请勾选此框以继续。",
+    "networkTimeout": "网络较慢，请重试。"
   },
   "match": {
     "score": "匹配度 {{score}}%",

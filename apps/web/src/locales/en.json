@@ -110,7 +110,8 @@
     "agreeLabel": "I have read and agree to the consent and waiver above.",
     "agreeButton": "I agree — continue",
     "saving": "Saving…",
-    "errorRequired": "Tick the box to continue."
+    "errorRequired": "Tick the box to continue.",
+    "networkTimeout": "Network is slow — please try again."
   },
   "match": {
     "score": "Match {{score}}%",

@@ -110,7 +110,8 @@
     "agreeLabel": "Saya telah membaca dan bersetuju dengan persetujuan dan penepian tuntutan di atas.",
     "agreeButton": "Saya setuju — teruskan",
     "saving": "Sedang menyimpan…",
-    "errorRequired": "Sila tandakan kotak ini untuk meneruskan."
+    "errorRequired": "Sila tandakan kotak ini untuk meneruskan.",
+    "networkTimeout": "Rangkaian lambat — sila cuba lagi."
   },
   "match": {
     "score": "Padanan {{score}}%",

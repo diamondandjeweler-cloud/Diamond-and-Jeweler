@@ -68,6 +68,21 @@ export function bootstrapSession() {
   if (bootstrapped) return
   bootstrapped = true
 
+  // Wipe stale PKCE verifiers from prior abandoned sign-ins. A verifier is only
+  // valid between the redirect-to-Google and the callback exchange; if one is
+  // present at boot on any non-callback route, it's leftover from an aborted
+  // flow and will poison the next OAuth (Google issues a fresh code that won't
+  // match the stale verifier, exchange fails silently, 6-10s watchdog fires).
+  try {
+    const onCallback = typeof window !== 'undefined'
+      && window.location.pathname.startsWith('/auth/callback')
+    if (!onCallback) {
+      Object.keys(localStorage).forEach((k) => {
+        if (k.includes('code-verifier') || k.endsWith('-pkce')) localStorage.removeItem(k)
+      })
+    }
+  } catch { /* tolerate */ }
+
   // Single source of truth: rely on onAuthStateChange's INITIAL_SESSION event.
   // Calling refresh() in parallel races with the auth-token lock.
 

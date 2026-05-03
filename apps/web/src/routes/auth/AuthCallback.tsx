@@ -56,12 +56,13 @@ export default function AuthCallback() {
     })()
   }, [session, type])
 
-  // Safety net: if PKCE doesn't deliver a session within 6s, treat it as a
+  // Safety net: if PKCE doesn't deliver a session within 10s, treat it as a
   // failed OAuth exchange and show a real error — NOT the "Check your email"
   // screen, which is for email-signup confirmation and was misleading users
   // into clicking "Back to sign in" → /login (talent variant, default).
   // Verifies via supabase.auth.getSession() directly to rule out a Zustand
-  // propagation lag before declaring failure.
+  // propagation lag before declaring failure. 10s (was 6s) tolerates slow
+  // mobile networks where the PKCE round-trip legitimately takes >6s.
   useEffect(() => {
     if (!hasCode) return
     const timeout = setTimeout(async () => {
@@ -76,7 +77,7 @@ export default function AuthCallback() {
           return
         }
       } catch { /* fall through to error */ }
-      console.error('[auth] PKCE exchange did not produce a session within 6s — likely stale code_verifier or expired code')
+      console.error('[auth] PKCE exchange did not produce a session within 10s — likely stale code_verifier or expired code')
       // Clear stale PKCE state so the next attempt starts clean.
       try {
         Object.keys(localStorage).forEach((k) => {
@@ -85,7 +86,7 @@ export default function AuthCallback() {
       } catch { /* tolerate */ }
       setMode((m) => (m === 'loading' ? 'error' : m))
       setErr('We couldn\'t complete sign-in. Please try again.')
-    }, 6000)
+    }, 10000)
     return () => clearTimeout(timeout)
   }, [hasCode])
 

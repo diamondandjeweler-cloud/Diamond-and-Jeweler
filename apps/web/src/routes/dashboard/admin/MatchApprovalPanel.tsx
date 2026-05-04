@@ -55,13 +55,17 @@ export default function MatchApprovalPanel() {
   const [autopilotLoading, setAutopilotLoading] = useState(true)
 
   async function loadMode() {
-    const { data } = await supabase.from('system_config').select('value').eq('key', 'match_approval_mode').maybeSingle()
-    setAutopilot((data?.value as string | null) === 'autopilot')
-    setAutopilotLoading(false)
+    try {
+      const { data } = await supabase.from('system_config').select('value').eq('key', 'match_approval_mode').maybeSingle()
+      setAutopilot((data?.value as string | null) === 'autopilot')
+    } finally {
+      setAutopilotLoading(false)
+    }
   }
 
   async function reload() {
     setLoading(true)
+    setErr(null)
     try {
       const { data, error } = await supabase
         .from('matches')
@@ -73,8 +77,11 @@ export default function MatchApprovalPanel() {
         .eq('status', 'pending_approval')
         .order('created_at', { ascending: false })
         .limit(100)
+        .abortSignal(AbortSignal.timeout(20_000))
       if (error) setErr(error.message)
       else setRows((data ?? []) as unknown as PendingMatch[])
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Failed to load pending matches')
     } finally {
       setLoading(false)
     }

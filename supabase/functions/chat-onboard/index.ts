@@ -407,7 +407,7 @@ Blend this naturally with your personalised summary of what you heard from them.
 
   const systemPrompt = (body.mode === 'hm' ? HM_PROMPT : TALENT_PROMPT) + timingBlock
 
-  // Provider chain: Groq-1 → Groq-2 → Groq-3 → Anthropic → OpenRouter
+  // Provider chain: Groq-1-5 → Gemini → OpenAI → Anthropic → OpenRouter
   // Add keys as Supabase secrets; any subset works — chain skips missing/failed providers.
   const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY')
   const groqKey = Deno.env.get('GROQ_API_KEY')
@@ -415,6 +415,8 @@ Blend this naturally with your personalised summary of what you heard from them.
   const groqKey3 = Deno.env.get('GROQ_API_KEY_3')
   const groqKey4 = Deno.env.get('GROQ_API_KEY_4')
   const groqKey5 = Deno.env.get('GROQ_API_KEY_5')
+  const geminiKey = Deno.env.get('GEMINI_API_KEY')
+  const openaiKey = Deno.env.get('OPENAI_API_KEY')
   const openrouterKey = Deno.env.get('OPENROUTER_API_KEY')
 
   // ── 1. Groq primary ───────────────────────────────────────────────────────
@@ -472,7 +474,29 @@ Blend this naturally with your personalised summary of what you heard from them.
     if (res) return res
   }
 
-  // ── 6. Anthropic (Claude Sonnet) — backup ─────────────────────────────────
+  // ── 6. Gemini Flash ───────────────────────────────────────────────────────
+  if (geminiKey) {
+    const res = await tryOpenAICompatible(
+      'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+      `Bearer ${geminiKey}`,
+      'gemini-2.0-flash',
+      'Gemini',
+    )
+    if (res) return res
+  }
+
+  // ── 7. OpenAI GPT-4o-mini ─────────────────────────────────────────────────
+  if (openaiKey) {
+    const res = await tryOpenAICompatible(
+      'https://api.openai.com/v1/chat/completions',
+      `Bearer ${openaiKey}`,
+      'gpt-4o-mini',
+      'OpenAI',
+    )
+    if (res) return res
+  }
+
+  // ── 8. Anthropic (Claude Sonnet) — backup ─────────────────────────────────
   if (anthropicKey) {
     const ac = new AbortController()
     const t = setTimeout(() => ac.abort(), 28_000)
@@ -579,7 +603,7 @@ Blend this naturally with your personalised summary of what you heard from them.
 
 
 
-  // ── 4. OpenRouter (free tier — no credit card required) ───────────────────
+  // ── 9. OpenRouter (free tier — no credit card required) ───────────────────
   // Sign up at openrouter.ai, copy API key, set as OPENROUTER_API_KEY secret.
   if (openrouterKey) {
     const res = await tryOpenAICompatible(
@@ -591,7 +615,7 @@ Blend this naturally with your personalised summary of what you heard from them.
     if (res) return res
   }
 
-  return new Response(JSON.stringify({ error: 'No AI provider available. Set ANTHROPIC_API_KEY, GROQ_API_KEY, GROQ_API_KEY_2, or OPENROUTER_API_KEY as Supabase secrets.' }), {
+  return new Response(JSON.stringify({ error: 'No AI provider available. Set GROQ_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, or OPENROUTER_API_KEY as Supabase secrets.' }), {
     status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
 })

@@ -116,7 +116,79 @@ ${body.paymentContext}`
 
   const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY')
   const groqKey = Deno.env.get('GROQ_API_KEY')
+  const groqKey2 = Deno.env.get('GROQ_API_KEY_2')
+  const groqKey3 = Deno.env.get('GROQ_API_KEY_3')
+  const groqKey4 = Deno.env.get('GROQ_API_KEY_4')
+  const groqKey5 = Deno.env.get('GROQ_API_KEY_5')
+  const geminiKey = Deno.env.get('GEMINI_API_KEY')
+  const openaiKey = Deno.env.get('OPENAI_API_KEY')
 
+  // Helper: stream any OpenAI-compatible provider, rewriting SSE to Anthropic format.
+  async function tryOpenAICompatible(url: string, authHeader: string, model: string, label: string): Promise<Response | null> {
+    const msgs = [{ role: 'system', content: systemPrompt }, ...messages]
+    const ac = new AbortController()
+    const t = setTimeout(() => ac.abort(), 28_000)
+    let upstream: Response
+    try {
+      upstream = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+        body: JSON.stringify({ model, max_tokens: 512, stream: true, messages: msgs }),
+        signal: ac.signal,
+      })
+      clearTimeout(t)
+    } catch (e) {
+      clearTimeout(t)
+      console.error(`${label} fetch failed/timed out:`, e)
+      return null
+    }
+    if (!upstream.ok) {
+      console.error(`${label} error:`, upstream.status)
+      return null
+    }
+    const { readable, writable } = new TransformStream()
+    const writer = writable.getWriter()
+    const encoder = new TextEncoder()
+    const decoder = new TextDecoder()
+    ;(async () => {
+      const reader = upstream.body!.getReader()
+      let buffer = ''
+      let finished = false
+      try {
+        while (!finished) {
+          const { done, value } = await reader.read()
+          if (done) break
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n')
+          buffer = lines.pop() ?? ''
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue
+            const raw = line.slice(6).trim()
+            if (raw === '[DONE]') {
+              await writer.write(encoder.encode('event: message_stop\ndata: {"type":"message_stop"}\n\n'))
+              finished = true
+              break
+            }
+            try {
+              const evt = JSON.parse(raw)
+              const text = evt.choices?.[0]?.delta?.content
+              if (typeof text === 'string' && text.length > 0) {
+                const out = JSON.stringify({ type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text } })
+                await writer.write(encoder.encode(`event: content_block_delta\ndata: ${out}\n\n`))
+              }
+            } catch { /* skip bad lines */ }
+          }
+        }
+      } finally {
+        await writer.close().catch(() => {})
+      }
+    })()
+    return new Response(readable, {
+      headers: { ...corsHeaders, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' },
+    })
+  }
+
+  // ── 1. Anthropic Claude Haiku (primary) ───────────────────────────────────
   if (anthropicKey) {
     const ac = new AbortController()
     const t = setTimeout(() => ac.abort(), 28_000)
@@ -150,82 +222,27 @@ ${body.paymentContext}`
     }
   }
 
-  if (groqKey) {
-    const groqMessages = [{ role: 'system', content: systemPrompt }, ...messages]
-    const ac2 = new AbortController()
-    const t2 = setTimeout(() => ac2.abort(), 28_000)
-    let upstream: Response
-    try {
-      upstream = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${groqKey}`,
-        },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          max_tokens: 512,
-          stream: true,
-          messages: groqMessages,
-        }),
-        signal: ac2.signal,
-      })
-      clearTimeout(t2)
-    } catch (e) {
-      clearTimeout(t2)
-      console.error('Groq fetch failed/timed out:', e)
-      return new Response(JSON.stringify({ error: 'AI provider timed out. Please try again.' }), {
-        status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+  // ── 2–6. Groq ×5 ─────────────────────────────────────────────────────────
+  for (const [key, label] of [[groqKey,'Groq-1'],[groqKey2,'Groq-2'],[groqKey3,'Groq-3'],[groqKey4,'Groq-4'],[groqKey5,'Groq-5']] as const) {
+    if (key) {
+      const res = await tryOpenAICompatible('https://api.groq.com/openai/v1/chat/completions', `Bearer ${key}`, 'llama-3.3-70b-versatile', label)
+      if (res) return res
     }
-    if (upstream.ok) {
-      const { readable, writable } = new TransformStream()
-      const writer = writable.getWriter()
-      const encoder = new TextEncoder()
-      const decoder = new TextDecoder()
-
-      ;(async () => {
-        const reader = upstream.body!.getReader()
-        let buffer = ''
-        let finished = false
-        try {
-          while (!finished) {
-            const { done, value } = await reader.read()
-            if (done) break
-            buffer += decoder.decode(value, { stream: true })
-            const lines = buffer.split('\n')
-            buffer = lines.pop() ?? ''
-            for (const line of lines) {
-              if (!line.startsWith('data: ')) continue
-              const raw = line.slice(6).trim()
-              if (raw === '[DONE]') {
-                await writer.write(encoder.encode('event: message_stop\ndata: {"type":"message_stop"}\n\n'))
-                finished = true
-                break
-              }
-              try {
-                const evt = JSON.parse(raw)
-                const text = evt.choices?.[0]?.delta?.content
-                if (typeof text === 'string' && text.length > 0) {
-                  const out = JSON.stringify({ type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text } })
-                  await writer.write(encoder.encode(`event: content_block_delta\ndata: ${out}\n\n`))
-                }
-              } catch { /* skip bad lines */ }
-            }
-          }
-        } finally {
-          await writer.close().catch(() => {})
-        }
-      })()
-
-      return new Response(readable, {
-        headers: { ...corsHeaders, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' },
-      })
-    }
-    console.error('Groq error:', upstream.status)
   }
 
-  return new Response(JSON.stringify({ error: 'No AI provider configured. Set ANTHROPIC_API_KEY or GROQ_API_KEY.' }), {
+  // ── 3. Gemini Flash ───────────────────────────────────────────────────────
+  if (geminiKey) {
+    const res = await tryOpenAICompatible('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', `Bearer ${geminiKey}`, 'gemini-2.0-flash', 'Gemini')
+    if (res) return res
+  }
+
+  // ── 4. OpenAI GPT-4o-mini ─────────────────────────────────────────────────
+  if (openaiKey) {
+    const res = await tryOpenAICompatible('https://api.openai.com/v1/chat/completions', `Bearer ${openaiKey}`, 'gpt-4o-mini', 'OpenAI')
+    if (res) return res
+  }
+
+  return new Response(JSON.stringify({ error: 'No AI provider configured. Set ANTHROPIC_API_KEY, GROQ_API_KEY, GEMINI_API_KEY, or OPENAI_API_KEY.' }), {
     status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
 })

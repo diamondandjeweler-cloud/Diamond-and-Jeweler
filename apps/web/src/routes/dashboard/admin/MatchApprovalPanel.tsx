@@ -13,10 +13,10 @@ interface PendingMatch {
     title: string
     industry: string | null
     description: string | null
-  } | null
-  hiring_managers: {
-    life_chart_character: string | null
-    date_of_birth_encrypted: string | null
+    hiring_managers: {
+      life_chart_character: string | null
+      date_of_birth_encrypted: string | null
+    } | null
   } | null
   talents: {
     id: string
@@ -62,20 +62,22 @@ export default function MatchApprovalPanel() {
 
   async function reload() {
     setLoading(true)
-    const { data, error } = await supabase
-      .from('matches')
-      .select(`
-        id, compatibility_score, tag_compatibility, life_chart_score, internal_reasoning, created_at,
-        roles(title, industry, description),
-        hiring_managers(life_chart_character, date_of_birth_encrypted),
-        talents(id, life_chart_character, date_of_birth_encrypted, derived_tags)
-      `)
-      .eq('status', 'pending_approval')
-      .order('created_at', { ascending: false })
-      .limit(100)
-    if (error) setErr(error.message)
-    else setRows((data ?? []) as unknown as PendingMatch[])
-    setLoading(false)
+    try {
+      const { data, error } = await supabase
+        .from('matches')
+        .select(`
+          id, compatibility_score, tag_compatibility, life_chart_score, internal_reasoning, created_at,
+          roles(title, industry, description, hiring_managers(life_chart_character, date_of_birth_encrypted)),
+          talents(id, life_chart_character, date_of_birth_encrypted, derived_tags)
+        `)
+        .eq('status', 'pending_approval')
+        .order('created_at', { ascending: false })
+        .limit(100)
+      if (error) setErr(error.message)
+      else setRows((data ?? []) as unknown as PendingMatch[])
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -120,7 +122,7 @@ export default function MatchApprovalPanel() {
       setExpanded(null)
     } else {
       setExpanded(m.id)
-      void decryptDobs(m.id, m.hiring_managers?.date_of_birth_encrypted ?? null, m.talents?.date_of_birth_encrypted ?? null)
+      void decryptDobs(m.id, m.roles?.hiring_managers?.date_of_birth_encrypted ?? null, m.talents?.date_of_birth_encrypted ?? null)
     }
   }
 
@@ -268,7 +270,7 @@ export default function MatchApprovalPanel() {
                     {/* HM vs Talent character */}
                     <div className="flex gap-6 mt-2 text-xs text-gray-600">
                       <span>
-                        HM character: <strong>{m.hiring_managers?.life_chart_character ?? '—'}</strong>
+                        HM character: <strong>{m.roles?.hiring_managers?.life_chart_character ?? '—'}</strong>
                       </span>
                       <span>
                         Talent character: <strong>{m.talents?.life_chart_character ?? '—'}</strong>
@@ -319,7 +321,7 @@ export default function MatchApprovalPanel() {
                     <div className="grid grid-cols-2 gap-4 text-xs">
                       <div className="bg-white border rounded p-3">
                         <p className="font-semibold text-gray-700 mb-1">Hiring Manager</p>
-                        <p>Character: <strong>{m.hiring_managers?.life_chart_character ?? '—'}</strong></p>
+                        <p>Character: <strong>{m.roles?.hiring_managers?.life_chart_character ?? '—'}</strong></p>
                         <p>DOB: {dobs ? (dobs.hm ?? 'not set') : 'Loading…'}</p>
                       </div>
                       <div className="bg-white border rounded p-3">

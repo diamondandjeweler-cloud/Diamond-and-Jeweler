@@ -8,10 +8,13 @@ import LoadingSpinner from './LoadingSpinner'
  * onboarding route based on role. Wrap dashboard routes in this gate.
  */
 export default function OnboardingGate({ children }: { children: ReactNode }) {
-  const { profile, loading } = useSession()
+  const { profile, loading, session } = useSession()
 
   if (loading) return <LoadingSpinner full />
-  if (!profile) return <Navigate to="/login" replace />
+  if (!profile) {
+    if (session) return <LoadingSpinner full />
+    return <Navigate to="/login" replace />
+  }
 
   if (!profile.onboarding_complete) {
     if (profile.role === 'talent')         return <Navigate to="/onboarding/talent" replace />

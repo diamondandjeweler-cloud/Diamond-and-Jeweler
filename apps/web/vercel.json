@@ -1,57 +1,64 @@
 {
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ],
-  "headers": [
+  "routes": [
     {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "X-Content-Type-Options",   "value": "nosniff" },
-        { "key": "X-Frame-Options",          "value": "DENY" },
-        { "key": "Referrer-Policy",          "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy",       "value": "camera=(), microphone=(), geolocation=()" },
-        { "key": "Strict-Transport-Security","value": "max-age=63072000; includeSubDomains; preload" },
-        { "key": "Content-Security-Policy",  "value": "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://sfnrpbsdscikpmbhrzub.supabase.co wss://sfnrpbsdscikpmbhrzub.supabase.co https://accounts.google.com https://challenges.cloudflare.com; frame-src 'self' https://accounts.google.com https://challenges.cloudflare.com; form-action 'self' https://accounts.google.com; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; upgrade-insecure-requests" }
-      ]
+      "src": "/(.*)",
+      "headers": {
+        "X-Content-Type-Options":   "nosniff",
+        "X-Frame-Options":          "DENY",
+        "Referrer-Policy":          "strict-origin-when-cross-origin",
+        "Permissions-Policy":       "camera=(), microphone=(), geolocation=()",
+        "Strict-Transport-Security":"max-age=63072000; includeSubDomains; preload",
+        "Content-Security-Policy":  "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://sfnrpbsdscikpmbhrzub.supabase.co wss://sfnrpbsdscikpmbhrzub.supabase.co https://accounts.google.com https://challenges.cloudflare.com; frame-src 'self' https://accounts.google.com https://challenges.cloudflare.com; form-action 'self' https://accounts.google.com; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; upgrade-insecure-requests"
+      },
+      "continue": true
     },
     {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=60, stale-while-revalidate=86400" }
-      ]
+      "src": "/(.*)",
+      "headers": {
+        "Cache-Control": "public, max-age=0, s-maxage=60, stale-while-revalidate=86400"
+      },
+      "continue": true
     },
     {
-      "source": "/sitemap.xml",
-      "headers": [
-        { "key": "Content-Type",  "value": "application/xml; charset=utf-8" },
-        { "key": "Cache-Control", "value": "public, max-age=3600" }
-      ]
+      "src": "/sitemap\\.xml",
+      "headers": {
+        "Content-Type":  "application/xml; charset=utf-8",
+        "Cache-Control": "public, max-age=3600"
+      },
+      "continue": true
     },
     {
-      "source": "/robots.txt",
-      "headers": [
-        { "key": "Content-Type",  "value": "text/plain; charset=utf-8" },
-        { "key": "Cache-Control", "value": "public, max-age=3600" }
-      ]
+      "src": "/robots\\.txt",
+      "headers": {
+        "Content-Type":  "text/plain; charset=utf-8",
+        "Cache-Control": "public, max-age=3600"
+      },
+      "continue": true
     },
     {
-      "source": "/.well-known/security.txt",
-      "headers": [
-        { "key": "Content-Type",  "value": "text/plain; charset=utf-8" },
-        { "key": "Cache-Control", "value": "public, max-age=86400" }
-      ]
+      "src": "/\\.well-known/security\\.txt",
+      "headers": {
+        "Content-Type":  "text/plain; charset=utf-8",
+        "Cache-Control": "public, max-age=86400"
+      },
+      "continue": true
     },
     {
-      "source": "/favicon.svg",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=86400" }
-      ]
+      "src": "/favicon\\.svg",
+      "headers": { "Cache-Control": "public, max-age=86400" },
+      "continue": true
     },
     {
-      "source": "/assets/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
-    }
+      "src": "/assets/(.*)",
+      "headers": { "Cache-Control": "public, max-age=31536000, immutable" },
+      "continue": true
+    },
+    { "handle": "filesystem" },
+    {
+      "src": "^/(?:home|login|signup|signout|password-reset|consent|start(?:/[^/]+)?|auth/callback|mfa/(?:challenge|enroll)|onboarding/(?:talent|hm|company(?:/verify)?)|talent(?:/profile)?|hm(?:/post-role|/roles(?:/[^/]+/edit)?)?|hr(?:/invite)?|admin|referrals|points|consult(?:/return)?|feedback/[^/]+|data-requests|privacy|terms|waitlist/confirm|payment/(?:return|mock)|restaurant(?:/.*)?|menu/[^/]+)$",
+      "dest": "/index.html"
+    },
+    { "src": "^/$", "dest": "/index.html" },
+    { "src": "/(.*)", "dest": "/index.html", "status": 404 }
   ]
 }

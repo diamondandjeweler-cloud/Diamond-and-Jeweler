@@ -118,8 +118,8 @@ export default function App() {
           <Route path="/onboarding/company" element={<ConsentGate><CompanyRegister /></ConsentGate>} />
 
           {/* Dashboards (consent + onboarding gated) */}
-          <Route path="/talent" element={<ConsentGate><OnboardingGate><TalentDashboard /></OnboardingGate></ConsentGate>} />
-          <Route path="/talent/profile" element={<ConsentGate><OnboardingGate><TalentProfile /></OnboardingGate></ConsentGate>} />
+          <Route path="/talent" element={<RoleGate allow={['talent']}><ConsentGate><OnboardingGate><TalentDashboard /></OnboardingGate></ConsentGate></RoleGate>} />
+          <Route path="/talent/profile" element={<RoleGate allow={['talent']}><ConsentGate><OnboardingGate><TalentProfile /></OnboardingGate></ConsentGate></RoleGate>} />
           <Route path="/hm"     element={<RoleGate allow={['hiring_manager']}><ConsentGate><OnboardingGate><HMDashboard /></OnboardingGate></ConsentGate></RoleGate>} />
           <Route path="/hm/post-role" element={<RoleGate allow={['hiring_manager']}><ConsentGate><OnboardingGate><PostRole /></OnboardingGate></ConsentGate></RoleGate>} />
           <Route path="/hm/roles" element={<RoleGate allow={['hiring_manager']}><ConsentGate><OnboardingGate><MyRoles /></OnboardingGate></ConsentGate></RoleGate>} />

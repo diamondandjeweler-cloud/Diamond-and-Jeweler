@@ -1,0 +1,6 @@
+Contact: mailto:security@diamondandjeweler.com
+Contact: mailto:diamondandjeweler@gmail.com
+Expires: 2027-05-04T00:00:00.000Z
+Preferred-Languages: en, ms, zh
+Canonical: https://diamondandjeweler.com/.well-known/security.txt
+Policy: https://diamondandjeweler.com/privacy

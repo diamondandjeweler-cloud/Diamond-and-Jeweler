@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 
 interface LegalCopy {
   legalReviewed: boolean
@@ -15,6 +16,7 @@ const FALLBACK: LegalCopy = {
 }
 
 export default function Terms() {
+  useDocumentTitle('Terms of service')
   const [copy, setCopy] = useState<LegalCopy>(FALLBACK)
 
   useEffect(() => {

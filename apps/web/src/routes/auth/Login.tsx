@@ -7,8 +7,10 @@ import AuthShell from '../../components/AuthShell'
 import { Button, Input, PasswordInput, Alert } from '../../components/ui'
 import { markAdminVerified } from '../../lib/adminReauth'
 import Turnstile from '../../components/Turnstile'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 
 export default function Login() {
+  useDocumentTitle('Sign in')
   const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()

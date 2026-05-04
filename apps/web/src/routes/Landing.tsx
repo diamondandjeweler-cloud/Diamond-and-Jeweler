@@ -1,6 +1,7 @@
 import { Link, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../state/useSession'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 
 /**
  * Landing is intentionally minimal: two icons, one decision.
@@ -14,6 +15,7 @@ import { useSession } from '../state/useSession'
 export default function Landing() {
   const { t } = useTranslation()
   const { session, profile, loading } = useSession()
+  useDocumentTitle('Three matches, zero noise')
   // Only redirect into the app once we have BOTH session and profile.
   // session-but-no-profile means useSession is signing out an orphan session.
   if (!loading && session && profile) return <Navigate to="/home" replace />

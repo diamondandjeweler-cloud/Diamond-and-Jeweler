@@ -6,8 +6,10 @@ import Consent from '../../components/Consent'
 import AuthShell from '../../components/AuthShell'
 import { Button, Input, PasswordInput, Alert } from '../../components/ui'
 import Turnstile from '../../components/Turnstile'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 
 export default function SignUp() {
+  useDocumentTitle('Create account')
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [params] = useSearchParams()

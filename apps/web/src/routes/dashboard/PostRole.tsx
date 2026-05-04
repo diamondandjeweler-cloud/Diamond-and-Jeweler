@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { callFunction } from '../../lib/functions'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import { Button, Card, Alert, Input, Select, Textarea, PageHeader } from '../../components/ui'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 
 const TRAITS = [
   'self_starter', 'reliable', 'collaborator', 'growth_minded', 'clear_communicator',
@@ -12,6 +13,7 @@ const TRAITS = [
 ]
 
 export default function PostRole() {
+  useDocumentTitle('Post a role')
   const { session } = useSession()
   const navigate = useNavigate()
 

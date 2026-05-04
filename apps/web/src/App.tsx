@@ -46,7 +46,10 @@ const Consult          = lazy(() => import('./routes/Consult'))
 const PaymentReturn    = lazy(() => import('./routes/PaymentReturn'))
 const NotFound         = lazy(() => import('./routes/NotFound'))
 
-// Restaurant OS — own chunk per page; heavy and rarely all visited together
+// Restaurant OS — own chunk per page; heavy and rarely all visited together.
+// Hard-disabled in production by default. Set VITE_ENABLE_RESTAURANT=true to surface.
+const RESTAURANT_ENABLED = import.meta.env.VITE_ENABLE_RESTAURANT === 'true'
+
 const GuestMenu        = lazy(() => import('./routes/restaurant/GuestMenu'))
 const RestaurantLayout = lazy(() => import('./routes/restaurant/RestaurantLayout'))
 const RestaurantHome   = lazy(() => import('./routes/restaurant/RestaurantHome'))
@@ -95,10 +98,14 @@ export default function App() {
         <Route path="/mfa/enroll"    element={<MfaEnroll />} />
 
         {/* Public customer order tracker — anonymous, RLS-allowed read */}
-        <Route path="/restaurant/track/:orderId" element={<RestaurantTrack />} />
+        {RESTAURANT_ENABLED && (
+          <Route path="/restaurant/track/:orderId" element={<RestaurantTrack />} />
+        )}
 
         {/* Public QR menu — guest ordering, no login required */}
-        <Route path="/menu/:branchId" element={<GuestMenu />} />
+        {RESTAURANT_ENABLED && (
+          <Route path="/menu/:branchId" element={<GuestMenu />} />
+        )}
 
         {/* Authenticated (inside Layout) */}
         <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
@@ -127,26 +134,29 @@ export default function App() {
           <Route path="/consult" element={<Consult />} />
           <Route path="/consult/return" element={<Consult />} />
 
-          {/* Restaurant OS — gated to admin and restaurant_staff only */}
-          <Route path="/restaurant" element={<RoleGate allow={['admin', 'restaurant_staff']}><RestaurantLayout /></RoleGate>}>
-            <Route index element={<RestaurantHome />} />
-            <Route path="kiosk"      element={<Kiosk />} />
-            <Route path="orders"     element={<Orders />} />
-            <Route path="kds"        element={<Kds />} />
-            <Route path="bar"        element={<BarKds />} />
-            <Route path="cashier"    element={<Cashier />} />
-            <Route path="floor"      element={<Floor />} />
-            <Route path="inventory"  element={<Inventory />} />
-            <Route path="purchasing" element={<Purchasing />} />
-            <Route path="staff"      element={<Staff />} />
-            <Route path="accounting" element={<Accounting />} />
-            <Route path="promotions" element={<Promotions />} />
-            <Route path="audit"      element={<Audit />} />
-            <Route path="shifts"     element={<Shifts />} />
-            <Route path="branches"   element={<Branches />} />
-            <Route path="reports"    element={<Reports />} />
-            <Route path="admin"      element={<RestaurantAdmin />} />
-          </Route>
+          {/* Restaurant OS — gated to admin and restaurant_staff only.
+              Hidden in production unless VITE_ENABLE_RESTAURANT=true. */}
+          {RESTAURANT_ENABLED && (
+            <Route path="/restaurant" element={<RoleGate allow={['admin', 'restaurant_staff']}><RestaurantLayout /></RoleGate>}>
+              <Route index element={<RestaurantHome />} />
+              <Route path="kiosk"      element={<Kiosk />} />
+              <Route path="orders"     element={<Orders />} />
+              <Route path="kds"        element={<Kds />} />
+              <Route path="bar"        element={<BarKds />} />
+              <Route path="cashier"    element={<Cashier />} />
+              <Route path="floor"      element={<Floor />} />
+              <Route path="inventory"  element={<Inventory />} />
+              <Route path="purchasing" element={<Purchasing />} />
+              <Route path="staff"      element={<Staff />} />
+              <Route path="accounting" element={<Accounting />} />
+              <Route path="promotions" element={<Promotions />} />
+              <Route path="audit"      element={<Audit />} />
+              <Route path="shifts"     element={<Shifts />} />
+              <Route path="branches"   element={<Branches />} />
+              <Route path="reports"    element={<Reports />} />
+              <Route path="admin"      element={<RestaurantAdmin />} />
+            </Route>
+          )}
         </Route>
 
         <Route path="*" element={<NotFound />} />
@@ -188,6 +198,6 @@ function RoleHome() {
   if (profile.role === 'hiring_manager')   return <Navigate to="/hm" replace />
   if (profile.role === 'hr_admin')         return <Navigate to="/hr" replace />
   if (profile.role === 'admin')            return <Navigate to="/admin" replace />
-  if (profile.role === 'restaurant_staff') return <Navigate to="/restaurant" replace />
+  if (profile.role === 'restaurant_staff' && RESTAURANT_ENABLED) return <Navigate to="/restaurant" replace />
   return <Navigate to="/" replace />
 }

@@ -15,12 +15,14 @@ import NotificationLogPanel from './admin/NotificationLogPanel'
 import SystemConfigPanel from './admin/SystemConfigPanel'
 import PricingPanel from './admin/PricingPanel'
 import SupportPanel from './admin/SupportPanel'
+import AuditLogPanel from './admin/AuditLogPanel'
 import { PageHeader } from '../../components/ui'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 
 type AdminTab =
   | 'kpi' | 'companies' | 'waitlist' | 'coldstart' | 'users' | 'approvals' | 'matches'
   | 'monthly_boost' | 'tags' | 'dsr' | 'market' | 'notifications' | 'pricing' | 'config'
-  | 'support'
+  | 'support' | 'audit'
 
 const TABS: Array<{ key: AdminTab; label: string; render: () => JSX.Element }> = [
   { key: 'kpi',           label: 'Overview',      render: () => <KpiPanel /> },
@@ -33,6 +35,7 @@ const TABS: Array<{ key: AdminTab; label: string; render: () => JSX.Element }> =
   { key: 'matches',       label: 'Matches',       render: () => <MatchPanel /> },
   { key: 'tags',          label: 'Tags',          render: () => <TagPanel /> },
   { key: 'dsr',           label: 'Data requests', render: () => <DsrPanel /> },
+  { key: 'audit',         label: 'Audit log',     render: () => <AuditLogPanel /> },
   { key: 'market',        label: 'Market rates',  render: () => <MarketRatePanel /> },
   { key: 'notifications', label: 'Notifications', render: () => <NotificationLogPanel /> },
   { key: 'pricing',       label: 'Pricing',       render: () => <PricingPanel /> },
@@ -41,6 +44,7 @@ const TABS: Array<{ key: AdminTab; label: string; render: () => JSX.Element }> =
 ]
 
 export default function AdminDashboard() {
+  useDocumentTitle('Admin console')
   const [tab, setTab] = useState<AdminTab>('kpi')
   const active = TABS.find((t) => t.key === tab) ?? TABS[0]
 

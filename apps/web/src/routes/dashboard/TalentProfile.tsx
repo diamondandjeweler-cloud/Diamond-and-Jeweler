@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import { PREFERENCE_ASPECTS } from '../../data/preference-aspects'
 import { useTranslation } from 'react-i18next'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 
 type PrivacyMode = 'public' | 'anonymous' | 'whitelist'
 
@@ -20,6 +21,7 @@ interface TalentRow {
 }
 
 export default function TalentProfile() {
+  useDocumentTitle('Your profile')
   const { session, profile, refresh } = useSession()
   const navigate = useNavigate()
   const { t } = useTranslation()
@@ -122,7 +124,8 @@ export default function TalentProfile() {
   if (!talent) {
     return (
       <div className="max-w-lg mx-auto text-center">
-        <p className="text-gray-600 mb-4">No talent profile found.</p>
+        <h1 className="font-display text-2xl text-ink-900 mb-2">Your profile isn't set up yet</h1>
+        <p className="text-gray-600 mb-4">Finish onboarding so we can start matching you with roles.</p>
         <button
           onClick={() => navigate('/onboarding/talent')}
           className="bg-brand-600 text-white px-4 py-2 rounded hover:bg-brand-700"

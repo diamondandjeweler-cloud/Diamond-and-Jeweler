@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { Alert, Button, Card, CardBody, Spinner } from '../../components/ui'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 
 interface ConsentVersion {
   id: string
@@ -13,6 +14,7 @@ interface ConsentVersion {
 }
 
 export default function Consent() {
+  useDocumentTitle('Data processing consent')
   const { t, i18n } = useTranslation()
   const { session, profile, refresh } = useSession()
   const navigate = useNavigate()
@@ -47,44 +49,57 @@ export default function Consent() {
     if (!agree) { setError(t('consent.errorRequired')); return }
     if (!v) return
     setBusy(true); setError(null)
+
+    // Hash IP once, outside the retry loop — failure here is tolerated.
+    let ipHash: string | null = null
     try {
-      await Promise.race([
-        (async () => {
-          // Hash IP with a hard 3s timeout — fall back gracefully if slow/blocked.
-          let ipHash: string | null = null
-          try {
-            const ac = new AbortController()
-            const tid = setTimeout(() => ac.abort(), 3000)
-            const r = await fetch('https://api.ipify.org?format=json', { signal: ac.signal })
-            clearTimeout(tid)
-            const j = await r.json() as { ip: string }
-            const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(j.ip + session.user.id))
-            ipHash = Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('')
-          } catch { /* tolerate */ }
+      const ac = new AbortController()
+      const tid = setTimeout(() => ac.abort(), 3000)
+      const r = await fetch('https://api.ipify.org?format=json', { signal: ac.signal })
+      clearTimeout(tid)
+      const j = await r.json() as { ip: string }
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(j.ip + session.user.id))
+      ipHash = Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('')
+    } catch { /* tolerate */ }
 
-          const { error: e1 } = await supabase.from('profiles').update({
-            consent_version: v.version,
-            consent_signed_at: new Date().toISOString(),
-            consent_ip_hash: ipHash,
-          }).eq('id', session.user.id)
-          if (e1) throw e1
-
-          // Update local store immediately so ConsentGate unblocks, then navigate.
-          useSession.setState((s) => ({
-            profile: s.profile ? { ...s.profile, consent_version: v.version } : s.profile,
-          }))
-          navigate('/home', { replace: true })
-          void refresh()
-        })(),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error(t('consent.networkTimeout'))), 15000),
-        ),
-      ])
-    } catch (e) {
-      setError((e as Error).message)
-    } finally {
-      setBusy(false)
+    const writeOnce = async () => {
+      const { error: e1 } = await supabase.from('profiles').update({
+        consent_version: v.version,
+        consent_signed_at: new Date().toISOString(),
+        consent_ip_hash: ipHash,
+      }).eq('id', session.user.id)
+      if (e1) throw e1
     }
+
+    // Retry the row write with exponential backoff: 0ms, 1s, 2s.
+    // Each attempt is wrapped in a 15s timeout race so a hung mobile network
+    // never leaves the button stuck on "Saving…".
+    const RETRY_DELAYS_MS = [0, 1000, 2000]
+    let lastErr: unknown = null
+    for (const delay of RETRY_DELAYS_MS) {
+      if (delay > 0) await new Promise((r) => setTimeout(r, delay))
+      try {
+        await Promise.race([
+          writeOnce(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error(t('consent.networkTimeout'))), 15000),
+          ),
+        ])
+        // Success — update local store immediately so ConsentGate unblocks, then navigate.
+        useSession.setState((s) => ({
+          profile: s.profile ? { ...s.profile, consent_version: v.version } : s.profile,
+        }))
+        navigate('/home', { replace: true })
+        void refresh()
+        setBusy(false)
+        return
+      } catch (e) {
+        lastErr = e
+      }
+    }
+    console.error('[Consent] save failed after retries:', lastErr)
+    setError((lastErr as Error)?.message ?? t('consent.networkTimeout'))
+    setBusy(false)
   }
 
   if (!v) return <div className="p-10 text-center"><Spinner /> {t('common.loading')}</div>

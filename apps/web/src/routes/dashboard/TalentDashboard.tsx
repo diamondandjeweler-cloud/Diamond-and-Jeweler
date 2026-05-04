@@ -4,6 +4,7 @@ import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { callFunction } from '../../lib/functions'
 import LoadingSpinner from '../../components/LoadingSpinner'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { Button, Card, Badge, Alert, EmptyState, PageHeader, Stat } from '../../components/ui'
 import MatchExplain from '../../components/MatchExplain'
 import CareerNudgePanel from '../../components/CareerNudgePanel'
@@ -46,6 +47,7 @@ const TALENT_OUTCOMES = [
 ]
 
 export default function TalentDashboard() {
+  useDocumentTitle('My offers')
   const { session, profile } = useSession()
   const [matches, setMatches] = useState<MatchRow[]>([])
   const [loading, setLoading] = useState(true)

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import LoadingSpinner from '../../components/LoadingSpinner'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { Button, Card, Badge, Alert, EmptyState, PageHeader, Stat, Input, Select } from '../../components/ui'
 import LinkHMPanel from './admin/LinkHMPanel'
 
@@ -29,6 +30,7 @@ interface ScheduledRow {
 type HRTab = 'scheduling' | 'link-hms'
 
 export default function HRDashboard() {
+  useDocumentTitle('Scheduling')
   const { session } = useSession()
   const [hrTab, setHrTab] = useState<HRTab>('scheduling')
   const [pending, setPending] = useState<PendingRow[]>([])

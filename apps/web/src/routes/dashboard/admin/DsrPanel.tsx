@@ -32,8 +32,12 @@ export default function DsrPanel() {
       .order('created_at', { ascending: false })
     if (filter === 'pending') q = q.in('status', ['pending', 'in_review'])
     const { data, error } = await q.limit(100)
-    if (error) setErr(error.message)
-    else setRows((data ?? []) as unknown as DsrRow[])
+    if (error) {
+      console.error('[DsrPanel] reload failed:', error)
+      setErr('Could not load data requests. Check the browser console for details.')
+    } else {
+      setRows((data ?? []) as unknown as DsrRow[])
+    }
     setLoading(false)
   }
 
@@ -48,7 +52,9 @@ export default function DsrPanel() {
     }
     const { error } = await supabase.from('data_requests').update(patch).eq('id', r.id)
     if (error) {
-      setErr(error.message); setWorking(null); return
+      console.error('[DsrPanel] setStatus failed:', error)
+      setErr('Could not update this request. Check the browser console for details.')
+      setWorking(null); return
     }
 
     // For access / portability completions, trigger the export Edge Function

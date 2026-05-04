@@ -4,6 +4,7 @@ import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { callFunction } from '../../lib/functions'
 import LoadingSpinner from '../../components/LoadingSpinner'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import { Button, Card, Badge, Alert, EmptyState, PageHeader, Stat } from '../../components/ui'
 import MatchExplain from '../../components/MatchExplain'
 import ScreeningChecklist from '../../components/ScreeningChecklist'
@@ -63,6 +64,7 @@ const ACTIVE = [
 ]
 
 export default function HMDashboard() {
+  useDocumentTitle('Candidates')
   const { session, profile } = useSession()
   const [roleCount, setRoleCount] = useState<number>(0)
   const [candidates, setCandidates] = useState<CandidateRow[]>([])

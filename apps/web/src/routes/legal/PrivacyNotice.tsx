@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 
 interface LegalCopy {
   entityName: string | null
@@ -21,6 +22,7 @@ const FALLBACK: LegalCopy = {
 }
 
 export default function PrivacyNotice() {
+  useDocumentTitle('Privacy notice')
   const [copy, setCopy] = useState<LegalCopy>(FALLBACK)
 
   useEffect(() => {

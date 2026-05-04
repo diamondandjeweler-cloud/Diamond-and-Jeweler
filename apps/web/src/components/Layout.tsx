@@ -152,6 +152,7 @@ function navForRole(role: string | undefined, pathname: string) {
     href, label, badge,
     active: pathname === href || (href !== '/home' && pathname.startsWith(href)),
   })
+  const restaurantEnabled = import.meta.env.VITE_ENABLE_RESTAURANT === 'true'
   const restaurant = linkFor('/restaurant', 'Restaurant', 'DEV')
   if (role === 'talent') return [
     linkFor('/home', 'My offers'),
@@ -166,11 +167,10 @@ function navForRole(role: string | undefined, pathname: string) {
     linkFor('/hr', 'Scheduling'),
     linkFor('/hr/invite', 'Invite HM'),
   ]
-  if (role === 'admin') return [
-    linkFor('/admin', 'Admin'),
-    restaurant,
-  ]
-  if (role === 'restaurant_staff') return [restaurant]
+  if (role === 'admin') return restaurantEnabled
+    ? [linkFor('/admin', 'Admin'), restaurant]
+    : [linkFor('/admin', 'Admin')]
+  if (role === 'restaurant_staff' && restaurantEnabled) return [restaurant]
   return []
 }
 

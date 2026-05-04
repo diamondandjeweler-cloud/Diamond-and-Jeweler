@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import LoadingSpinner from '../../components/LoadingSpinner'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 
 const TRAITS = [
   'self_starter','reliable','collaborator','growth_minded','clear_communicator',
@@ -25,6 +26,7 @@ interface RoleRow {
 }
 
 export default function EditRole() {
+  useDocumentTitle('Edit role')
   const { id } = useParams<{ id: string }>()
   const { session } = useSession()
   const navigate = useNavigate()

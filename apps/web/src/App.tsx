@@ -8,6 +8,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import OnboardingGate from './components/OnboardingGate'
 import AdminGate from './components/AdminGate'
 import ConsentGate from './components/ConsentGate'
+import RoleGate from './components/RoleGate'
 import Landing from './routes/Landing'
 import SignUp from './routes/auth/SignUp'
 import Login from './routes/auth/Login'
@@ -112,12 +113,12 @@ export default function App() {
           {/* Dashboards (consent + onboarding gated) */}
           <Route path="/talent" element={<ConsentGate><OnboardingGate><TalentDashboard /></OnboardingGate></ConsentGate>} />
           <Route path="/talent/profile" element={<ConsentGate><OnboardingGate><TalentProfile /></OnboardingGate></ConsentGate>} />
-          <Route path="/hm"     element={<ConsentGate><OnboardingGate><HMDashboard /></OnboardingGate></ConsentGate>} />
-          <Route path="/hm/post-role" element={<ConsentGate><OnboardingGate><PostRole /></OnboardingGate></ConsentGate>} />
-          <Route path="/hm/roles" element={<ConsentGate><OnboardingGate><MyRoles /></OnboardingGate></ConsentGate>} />
-          <Route path="/hm/roles/:id/edit" element={<ConsentGate><OnboardingGate><EditRole /></OnboardingGate></ConsentGate>} />
-          <Route path="/hr"     element={<ConsentGate><OnboardingGate><HRDashboard /></OnboardingGate></ConsentGate>} />
-          <Route path="/hr/invite" element={<ConsentGate><OnboardingGate><InviteHM /></OnboardingGate></ConsentGate>} />
+          <Route path="/hm"     element={<RoleGate allow={['hiring_manager']}><ConsentGate><OnboardingGate><HMDashboard /></OnboardingGate></ConsentGate></RoleGate>} />
+          <Route path="/hm/post-role" element={<RoleGate allow={['hiring_manager']}><ConsentGate><OnboardingGate><PostRole /></OnboardingGate></ConsentGate></RoleGate>} />
+          <Route path="/hm/roles" element={<RoleGate allow={['hiring_manager']}><ConsentGate><OnboardingGate><MyRoles /></OnboardingGate></ConsentGate></RoleGate>} />
+          <Route path="/hm/roles/:id/edit" element={<RoleGate allow={['hiring_manager']}><ConsentGate><OnboardingGate><EditRole /></OnboardingGate></ConsentGate></RoleGate>} />
+          <Route path="/hr"     element={<RoleGate allow={['hr_admin']}><ConsentGate><OnboardingGate><HRDashboard /></OnboardingGate></ConsentGate></RoleGate>} />
+          <Route path="/hr/invite" element={<RoleGate allow={['hr_admin']}><ConsentGate><OnboardingGate><InviteHM /></OnboardingGate></ConsentGate></RoleGate>} />
           <Route path="/admin"  element={<AdminGate><AdminDashboard /></AdminGate>} />
           <Route path="/data-requests" element={<DataRequests />} />
           <Route path="/feedback/:matchId" element={<InterviewFeedback />} />
@@ -126,8 +127,8 @@ export default function App() {
           <Route path="/consult" element={<Consult />} />
           <Route path="/consult/return" element={<Consult />} />
 
-          {/* Restaurant OS — temporary dev feature, gated to authed users */}
-          <Route path="/restaurant" element={<RestaurantLayout />}>
+          {/* Restaurant OS — gated to admin and restaurant_staff only */}
+          <Route path="/restaurant" element={<RoleGate allow={['admin', 'restaurant_staff']}><RestaurantLayout /></RoleGate>}>
             <Route index element={<RestaurantHome />} />
             <Route path="kiosk"      element={<Kiosk />} />
             <Route path="orders"     element={<Orders />} />

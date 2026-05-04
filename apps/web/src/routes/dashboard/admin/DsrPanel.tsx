@@ -28,7 +28,7 @@ export default function DsrPanel() {
     setLoading(true)
     let q = supabase
       .from('data_requests')
-      .select('id, user_id, request_type, status, notes, correction_proposal, created_at, resolved_at, profiles(email, full_name)')
+      .select('id, user_id, request_type, status, notes, correction_proposal, created_at, resolved_at, profiles!data_requests_user_id_fkey(email, full_name)')
       .order('created_at', { ascending: false })
     if (filter === 'pending') q = q.in('status', ['pending', 'in_review'])
     const { data, error } = await q.limit(100)

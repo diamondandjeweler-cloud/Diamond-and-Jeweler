@@ -58,9 +58,10 @@ export default function SignUp() {
       // round-trip and never lingers if the user abandons signup.
       if (referralCode) sessionStorage.setItem('bole.referral_code', referralCode)
     } catch { /* tolerate */ }
+    const roleQuery = role === 'hr_admin' ? '?role=hr_admin' : role === 'hiring_manager' ? '?role=hiring_manager' : ''
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${siteUrl}/auth/callback` },
+      options: { redirectTo: `${siteUrl}/auth/callback${roleQuery}` },
     })
     if (error) {
       setErr(error.message)

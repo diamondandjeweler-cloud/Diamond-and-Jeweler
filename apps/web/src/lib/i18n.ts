@@ -1,14 +1,14 @@
 /**
- * i18n — react-i18next setup with lazy per-locale loading.
- * Only the active locale bundle is downloaded; the other two are fetched
- * on demand if the user switches language. Previously all three were
- * statically imported (~58 KB uncompressed total → ~19 KB on the wire).
+ * i18n — react-i18next setup.
+ * English is bundled synchronously (fallback, most common locale) so first
+ * render always has translations available. MS and ZH load lazily on demand.
  *
  * Detection order: localStorage > navigator > default('en').
  */
 import i18n from 'i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import { initReactI18next } from 'react-i18next'
+import enTranslations from '../locales/en.json'
 
 export const SUPPORTED = [
   { code: 'en', label: 'English' },
@@ -18,7 +18,6 @@ export const SUPPORTED = [
 export type Locale = typeof SUPPORTED[number]['code']
 
 const LOCALE_LOADERS: Record<string, () => Promise<Record<string, unknown>>> = {
-  en: () => import('../locales/en.json').then((m) => m.default as Record<string, unknown>),
   ms: () => import('../locales/ms.json').then((m) => m.default as Record<string, unknown>),
   zh: () => import('../locales/zh.json').then((m) => m.default as Record<string, unknown>),
 }
@@ -35,7 +34,7 @@ void i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    resources: {},          // populated lazily below
+    resources: { en: { translation: enTranslations } },
     fallbackLng: 'en',
     supportedLngs: ['en', 'ms', 'zh'],
     interpolation: { escapeValue: false },
@@ -44,7 +43,6 @@ void i18n
       caches: ['localStorage'],
       lookupLocalStorage: 'bole.locale',
     },
-    // Suppress "no translations found" warning until bundles load.
     partialBundledLanguages: true,
   })
   .then(async () => {

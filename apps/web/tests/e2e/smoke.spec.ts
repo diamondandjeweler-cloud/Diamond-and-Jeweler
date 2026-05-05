@@ -17,7 +17,7 @@ test.describe('landing + waitlist + signup smoke', () => {
     await page.getByRole('textbox', { name: /email/i }).fill('playwright-smoke@example.com')
     // PasswordInput renders both the field AND a "Show/Hide password" toggle;
     // both match getByLabel(/password/i). Target the actual input directly.
-    await page.locator('input[type="password"]').fill('Hunter2hunter9')
+    await page.locator('input[type="password"]').fill('Hunter2hunter9!')
 
     const createBtn = page.getByRole('button', { name: /create account/i })
     await expect(createBtn).toBeDisabled()

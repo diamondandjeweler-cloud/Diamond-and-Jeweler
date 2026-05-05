@@ -182,6 +182,7 @@ export default function TalentOnboarding() {
     const boId = nextId()
     setLog((l) => [...l, { id: boId, from: 'system', content: '', typing: true }])
     setIsStreaming(true)
+    let accumulated = ''
 
     try {
       const { data: authData } = await supabase.auth.getSession()
@@ -215,7 +216,6 @@ export default function TalentOnboarding() {
       const reader = res.body!.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
-      let accumulated = ''
 
       outer: while (true) {
         const { done, value } = await reader.read()
@@ -265,14 +265,30 @@ export default function TalentOnboarding() {
         ])
         setTimeout(() => setPhase('dob'), 600)
       }
-    } catch {
-      setLog((l) =>
-        l.map((m) =>
-          m.id === boId
-            ? { ...m, content: 'Something went wrong. Please try again.', typing: false }
-            : m,
-        ),
-      )
+    } catch (err) {
+      const isAbort = err instanceof Error && err.name === 'AbortError'
+      if (isAbort && accumulated.trim()) {
+        const partialMsgs: ApiMessage[] = [...newApiMsgs, { role: 'assistant', content: accumulated }]
+        setApiMessages(partialMsgs)
+        supabase.from('profiles')
+          .update({ interview_transcript: { messages: partialMsgs, saved_at: new Date().toISOString(), partial: true } })
+          .eq('id', session!.user.id)
+          .then(() => {})
+        setLog((l) => [
+          ...l.map((m) => m.id === boId ? { ...m, typing: false } : m),
+          { id: nextId(), from: 'system', content: 'Progress saved. Feel free to continue whenever you\'re ready.' },
+        ])
+      } else if (isAbort) {
+        setLog((l) => l.map((m) => m.id === boId ? { ...m, content: '', typing: false } : m))
+      } else {
+        setLog((l) =>
+          l.map((m) =>
+            m.id === boId
+              ? { ...m, content: 'Something went wrong. Please try again.', typing: false }
+              : m,
+          ),
+        )
+      }
     } finally {
       setIsStreaming(false)
     }

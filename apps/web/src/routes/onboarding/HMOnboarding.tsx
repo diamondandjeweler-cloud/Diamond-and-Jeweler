@@ -120,6 +120,7 @@ export default function HMOnboarding() {
     const boId = nextId()
     setLog((l) => [...l, { id: boId, from: 'system', content: '', typing: true }])
     setIsStreaming(true)
+    let accumulated = ''
 
     try {
       const { data: authData } = await supabase.auth.getSession()
@@ -150,7 +151,6 @@ export default function HMOnboarding() {
       const reader = res.body!.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
-      let accumulated = ''
 
       outer: while (true) {
         const { done, value } = await reader.read()
@@ -193,8 +193,25 @@ export default function HMOnboarding() {
         }])
         setTimeout(() => setPhase('mustHaves'), 600)
       }
-    } catch {
-      setLog((l) => l.map((m) => m.id === boId ? { ...m, content: 'Something went wrong. Please try again.', typing: false } : m))
+    } catch (err) {
+      const isAbort = err instanceof Error && err.name === 'AbortError'
+      if (isAbort && accumulated.trim()) {
+        const partialMsgs: ApiMessage[] = [...newApiMsgs, { role: 'assistant', content: accumulated }]
+        setApiMessages(partialMsgs)
+        const savedAt = new Date().toISOString()
+        Promise.all([
+          supabase.from('profiles').update({ interview_transcript: { messages: partialMsgs, saved_at: savedAt, partial: true } }).eq('id', session!.user.id),
+          supabase.from('hiring_managers').update({ interview_answers: { transcript: partialMsgs } }).eq('profile_id', session!.user.id),
+        ]).then(() => {})
+        setLog((l) => [
+          ...l.map((m) => m.id === boId ? { ...m, typing: false } : m),
+          { id: nextId(), from: 'system', content: 'Progress saved. Feel free to continue whenever you\'re ready.' },
+        ])
+      } else if (isAbort) {
+        setLog((l) => l.map((m) => m.id === boId ? { ...m, content: '', typing: false } : m))
+      } else {
+        setLog((l) => l.map((m) => m.id === boId ? { ...m, content: 'Something went wrong. Please try again.', typing: false } : m))
+      }
     } finally {
       setIsStreaming(false)
     }

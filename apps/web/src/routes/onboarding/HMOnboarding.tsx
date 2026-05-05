@@ -125,10 +125,20 @@ export default function HMOnboarding() {
       const token = authData.session?.access_token
       if (!token) throw new Error('Not authenticated')
 
+      // Abort the whole request (connect + stream) if silent for 25s.
+      const abortCtrl = new AbortController()
+      let stallTimer: ReturnType<typeof setTimeout> | undefined
+      const resetStall = () => {
+        clearTimeout(stallTimer)
+        stallTimer = setTimeout(() => abortCtrl.abort(), 25_000)
+      }
+      resetStall()
+
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-onboard`,
         {
           method: 'POST',
+          signal: abortCtrl.signal,
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ messages: newApiMsgs, mode: 'hm' }),
         },
@@ -139,13 +149,6 @@ export default function HMOnboarding() {
       const decoder = new TextDecoder()
       let buffer = ''
       let accumulated = ''
-
-      let stallTimer: ReturnType<typeof setTimeout> | undefined
-      const resetStall = () => {
-        clearTimeout(stallTimer)
-        stallTimer = setTimeout(() => { reader.cancel().catch(() => {}) }, 20_000)
-      }
-      resetStall()
 
       outer: while (true) {
         const { done, value } = await reader.read()

@@ -4,8 +4,10 @@ import { supabase, siteUrl } from '../../lib/supabase'
 import AuthShell from '../../components/AuthShell'
 import { Button, Input, Alert } from '../../components/ui'
 import Turnstile from '../../components/Turnstile'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 
 export default function PasswordReset() {
+  useDocumentTitle('Reset your password')
   const [email, setEmail] = useState('')
   const [busy, setBusy] = useState(false)
   const [sent, setSent] = useState(false)

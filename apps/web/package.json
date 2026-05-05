@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/inject-meta.mjs",
     "preview": "vite preview --port 3000",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx",

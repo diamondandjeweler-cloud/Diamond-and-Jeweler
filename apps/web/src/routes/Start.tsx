@@ -1,4 +1,5 @@
 import { Link, Navigate, useParams } from 'react-router-dom'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 
 /**
  * Splash between the landing icons and sign-up / sign-in.
@@ -11,6 +12,7 @@ import { Link, Navigate, useParams } from 'react-router-dom'
  */
 export default function Start() {
   const { side } = useParams<{ side: string }>()
+  useDocumentTitle(side === 'talent' ? 'Find your next role' : 'Hire with precision')
   if (side !== 'talent' && side !== 'hiring') {
     return <Navigate to="/" replace />
   }

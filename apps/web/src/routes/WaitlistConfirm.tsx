@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 
 export default function WaitlistConfirm() {
+  useDocumentTitle("You're on the list")
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white border rounded-lg p-6 shadow-sm text-center">

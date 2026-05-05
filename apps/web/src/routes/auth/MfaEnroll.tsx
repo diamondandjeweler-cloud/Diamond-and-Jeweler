@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase'
 import AuthShell from '../../components/AuthShell'
 import { Button, Input, Alert } from '../../components/ui'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 
 interface EnrollData {
   id: string
@@ -12,6 +13,7 @@ interface EnrollData {
 }
 
 export default function MfaEnroll() {
+  useDocumentTitle('Set up two-factor authentication')
   const { t } = useTranslation()
   const navigate = useNavigate()
 

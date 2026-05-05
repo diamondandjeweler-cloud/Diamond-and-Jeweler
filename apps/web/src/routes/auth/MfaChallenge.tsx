@@ -4,8 +4,10 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase'
 import AuthShell from '../../components/AuthShell'
 import { Button, Input, Alert } from '../../components/ui'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 
 export default function MfaChallenge() {
+  useDocumentTitle('Two-factor authentication')
   const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()

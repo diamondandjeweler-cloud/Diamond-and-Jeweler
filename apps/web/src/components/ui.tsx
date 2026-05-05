@@ -37,6 +37,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       ref={ref}
       className={`${BTN_BASE[variant]} ${BTN_SIZE[size]} ${className ?? ''}`}
       disabled={disabled || loading}
+      aria-busy={loading ? true : undefined}
       {...rest}
     >
       {loading ? <Spinner size={size} /> : leftIcon}

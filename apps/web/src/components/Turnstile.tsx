@@ -35,6 +35,21 @@ export default function Turnstile({ onToken, theme = 'light' }: Props) {
   const onTokenRef = useRef(onToken)
   onTokenRef.current = onToken
 
+  // Lazily load the Turnstile script the first time this component mounts.
+  // Previously loaded globally in index.html; moved here so unauthenticated
+  // visitors on non-auth pages don't download ~30 KB they'll never use.
+  useEffect(() => {
+    const SCRIPT_ID = 'cf-turnstile-script'
+    if (!document.getElementById(SCRIPT_ID)) {
+      const s = document.createElement('script')
+      s.id = SCRIPT_ID
+      s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js'
+      s.async = true
+      s.defer = true
+      document.head.appendChild(s)
+    }
+  }, [])
+
   useEffect(() => {
     let cancelled = false
     function tryRender() {

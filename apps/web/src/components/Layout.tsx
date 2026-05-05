@@ -1,24 +1,13 @@
 import { Link, Outlet, useLocation } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
 import { useSession } from '../state/useSession'
-import { supabase } from '../lib/supabase'
-import { SUPPORTED } from '../lib/i18n'
 import NotificationBell from './NotificationBell'
 import SupportChat from './SupportChat'
 
 export default function Layout() {
   const { profile, signOut } = useSession()
   const { pathname } = useLocation()
-  const { i18n } = useTranslation()
 
   const navItems = navForRole(profile?.role, pathname)
-
-  const switchLocale = async (loc: string) => {
-    await i18n.changeLanguage(loc)
-    if (profile) {
-      try { await supabase.from('profiles').update({ locale: loc }).eq('id', profile.id) } catch { /* tolerate */ }
-    }
-  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -66,15 +55,7 @@ export default function Layout() {
           </div>
 
           <div className="flex items-center gap-3" aria-label="User navigation">
-            <select
-              aria-label="Language"
-              value={i18n.language.split('-')[0]}
-              onChange={(e) => void switchLocale(e.target.value)}
-              className="text-xs px-2 py-1.5 bg-transparent border-ink-200 hover:border-ink-300"
-            >
-              {SUPPORTED.map((s) => <option key={s.code} value={s.code}>{s.label}</option>)}
-            </select>
-            {profile?.points != null && (
+{profile?.points != null && (
               <Link to="/points" className="hidden sm:inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-accent-500/10 text-accent-600 ring-1 ring-accent-500/20 hover:bg-accent-500/15">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.5L12 16.9 5.8 21.4l2.4-7.5L2 9.4h7.6L12 2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>
                 {profile.points} pts

@@ -31,8 +31,7 @@ export default function Consent() {
   if (!session) return <Navigate to="/login" replace />
   if (profile?.consent_version) return <Navigate to="/home" replace />
 
-  const lang = i18n.language.startsWith('zh') ? 'zh' : i18n.language.startsWith('ms') ? 'ms' : 'en'
-  const baseVersion = versions.find((x) => x.language === lang) ?? versions[0]
+  const baseVersion = versions.find((x) => x.language === 'en') ?? versions[0]
   // Talent and hiring side agree to the same legal waiver, but the
   // *visible* "what data we collect" bullets are role-specific. Hiring users
   // don't upload NRIC/DOB/résumé, so showing them talent-side language was

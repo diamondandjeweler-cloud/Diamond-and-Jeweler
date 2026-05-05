@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { Alert, Button, Card, CardBody, Spinner } from '../../components/ui'
-import { useDocumentTitle } from '../../lib/useDocumentTitle'
+import { useSeo } from '../../lib/useSeo'
 
 interface ConsentVersion {
   id: string
@@ -14,7 +14,7 @@ interface ConsentVersion {
 }
 
 export default function Consent() {
-  useDocumentTitle('Data processing consent')
+  useSeo({ title: 'Data processing consent', noindex: true })
   const { t, i18n } = useTranslation()
   const { session, profile, refresh } = useSession()
   const navigate = useNavigate()

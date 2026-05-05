@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useSession } from '../state/useSession'
 import { supabase } from '../lib/supabase'
 import LoadingSpinner from '../components/LoadingSpinner'
-import { useDocumentTitle } from '../lib/useDocumentTitle'
+import { useSeo } from '../lib/useSeo'
 
 type RequestType = 'access' | 'correction' | 'deletion' | 'portability'
 
@@ -48,7 +48,7 @@ const CORRECTION_FIELDS: Array<{ field: CorrectionField; label: string; kind: 't
 ]
 
 export default function DataRequests() {
-  useDocumentTitle('Your data rights')
+  useSeo({ title: 'Your data rights', noindex: true })
   const { t } = useTranslation()
   const { session } = useSession()
   const navigate = useNavigate()

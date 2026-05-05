@@ -5,7 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { callFunction } from '../../lib/functions'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import { Button, Card, Badge, Alert, EmptyState, PageHeader, BadgeTone } from '../../components/ui'
-import { useDocumentTitle } from '../../lib/useDocumentTitle'
+import { useSeo } from '../../lib/useSeo'
 
 type RoleStatus = 'active' | 'paused' | 'filled' | 'expired'
 
@@ -26,7 +26,7 @@ interface RoleRow {
 }
 
 export default function MyRoles() {
-  useDocumentTitle('My roles')
+  useSeo({ title: 'My roles', noindex: true })
   const { session } = useSession()
   const [rows, setRows] = useState<RoleRow[]>([])
   const [loading, setLoading] = useState(true)

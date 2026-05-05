@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useSession } from '../state/useSession'
 import { Alert, Button, Card, CardBody, PageHeader, Spinner } from '../components/ui'
-import { useDocumentTitle } from '../lib/useDocumentTitle'
+import { useSeo } from '../lib/useSeo'
 
 /**
  * Landing page after Billplz redirects the buyer back. Polls the relevant
@@ -15,7 +15,7 @@ import { useDocumentTitle } from '../lib/useDocumentTitle'
  *   /payment/mock?purchase=<id>&kind=points|extra_match  (dev only — no real charge)
  */
 export default function PaymentReturn() {
-  useDocumentTitle('Payment')
+  useSeo({ title: 'Payment', noindex: true })
   const [params] = useSearchParams()
   const purchaseId = params.get('purchase') ?? ''
   const kind = (params.get('kind') ?? 'extra_match') as 'points' | 'extra_match'

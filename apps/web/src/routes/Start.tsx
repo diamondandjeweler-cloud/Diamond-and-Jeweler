@@ -1,5 +1,5 @@
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { useDocumentTitle } from '../lib/useDocumentTitle'
+import { useSeo } from '../lib/useSeo'
 
 /**
  * Splash between the landing icons and sign-up / sign-in.
@@ -12,13 +12,18 @@ import { useDocumentTitle } from '../lib/useDocumentTitle'
  */
 export default function Start() {
   const { side } = useParams<{ side: string }>()
-  useDocumentTitle(side === 'talent' ? 'Find your next role' : 'Hire with precision')
+  const isTalent = side === 'talent'
+  useSeo({
+    title: isTalent ? 'Find your next role' : 'Hire with precision',
+    description: isTalent
+      ? 'DNJ matches talent in Malaysia with exactly three curated roles at a time. Zero noise, three real opportunities.'
+      : 'DNJ delivers exactly three qualified candidates per open role to hiring managers and HR teams across Malaysia.',
+  })
   if (side !== 'talent' && side !== 'hiring') {
     return <Navigate to="/" replace />
   }
-  const isTalent = side === 'talent'
 
-  const heading = isTalent ? 'Welcome, talent.' : 'Welcome.'
+  const heading = isTalent ? 'Welcome, talent.' : 'Welcome, hiring manager.'
   const subheading = isTalent
     ? "Let's get your profile built — takes about 10 minutes."
     : "Hire with curation, not résumé piles."
@@ -26,6 +31,12 @@ export default function Start() {
 
   return (
     <div className="min-h-screen bg-ink-50 flex flex-col">
+      <a
+        href="#start-main"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-ink-900 text-white px-3 py-2 rounded z-50 text-sm"
+      >
+        Skip to main content
+      </a>
       <header className="px-6 py-5">
         <Link to="/" className="inline-flex items-center gap-2 text-ink-600 hover:text-ink-900 text-sm">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
@@ -35,7 +46,7 @@ export default function Start() {
         </Link>
       </header>
 
-      <main className="flex-1 flex items-center justify-center px-6 py-8">
+      <main id="start-main" className="flex-1 flex items-center justify-center px-6 py-8">
         <div className="max-w-md w-full text-center">
           <div className="mx-auto mb-6 h-20 w-20 flex items-center justify-center">
             {isTalent ? <SmallDiamond /> : <SmallMagnifier />}

@@ -7,10 +7,13 @@ import AuthShell from '../../components/AuthShell'
 import { Button, Input, PasswordInput, Alert } from '../../components/ui'
 import { markAdminVerified } from '../../lib/adminReauth'
 import Turnstile from '../../components/Turnstile'
-import { useDocumentTitle } from '../../lib/useDocumentTitle'
+import { useSeo } from '../../lib/useSeo'
 
 export default function Login() {
-  useDocumentTitle('Sign in')
+  useSeo({
+    title: 'Sign in',
+    description: 'Sign in to your DNJ account to view your curated matches, manage your profile, or post new roles.',
+  })
   const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()

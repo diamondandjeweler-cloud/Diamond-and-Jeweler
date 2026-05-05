@@ -17,7 +17,7 @@ import PricingPanel from './admin/PricingPanel'
 import SupportPanel from './admin/SupportPanel'
 import AuditLogPanel from './admin/AuditLogPanel'
 import { PageHeader } from '../../components/ui'
-import { useDocumentTitle } from '../../lib/useDocumentTitle'
+import { useSeo } from '../../lib/useSeo'
 
 type AdminTab =
   | 'kpi' | 'companies' | 'waitlist' | 'coldstart' | 'users' | 'approvals' | 'matches'
@@ -44,7 +44,7 @@ const TABS: Array<{ key: AdminTab; label: string; render: () => JSX.Element }> =
 ]
 
 export default function AdminDashboard() {
-  useDocumentTitle('Admin console')
+  useSeo({ title: 'Admin console', noindex: true })
   const [tab, setTab] = useState<AdminTab>('kpi')
   const active = TABS.find((t) => t.key === tab) ?? TABS[0]
 

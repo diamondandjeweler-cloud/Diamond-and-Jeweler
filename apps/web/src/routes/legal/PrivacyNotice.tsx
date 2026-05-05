@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { useDocumentTitle } from '../../lib/useDocumentTitle'
+import { useSeo } from '../../lib/useSeo'
 
 interface LegalCopy {
   entityName: string | null
@@ -22,7 +22,10 @@ const FALLBACK: LegalCopy = {
 }
 
 export default function PrivacyNotice() {
-  useDocumentTitle('Privacy notice')
+  useSeo({
+    title: 'Privacy notice',
+    description: 'How DNJ collects, uses, and protects your personal data under PDPA (Malaysia) and applicable privacy laws.',
+  })
   const [copy, setCopy] = useState<LegalCopy>(FALLBACK)
 
   useEffect(() => {

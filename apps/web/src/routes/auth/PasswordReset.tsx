@@ -4,10 +4,13 @@ import { supabase, siteUrl } from '../../lib/supabase'
 import AuthShell from '../../components/AuthShell'
 import { Button, Input, Alert } from '../../components/ui'
 import Turnstile from '../../components/Turnstile'
-import { useDocumentTitle } from '../../lib/useDocumentTitle'
+import { useSeo } from '../../lib/useSeo'
 
 export default function PasswordReset() {
-  useDocumentTitle('Reset your password')
+  useSeo({
+    title: 'Reset your password',
+    description: 'Request a secure password reset link for your DNJ account.',
+  })
   const [email, setEmail] = useState('')
   const [busy, setBusy] = useState(false)
   const [sent, setSent] = useState(false)

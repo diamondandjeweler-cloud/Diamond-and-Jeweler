@@ -5,7 +5,7 @@ import { supabase } from '../../lib/supabase'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import { PREFERENCE_ASPECTS } from '../../data/preference-aspects'
 import { useTranslation } from 'react-i18next'
-import { useDocumentTitle } from '../../lib/useDocumentTitle'
+import { useSeo } from '../../lib/useSeo'
 
 type PrivacyMode = 'public' | 'anonymous' | 'whitelist'
 
@@ -21,7 +21,7 @@ interface TalentRow {
 }
 
 export default function TalentProfile() {
-  useDocumentTitle('Your profile')
+  useSeo({ title: 'Your profile', noindex: true })
   const { session, profile, refresh } = useSession()
   const navigate = useNavigate()
   const { t } = useTranslation()

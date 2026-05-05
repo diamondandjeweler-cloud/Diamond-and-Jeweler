@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom'
-import { useDocumentTitle } from '../lib/useDocumentTitle'
+import { useSeo } from '../lib/useSeo'
 
 export default function NotFound() {
-  useDocumentTitle('Page not found')
+  useSeo({ title: 'Page not found', noindex: true })
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-ink-50">
       <div className="max-w-md text-center">

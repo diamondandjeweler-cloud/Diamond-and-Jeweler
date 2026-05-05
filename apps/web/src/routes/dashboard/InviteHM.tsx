@@ -2,10 +2,10 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { callFunction } from '../../lib/functions'
 import { Button, Card, Alert, Input, PageHeader } from '../../components/ui'
-import { useDocumentTitle } from '../../lib/useDocumentTitle'
+import { useSeo } from '../../lib/useSeo'
 
 export default function InviteHM() {
-  useDocumentTitle('Invite a hiring manager')
+  useSeo({ title: 'Invite a hiring manager', noindex: true })
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [fullName, setFullName] = useState('')

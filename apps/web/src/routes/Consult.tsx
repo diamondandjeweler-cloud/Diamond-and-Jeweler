@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 import { callFunction } from '../lib/functions'
 import { Button, Card, Alert, PageHeader } from '../components/ui'
 import LoadingSpinner from '../components/LoadingSpinner'
-import { useDocumentTitle } from '../lib/useDocumentTitle'
+import { useSeo } from '../lib/useSeo'
 
 type Tier = 'quick' | 'standard' | 'deep'
 
@@ -27,7 +27,7 @@ interface InitResp {
 }
 
 export default function Consult() {
-  useDocumentTitle('Book a consultation')
+  useSeo({ title: 'Book a consultation', noindex: true })
   const { t } = useTranslation()
   const TIER_DESCRIPTIONS: Record<Tier, string> = {
     quick:    t('consult.tierDesc.quick'),

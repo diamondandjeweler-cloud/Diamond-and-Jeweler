@@ -93,6 +93,7 @@ export default function SupportChat() {
 
     const ac = new AbortController()
     abortRef.current = ac
+    const timeout = setTimeout(() => ac.abort(), 45_000)
 
     try {
       const { data: { session: s } } = await supabase.auth.getSession()
@@ -136,6 +137,16 @@ export default function SupportChat() {
         }
       }
 
+      clearTimeout(timeout)
+
+      // If the stream closed without sending any content, show a fallback error
+      if (fullText === '') {
+        setMessages((prev) => prev.map((m) =>
+          m.id === aiMsgId ? { ...m, content: 'No response received. Please try again.', typing: false } : m
+        ))
+        return
+      }
+
       // Parse [TICKET_READY] token
       const tokenMatch = fullText.match(/\[TICKET_READY:(\{.*?\})\]/)
       if (tokenMatch) {
@@ -150,6 +161,7 @@ export default function SupportChat() {
         } catch { /* best-effort */ }
       }
     } catch (e: unknown) {
+      clearTimeout(timeout)
       if ((e as Error)?.name !== 'AbortError') {
         setMessages((prev) => prev.map((m) =>
           m.id === aiMsgId

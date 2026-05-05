@@ -110,6 +110,7 @@ export default function HMDashboard() {
 
     async function load() {
       if (!session) return
+      try {
       const { data: hm } = await supabase.from('hiring_managers').select('id, company_id, reputation_score, feedback_volume, phs_offer_accept_rate, hm_quality_factor, hm_cancel_rate').eq('profile_id', session.user.id).maybeSingle()
       if (!hm) { setLoading(false); return }
       if ((hm as unknown as { company_id: string | null }).company_id) {
@@ -207,6 +208,12 @@ export default function HMDashboard() {
         }
       }
       setLoading(false)
+      } catch (e) {
+        if (!cancelled) {
+          setErr(e instanceof Error ? e.message : 'Failed to load. Please refresh.')
+          setLoading(false)
+        }
+      }
     }
     void load()
 

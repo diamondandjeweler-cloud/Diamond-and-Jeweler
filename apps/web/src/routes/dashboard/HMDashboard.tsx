@@ -496,7 +496,7 @@ export default function HMDashboard() {
         </div>
       )}
 
-      {false && roleExtras.some((r) => r.activeCount >= 3 && r.extraUsed < 3) && (
+      {roleExtras.some((r) => r.activeCount >= 3 && r.extraUsed < 3) && (
         <Card className="mt-8 border-dashed border-accent-500">
           <div className="p-6">
             <div className="text-sm font-medium text-ink-900 mb-1">Need more candidates?</div>

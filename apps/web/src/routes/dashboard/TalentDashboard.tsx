@@ -329,7 +329,7 @@ export default function TalentDashboard() {
         </div>
       )}
 
-      {false && matches.length >= 3 && extraUsed < 3 && (
+      {matches.length >= 3 && extraUsed < 3 && (
         <Card className="mt-8 border-dashed border-accent-500">
           <div className="p-6 text-center">
             <div className="text-sm font-medium text-ink-700 mb-1">Already looked at all three?</div>

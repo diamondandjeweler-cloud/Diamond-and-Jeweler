@@ -56,6 +56,7 @@ export default function TalentDashboard() {
   const [unlocking, setUnlocking] = useState(false)
   const [profileExpiresAt, setProfileExpiresAt] = useState<string | null>(null)
   const [reviving, setReviving] = useState(false)
+  const [reviveStep, setReviveStep] = useState<'idle' | 'confirm'>('idle')
   const [talentReputation, setTalentReputation] = useState<{ reputation_score: number | null; feedback_volume: number; phs_show_rate: number | null; phs_accept_rate: number | null } | null>(null)
   const [profileGaps, setProfileGaps] = useState<string[]>([])
   const [talentFeedbackState, setTalentFeedbackState] = useState<Record<string, { rating: number; outcome: string; freeText: string; saving: boolean; saved: boolean; pointsAwarded?: number }>>({})
@@ -175,9 +176,14 @@ export default function TalentDashboard() {
       const { data: t } = await supabase.from('talents').select('id').eq('profile_id', session.user.id).maybeSingle()
       if (!t) return
       const newExpiry = new Date(Date.now() + 45 * 86400000).toISOString()
-      const { error } = await supabase.from('talents').update({ profile_expires_at: newExpiry, is_open_to_offers: true }).eq('id', t.id)
+      const { error } = await supabase.from('talents').update({
+        profile_expires_at: newExpiry,
+        is_open_to_offers: true,
+        ghost_score: 0,
+      }).eq('id', t.id)
       if (error) throw error
       setProfileExpiresAt(newExpiry)
+      setReviveStep('idle')
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Failed to revive profile')
     } finally {
@@ -268,7 +274,14 @@ export default function TalentDashboard() {
         actions={<Link to="/talent/profile" className="btn-secondary">Edit profile</Link>}
       />
 
-      <ExpiryBanner expiresAt={profileExpiresAt} reviving={reviving} onRevive={reviveProfile} />
+      <ExpiryBanner
+        expiresAt={profileExpiresAt}
+        reviving={reviving}
+        reviveStep={reviveStep}
+        onReviveClick={() => setReviveStep('confirm')}
+        onReviveConfirm={reviveProfile}
+        onReviveCancel={() => setReviveStep('idle')}
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
         <Stat label="Awaiting response" value={openCount} tone={openCount > 0 ? 'brand' : 'default'} />
@@ -579,26 +592,78 @@ function StatusPill({ status }: { status: string }) {
   return <Badge tone={entry.tone}>{entry.label}</Badge>
 }
 
-function ExpiryBanner({ expiresAt, reviving, onRevive }: { expiresAt: string | null; reviving: boolean; onRevive: () => void }) {
+function ExpiryBanner({
+  expiresAt, reviving, reviveStep, onReviveClick, onReviveConfirm, onReviveCancel,
+}: {
+  expiresAt: string | null
+  reviving: boolean
+  reviveStep: 'idle' | 'confirm'
+  onReviveClick: () => void
+  onReviveConfirm: () => void
+  onReviveCancel: () => void
+}) {
   if (!expiresAt) return null
   const days = Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86400000)
   if (days > 10) return null
-  if (days <= 0) return (
-    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center justify-between gap-4">
-      <div>
-        <p className="text-sm font-semibold text-red-800">Your profile has expired</p>
-        <p className="text-xs text-red-600 mt-0.5">New matches are paused. Revive to keep receiving opportunities and update your info so matching stays accurate.</p>
+
+  if (days <= 0) {
+    if (reviveStep === 'confirm') return (
+      <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+        <p className="text-sm font-semibold text-red-800 mb-0.5">Before we reactivate your profile</p>
+        <p className="text-xs text-red-600 mb-3">
+          It's been a while — please confirm these details are still accurate. Matching depends on them to find the right roles.
+        </p>
+        <ul className="text-xs text-ink-700 space-y-1 mb-4 list-disc list-inside">
+          <li>Expected salary range</li>
+          <li>Preferred job types &amp; work arrangement</li>
+          <li>Notice period &amp; availability</li>
+          <li>Long-term career intention</li>
+        </ul>
+        <div className="flex gap-2 flex-wrap">
+          <Button onClick={onReviveConfirm} loading={reviving} size="sm">Yes, all current — revive</Button>
+          <Link to="/talent/profile" className="btn-secondary text-xs px-3 py-1.5 rounded-md">Update first</Link>
+          <button onClick={onReviveCancel} className="text-xs text-ink-400 hover:text-ink-600 px-2">Cancel</button>
+        </div>
       </div>
-      <Button onClick={onRevive} loading={reviving} size="sm">Revive profile</Button>
+    )
+    return (
+      <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold text-red-800">Your profile has expired</p>
+          <p className="text-xs text-red-600 mt-0.5">New matches are paused. Revive to start receiving opportunities again.</p>
+        </div>
+        <Button onClick={onReviveClick} loading={reviving} size="sm">Revive profile</Button>
+      </div>
+    )
+  }
+
+  if (reviveStep === 'confirm') return (
+    <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+      <p className="text-sm font-semibold text-amber-800 mb-0.5">Quick check before extending</p>
+      <p className="text-xs text-amber-600 mb-3">
+        Confirm these are still accurate so matching finds you the right roles.
+      </p>
+      <ul className="text-xs text-ink-700 space-y-1 mb-4 list-disc list-inside">
+        <li>Expected salary range</li>
+        <li>Preferred job types &amp; work arrangement</li>
+        <li>Notice period &amp; availability</li>
+        <li>Long-term career intention</li>
+      </ul>
+      <div className="flex gap-2 flex-wrap">
+        <Button onClick={onReviveConfirm} loading={reviving} size="sm" variant="secondary">Yes, all current — extend 45 days</Button>
+        <Link to="/talent/profile" className="btn-secondary text-xs px-3 py-1.5 rounded-md">Update first</Link>
+        <button onClick={onReviveCancel} className="text-xs text-ink-400 hover:text-ink-600 px-2">Cancel</button>
+      </div>
     </div>
   )
+
   return (
     <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-4">
       <div>
         <p className="text-sm font-semibold text-amber-800">Profile expires in {days} day{days === 1 ? '' : 's'}</p>
-        <p className="text-xs text-amber-600 mt-0.5">Extend now to keep matching active. Consider updating your profile so your preferences stay current.</p>
+        <p className="text-xs text-amber-600 mt-0.5">Extend now to keep matching active.</p>
       </div>
-      <Button onClick={onRevive} loading={reviving} size="sm" variant="secondary">Extend 45 days</Button>
+      <Button onClick={onReviveClick} loading={reviving} size="sm" variant="secondary">Extend 45 days</Button>
     </div>
   )
 }

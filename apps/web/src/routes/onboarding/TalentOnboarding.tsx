@@ -628,7 +628,7 @@ export default function TalentOnboarding() {
             <Button
               type="button"
               size="sm"
-              variant="outline"
+              variant="secondary"
               onClick={() => abortCtrlRef.current?.abort()}
             >
               Stop

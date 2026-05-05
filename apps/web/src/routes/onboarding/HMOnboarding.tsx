@@ -394,7 +394,7 @@ export default function HMOnboarding() {
             autoFocus
           />
           {isStreaming ? (
-            <Button type="button" size="sm" variant="outline" onClick={() => abortCtrlRef.current?.abort()}>Stop</Button>
+            <Button type="button" size="sm" variant="secondary" onClick={() => abortCtrlRef.current?.abort()}>Stop</Button>
           ) : (
             <Button type="submit" disabled={!input.trim()} size="sm">Send</Button>
           )}

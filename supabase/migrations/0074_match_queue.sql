@@ -145,6 +145,24 @@ FROM match_queue
 WHERE created_at > now() - INTERVAL '7 days'
 GROUP BY status;
 
+-- ── Indexes to make match-core pre-filters fast at 100k talent scale ─────────
+-- These support the two SQL pre-filters applied before any rows are transferred:
+--   1. employment_type_preferences @> [role_type]  (GIN, array contains)
+--   2. expected_salary_min <= role_salary_max       (btree)
+-- Without these, both filters would do a full table scan on every match run.
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_talents_open
+  ON talents (is_open_to_offers, feedback_score DESC)
+  WHERE is_open_to_offers = true;
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_talents_salary_min
+  ON talents (expected_salary_min)
+  WHERE is_open_to_offers = true;
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_talents_emp_type
+  ON talents USING GIN (employment_type_preferences)
+  WHERE is_open_to_offers = true; -- partial: only active open-to-offers rows
+
 -- ── RLS: only service role may read/write the queue ───────────────────────────
 
 ALTER TABLE match_queue ENABLE ROW LEVEL SECURITY;

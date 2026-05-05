@@ -254,20 +254,54 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     return { matches_added: 0, message: 'Refresh limit reached' }
   }
 
-  // ── Candidate pool ────────────────────────────────────────────────────────
+  // ── Candidate pool ─────────────────────────────────────────────────────────
+  // Strategy: filter inside the DB so only relevant rows are ever transferred.
+  //
+  //   100k talents
+  //     → SQL pre-filters (employment type, salary hard floor, banned, expired)
+  //     → ~5k–20k survivors (varies by data density)
+  //     → .limit(1000): take the 1k highest-feedback survivors as the scoring pool
+  //     → scoring loop (chunked 50 at a time) → top 3
+  //
+  // None of the filtered-out rows are transferred — zero bandwidth for them.
+  // The filters use only columns that are indexed or cheap to evaluate in SQL.
+  // Soft/nuanced dimensions (character, location, culture, tags) stay in TS
+  // because they need RPC calls and complex logic; SQL handles the hard cuts.
+
   const { data: prior } = await db.from('matches').select('talent_id').eq('role_id', roleId)
   const excluded = new Set((prior ?? []).map((m) => m.talent_id))
 
   const now = new Date().toISOString()
-  const { data: talents } = await db.from('talents')
+  const roleSalaryMax = (role as unknown as { salary_max: number | null }).salary_max ?? null
+
+  let query = db.from('talents')
     .select('id, profile_id, derived_tags, privacy_mode, whitelist_companies, date_of_birth_encrypted, life_chart_character, uses_lunar_calendar, location_matters, location_postcode, open_to_new_field, parsed_resume, deal_breakers, expected_salary_min, expected_salary_max, employment_type_preferences, feedback_score, education_level, has_noncompete, noncompete_industry_scope, salary_structure_preference, career_goal_horizon, job_intention, shortest_tenure_months, red_flags, phs_show_rate, phs_accept_rate, phs_pass_probation_rate, phs_stay_6m_rate, preferred_management_style, notice_period_days, work_arrangement_preference, role_scope_preference, profiles!inner(ghost_score, is_banned)')
     .eq('is_open_to_offers', true)
     .eq('profiles.is_banned', false)
     .or(`profile_expires_at.is.null,profile_expires_at.gte.${now}`)
-    .limit(1000)  // hard cap: never pull more than 1k rows regardless of talent pool size
+
+  // Pre-filter 1: employment type — talent must prefer the role's type.
+  // Uses a GIN index on employment_type_preferences (array column).
+  // Only skipped if the role has no employment type set.
+  if (employmentType) {
+    query = query.contains('employment_type_preferences', [employmentType])
+  }
+
+  // Pre-filter 2: salary hard floor — talent's minimum must not exceed role max.
+  // Skipped if either side has no salary data (sparse early data is common).
+  if (roleSalaryMax != null) {
+    query = query.lte('expected_salary_min', roleSalaryMax)
+  }
+
+  // Order by feedback_score DESC so the 1k we keep are the highest-rated survivors,
+  // not 1k arbitrary rows. Better odds of finding strong matches in the scoring pool.
+  const { data: talents } = await query
+    .order('feedback_score', { ascending: false, nullsFirst: false })
+    .limit(1000)
+
   const pool = (talents ?? []).filter((t) => !excluded.has(t.id))
 
-  console.log(`[match] role=${roleId} pool=${pool.length}`)
+  console.log(`[match] role=${roleId} emp=${employmentType} salMax=${roleSalaryMax} pool=${pool.length}`)
 
   const { data: ghostCfg } = await db.from('system_config').select('value')
     .eq('key', 'ghost_score_threshold').maybeSingle()

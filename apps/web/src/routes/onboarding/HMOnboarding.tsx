@@ -383,7 +383,7 @@ export default function HMOnboarding() {
           <textarea
             ref={chatInputRef} value={input} onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void sendMessage(input) } }}
-            placeholder={isStreaming ? 'Bo is typing…' : 'Type your message… (Shift + Enter for new line)'}
+            placeholder={isStreaming ? 'BoLe is typing…' : 'Type your message… (Shift + Enter for new line)'}
             rows={2} disabled={isStreaming}
             className="flex-1 resize-none rounded-xl border border-ink-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:bg-ink-50"
             autoFocus

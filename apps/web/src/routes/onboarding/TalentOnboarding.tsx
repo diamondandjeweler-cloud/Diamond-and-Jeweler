@@ -43,6 +43,7 @@ export default function TalentOnboarding() {
   const [apiMessages, setApiMessages] = useState<ApiMessage[]>([])
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
+  const abortCtrlRef = useRef<AbortController | null>(null)
   const chatInputRef = useRef<HTMLTextAreaElement>(null)
   const [dob, setDob] = useState('')
   const [gender, setGender] = useState<Gender | ''>('')
@@ -187,8 +188,9 @@ export default function TalentOnboarding() {
       const token = authData.session?.access_token
       if (!token) throw new Error('Not authenticated')
 
-      // Abort the whole request (connect + stream) if silent for 25s.
+      // Abort the whole request (connect + stream) if silent for 25s, or user clicks Stop.
       const abortCtrl = new AbortController()
+      abortCtrlRef.current = abortCtrl
       let stallTimer: ReturnType<typeof setTimeout> | undefined
       const resetStall = () => {
         clearTimeout(stallTimer)
@@ -622,13 +624,24 @@ export default function TalentOnboarding() {
             className="flex-1 resize-none rounded-xl border border-ink-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:bg-ink-50"
             autoFocus
           />
-          <Button
-            type="submit"
-            disabled={isStreaming || !input.trim()}
-            size="sm"
-          >
-            Send
-          </Button>
+          {isStreaming ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => abortCtrlRef.current?.abort()}
+            >
+              Stop
+            </Button>
+          ) : (
+            <Button
+              type="submit"
+              disabled={!input.trim()}
+              size="sm"
+            >
+              Send
+            </Button>
+          )}
         </form>
       )
     }

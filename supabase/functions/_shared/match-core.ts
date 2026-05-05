@@ -264,6 +264,7 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     .eq('is_open_to_offers', true)
     .eq('profiles.is_banned', false)
     .or(`profile_expires_at.is.null,profile_expires_at.gte.${now}`)
+    .limit(1000)  // hard cap: never pull more than 1k rows regardless of talent pool size
   const pool = (talents ?? []).filter((t) => !excluded.has(t.id))
 
   console.log(`[match] role=${roleId} pool=${pool.length}`)
@@ -345,7 +346,18 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
   }
 
   // ── Scoring loop ──────────────────────────────────────────────────────────
-  const scored = await Promise.all(pool.map(async (t) => {
+  // Process in chunks of 50 to cap concurrent DB calls (~250 at once max).
+  // Promise.all over the full pool (up to 1k) × 5-8 RPC calls each would
+  // fire ~8k concurrent DB requests and hang Supabase.
+  const SCORE_CHUNK = 50
+  const scored: (ScoredCandidate | null)[] = []
+  for (let i = 0; i < pool.length; i += SCORE_CHUNK) {
+    const chunk = pool.slice(i, i + SCORE_CHUNK)
+    const chunkResults = await Promise.all(chunk.map((t) => scoreTalent(t)))
+    scored.push(...chunkResults)
+  }
+
+  async function scoreTalent(t: NonNullable<typeof pool>[number]) {
     const tags = (t.derived_tags ?? {}) as Record<string, number>
     const talentCharacter = (t as unknown as { life_chart_character: string | null }).life_chart_character ?? null
     const talentLocMatters = (t as unknown as { location_matters: boolean }).location_matters === true
@@ -789,7 +801,7 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
         note: activeDims.join(' + ') + ' (dynamically normalised) × PHS multiplier × HM quality factor.',
       },
     }
-  }))
+  }
 
   // ── Sort, pick top N, insert ──────────────────────────────────────────────
   const scoredOk = scored.filter((s): s is NonNullable<typeof s> => s !== null)

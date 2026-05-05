@@ -15,7 +15,7 @@ interface ConsentVersion {
 
 export default function Consent() {
   useSeo({ title: 'Data processing consent', noindex: true })
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const { session, profile, refresh } = useSession()
   const navigate = useNavigate()
   const [versions, setVersions] = useState<ConsentVersion[]>([])
@@ -41,7 +41,7 @@ export default function Consent() {
   const isHiring = profile?.role === 'hr_admin' || profile?.role === 'hiring_manager'
   const v: ConsentVersion | undefined = baseVersion ? {
     ...baseVersion,
-    body_md: isHiring ? hiringBody(lang) : baseVersion.body_md,
+    body_md: isHiring ? hiringBody('en') : baseVersion.body_md,
   } : undefined
 
   const submit = async () => {

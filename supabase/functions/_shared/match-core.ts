@@ -254,54 +254,74 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     return { matches_added: 0, message: 'Refresh limit reached' }
   }
 
+  // ── Role flags (needed for RPC call + closure inside scoreTalent) ───────────
+  const roleSalaryMax          = (role as unknown as { salary_max: number | null }).salary_max ?? null
+  const roleRequiresWeekend    = (role as { requires_weekend?: boolean }).requires_weekend === true
+  const roleRequiresDriving    = (role as { requires_driving_license?: boolean }).requires_driving_license === true
+  const roleRequiresTravel     = (role as { requires_travel?: boolean }).requires_travel === true
+  const roleHasNightShifts     = (role as { has_night_shifts?: boolean }).has_night_shifts === true
+  const roleRequiresOwnCar     = (role as { requires_own_car?: boolean }).requires_own_car === true
+  const roleRequiresRelocation = (role as { requires_relocation?: boolean }).requires_relocation === true
+  const roleRequiresOvertime   = (role as { requires_overtime?: boolean }).requires_overtime === true
+  const roleIsCommissionBased  = (role as { is_commission_based?: boolean }).is_commission_based === true
+  const roleWorkArrangement    = ((role as { work_arrangement?: string | null }).work_arrangement ?? null)
+
   // ── Candidate pool ─────────────────────────────────────────────────────────
-  // Strategy: filter inside the DB so only relevant rows are ever transferred.
+  // ALL hard filters run inside the DB via get_match_candidates RPC.
+  // Zero rows for eliminated candidates are ever transferred.
   //
   //   100k talents
-  //     → SQL pre-filters (employment type, salary hard floor, banned, expired)
-  //     → ~5k–20k survivors (varies by data density)
-  //     → .limit(1000): take the 1k highest-feedback survivors as the scoring pool
-  //     → scoring loop (chunked 50 at a time) → top 3
-  //
-  // None of the filtered-out rows are transferred — zero bandwidth for them.
-  // The filters use only columns that are indexed or cheap to evaluate in SQL.
-  // Soft/nuanced dimensions (character, location, culture, tags) stay in TS
-  // because they need RPC calls and complex logic; SQL handles the hard cuts.
+  //     → SQL: availability + employment type + salary + deal-breakers
+  //            + work-auth + commission conflict + BaZi 'bad' join
+  //     → ~200 survivors  (ordered by feedback_score DESC, capped at 500)
+  //     → fetch full rows for those IDs only
+  //     → score in chunks of 50 → top 3
 
   const { data: prior } = await db.from('matches').select('talent_id').eq('role_id', roleId)
-  const excluded = new Set((prior ?? []).map((m) => m.talent_id))
+  const excludedIds = (prior ?? []).map((m) => m.talent_id as string)
 
-  const now = new Date().toISOString()
-  const roleSalaryMax = (role as unknown as { salary_max: number | null }).salary_max ?? null
+  const { data: candidateRows, error: candidateErr } = await db.rpc('get_match_candidates', {
+    p_employment_type:     employmentType || null,
+    p_salary_max:          roleSalaryMax,
+    p_hm_character:        hmCharacter,
+    p_requires_weekend:    roleRequiresWeekend,
+    p_requires_driving:    roleRequiresDriving,
+    p_requires_travel:     roleRequiresTravel,
+    p_has_night_shifts:    roleHasNightShifts,
+    p_requires_own_car:    roleRequiresOwnCar,
+    p_requires_relocation: roleRequiresRelocation,
+    p_requires_overtime:   roleRequiresOvertime,
+    p_is_commission:       roleIsCommissionBased,
+    p_work_arrangement:    roleWorkArrangement,
+    p_required_work_auth:  hmRequiredWorkAuth.length > 0 ? hmRequiredWorkAuth : null,
+    p_excluded_ids:        excludedIds.length > 0 ? excludedIds : null,
+    p_limit:               500,
+  })
+  if (candidateErr) throw new MatchError(`Candidate filter failed: ${candidateErr.message}`, 500)
 
-  let query = db.from('talents')
+  const candidateIds = ((candidateRows ?? []) as { talent_id: string }[]).map((r) => r.talent_id)
+  console.log(`[match] role=${roleId} candidates after all SQL filters: ${candidateIds.length}`)
+
+  if (candidateIds.length === 0) {
+    const { data: talentCount } = await db.rpc('active_talent_count')
+    const n = typeof talentCount === 'number' ? talentCount : 0
+    if (n < 500) {
+      const { error: coldErr } = await db.from('cold_start_queue').insert({ role_id: roleId, status: 'pending' })
+      if (coldErr) {
+        const isDup = (coldErr.code === '23505') || /duplicate key/i.test(coldErr.message)
+        if (!isDup) throw new MatchError(`Cold-start queue insert failed: ${coldErr.message}`, 500)
+      }
+      return { matches_added: 0, message: 'No eligible talents; flagged for cold start' }
+    }
+    return { matches_added: 0, message: 'No eligible talents after all filters', active_talents: n }
+  }
+
+  // Fetch full profiles only for the filtered candidates (not the whole table)
+  const { data: talents } = await db.from('talents')
     .select('id, profile_id, derived_tags, privacy_mode, whitelist_companies, date_of_birth_encrypted, life_chart_character, uses_lunar_calendar, location_matters, location_postcode, open_to_new_field, parsed_resume, deal_breakers, expected_salary_min, expected_salary_max, employment_type_preferences, feedback_score, education_level, has_noncompete, noncompete_industry_scope, salary_structure_preference, career_goal_horizon, job_intention, shortest_tenure_months, red_flags, phs_show_rate, phs_accept_rate, phs_pass_probation_rate, phs_stay_6m_rate, preferred_management_style, notice_period_days, work_arrangement_preference, role_scope_preference, profiles!inner(ghost_score, is_banned)')
-    .eq('is_open_to_offers', true)
-    .eq('profiles.is_banned', false)
-    .or(`profile_expires_at.is.null,profile_expires_at.gte.${now}`)
+    .in('id', candidateIds)
 
-  // Pre-filter 1: employment type — talent must prefer the role's type.
-  // Uses a GIN index on employment_type_preferences (array column).
-  // Only skipped if the role has no employment type set.
-  if (employmentType) {
-    query = query.contains('employment_type_preferences', [employmentType])
-  }
-
-  // Pre-filter 2: salary hard floor — talent's minimum must not exceed role max.
-  // Skipped if either side has no salary data (sparse early data is common).
-  if (roleSalaryMax != null) {
-    query = query.lte('expected_salary_min', roleSalaryMax)
-  }
-
-  // Order by feedback_score DESC so the 1k we keep are the highest-rated survivors,
-  // not 1k arbitrary rows. Better odds of finding strong matches in the scoring pool.
-  const { data: talents } = await query
-    .order('feedback_score', { ascending: false, nullsFirst: false })
-    .limit(1000)
-
-  const pool = (talents ?? []).filter((t) => !excluded.has(t.id))
-
-  console.log(`[match] role=${roleId} emp=${employmentType} salMax=${roleSalaryMax} pool=${pool.length}`)
+  const pool = talents ?? []
 
   const { data: ghostCfg } = await db.from('system_config').select('value')
     .eq('key', 'ghost_score_threshold').maybeSingle()
@@ -316,7 +336,6 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
   const experienceLevel: string = ((role as { experience_level?: string }).experience_level || '').toLowerCase()
   const isLongTermRole = employmentType === 'full_time' || employmentType === 'contract'
   const isQualificationRole = experienceLevel === 'senior' || experienceLevel === 'lead'
-  const roleWorkArrangement = ((role as { work_arrangement?: string | null }).work_arrangement ?? null)
 
   // Build canonical industry set from role title tokens
   const roleAliasSet = new Set<string>()
@@ -401,56 +420,22 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     const talentJobAreas = parsedResume?.job_areas
     const aiSummary = (parsedResume?.ai_summary as string | null) ?? null
 
-    // Hard filter: character bad-match
+    // Character bucket — fetched for SCORING (priority/two_match/neutral).
+    // 'bad' pairs are already eliminated by get_match_candidates SQL join.
     let characterBucket: string | null = null
     if (hmCharacter && talentCharacter) {
       const { data: bucketRaw } = await db.rpc('get_life_chart_bucket', { hm_char: hmCharacter, talent_char: talentCharacter })
       characterBucket = (bucketRaw as string | null) ?? null
-      if (characterBucket === 'bad') return null
     }
 
-    // Hard filter: deal-breakers
-    type DealBreakers = { items?: string[]; min_salary_hard?: number | null; no_weekend_work?: boolean; no_driving_license?: boolean }
+    // Deal-breaker items — kept for display in public_reasoning only.
+    // All hard-filter eliminations already done in SQL.
+    type DealBreakers = { items?: string[] }
     const dealBreakers = ((t as unknown as { deal_breakers: DealBreakers | null }).deal_breakers) ?? {}
     const talentDealBreakerItems: string[] = Array.isArray(dealBreakers.items) ? dealBreakers.items : []
-    const talentMinSalaryHard = (dealBreakers.min_salary_hard as number | null | undefined) ?? null
-    const talentNoWeekendWork = dealBreakers.no_weekend_work === true
-    const talentNoDrivingLicense = dealBreakers.no_driving_license === true
 
-    const roleSalaryMaxForFilter = (role as unknown as { salary_max: number | null }).salary_max ?? null
-    const roleRequiresWeekend = (role as { requires_weekend?: boolean }).requires_weekend === true
-    const roleRequiresDrivingLicense = (role as { requires_driving_license?: boolean }).requires_driving_license === true
-
-    if (talentMinSalaryHard != null && roleSalaryMaxForFilter != null && roleSalaryMaxForFilter < talentMinSalaryHard) return null
-    if (talentNoWeekendWork && roleRequiresWeekend) return null
-    if (talentNoDrivingLicense && roleRequiresDrivingLicense) return null
-
-    const roleRequiresTravel     = (role as { requires_travel?: boolean }).requires_travel === true
-    const roleHasNightShifts     = (role as { has_night_shifts?: boolean }).has_night_shifts === true
-    const roleRequiresOwnCar     = (role as { requires_own_car?: boolean }).requires_own_car === true
-    const roleRequiresRelocation = (role as { requires_relocation?: boolean }).requires_relocation === true
-    const roleRequiresOvertime   = (role as { requires_overtime?: boolean }).requires_overtime === true
-    const roleIsCommissionBased  = (role as { is_commission_based?: boolean }).is_commission_based === true
-    type ExtractedDB = { no_travel?: boolean; no_night_shifts?: boolean; no_own_car?: boolean; remote_only?: boolean; no_relocation?: boolean; no_overtime?: boolean; no_commission_only?: boolean }
-    const edb = dealBreakers as ExtractedDB
-    if (edb.no_travel        && roleRequiresTravel) return null
-    if (edb.no_night_shifts  && roleHasNightShifts) return null
-    if (edb.no_own_car       && roleRequiresOwnCar) return null
-    if (edb.remote_only      && roleWorkArrangement !== 'remote' && roleWorkArrangement !== 'hybrid') return null
-    if (edb.no_relocation    && roleRequiresRelocation) return null
-    if (edb.no_overtime      && roleRequiresOvertime) return null
-    if (edb.no_commission_only && roleIsCommissionBased) return null
-
-    const talentSalaryStructure = (t as unknown as { salary_structure_preference: string | null }).salary_structure_preference ?? null
-    if (talentSalaryStructure === 'fixed_only' && roleIsCommissionBased) return null
-
-    const talentHasNoncompete = (t as unknown as { has_noncompete: boolean | null }).has_noncompete === true
-    const talentNoncompeteScope = (t as unknown as { noncompete_industry_scope: string | null }).noncompete_industry_scope ?? null
-
-    if (hmRequiredWorkAuth.length > 0) {
-      const talentWorkAuth = (t as unknown as { work_authorization: string | null }).work_authorization ?? null
-      if (!talentWorkAuth || !hmRequiredWorkAuth.includes(talentWorkAuth)) return null
-    }
+    const talentHasNoncompete    = (t as unknown as { has_noncompete: boolean | null }).has_noncompete === true
+    const talentNoncompeteScope  = (t as unknown as { noncompete_industry_scope: string | null }).noncompete_industry_scope ?? null
 
     // Behavioral fitness
     const BEHAVIORAL_WEIGHTS: Record<string, number> = {
@@ -465,10 +450,9 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     }
     const behavioralFitness: number | null = bfDen > 0 ? (bfNum / bfDen) * 100 : null
 
-    // Salary fit
+    // Salary fit (roleSalaryMax from outer scope)
     const talentSalMin = (t as unknown as { expected_salary_min: number | null }).expected_salary_min
     const talentSalMax = (t as unknown as { expected_salary_max: number | null }).expected_salary_max
-    const roleSalaryMax = (role as unknown as { salary_max: number | null }).salary_max ?? null
     let salaryFit: number | null = null
     if (roleSalaryMax != null && talentSalMin != null) {
       if (roleSalaryMax >= (talentSalMax ?? talentSalMin)) {

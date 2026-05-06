@@ -13,11 +13,11 @@ export default function Landing() {
   if (!loading && session && profile) return <Navigate to="/home" replace />
 
   return (
-    <div className="relative h-screen min-h-[760px] flex flex-col overflow-hidden bg-white text-[#0B1220] font-sans">
+    <div className="relative h-screen flex flex-col overflow-hidden bg-white text-[#0B1220] font-sans">
       <BackgroundDecor />
 
       {/* Top Bar */}
-      <header className="relative z-10 px-6 md:px-12 pt-5 pb-2 flex items-center justify-between flex-shrink-0">
+      <header className="relative z-10 px-6 md:px-12 pt-4 pb-2 flex items-center justify-between flex-shrink-0">
         <Link to="/" className="flex items-center gap-3" aria-label="DNJ home">
           <BrandMark />
           <div className="leading-none">
@@ -34,22 +34,22 @@ export default function Landing() {
 
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-2 min-h-0">
         {/* Hero */}
-        <div className="text-center max-w-3xl mx-auto mb-6 md:mb-8">
+        <div className="text-center max-w-3xl mx-auto mb-4 md:mb-6">
           <div className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2">
             {t('landing.eyebrow').toUpperCase()}
           </div>
-          <h1 className="font-sans font-bold text-[40px] md:text-[54px] leading-[1.05] tracking-tight text-[#0B1220] mb-3">
+          <h1 className="font-sans font-bold text-[34px] md:text-[46px] leading-[1.05] tracking-tight text-[#0B1220] mb-2">
             {t('landing.titleLead')}{' '}
             <span className="text-[#C9A24D]">{t('landing.titleHighlight')}</span>
             <br />
             {t('landing.titleTrail')}
           </h1>
-          <div className="flex items-center justify-center gap-2 mb-2">
+          <div className="flex items-center justify-center gap-2 mb-1.5">
             <span className="h-px w-8 bg-gradient-to-r from-transparent to-[#a6b6ff]" />
             <span className="h-1.5 w-1.5 rounded-full bg-[#7b8efc]" />
             <span className="h-px w-8 bg-gradient-to-l from-transparent to-[#a6b6ff]" />
           </div>
-          <p className="text-gray-600 text-[15px] md:text-base leading-relaxed">
+          <p className="text-gray-600 text-[14px] md:text-[15px] leading-snug">
             <span className="block">AI matches the right talent with the right company.</span>
             <span className="block">You focus on what matters.</span>
           </p>
@@ -75,7 +75,7 @@ export default function Landing() {
         </div>
 
         {/* Sign-in row */}
-        <div className="mt-6 md:mt-7 flex items-center justify-center gap-2.5 text-sm">
+        <div className="mt-4 md:mt-5 flex items-center justify-center gap-2.5 text-sm">
           <ShieldIcon />
           <span className="text-gray-500">{t('landing.haveAccount')}</span>
           <Link
@@ -88,7 +88,7 @@ export default function Landing() {
         </div>
       </main>
 
-      <footer className="relative z-10 py-3 text-center text-[11px] text-gray-500 flex-shrink-0">
+      <footer className="relative z-10 pt-1 pb-2 text-center text-[10px] text-gray-500 flex-shrink-0">
         <Link to="/privacy" className="hover:text-[#0B1220]">{t('footer.privacy')}</Link>
         <span className="mx-2">·</span>
         <Link to="/terms" className="hover:text-[#0B1220]">{t('footer.terms')}</Link>
@@ -111,7 +111,7 @@ function DecisionCard({
   return (
     <Link
       to={to}
-      className="group relative block px-6 md:px-8 pt-6 pb-7 text-center transition-all duration-300
+      className="group relative block px-6 md:px-8 pt-5 pb-6 text-center transition-all duration-300
                  bg-gradient-to-b from-white to-[#fafbff]
                  ring-1 ring-[#e8edff]
                  shadow-[0_2px_4px_rgba(20,21,17,0.04),0_14px_36px_-14px_rgba(39,48,110,0.12)]
@@ -122,7 +122,7 @@ function DecisionCard({
           'polygon(26px 0, calc(100% - 26px) 0, 100% 26px, 100% calc(100% - 26px), calc(100% - 26px) 100%, 26px 100%, 0 calc(100% - 26px), 0 26px)',
       }}
     >
-      <div className="relative h-32 md:h-36 mb-3 flex items-center justify-center transition-transform duration-300 group-hover:scale-[1.04]">
+      <div className="relative h-28 md:h-32 mb-2 flex items-center justify-center transition-transform duration-300 group-hover:scale-[1.04]">
         {illustration}
       </div>
 
@@ -130,7 +130,7 @@ function DecisionCard({
         {title}
       </h2>
       <div className="mx-auto mb-3 h-px w-14 bg-gradient-to-r from-transparent via-[#C9A24D] to-transparent opacity-70" />
-      <p className="text-[13px] md:text-sm text-gray-600 max-w-xs mx-auto mb-5 leading-relaxed">
+      <p className="text-[13px] text-gray-600 max-w-xs mx-auto mb-4 leading-snug">
         {description.split('. ').map((s, i, arr) => (
           <span key={i} className="block">
             {s}{i < arr.length - 1 ? '.' : ''}

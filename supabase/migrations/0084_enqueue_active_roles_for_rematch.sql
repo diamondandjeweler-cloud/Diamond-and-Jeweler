@@ -1,13 +1,11 @@
 -- ============================================================
--- 0083 — enqueue_active_roles_for_rematch helper + match_queue drain cron
+-- 0084 — enqueue_active_roles_for_rematch helper (kept for future use)
 --
--- Triggered after a new talent's extraction completes: bulk-enqueues a
--- bounded set of active roles for re-evaluation so the new candidate is
--- considered without waiting for HM-side actions or random cron drift.
---
--- Capped by p_limit (default 50, hard cap 200) to bound work per call —
--- at pilot scale this is one cycle of the matcher; at scale we'll rely
--- more on the cron drain than the inline burst.
+-- Originally intended to bulk-enqueue active roles into match_queue
+-- on talent extraction completion. The Edge Functions now call
+-- matchForRole inline against top-N active roles instead — simpler,
+-- no dependency on the queue drain pipeline. This RPC stays so admin
+-- tooling can fan out manually if ever needed.
 -- ============================================================
 
 CREATE OR REPLACE FUNCTION public.enqueue_active_roles_for_rematch(
@@ -37,25 +35,3 @@ BEGIN
   RETURN v_count;
 END;
 $$;
-
--- ── Drain cron: every 2 minutes ──────────────────────────────────────────────
--- Catches anything inline drains miss (Edge Function crash, queue grows
--- beyond a single drain's batch size). Independent of talent onboarding.
-
-select
-  cron.schedule(
-    'bole-process-match-queue-2min',
-    '*/2 * * * *',
-    $cron$
-    select net.http_post(
-      url := (select decrypted_secret from vault.decrypted_secrets where name = 'supabase_url')
-             || '/functions/v1/process-match-queue',
-      headers := jsonb_build_object(
-        'Content-Type',  'application/json',
-        'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'service_role_key')
-      ),
-      body := '{}'::jsonb,
-      timeout_milliseconds := 120000
-    );
-    $cron$
-  );

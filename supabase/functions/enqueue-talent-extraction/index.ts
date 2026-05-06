@@ -27,6 +27,7 @@ import {
   type ExtractionMessage,
   type ExtractedProfile,
 } from '../_shared/talent-extraction.ts'
+import { matchForRole, MatchError } from '../_shared/match-core.ts'
 
 interface Body {
   talent_id?: string
@@ -148,29 +149,38 @@ async function processExtraction(
 async function triggerRematch(talentId: string): Promise<void> {
   const db = adminClient()
   try {
-    const { data, error } = await db.rpc('enqueue_active_roles_for_rematch', {
-      p_limit: 50,
-      p_priority: 5,
-    })
+    // Fetch the most recently-active roles. Bounded; we don't want to
+    // hammer the matcher for every onboarding completion.
+    const { data: roles, error } = await db
+      .from('roles')
+      .select('id, updated_at')
+      .eq('status', 'active')
+      .or('vacancy_expires_at.is.null,vacancy_expires_at.gt.' + new Date().toISOString())
+      .order('updated_at', { ascending: false, nullsFirst: false })
+      .limit(50)
     if (error) {
-      console.warn(`[enqueue-talent-extraction] rematch enqueue failed: ${error.message}`)
+      console.warn(`[enqueue-talent-extraction] rematch fetch failed: ${error.message}`)
       return
     }
-    const enqueued = (data as number | null) ?? 0
-    console.log(`[enqueue-talent-extraction] talent=${talentId} enqueued ${enqueued} roles`)
-    if (enqueued === 0) return
+    const ids = (roles ?? []).map((r) => (r as { id: string }).id)
+    console.log(`[enqueue-talent-extraction] talent=${talentId} rematching ${ids.length} active roles`)
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    if (!supabaseUrl || !svcKey) return
-    // Fire-and-forget — the cron drain is the safety net.
-    fetch(`${supabaseUrl}/functions/v1/process-match-queue`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${svcKey}` },
-      body: '{}',
-    }).catch((err) => {
-      console.warn(`[enqueue-talent-extraction] process-match-queue kick failed: ${err}`)
-    })
+    let succeeded = 0
+    let failed = 0
+    for (const roleId of ids) {
+      try {
+        const result = await matchForRole({ roleId, isServiceRole: true })
+        if (result.matches_added > 0) {
+          console.log(`[enqueue-talent-extraction] role=${roleId} added ${result.matches_added} matches`)
+        }
+        succeeded++
+      } catch (err) {
+        const msg = err instanceof MatchError ? err.message : err instanceof Error ? err.message : String(err)
+        console.warn(`[enqueue-talent-extraction] role=${roleId} match failed: ${msg}`)
+        failed++
+      }
+    }
+    console.log(`[enqueue-talent-extraction] rematch done talent=${talentId} ok=${succeeded} fail=${failed}`)
   } catch (err) {
     console.warn(`[enqueue-talent-extraction] rematch trigger error: ${err}`)
   }

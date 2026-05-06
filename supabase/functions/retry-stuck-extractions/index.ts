@@ -20,6 +20,7 @@ import {
   type ExtractionMessage,
   type ExtractedProfile,
 } from '../_shared/talent-extraction.ts'
+import { matchForRole, MatchError } from '../_shared/match-core.ts'
 
 const STUCK_AGE_MINUTES = 10
 const MAX_ATTEMPTS = 3
@@ -92,23 +93,10 @@ serve(async (req) => {
         is_open_to_offers: true,
       }).eq('id', row.id)
       console.log(`[retry-stuck-extractions] talent=${row.id} attempt=${attempt} ok`)
-      // Enqueue rematch — same pattern as the inline worker. Failures are
-      // non-fatal; the 2-min match-queue cron is the safety net.
-      const { data: enqCount, error: enqErr } = await db.rpc('enqueue_active_roles_for_rematch', {
-        p_limit: 50, p_priority: 5,
+      // Inline rematch — bounded fanout against most-recent active roles.
+      await rematchActiveRoles(row.id).catch((err) => {
+        console.warn(`[retry-stuck-extractions] rematch error: ${err}`)
       })
-      if (enqErr) console.warn(`[retry-stuck-extractions] rematch enqueue failed: ${enqErr.message}`)
-      else if ((enqCount as number | null) ?? 0 > 0) {
-        const supabaseUrl = Deno.env.get('SUPABASE_URL')
-        const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-        if (supabaseUrl && svcKey) {
-          fetch(`${supabaseUrl}/functions/v1/process-match-queue`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${svcKey}` },
-            body: '{}',
-          }).catch(() => { /* cron will drain */ })
-        }
-      }
       succeeded++
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
@@ -123,6 +111,37 @@ serve(async (req) => {
 
   return respond({ processed: rows.length, succeeded, failed })
 })
+
+async function rematchActiveRoles(talentId: string): Promise<void> {
+  const db = adminClient()
+  const { data: roles, error } = await db
+    .from('roles')
+    .select('id')
+    .eq('status', 'active')
+    .or('vacancy_expires_at.is.null,vacancy_expires_at.gt.' + new Date().toISOString())
+    .order('updated_at', { ascending: false, nullsFirst: false })
+    .limit(50)
+  if (error) {
+    console.warn(`[retry-stuck-extractions] rematch fetch failed: ${error.message}`)
+    return
+  }
+  const ids = (roles ?? []).map((r) => (r as { id: string }).id)
+  let ok = 0, fail = 0
+  for (const roleId of ids) {
+    try {
+      const result = await matchForRole({ roleId, isServiceRole: true })
+      if (result.matches_added > 0) {
+        console.log(`[retry-stuck-extractions] talent=${talentId} role=${roleId} +${result.matches_added}`)
+      }
+      ok++
+    } catch (err) {
+      const msg = err instanceof MatchError ? err.message : err instanceof Error ? err.message : String(err)
+      console.warn(`[retry-stuck-extractions] role=${roleId} match failed: ${msg}`)
+      fail++
+    }
+  }
+  console.log(`[retry-stuck-extractions] rematch done talent=${talentId} ok=${ok} fail=${fail}`)
+}
 
 function buildTalentPatch(extracted: ExtractedProfile): Record<string, unknown> {
   const allTags: Record<string, number> = {

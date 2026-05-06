@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { callFunction } from '../../lib/functions'
@@ -49,9 +49,15 @@ const TALENT_OUTCOMES = [
 export default function TalentDashboard() {
   useSeo({ title: 'My offers', noindex: true })
   const { session, profile } = useSession()
+  const location = useLocation()
+  const navigate = useNavigate()
   const [matches, setMatches] = useState<MatchRow[]>([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState<string | null>(null)
+  const [extractionStatus, setExtractionStatus] = useState<string | null>(null)
+  const [showJustSavedModal, setShowJustSavedModal] = useState<boolean>(
+    Boolean((location.state as { extractionPending?: boolean } | null)?.extractionPending),
+  )
   const [extraUsed, setExtraUsed] = useState(0)
   const [unlocking, setUnlocking] = useState(false)
   const [urgentBusy, setUrgentBusy] = useState(false)
@@ -95,9 +101,10 @@ export default function TalentDashboard() {
     async function load() {
       if (!session) { setLoading(false); return }
       try {
-        const { data: talent } = await supabase.from('talents').select('id, extra_matches_used, profile_expires_at, reputation_score, feedback_volume, phs_show_rate, phs_accept_rate, current_employment_status, current_salary, notice_period_days, education_level, has_management_experience, work_authorization, preferred_management_style, expected_salary_min, expected_salary_max, employment_type_preferences, location_matters, career_goal_horizon, job_intention, has_noncompete, salary_structure_preference, role_scope_preference, reason_for_leaving_category').eq('profile_id', session.user.id).maybeSingle()
+        const { data: talent } = await supabase.from('talents').select('id, extra_matches_used, profile_expires_at, reputation_score, feedback_volume, phs_show_rate, phs_accept_rate, current_employment_status, current_salary, notice_period_days, education_level, has_management_experience, work_authorization, preferred_management_style, expected_salary_min, expected_salary_max, employment_type_preferences, location_matters, career_goal_horizon, job_intention, has_noncompete, salary_structure_preference, role_scope_preference, reason_for_leaving_category, extraction_status').eq('profile_id', session.user.id).maybeSingle()
         if (cancelled) return
         if (!talent) return
+        setExtractionStatus((talent as unknown as { extraction_status: string | null }).extraction_status ?? 'complete')
         talentId = talent.id
         setExtraUsed(talent.extra_matches_used ?? 0)
         const { data: pointsRow } = await supabase.from('profiles')
@@ -202,6 +209,34 @@ export default function TalentDashboard() {
 
     return () => { cancelled = true; void supabase.removeChannel(channel) }
   }, [session, loadRounds])
+
+  // Poll the talents row while extraction is in flight so the banner clears
+  // and matches start flowing once the worker finishes. Stops on terminal state.
+  useEffect(() => {
+    if (!session) return
+    if (extractionStatus !== 'pending' && extractionStatus !== 'processing') return
+    let cancelled = false
+    const tick = async () => {
+      const { data } = await supabase
+        .from('talents')
+        .select('extraction_status')
+        .eq('profile_id', session.user.id)
+        .maybeSingle()
+      if (cancelled) return
+      const next = (data as { extraction_status: string | null } | null)?.extraction_status ?? null
+      if (next && next !== extractionStatus) setExtractionStatus(next)
+    }
+    const id = window.setInterval(() => { void tick() }, 10_000)
+    return () => { cancelled = true; window.clearInterval(id) }
+  }, [session, extractionStatus])
+
+  // Drop the one-shot navigation state so a refresh won't re-show the modal.
+  useEffect(() => {
+    if (!showJustSavedModal) return
+    if ((location.state as { extractionPending?: boolean } | null)?.extractionPending) {
+      navigate(location.pathname, { replace: true, state: null })
+    }
+  }, [showJustSavedModal, location.pathname, location.state, navigate])
 
   async function reviveProfile() {
     if (!session) return
@@ -351,6 +386,27 @@ export default function TalentDashboard() {
         onReviveCancel={() => setReviveStep('idle')}
       />
 
+      {(extractionStatus === 'pending' || extractionStatus === 'processing') && (
+        <div className="mb-6 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 flex items-start gap-3">
+          <svg className="animate-spin h-5 w-5 text-brand-500 mt-0.5 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+            <path className="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <div className="text-sm text-brand-900">
+            <div className="font-semibold">Your profile is being analysed</div>
+            <div className="text-brand-800 mt-0.5">
+              Our AI is putting together your career summary. This usually finishes in under 2 minutes — your matches will start appearing once it's ready.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {extractionStatus === 'failed' && (
+        <div className="mb-6"><Alert tone="red">
+          We couldn't finish analysing your profile. <Link to="/talent/profile" className="underline font-semibold">Open your profile</Link> to retry.
+        </Alert></div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
         <Stat label="Awaiting response" value={openCount} tone={openCount > 0 ? 'brand' : 'default'} />
         <Stat label="In progress" value={inFlight} />
@@ -458,6 +514,30 @@ export default function TalentDashboard() {
             </Button>
           </div>
         </Card>
+      )}
+
+      {showJustSavedModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 text-center">
+            <div className="flex justify-center mb-3">
+              <div className="h-14 w-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-3xl">✓</div>
+            </div>
+            <h2 className="font-display text-2xl text-ink-900 mb-2">Profile saved</h2>
+            <p className="text-sm text-ink-600 leading-relaxed mb-4">
+              Our AI is now analysing your conversation in the background — usually under 2 minutes. You can leave or close this tab; matches will start flowing once your summary is ready.
+            </p>
+            <p className="text-xs text-ink-500 mb-5">
+              We'll only share your summary with a Hiring Manager when there's a match.
+            </p>
+            <Button className="w-full" onClick={() => setShowJustSavedModal(false)}>
+              Got it
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   )

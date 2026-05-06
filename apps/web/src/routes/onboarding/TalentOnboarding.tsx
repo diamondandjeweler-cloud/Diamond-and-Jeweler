@@ -297,7 +297,7 @@ export default function TalentOnboarding() {
   async function finalise() {
     if (!session) return
     if (insertedRef.current) {
-      navigate('/talent', { replace: true })
+      navigate('/talent', { replace: true, state: { extractionPending: true } })
       return
     }
     setErr(null)
@@ -305,6 +305,7 @@ export default function TalentOnboarding() {
     try {
       const userId = session.user.id
 
+      // 1. Upload files + encrypt DOB in parallel. Fast (seconds, not minutes).
       const [resumePath, clPath, photoPath, dobEncrypted] = await Promise.all([
         uploadPrivate('resumes', resumeFile!, userId, resumeFile!.name),
         coverLetterFile
@@ -323,91 +324,18 @@ export default function TalentOnboarding() {
       let resumeText: string | undefined
       try {
         const raw = await resumeFile!.text()
-        // Discard if it looks like raw binary (PDF/DOCX binary headers)
         if (raw.length > 50 && raw.charCodeAt(0) >= 32) {
           resumeText = raw.slice(0, 4000)
         }
       } catch { /* best effort */ }
 
-      const extAbort = new AbortController()
-      const extTimeout = setTimeout(() => extAbort.abort(), 120_000)
-      let extRes: Response
-      try {
-        extRes = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-talent-profile`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ messages: apiMessages, resume_text: resumeText }),
-            signal: extAbort.signal,
-          },
-        )
-      } catch (fetchErr) {
-        if ((fetchErr as Error).name === 'AbortError') {
-          throw new Error('Profile extraction timed out — please retry.')
-        }
-        throw fetchErr
-      } finally {
-        clearTimeout(extTimeout)
-      }
-      if (!extRes.ok) throw new Error(`Profile extraction failed (${extRes.status})`)
-      const extracted = await extRes.json() as {
-        job_areas: string[]
-        key_skills: string[]
-        years_experience: number | null
-        career_goals: string | null
-        salary_min: number | null
-        salary_max: number | null
-        current_salary: number | null
-        notice_period_days: number | null
-        current_employment_status: string | null
-        reason_for_leaving_category: string | null
-        reason_for_leaving_summary: string | null
-        education_level: string | null
-        has_management_experience: boolean | null
-        management_team_size: number | null
-        work_authorization: string | null
-        preferred_management_style: string | null
-        deal_breaker_items: string[]
-        red_flags: string[]
-        derived_tags: Record<string, number>
-        wants_wlb: number
-        wants_fair_pay: number
-        wants_growth: number
-        wants_stability: number
-        wants_flexibility: number
-        wants_recognition: number
-        wants_mission: number
-        wants_team_culture: number
-        summary: string | null
-        employment_type_preferences: string[]
-        has_noncompete: boolean | null
-        noncompete_industry_scope: string | null
-        salary_structure_preference: string | null
-        role_scope_preference: string | null
-        career_goal_horizon: string | null
-        job_intention: string | null
-        shortest_tenure_months: number | null
-        avg_tenure_months: number | null
-        work_arrangement_preference: string | null
-      }
-
-      const allTags: Record<string, number> = {
-        ...extracted.derived_tags,
-        wants_wlb: extracted.wants_wlb ?? 0,
-        wants_fair_pay: extracted.wants_fair_pay ?? 0,
-        wants_growth: extracted.wants_growth ?? 0,
-        wants_stability: extracted.wants_stability ?? 0,
-        wants_flexibility: extracted.wants_flexibility ?? 0,
-        wants_recognition: extracted.wants_recognition ?? 0,
-        wants_mission: extracted.wants_mission ?? 0,
-        wants_team_culture: extracted.wants_team_culture ?? 0,
-      }
-
       const lifeChartCharacter = gender
         ? getLifeChartCharacter(dob, gender)
         : null
 
+      // 2. Insert the talents row WITHOUT extracted fields. The async worker
+      //    fills those in and flips is_open_to_offers=true on completion.
+      //    Hidden from matching until then via the existing partial indexes.
       const { data: talentRow, error: insErr } = await supabase.from('talents').insert({
         profile_id: userId,
         date_of_birth_encrypted: dobEncrypted,
@@ -416,44 +344,13 @@ export default function TalentOnboarding() {
         location_matters: locationMatters === true,
         location_postcode: locationMatters && locationPostcode.trim() ? locationPostcode.trim() : null,
         open_to_new_field: openToNewField,
-        parsed_resume: {
-          key_skills: extracted.key_skills,
-          job_areas: extracted.job_areas,
-          years_experience: extracted.years_experience,
-          career_goals: extracted.career_goals,
-          ai_summary: extracted.summary,
-        },
         interview_answers: { transcript: apiMessages },
-        derived_tags: allTags,
-        expected_salary_min: extracted.salary_min,
-        expected_salary_max: extracted.salary_max,
         race: race || null,
         religion: religion || null,
         languages,
         uses_lunar_calendar: computeUsesLunarCalendar(race, religion, languages),
-        is_open_to_offers: true,
-        employment_type_preferences: extracted.employment_type_preferences ?? [],
-        current_employment_status: extracted.current_employment_status ?? null,
-        current_salary: extracted.current_salary ?? null,
-        notice_period_days: extracted.notice_period_days ?? null,
-        reason_for_leaving_category: extracted.reason_for_leaving_category ?? null,
-        reason_for_leaving_summary: extracted.reason_for_leaving_summary ?? null,
-        education_level: extracted.education_level ?? null,
-        has_management_experience: extracted.has_management_experience ?? null,
-        management_team_size: extracted.management_team_size ?? null,
-        work_authorization: extracted.work_authorization ?? null,
-        preferred_management_style: extracted.preferred_management_style ?? null,
-        deal_breaker_items: extracted.deal_breaker_items?.length ? extracted.deal_breaker_items : null,
-        red_flags: extracted.red_flags?.length ? extracted.red_flags : null,
-        has_noncompete: extracted.has_noncompete ?? null,
-        noncompete_industry_scope: extracted.noncompete_industry_scope ?? null,
-        salary_structure_preference: extracted.salary_structure_preference ?? null,
-        role_scope_preference: extracted.role_scope_preference ?? null,
-        career_goal_horizon: extracted.career_goal_horizon ?? null,
-        job_intention: extracted.job_intention ?? null,
-        shortest_tenure_months: extracted.shortest_tenure_months ?? null,
-        avg_tenure_months: extracted.avg_tenure_months ?? null,
-        work_arrangement_preference: extracted.work_arrangement_preference ?? null,
+        is_open_to_offers: false,
+        extraction_status: 'pending',
         photo_url: photoPath,
         deal_breakers: {
           items: dealBreakerItems,
@@ -470,23 +367,23 @@ export default function TalentOnboarding() {
         },
       }).select('id').single()
       if (insErr) throw insErr
+      // Mark as inserted before any further work — protects against retry / refresh
+      // hitting the talents.profile_id UNIQUE constraint and looping the user.
       insertedRef.current = true
+      const talentId: string = talentRow.id
 
-      // Store documents in the separate talent_documents table.
-      // IC/NRIC removed in v2.0 onboarding — PDPA minimisation (lawyer review 2026-05-01).
+      // 3. Best-effort metadata writes. Don't block on these.
       const docRows = [
-        { talent_id: talentRow.id, doc_type: 'resume', storage_path: resumePath, file_name: resumeFile!.name, purge_after: null },
-        ...(clPath ? [{ talent_id: talentRow.id, doc_type: 'cover_letter', storage_path: clPath, file_name: coverLetterFile!.name, purge_after: null }] : []),
+        { talent_id: talentId, doc_type: 'resume', storage_path: resumePath, file_name: resumeFile!.name, purge_after: null },
+        ...(clPath ? [{ talent_id: talentId, doc_type: 'cover_letter', storage_path: clPath, file_name: coverLetterFile!.name, purge_after: null }] : []),
       ]
       supabase.from('talent_documents').insert(docRows).then(() => { /* best-effort */ })
-
-      // Clear the chat draft now that it's safely in the talents row.
       supabase.from('profiles')
         .update({ interview_transcript: null })
         .eq('id', userId)
         .then(() => { /* best-effort */ })
 
-      // Update profile with PII collected locally — never sent to AI.
+      // 4. PII update — must succeed.
       const { error: profErr } = await supabase
         .from('profiles')
         .update({ full_name: fullName.trim(), phone: phone.trim() })
@@ -495,32 +392,49 @@ export default function TalentOnboarding() {
 
       await markOnboardingComplete(userId)
 
+      // 5. Kick the async extraction. Fire-and-forget — keepalive ensures it
+      //    survives the navigation away from this page.
+      try {
+        await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/enqueue-talent-extraction`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ talent_id: talentId, messages: apiMessages, resume_text: resumeText }),
+            keepalive: true,
+          },
+        )
+      } catch (enqueueErr) {
+        // Non-fatal: retry-stuck-extractions cron will pick it up.
+        console.warn('[onboarding] enqueue-talent-extraction failed, will retry via cron:', enqueueErr)
+      }
+
+      // 6. Referral processing — best-effort.
       try {
         const code = localStorage.getItem('bole.referral_code') ?? sessionStorage.getItem('bole.referral_code')
         if (code) {
-          await fetch(
+          fetch(
             `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-referral`,
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
               body: JSON.stringify({ referral_code: code, referred_user_id: userId }),
+              keepalive: true,
             },
-          )
+          ).catch(() => { /* best effort */ })
           localStorage.removeItem('bole.referral_code')
           sessionStorage.removeItem('bole.referral_code')
         }
       } catch { /* best effort */ }
 
-      // Clear the onboarding draft now that everything is saved.
       if (draftKey) localStorage.removeItem(draftKey)
 
-      // Update local store immediately so navigation isn't blocked by a slow refresh.
       useSession.setState((s) => ({
         profile: s.profile ? { ...s.profile, onboarding_complete: true } : s.profile,
       }))
       void refresh()
       setPhase('done')
-      setTimeout(() => navigate('/talent', { replace: true }), 1600)
+      setTimeout(() => navigate('/talent', { replace: true, state: { extractionPending: true } }), 1200)
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e))
     } finally {
@@ -1060,7 +974,7 @@ export default function TalentOnboarding() {
       return (
         <div className="space-y-4">
           <p className="text-sm text-ink-600 leading-relaxed">
-            Here's what we've captured. Take a moment to review — once you click <strong>Build my profile</strong> it will take 3–5 minutes to process.
+            Here's what we've captured. Take a moment to review — when you click <strong>Build my profile</strong> we'll save it right away and finish analysing in the background.
           </p>
 
           <ReviewRow label="Chat" value="Completed ✓" ok />
@@ -1120,13 +1034,10 @@ export default function TalentOnboarding() {
                   <path className="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
               </div>
-              <p className="text-base font-medium text-ink-800">Building your profile…</p>
+              <p className="text-base font-medium text-ink-800">Saving your profile…</p>
               <p className="text-sm text-ink-500 leading-relaxed max-w-xs mx-auto">
-                Our AI is analysing your conversation and putting together your profile. <strong>This takes about 3–5 minutes</strong> — feel free to grab a coffee and come back.
+                Just a few seconds — uploading your files and locking in your answers. Our AI will finish your summary in the background.
               </p>
-              <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800 max-w-xs mx-auto">
-                ⚠️ Please <strong>do not close or refresh</strong> this tab. Your profile will be ready shortly.
-              </div>
             </>
           )}
         </div>

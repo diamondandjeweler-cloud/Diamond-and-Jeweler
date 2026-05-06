@@ -75,3 +75,6 @@ verify_jwt = false
 
 [functions.dsr-apply-correction]
 verify_jwt = false
+
+[functions.retry-stuck-extractions]
+verify_jwt = false

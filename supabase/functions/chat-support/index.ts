@@ -15,6 +15,7 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { corsHeaders, handleOptions } from '../_shared/cors.ts'
 import { authenticate } from '../_shared/auth.ts'
+import { adminClient } from '../_shared/supabase.ts'
 
 // ── System prompt ─────────────────────────────────────────────────────────────
 
@@ -93,6 +94,16 @@ serve(async (req) => {
     requiredRoles: ['talent', 'hiring_manager', 'hr_admin', 'admin'],
   })
   if (auth instanceof Response) return auth
+
+  // Rate limit: 30 messages / user / hour (tunable via system_config.chat_rate_limit_per_hour).
+  const db = adminClient()
+  const { data: rl } = await db.rpc('check_and_increment_chat_rate', { p_user_id: auth.user.id }).maybeSingle()
+  if (rl && !rl.allowed) {
+    return new Response(
+      JSON.stringify({ error: `Rate limit exceeded: ${rl.count}/${rl.limit_val} messages this hour. Please wait before sending more.` }),
+      { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '3600' } },
+    )
+  }
 
   let body: Body = {}
   try { body = await req.json() } catch { /* tolerate empty */ }

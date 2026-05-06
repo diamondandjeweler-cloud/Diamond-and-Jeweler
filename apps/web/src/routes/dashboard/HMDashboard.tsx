@@ -25,6 +25,7 @@ interface CandidateRow {
   id: string
   compatibility_score: number | null
   status: string
+  is_urgent?: boolean | null
   public_reasoning: PublicReasoning | null
   application_summary: string | null
   talents: {
@@ -73,6 +74,11 @@ export default function HMDashboard() {
   const [err, setErr] = useState<string | null>(null)
   const [roleExtras, setRoleExtras] = useState<RoleExtraInfo[]>([])
   const [unlockingRoleId, setUnlockingRoleId] = useState<string | null>(null)
+  const [urgentRoleId, setUrgentRoleId] = useState<string | null>(null)
+  const [urgentBusy, setUrgentBusy] = useState(false)
+  const [urgentMsg, setUrgentMsg] = useState<{ tone: 'green' | 'amber' | 'red'; text: string } | null>(null)
+  const [pointsBalance, setPointsBalance] = useState<number | null>(null)
+  const URGENT_COST = 9
   const [feedbackState, setFeedbackState] = useState<Record<string, { rating: number; hired: boolean; notes: string; outcome: string; freeText: string; saving: boolean; saved: boolean; pointsAwarded?: number }>>({})
   const [hmReputation, setHmReputation] = useState<{ reputation_score: number | null; feedback_volume: number; phs_offer_accept_rate: number | null; hm_quality_factor: number | null; hm_cancel_rate: number | null } | null>(null)
   const [hiredAllTime, setHiredAllTime] = useState<number>(0)
@@ -144,6 +150,10 @@ export default function HMDashboard() {
         .eq('hiring_manager_id', hm.id).eq('status', 'active')
       if (!cancelled) setRoleCount(count ?? 0)
 
+      const { data: pointsRow } = await supabase.from('profiles')
+        .select('points').eq('id', session.user.id).maybeSingle()
+      if (!cancelled) setPointsBalance(pointsRow?.points ?? 0)
+
       const { data: roleRows } = await supabase.from('roles')
         .select('id, title, status, extra_matches_used')
         .eq('hiring_manager_id', hm.id)
@@ -160,9 +170,10 @@ export default function HMDashboard() {
 
       const { data: matchData, error } = await supabase
         .from('matches')
-        .select('id, compatibility_score, status, public_reasoning, application_summary, talents(id, privacy_mode, derived_tags, expected_salary_min, expected_salary_max), roles!inner(id, title, hiring_manager_id), match_feedback(rating, hired, notes)')
+        .select('id, compatibility_score, status, is_urgent, public_reasoning, application_summary, talents(id, privacy_mode, derived_tags, expected_salary_min, expected_salary_max), roles!inner(id, title, hiring_manager_id), match_feedback(rating, hired, notes)')
         .eq('roles.hiring_manager_id', hm.id)
         .in('status', ACTIVE)
+        .order('is_urgent', { ascending: false })
         .order('compatibility_score', { ascending: false })
       if (cancelled) return
       if (error) setErr(error.message)
@@ -233,6 +244,41 @@ export default function HMDashboard() {
     return () => { cancelled = true; void supabase.removeChannel(channel) }
   }, [session, loadRounds])
 
+  async function handleUrgentSearch(roleId: string) {
+    setUrgentMsg(null); setErr(null)
+    if (pointsBalance != null && pointsBalance < URGENT_COST) {
+      setUrgentMsg({
+        tone: 'amber',
+        text: `You need ${URGENT_COST} Diamond Points (you have ${pointsBalance}). Earn or buy more in your points wallet.`,
+      })
+      return
+    }
+    if (!window.confirm(`Spend ${URGENT_COST} Diamond Points to instantly surface 1 top candidate for this role?`)) return
+    setUrgentRoleId(roleId); setUrgentBusy(true)
+    try {
+      const res = await callFunction<{
+        success: boolean
+        cost: number
+        balance_after: number
+        result: { kind: 'match'; match_id: string; talent_id: string; compatibility_score: number | null } | null
+        message?: string
+      }>('urgent-priority-search', { request_type: 'find_worker', role_id: roleId })
+      if (typeof res.balance_after === 'number') setPointsBalance(res.balance_after)
+      if (!res.result) {
+        setUrgentMsg({ tone: 'amber', text: res.message ?? 'No candidate found right now.' })
+      } else {
+        setUrgentMsg({
+          tone: 'green',
+          text: `Urgent candidate ready (${Math.round(res.result.compatibility_score ?? 0)}% match) — highlighted below. Balance: ${res.balance_after} pts.`,
+        })
+      }
+    } catch (e) {
+      setUrgentMsg({ tone: 'red', text: e instanceof Error ? e.message : 'Urgent search failed.' })
+    } finally {
+      setUrgentBusy(false); setUrgentRoleId(null)
+    }
+  }
+
   async function handleUnlockExtra(roleId: string) {
     setErr(null); setUnlockingRoleId(roleId)
     try {
@@ -280,7 +326,7 @@ export default function HMDashboard() {
       // Refresh match row and rounds
       const { data: updated } = await supabase
         .from('matches')
-        .select('id, compatibility_score, status, public_reasoning, application_summary, talents(id, privacy_mode, derived_tags, expected_salary_min, expected_salary_max), roles!inner(id, title, hiring_manager_id), match_feedback(rating, hired, notes)')
+        .select('id, compatibility_score, status, is_urgent, public_reasoning, application_summary, talents(id, privacy_mode, derived_tags, expected_salary_min, expected_salary_max), roles!inner(id, title, hiring_manager_id), match_feedback(rating, hired, notes)')
         .eq('id', matchId)
         .maybeSingle()
       if (updated) setCandidates((cs) => cs.map((c) => (c.id === matchId ? (updated as unknown as CandidateRow) : c)))
@@ -496,6 +542,50 @@ export default function HMDashboard() {
         </div>
       )}
 
+      {roleExtras.length > 0 && (
+        <Card className="mt-8 border-2 border-amber-400 bg-amber-50/40">
+          <div className="p-6">
+            <div className="flex items-start justify-between gap-3 mb-2">
+              <div>
+                <div className="text-sm font-semibold text-amber-900 mb-0.5">
+                  🔥 Urgent Priority Search — {URGENT_COST} Diamond Points
+                </div>
+                <p className="text-sm text-ink-600">
+                  Skip the queue and surface the single best candidate for a role on the spot.
+                </p>
+              </div>
+              {pointsBalance != null && (
+                <div className="text-xs text-ink-600 whitespace-nowrap">
+                  Balance: <span className="font-semibold text-ink-900">{pointsBalance} pts</span>
+                </div>
+              )}
+            </div>
+            {urgentMsg && (
+              <div className="mb-3">
+                <Alert tone={urgentMsg.tone}>{urgentMsg.text}</Alert>
+              </div>
+            )}
+            <div className="space-y-2">
+              {roleExtras.map((r) => (
+                <div key={r.id} className="flex items-center justify-between gap-3 border-t border-amber-200 pt-3 first:border-t-0 first:pt-0">
+                  <div>
+                    <div className="text-sm font-medium text-ink-900">{r.title}</div>
+                    <div className="text-xs text-ink-500">{r.activeCount} active candidate{r.activeCount === 1 ? '' : 's'}</div>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => void handleUrgentSearch(r.id)}
+                    disabled={urgentBusy}
+                  >
+                    {urgentBusy && urgentRoleId === r.id ? 'Searching…' : `Urgent — ${URGENT_COST}💎`}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
+      )}
+
       {roleExtras.some((r) => r.activeCount >= 3 && r.extraUsed < 3) && (
         <Card className="mt-8 border-dashed border-accent-500">
           <div className="p-6">
@@ -564,9 +654,16 @@ function CandidateCard({
   const tone = pct >= 75 ? 'green' : pct >= 50 ? 'amber' : 'gray'
   const busy = (suffix: string) => actionBusy === `${row.id}:${suffix}`
 
+  const isUrgent = row.is_urgent === true
+
   return (
-    <Card hoverable className="animate-slide-up">
+    <Card hoverable className={`animate-slide-up ${isUrgent ? 'ring-2 ring-amber-400 shadow-[0_0_0_4px_rgba(251,191,36,0.15)]' : ''}`}>
       <div className="p-6">
+        {isUrgent && (
+          <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-900">
+            🔥 Urgent Match
+          </div>
+        )}
         <div className="flex items-start justify-between gap-3 mb-3">
           <div>
             <h3 className="font-display text-lg text-ink-900 mb-0.5">{displayName}</h3>

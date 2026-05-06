@@ -54,6 +54,13 @@ export default function TalentDashboard() {
   const [err, setErr] = useState<string | null>(null)
   const [extraUsed, setExtraUsed] = useState(0)
   const [unlocking, setUnlocking] = useState(false)
+  const [urgentBusy, setUrgentBusy] = useState(false)
+  const [urgentResult, setUrgentResult] = useState<{
+    role: { id: string; title: string; description: string | null; salary_min: number | null; salary_max: number | null; location: string | null; work_arrangement: string | null }
+  } | null>(null)
+  const [urgentMsg, setUrgentMsg] = useState<{ tone: 'green' | 'amber' | 'red'; text: string } | null>(null)
+  const [pointsBalance, setPointsBalance] = useState<number | null>(null)
+  const URGENT_COST = 9
   const [profileExpiresAt, setProfileExpiresAt] = useState<string | null>(null)
   const [reviving, setReviving] = useState(false)
   const [reviveStep, setReviveStep] = useState<'idle' | 'confirm'>('idle')
@@ -93,6 +100,9 @@ export default function TalentDashboard() {
         if (!talent) return
         talentId = talent.id
         setExtraUsed(talent.extra_matches_used ?? 0)
+        const { data: pointsRow } = await supabase.from('profiles')
+          .select('points').eq('id', session.user.id).maybeSingle()
+        if (!cancelled) setPointsBalance(pointsRow?.points ?? 0)
         setProfileExpiresAt((talent as unknown as { profile_expires_at: string | null }).profile_expires_at ?? null)
         setTalentReputation({
           reputation_score: (talent as unknown as { reputation_score: number | null }).reputation_score ?? null,
@@ -200,6 +210,40 @@ export default function TalentDashboard() {
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Failed to start payment')
     } finally { setUnlocking(false) }
+  }
+
+  async function handleUrgentJobSearch() {
+    setUrgentMsg(null); setUrgentResult(null); setErr(null)
+    if (pointsBalance != null && pointsBalance < URGENT_COST) {
+      setUrgentMsg({
+        tone: 'amber',
+        text: `You need ${URGENT_COST} Diamond Points (you have ${pointsBalance}). Earn or buy more in your points wallet.`,
+      })
+      return
+    }
+    if (!window.confirm(`Spend ${URGENT_COST} Diamond Points to instantly surface 1 top-matching open job?`)) return
+    setUrgentBusy(true)
+    try {
+      const res = await callFunction<{
+        success: boolean
+        cost: number
+        balance_after: number
+        result: { kind: 'role'; role: { id: string; title: string; description: string | null; salary_min: number | null; salary_max: number | null; location: string | null; work_arrangement: string | null } } | null
+        message?: string
+      }>('urgent-priority-search', { request_type: 'find_job' })
+      if (typeof res.balance_after === 'number') setPointsBalance(res.balance_after)
+      if (!res.result) {
+        setUrgentMsg({ tone: 'amber', text: res.message ?? 'No matching open role right now.' })
+      } else {
+        setUrgentResult({ role: res.result.role })
+        setUrgentMsg({
+          tone: 'green',
+          text: `Found 1 top-matching open job. Balance: ${res.balance_after} pts.`,
+        })
+      }
+    } catch (e) {
+      setUrgentMsg({ tone: 'red', text: e instanceof Error ? e.message : 'Urgent search failed.' })
+    } finally { setUrgentBusy(false) }
   }
 
   async function doAction(matchId: string, action: string) {
@@ -328,6 +372,55 @@ export default function TalentDashboard() {
           ))}
         </div>
       )}
+
+      <Card className="mt-8 border-2 border-amber-400 bg-amber-50/40">
+        <div className="p-6">
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <div>
+              <div className="text-sm font-semibold text-amber-900 mb-0.5">
+                🔥 Urgent Priority Job Search — {URGENT_COST} Diamond Points
+              </div>
+              <p className="text-sm text-ink-600">
+                Surface 1 top-matching open role on the spot — no waiting on the queue.
+              </p>
+            </div>
+            {pointsBalance != null && (
+              <div className="text-xs text-ink-600 whitespace-nowrap">
+                Balance: <span className="font-semibold text-ink-900">{pointsBalance} pts</span>
+              </div>
+            )}
+          </div>
+          {urgentMsg && (
+            <div className="mb-3"><Alert tone={urgentMsg.tone}>{urgentMsg.text}</Alert></div>
+          )}
+          {urgentResult && (
+            <div className="mb-3 rounded-lg border-2 border-amber-300 bg-white p-4">
+              <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-900">
+                🔥 Urgent Match
+              </div>
+              <div className="text-base font-semibold text-ink-900">{urgentResult.role.title}</div>
+              <div className="mt-0.5 text-xs text-ink-500 flex gap-2 flex-wrap">
+                {urgentResult.role.location && <span>{urgentResult.role.location}</span>}
+                {urgentResult.role.work_arrangement && (<><span>·</span><span className="capitalize">{urgentResult.role.work_arrangement}</span></>)}
+              </div>
+              {(urgentResult.role.salary_min || urgentResult.role.salary_max) && (
+                <div className="mt-1 text-sm text-ink-700">
+                  RM {fmt(urgentResult.role.salary_min)} – {fmt(urgentResult.role.salary_max)} <span className="text-ink-400">/ month</span>
+                </div>
+              )}
+              {urgentResult.role.description && (
+                <p className="mt-2 text-sm text-ink-600 line-clamp-3">{urgentResult.role.description}</p>
+              )}
+              <p className="mt-3 text-xs text-ink-500">
+                Stay open to offers — if this employer's match engine surfaces you, the role will appear above as a regular match.
+              </p>
+            </div>
+          )}
+          <Button onClick={handleUrgentJobSearch} disabled={urgentBusy}>
+            {urgentBusy ? 'Searching…' : `Urgent — ${URGENT_COST}💎`}
+          </Button>
+        </div>
+      </Card>
 
       {matches.length >= 3 && extraUsed < 3 && (
         <Card className="mt-8 border-dashed border-accent-500">

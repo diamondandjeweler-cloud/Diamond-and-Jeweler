@@ -92,6 +92,23 @@ serve(async (req) => {
         is_open_to_offers: true,
       }).eq('id', row.id)
       console.log(`[retry-stuck-extractions] talent=${row.id} attempt=${attempt} ok`)
+      // Enqueue rematch — same pattern as the inline worker. Failures are
+      // non-fatal; the 2-min match-queue cron is the safety net.
+      const { data: enqCount, error: enqErr } = await db.rpc('enqueue_active_roles_for_rematch', {
+        p_limit: 50, p_priority: 5,
+      })
+      if (enqErr) console.warn(`[retry-stuck-extractions] rematch enqueue failed: ${enqErr.message}`)
+      else if ((enqCount as number | null) ?? 0 > 0) {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')
+        const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+        if (supabaseUrl && svcKey) {
+          fetch(`${supabaseUrl}/functions/v1/process-match-queue`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${svcKey}` },
+            body: '{}',
+          }).catch(() => { /* cron will drain */ })
+        }
+      }
       succeeded++
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)

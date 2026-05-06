@@ -50,26 +50,33 @@ serve(async (req) => {
   try { body = await req.json() } catch { /* empty */ }
 
   const talentId = body.talent_id?.trim()
-  const messages = Array.isArray(body.messages) ? body.messages : []
   if (!talentId) return json({ error: 'talent_id required' }, 400)
-  if (messages.length === 0) return json({ error: 'No messages provided' }, 400)
 
   const db = adminClient()
 
-  // Verify ownership: caller must own this talent row, unless service-role/admin.
-  if (!auth.isServiceRole) {
-    const { data: row, error: fetchErr } = await db
-      .from('talents')
-      .select('id, profile_id, extraction_status')
-      .eq('id', talentId)
-      .maybeSingle()
-    if (fetchErr) return json({ error: fetchErr.message }, 500)
-    if (!row) return json({ error: 'Talent not found' }, 404)
-    if (row.profile_id !== auth.userId) return json({ error: 'Forbidden' }, 403)
-    if (row.extraction_status === 'processing') {
-      return json({ status: 'already_processing' }, 202)
-    }
+  // Verify ownership + load transcript from the row when not provided in body.
+  // The retry-from-profile path sends just { talent_id } and relies on the
+  // transcript already stored in talents.interview_answers.
+  const { data: row, error: fetchErr } = await db
+    .from('talents')
+    .select('id, profile_id, extraction_status, interview_answers')
+    .eq('id', talentId)
+    .maybeSingle()
+  if (fetchErr) return json({ error: fetchErr.message }, 500)
+  if (!row) return json({ error: 'Talent not found' }, 404)
+  if (!auth.isServiceRole && row.profile_id !== auth.userId) {
+    return json({ error: 'Forbidden' }, 403)
   }
+  if (row.extraction_status === 'processing') {
+    return json({ status: 'already_processing' }, 202)
+  }
+
+  let messages: ExtractionMessage[] = Array.isArray(body.messages) ? body.messages : []
+  if (messages.length === 0) {
+    const stored = (row.interview_answers as { transcript?: ExtractionMessage[] } | null)?.transcript
+    if (Array.isArray(stored) && stored.length > 0) messages = stored
+  }
+  if (messages.length === 0) return json({ error: 'No transcript available' }, 400)
 
   // Claim the row so duplicate enqueues are no-ops.
   const { error: claimErr } = await db
@@ -117,6 +124,11 @@ async function processExtraction(
       .eq('id', talentId)
     if (error) throw error
     console.log(`[enqueue-talent-extraction] talent=${talentId} complete`)
+
+    // Now that the talent is matchable, enqueue active roles for rematch and
+    // kick the queue worker. The 2-min cron is a safety net; this gets the
+    // new talent in front of HMs within one matcher cycle.
+    await triggerRematch(talentId)
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error(`[enqueue-talent-extraction] talent=${talentId} FAILED: ${msg}`)
@@ -130,6 +142,37 @@ async function processExtraction(
       .then(({ error }) => {
         if (error) console.error('[enqueue-talent-extraction] failed-mark error:', error)
       })
+  }
+}
+
+async function triggerRematch(talentId: string): Promise<void> {
+  const db = adminClient()
+  try {
+    const { data, error } = await db.rpc('enqueue_active_roles_for_rematch', {
+      p_limit: 50,
+      p_priority: 5,
+    })
+    if (error) {
+      console.warn(`[enqueue-talent-extraction] rematch enqueue failed: ${error.message}`)
+      return
+    }
+    const enqueued = (data as number | null) ?? 0
+    console.log(`[enqueue-talent-extraction] talent=${talentId} enqueued ${enqueued} roles`)
+    if (enqueued === 0) return
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    if (!supabaseUrl || !svcKey) return
+    // Fire-and-forget — the cron drain is the safety net.
+    fetch(`${supabaseUrl}/functions/v1/process-match-queue`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${svcKey}` },
+      body: '{}',
+    }).catch((err) => {
+      console.warn(`[enqueue-talent-extraction] process-match-queue kick failed: ${err}`)
+    })
+  } catch (err) {
+    console.warn(`[enqueue-talent-extraction] rematch trigger error: ${err}`)
   }
 }
 

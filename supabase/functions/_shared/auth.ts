@@ -39,9 +39,10 @@ export async function authenticate(
   const token = header.slice('Bearer '.length).trim()
   if (!token) return json({ error: 'Empty bearer token' }, 401)
 
-  // Fast path: service-role key.
+  // Fast path: service-role key. Timing-safe comparison so a user JWT shorter
+  // than the service-role key cannot leak length info via response timing.
   const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-  if (allowServiceRole && svcKey && token === svcKey) {
+  if (allowServiceRole && svcKey && timingSafeEqual(token, svcKey)) {
     return {
       userId: SERVICE_ROLE_SENTINEL_ID,
       email: 'service@diamondandjeweler.com',
@@ -83,18 +84,26 @@ export function json(body: unknown, status = 200): Response {
 }
 
 /**
+ * Constant-time string equality. Returns true iff the two strings are byte-equal.
+ * Cost is O(max(a, b)) regardless of where the first mismatch is, so an attacker
+ * cannot enumerate a secret by measuring response time.
+ */
+function timingSafeEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder()
+  const ba = enc.encode(a)
+  const bb = enc.encode(b)
+  const len = Math.max(ba.length, bb.length)
+  let mismatch = ba.length ^ bb.length
+  for (let i = 0; i < len; i++) mismatch |= (ba[i] ?? 0) ^ (bb[i] ?? 0)
+  return mismatch === 0
+}
+
+/**
  * Timing-safe service-role gate for functions that only accept machine callers.
  * Returns a 403 Response when auth fails, undefined when it passes.
- * Use instead of plain `===` to prevent response-time side-channel key enumeration.
  */
 export function requireServiceRole(req: Request): Response | undefined {
   const auth = req.headers.get('authorization') ?? ''
   const expected = `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''}`
-  const enc = new TextEncoder()
-  const a = enc.encode(auth)
-  const b = enc.encode(expected)
-  const len = Math.max(a.length, b.length)
-  let mismatch = a.length ^ b.length
-  for (let i = 0; i < len; i++) mismatch |= (a[i] ?? 0) ^ (b[i] ?? 0)
-  if (mismatch !== 0) return json({ error: 'forbidden' }, 403)
+  if (!timingSafeEqual(auth, expected)) return json({ error: 'forbidden' }, 403)
 }

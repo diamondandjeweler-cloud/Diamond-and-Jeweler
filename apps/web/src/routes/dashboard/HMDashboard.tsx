@@ -567,7 +567,7 @@ export default function HMDashboard() {
             )}
             <div className="space-y-2">
               {roleExtras.map((r) => (
-                <div key={r.id} className="flex items-center justify-between gap-3 border-t border-amber-200 pt-3 first:border-t-0 first:pt-0">
+                <div key={r.id} className="flex flex-wrap items-center justify-between gap-3 border-t border-amber-200 pt-3 first:border-t-0 first:pt-0">
                   <div>
                     <div className="text-sm font-medium text-ink-900">{r.title}</div>
                     <div className="text-xs text-ink-500">{r.activeCount} active candidate{r.activeCount === 1 ? '' : 's'}</div>
@@ -597,7 +597,7 @@ export default function HMDashboard() {
               {roleExtras
                 .filter((r) => r.activeCount >= 3 && r.extraUsed < 3)
                 .map((r) => (
-                  <div key={r.id} className="flex items-center justify-between gap-3 border-t border-ink-100 pt-3 first:border-t-0 first:pt-0">
+                  <div key={r.id} className="flex flex-wrap items-center justify-between gap-3 border-t border-ink-100 pt-3 first:border-t-0 first:pt-0">
                     <div>
                       <div className="text-sm font-medium text-ink-900">{r.title}</div>
                       <div className="text-xs text-ink-500">{3 - r.extraUsed} extra unlock{3 - r.extraUsed === 1 ? '' : 's'} remaining</div>
@@ -720,14 +720,14 @@ function CandidateCard({
               Interview rounds
             </div>
             {rounds.map((r) => (
-              <div key={r.id} className="flex items-center justify-between px-3 py-2 border-t border-ink-100 first:border-t-0">
-                <div>
+              <div key={r.id} className="flex flex-wrap items-center justify-between gap-y-1 px-3 py-2 border-t border-ink-100 first:border-t-0">
+                <div className="min-w-0 flex-1">
                   <span className="text-xs font-medium text-ink-900">Round {r.round_number}</span>
                   <span className="text-xs text-ink-400 ml-2">
                     {new Date(r.scheduled_at).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur', dateStyle: 'medium', timeStyle: 'short' })} MYT
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <RoundBadge status={r.status} />
                   {r.status === 'scheduled' && (
                     <a

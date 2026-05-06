@@ -612,14 +612,14 @@ function OfferCard({
               Your interviews
             </div>
             {rounds.map((r) => (
-              <div key={r.id} className="flex items-center justify-between px-3 py-2 border-t border-ink-100 first:border-t-0">
-                <div>
+              <div key={r.id} className="flex flex-wrap items-center justify-between gap-y-1 px-3 py-2 border-t border-ink-100 first:border-t-0">
+                <div className="min-w-0 flex-1">
                   <span className="text-xs font-medium text-ink-900">Round {r.round_number}</span>
                   <span className="text-xs text-ink-400 ml-2">
                     {new Date(r.scheduled_at).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur', dateStyle: 'medium', timeStyle: 'short' })} MYT
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <RoundBadge status={r.status} />
                   {r.status === 'scheduled' && (
                     <a

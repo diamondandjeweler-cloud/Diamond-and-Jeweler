@@ -19,6 +19,10 @@ import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { corsHeaders, handleOptions } from '../_shared/cors.ts'
 import { authenticate } from '../_shared/auth.ts'
 import { adminClient } from '../_shared/supabase.ts'
+import {
+  ensureConversationId, logUserMessage, teeAnthropic, teeOpenAICompat,
+  type LogContext,
+} from '../_shared/chat-log.ts'
 
 // ── System prompts ────────────────────────────────────────────────────────────
 
@@ -334,7 +338,13 @@ function buildTimingAdvice(stage: number, monthlyBoosted: boolean, peakStatus: '
 // ── Handler ───────────────────────────────────────────────────────────────────
 
 interface Message { role: 'user' | 'assistant'; content: string }
-interface Body { messages?: Message[]; mode?: 'talent' | 'hm'; dob?: string; gender?: string }
+interface Body {
+  messages?: Message[]
+  mode?: 'talent' | 'hm'
+  dob?: string
+  gender?: string
+  conversation_id?: string
+}
 
 serve(async (req) => {
   const pre = handleOptions(req)
@@ -350,7 +360,7 @@ serve(async (req) => {
 
   // Rate limit: 30 messages / user / hour (tunable via system_config.chat_rate_limit_per_hour).
   const db = adminClient()
-  const { data: rl } = await db.rpc('check_and_increment_chat_rate', { p_user_id: auth.user.id }).maybeSingle()
+  const { data: rl } = await db.rpc('check_and_increment_chat_rate', { p_user_id: auth.userId }).maybeSingle()
   if (rl && !rl.allowed) {
     return new Response(
       JSON.stringify({ error: `Rate limit exceeded: ${rl.count}/${rl.limit_val} messages this hour. Please wait before sending more.` }),
@@ -367,6 +377,17 @@ serve(async (req) => {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
+
+  // Logging context — log the user's latest turn before invoking the AI.
+  const logCtx: LogContext = {
+    conversation_id: ensureConversationId(body.conversation_id),
+    user_id:         auth.userId,
+    user_role:       auth.role,
+    endpoint:        'chat-onboard',
+    mode:            body.mode === 'hm' ? 'hm' : 'talent',
+  }
+  const lastUser = [...messages].reverse().find((m) => m.role === 'user')
+  if (lastUser?.content) void logUserMessage(logCtx, lastUser.content)
 
   // Build timing advice for talent mode when DOB + gender are provided.
   // DOB is used only for local computation — never forwarded to the AI provider.
@@ -430,122 +451,13 @@ Blend this naturally with your personalised summary of what you heard from them.
   const openaiKey = Deno.env.get('OPENAI_API_KEY')
   const openrouterKey = Deno.env.get('OPENROUTER_API_KEY')
 
-  // ── 1. Groq primary ───────────────────────────────────────────────────────
-  if (groqKey) {
-    const res = await tryOpenAICompatible(
-      'https://api.groq.com/openai/v1/chat/completions',
-      `Bearer ${groqKey}`,
-      'llama-3.3-70b-versatile',
-      'Groq-1',
-    )
-    if (res) return res
-  }
-
-  // ── 2. Groq secondary ────────────────────────────────────────────────────
-  if (groqKey2) {
-    const res = await tryOpenAICompatible(
-      'https://api.groq.com/openai/v1/chat/completions',
-      `Bearer ${groqKey2}`,
-      'llama-3.3-70b-versatile',
-      'Groq-2',
-    )
-    if (res) return res
-  }
-
-  // ── 3. Groq tertiary ─────────────────────────────────────────────────────
-  if (groqKey3) {
-    const res = await tryOpenAICompatible(
-      'https://api.groq.com/openai/v1/chat/completions',
-      `Bearer ${groqKey3}`,
-      'llama-3.3-70b-versatile',
-      'Groq-3',
-    )
-    if (res) return res
-  }
-
-  // ── 4. Groq key 4 ────────────────────────────────────────────────────────
-  if (groqKey4) {
-    const res = await tryOpenAICompatible(
-      'https://api.groq.com/openai/v1/chat/completions',
-      `Bearer ${groqKey4}`,
-      'llama-3.3-70b-versatile',
-      'Groq-4',
-    )
-    if (res) return res
-  }
-
-  // ── 5. Groq key 5 ────────────────────────────────────────────────────────
-  if (groqKey5) {
-    const res = await tryOpenAICompatible(
-      'https://api.groq.com/openai/v1/chat/completions',
-      `Bearer ${groqKey5}`,
-      'llama-3.3-70b-versatile',
-      'Groq-5',
-    )
-    if (res) return res
-  }
-
-  // ── 6. Gemini Flash ───────────────────────────────────────────────────────
-  if (geminiKey) {
-    const res = await tryOpenAICompatible(
-      'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
-      `Bearer ${geminiKey}`,
-      'gemini-2.0-flash',
-      'Gemini',
-    )
-    if (res) return res
-  }
-
-  // ── 7. OpenAI GPT-4o-mini ─────────────────────────────────────────────────
-  if (openaiKey) {
-    const res = await tryOpenAICompatible(
-      'https://api.openai.com/v1/chat/completions',
-      `Bearer ${openaiKey}`,
-      'gpt-4o-mini',
-      'OpenAI',
-    )
-    if (res) return res
-  }
-
-  // ── 8. Anthropic (Claude Sonnet) — backup ─────────────────────────────────
-  if (anthropicKey) {
-    const ac = new AbortController()
-    const t = setTimeout(() => ac.abort(), 28_000)
-    try {
-      const upstream = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': anthropicKey,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 512,
-          stream: true,
-          system: systemPrompt,
-          messages,
-        }),
-        signal: ac.signal,
-      })
-      clearTimeout(t)
-      if (upstream.ok) {
-        return new Response(upstream.body, {
-          headers: { ...corsHeaders, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' },
-        })
-      }
-      console.error('Anthropic error:', upstream.status)
-    } catch (e) {
-      clearTimeout(t)
-      console.error('Anthropic fetch failed/timed out:', e)
-    }
-  }
-
-  // ── Helper: stream an OpenAI-compatible provider (Groq / OpenRouter) ──────
+  // ── Helper: stream an OpenAI-compatible provider (Groq / Gemini / OpenAI / OpenRouter) ──────
+  // Uses the shared tee so we get text + token logging in one place.
   async function tryOpenAICompatible(
     url: string,
     authHeader: string,
     model: string,
+    provider: string,
     label: string,
   ): Promise<Response | null> {
     const msgs = [{ role: 'system', content: systemPrompt }, ...messages]
@@ -556,7 +468,7 @@ Blend this naturally with your personalised summary of what you heard from them.
       upstream = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: authHeader },
-        body: JSON.stringify({ model, max_tokens: 512, stream: true, messages: msgs }),
+        body: JSON.stringify({ model, max_tokens: 512, stream: true, messages: msgs, stream_options: { include_usage: true } }),
         signal: ac.signal,
       })
       clearTimeout(t)
@@ -569,50 +481,65 @@ Blend this naturally with your personalised summary of what you heard from them.
       console.error(`${label} error:`, upstream.status)
       return null
     }
-    // Rewrite OpenAI SSE → Anthropic content_block_delta format so the client parser works unchanged.
-    const { readable, writable } = new TransformStream()
-    const writer = writable.getWriter()
-    const encoder = new TextEncoder()
-    const decoder = new TextDecoder();
-    (async () => {
-      const reader = upstream.body!.getReader()
-      let buffer = ''
-      let finished = false
-      try {
-        while (!finished) {
-          const { done, value } = await reader.read()
-          if (done) break
-          buffer += decoder.decode(value, { stream: true })
-          const lines = buffer.split('\n')
-          buffer = lines.pop() ?? ''
-          for (const line of lines) {
-            if (!line.startsWith('data: ')) continue
-            const raw = line.slice(6).trim()
-            if (raw === '[DONE]') {
-              await writer.write(encoder.encode('event: message_stop\ndata: {"type":"message_stop"}\n\n'))
-              finished = true
-              break
-            }
-            try {
-              const evt = JSON.parse(raw)
-              const text = evt.choices?.[0]?.delta?.content
-              if (typeof text === 'string' && text.length > 0) {
-                const out = JSON.stringify({ type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text } })
-                await writer.write(encoder.encode(`event: content_block_delta\ndata: ${out}\n\n`))
-              }
-            } catch { /* skip bad lines */ }
-          }
-        }
-      } finally {
-        await writer.close().catch(() => {})
-      }
-    })()
-    return new Response(readable, {
+    return new Response(teeOpenAICompat(upstream.body!, logCtx, provider, model), {
       headers: { ...corsHeaders, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' },
     })
   }
 
+  // ── 1–5. Groq ×5 ─────────────────────────────────────────────────────────
+  for (const [key, label] of [[groqKey,'Groq-1'],[groqKey2,'Groq-2'],[groqKey3,'Groq-3'],[groqKey4,'Groq-4'],[groqKey5,'Groq-5']] as const) {
+    if (key) {
+      const res = await tryOpenAICompatible('https://api.groq.com/openai/v1/chat/completions', `Bearer ${key}`, 'llama-3.3-70b-versatile', 'groq', label)
+      if (res) return res
+    }
+  }
 
+  // ── 6. Gemini Flash ───────────────────────────────────────────────────────
+  if (geminiKey) {
+    const res = await tryOpenAICompatible('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', `Bearer ${geminiKey}`, 'gemini-2.0-flash', 'gemini', 'Gemini')
+    if (res) return res
+  }
+
+  // ── 7. OpenAI GPT-4o-mini ─────────────────────────────────────────────────
+  if (openaiKey) {
+    const res = await tryOpenAICompatible('https://api.openai.com/v1/chat/completions', `Bearer ${openaiKey}`, 'gpt-4o-mini', 'openai', 'OpenAI')
+    if (res) return res
+  }
+
+  // ── 8. Anthropic (Claude Sonnet) — backup ─────────────────────────────────
+  if (anthropicKey) {
+    const ac = new AbortController()
+    const t = setTimeout(() => ac.abort(), 28_000)
+    const ANTHROPIC_MODEL = 'claude-sonnet-4-6'
+    try {
+      const upstream = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': anthropicKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: ANTHROPIC_MODEL,
+          max_tokens: 512,
+          stream: true,
+          system: systemPrompt,
+          messages,
+        }),
+        signal: ac.signal,
+      })
+      clearTimeout(t)
+      if (upstream.ok) {
+        return new Response(teeAnthropic(upstream.body!, logCtx, ANTHROPIC_MODEL), {
+          headers: { ...corsHeaders, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' },
+        })
+      }
+      console.error('Anthropic error:', upstream.status)
+    } catch (e) {
+      clearTimeout(t)
+      console.error('Anthropic fetch failed/timed out:', e)
+    }
+  }
 
   // ── 9. OpenRouter (free tier — no credit card required) ───────────────────
   // Sign up at openrouter.ai, copy API key, set as OPENROUTER_API_KEY secret.
@@ -621,6 +548,7 @@ Blend this naturally with your personalised summary of what you heard from them.
       'https://openrouter.ai/api/v1/chat/completions',
       `Bearer ${openrouterKey}`,
       'meta-llama/llama-3.3-70b-instruct:free',
+      'openrouter',
       'OpenRouter',
     )
     if (res) return res

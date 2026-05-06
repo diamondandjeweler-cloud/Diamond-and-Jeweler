@@ -82,6 +82,9 @@ export default function TalentOnboarding() {
 
   const idRef = useRef(0)
   const nextId = () => `m${++idRef.current}`
+  // Stable conversation id for the whole onboarding chat — every turn shares it
+  // so analytics can group the full transcript.
+  const conversationIdRef = useRef<string>(crypto.randomUUID())
   const chatInitRef = useRef(false)
   const insertedRef = useRef(false)
   const draftCheckRef = useRef(false)
@@ -208,7 +211,7 @@ export default function TalentOnboarding() {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ messages: newApiMsgs, dob: dob || undefined, gender: gender || undefined }),
+          body: JSON.stringify({ messages: newApiMsgs, dob: dob || undefined, gender: gender || undefined, conversation_id: conversationIdRef.current }),
         },
       )
       if (!res.ok) throw new Error(`Server error ${res.status}`)

@@ -26,6 +26,9 @@ export default function SupportChat() {
   const [openCount, setOpenCount] = useState(0)
   const endRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
+  // Stable conversation id for the lifetime of this chat session — every
+  // message in a back-and-forth shares it so analytics can group turns.
+  const conversationIdRef = useRef<string>(crypto.randomUUID())
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -103,7 +106,7 @@ export default function SupportChat() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${s?.access_token ?? ''}`,
         },
-        body: JSON.stringify({ messages: history, paymentContext }),
+        body: JSON.stringify({ messages: history, paymentContext, conversation_id: conversationIdRef.current }),
         signal: ac.signal,
       })
 

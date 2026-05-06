@@ -88,6 +88,9 @@ export default function HMOnboarding() {
 
   const idRef = useRef(0)
   const nextId = () => `m${++idRef.current}`
+  // Stable conversation id for the whole onboarding chat — every turn shares it
+  // so analytics can group the full transcript.
+  const conversationIdRef = useRef<string>(crypto.randomUUID())
   const chatInitRef = useRef(false)
   const updatedRef = useRef(false)
 
@@ -143,7 +146,7 @@ export default function HMOnboarding() {
           method: 'POST',
           signal: abortCtrl.signal,
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ messages: newApiMsgs, mode: 'hm' }),
+          body: JSON.stringify({ messages: newApiMsgs, mode: 'hm', conversation_id: conversationIdRef.current }),
         },
       )
       if (!res.ok) throw new Error(`Server error ${res.status}`)

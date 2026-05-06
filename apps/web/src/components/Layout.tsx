@@ -4,10 +4,10 @@ import NotificationBell from './NotificationBell'
 import SupportChat from './SupportChat'
 
 export default function Layout() {
-  const { profile, signOut } = useSession()
+  const { profile, signOut, isHM } = useSession()
   const { pathname } = useLocation()
 
-  const navItems = navForRole(profile?.role, pathname)
+  const navItems = navForRole(profile?.role, pathname, { isHM })
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -128,7 +128,7 @@ export default function Layout() {
   )
 }
 
-function navForRole(role: string | undefined, pathname: string) {
+function navForRole(role: string | undefined, pathname: string, opts: { isHM?: boolean } = {}) {
   const linkFor = (href: string, label: string, badge?: string) => ({
     href, label, badge,
     active: pathname === href || (href !== '/home' && pathname.startsWith(href)),
@@ -144,10 +144,23 @@ function navForRole(role: string | undefined, pathname: string) {
     linkFor('/hm/roles', 'My roles'),
     linkFor('/hm/post-role', 'Post role'),
   ]
-  if (role === 'hr_admin') return [
-    linkFor('/hr', 'Scheduling'),
-    linkFor('/hr/invite', 'Invite HM'),
-  ]
+  if (role === 'hr_admin') {
+    const base = [
+      linkFor('/hr', 'Scheduling'),
+      linkFor('/hr/invite', 'Invite HM'),
+    ]
+    // Small-company case: HR self-registered as HM. Surface HM workspace
+    // alongside the HR nav so they can switch contexts without URL gymnastics.
+    if (opts.isHM) {
+      return [
+        ...base,
+        linkFor('/hm', 'Candidates (HM)'),
+        linkFor('/hm/roles', 'My roles'),
+        linkFor('/hm/post-role', 'Post role'),
+      ]
+    }
+    return base
+  }
   if (role === 'admin') return restaurantEnabled
     ? [linkFor('/admin', 'Admin'), restaurant]
     : [linkFor('/admin', 'Admin')]

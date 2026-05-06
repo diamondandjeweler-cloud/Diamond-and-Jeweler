@@ -8,32 +8,59 @@ import type { Profile } from '../types/db'
 interface SessionState {
   session: Session | null
   profile: Profile | null
+  /** True iff the user has a hiring_managers row. Used to surface HM nav for
+   *  hr_admin users who self-registered as HM in their own small company. */
+  isHM: boolean
   loading: boolean
   refresh: () => Promise<void>
   signOut: () => Promise<void>
   setProfile: (p: Profile | null) => void
+  refreshIsHM: () => Promise<void>
+}
+
+async function fetchIsHM(userId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('hiring_managers')
+    .select('id')
+    .eq('profile_id', userId)
+    .maybeSingle()
+  if (error) {
+    console.error('[session] fetchIsHM failed', error)
+    return false
+  }
+  return !!data
 }
 
 export const useSession = create<SessionState>((set) => ({
   session: null,
   profile: null,
+  isHM: false,
   loading: true,
   setProfile: (p) => set({ profile: p }),
+  refreshIsHM: async () => {
+    const { data } = await supabase.auth.getSession()
+    if (!data.session) { set({ isHM: false }); return }
+    const isHM = await fetchIsHM(data.session.user.id)
+    set({ isHM })
+  },
   refresh: async () => {
     try {
       const { data } = await supabase.auth.getSession()
       if (!data.session) {
-        set({ session: null, profile: null, loading: false })
+        set({ session: null, profile: null, isHM: false, loading: false })
         return
       }
-      const profile = await fetchProfile(data.session.user.id).catch((e) => {
-        console.error('[session] fetchProfile failed', e)
-        return null
-      })
-      set({ session: data.session, profile, loading: false })
+      const [profile, isHM] = await Promise.all([
+        fetchProfile(data.session.user.id).catch((e) => {
+          console.error('[session] fetchProfile failed', e)
+          return null
+        }),
+        fetchIsHM(data.session.user.id),
+      ])
+      set({ session: data.session, profile, isHM, loading: false })
     } catch (e) {
       console.error('[session] refresh failed', e)
-      set({ session: null, profile: null, loading: false })
+      set({ session: null, profile: null, isHM: false, loading: false })
     }
   },
   signOut: async () => {
@@ -56,7 +83,7 @@ export const useSession = create<SessionState>((set) => ({
         if (k.startsWith('sb-') || k === 'supabase.auth.token') localStorage.removeItem(k)
       })
     } catch { /* tolerate */ }
-    set({ session: null, profile: null, loading: false })
+    set({ session: null, profile: null, isHM: false, loading: false })
     // Hard reload — clears all JS state and prevents any token-refresh race
     // from restoring the session before React Router can redirect.
     window.location.href = '/'
@@ -99,21 +126,24 @@ export function bootstrapSession() {
     clearTimeout(watchdog)
     try {
       if (!session) {
-        useSession.setState({ session: null, profile: null, loading: false })
+        useSession.setState({ session: null, profile: null, isHM: false, loading: false })
         return
       }
       // Set the session immediately so route guards see auth state, even
       // before profile resolves. ConsentGate shows a spinner while profile
       // is null + session truthy.
       useSession.setState({ session, loading: false })
-      const profile = await fetchProfile(session.user.id).catch((e) => {
-        console.error('[session] fetchProfile failed in onAuthStateChange', e)
-        return null
-      })
+      const [profile, isHM] = await Promise.all([
+        fetchProfile(session.user.id).catch((e) => {
+          console.error('[session] fetchProfile failed in onAuthStateChange', e)
+          return null
+        }),
+        fetchIsHM(session.user.id),
+      ])
       // Don't sign out on profile fetch failure — it cancels in-flight auth flows
       // (e.g. PKCE callback) and leaves the user stuck on "Check your email".
       // Onboarding/consent gates handle missing profiles gracefully.
-      useSession.setState({ profile })
+      useSession.setState({ profile, isHM })
     } catch (e) {
       console.error('[session] onAuthStateChange failed', e)
       useSession.setState({ loading: false })

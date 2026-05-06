@@ -120,10 +120,10 @@ export default function App() {
           {/* Dashboards (consent + onboarding gated) */}
           <Route path="/talent" element={<RoleGate allow={['talent']}><ConsentGate><OnboardingGate><TalentDashboard /></OnboardingGate></ConsentGate></RoleGate>} />
           <Route path="/talent/profile" element={<RoleGate allow={['talent']}><ConsentGate><OnboardingGate><TalentProfile /></OnboardingGate></ConsentGate></RoleGate>} />
-          <Route path="/hm"     element={<RoleGate allow={['hiring_manager']}><ConsentGate><OnboardingGate><HMDashboard /></OnboardingGate></ConsentGate></RoleGate>} />
-          <Route path="/hm/post-role" element={<RoleGate allow={['hiring_manager']}><ConsentGate><OnboardingGate><PostRole /></OnboardingGate></ConsentGate></RoleGate>} />
-          <Route path="/hm/roles" element={<RoleGate allow={['hiring_manager']}><ConsentGate><OnboardingGate><MyRoles /></OnboardingGate></ConsentGate></RoleGate>} />
-          <Route path="/hm/roles/:id/edit" element={<RoleGate allow={['hiring_manager']}><ConsentGate><OnboardingGate><EditRole /></OnboardingGate></ConsentGate></RoleGate>} />
+          <Route path="/hm"     element={<RoleGate allow={['hiring_manager']} alsoAllowHRwithHM><ConsentGate><OnboardingGate><HMDashboard /></OnboardingGate></ConsentGate></RoleGate>} />
+          <Route path="/hm/post-role" element={<RoleGate allow={['hiring_manager']} alsoAllowHRwithHM><ConsentGate><OnboardingGate><PostRole /></OnboardingGate></ConsentGate></RoleGate>} />
+          <Route path="/hm/roles" element={<RoleGate allow={['hiring_manager']} alsoAllowHRwithHM><ConsentGate><OnboardingGate><MyRoles /></OnboardingGate></ConsentGate></RoleGate>} />
+          <Route path="/hm/roles/:id/edit" element={<RoleGate allow={['hiring_manager']} alsoAllowHRwithHM><ConsentGate><OnboardingGate><EditRole /></OnboardingGate></ConsentGate></RoleGate>} />
           <Route path="/hr"     element={<RoleGate allow={['hr_admin']}><ConsentGate><OnboardingGate><HRDashboard /></OnboardingGate></ConsentGate></RoleGate>} />
           <Route path="/hr/invite" element={<RoleGate allow={['hr_admin']}><ConsentGate><OnboardingGate><InviteHM /></OnboardingGate></ConsentGate></RoleGate>} />
           <Route path="/admin"  element={<AdminGate><AdminDashboard /></AdminGate>} />

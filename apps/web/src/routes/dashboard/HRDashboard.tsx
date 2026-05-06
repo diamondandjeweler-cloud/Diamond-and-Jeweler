@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import LoadingSpinner from '../../components/LoadingSpinner'
@@ -27,34 +27,105 @@ interface ScheduledRow {
   meeting_provider: string | null
 }
 
+interface HMRow {
+  id: string
+  profile_id: string
+  full_name: string
+  job_title: string
+  role_count: number
+  is_self: boolean
+}
+
+interface OpenRoleRow {
+  id: string
+  title: string
+  hm_name: string
+}
+
 type HRTab = 'scheduling' | 'link-hms'
 
 export default function HRDashboard() {
   useSeo({ title: 'Scheduling', noindex: true })
-  const { session } = useSession()
+  const navigate = useNavigate()
+  const { session, refreshIsHM } = useSession()
   const [hrTab, setHrTab] = useState<HRTab>('scheduling')
   const [pending, setPending] = useState<PendingRow[]>([])
   const [scheduled, setScheduled] = useState<ScheduledRow[]>([])
   const [outcomesPending, setOutcomesPending] = useState<number>(0)
+  const [hms, setHms] = useState<HMRow[]>([])
+  const [openRoles, setOpenRoles] = useState<OpenRoleRow[]>([])
+  const [companyId, setCompanyId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState<string | null>(null)
   const [schedulingId, setSchedulingId] = useState<string | null>(null)
   const [scheduledAt, setScheduledAt] = useState('')
   const [format, setFormat] = useState<'video' | 'phone' | 'in_person'>('video')
 
+  // Add-me-as-HM modal state
+  const [addMeOpen, setAddMeOpen] = useState(false)
+  const [addMeJobTitle, setAddMeJobTitle] = useState('')
+  const [addMeBusy, setAddMeBusy] = useState(false)
+  const [addMeErr, setAddMeErr] = useState<string | null>(null)
+  const [justSelfRegistered, setJustSelfRegistered] = useState(false)
+
   useEffect(() => {
     let cancelled = false
     async function load() {
       if (!session) return
       const userEmail = session.user.email
+      const userId = session.user.id
       if (!userEmail) { setLoading(false); return }
       const { data: comp } = await supabase.from('companies').select('id').eq('primary_hr_email', userEmail).maybeSingle()
       if (!comp) { setLoading(false); return }
-      const { data: hms } = await supabase.from('hiring_managers').select('id').eq('company_id', comp.id)
-      const hmIds = (hms ?? []).map((h) => h.id)
+      setCompanyId(comp.id)
+
+      // §1 — All hiring managers in the company, with their profile names + role counts.
+      const { data: hmRows } = await supabase
+        .from('hiring_managers')
+        .select('id, profile_id, job_title, profiles!inner(full_name)')
+        .eq('company_id', comp.id)
+      const hmIds = (hmRows ?? []).map((h) => h.id)
+
+      // Per-HM role counts (single query, group on the client).
+      let roleCountMap = new Map<string, number>()
+      if (hmIds.length > 0) {
+        const { data: roleSlim } = await supabase
+          .from('roles').select('id, hiring_manager_id').in('hiring_manager_id', hmIds)
+        roleCountMap = new Map<string, number>()
+        for (const r of (roleSlim ?? []) as Array<{ id: string; hiring_manager_id: string }>) {
+          roleCountMap.set(r.hiring_manager_id, (roleCountMap.get(r.hiring_manager_id) ?? 0) + 1)
+        }
+      }
+
+      const hmsMapped: HMRow[] = ((hmRows ?? []) as unknown as Array<{
+        id: string; profile_id: string; job_title: string; profiles: { full_name: string } | null
+      }>).map((h) => ({
+        id: h.id,
+        profile_id: h.profile_id,
+        full_name: h.profiles?.full_name ?? '(unknown)',
+        job_title: h.job_title,
+        role_count: roleCountMap.get(h.id) ?? 0,
+        is_self: h.profile_id === userId,
+      }))
+      if (!cancelled) setHms(hmsMapped)
+
       if (hmIds.length === 0) { setLoading(false); return }
-      const { data: roles } = await supabase.from('roles').select('id').in('hiring_manager_id', hmIds)
-      const roleIds = (roles ?? []).map((r) => r.id)
+
+      // §2 — Open roles posted by the company's HMs, with HM names.
+      const { data: rolesData } = await supabase
+        .from('roles')
+        .select('id, title, hiring_manager_id')
+        .in('hiring_manager_id', hmIds)
+        .order('created_at', { ascending: false })
+      const hmNameMap = new Map(hmsMapped.map((h) => [h.id, h.full_name]))
+      const openRolesMapped: OpenRoleRow[] = ((rolesData ?? []) as Array<{
+        id: string; title: string; hiring_manager_id: string
+      }>).map((r) => ({
+        id: r.id, title: r.title, hm_name: hmNameMap.get(r.hiring_manager_id) ?? '—',
+      }))
+      if (!cancelled) setOpenRoles(openRolesMapped)
+
+      const roleIds = (rolesData ?? []).map((r) => r.id)
       if (roleIds.length === 0) { setLoading(false); return }
 
       const [{ data: pendingData, error: pendErr }, { data: scheduledData }, { data: completedMatches }] = await Promise.all([
@@ -126,14 +197,56 @@ export default function HRDashboard() {
     setSchedulingId(null); setScheduledAt('')
   }
 
+  async function submitAddMe(e: React.FormEvent) {
+    e.preventDefault()
+    if (!session || !companyId) return
+    setAddMeBusy(true); setAddMeErr(null)
+    try {
+      const { error } = await supabase.from('hiring_managers').insert({
+        profile_id: session.user.id,
+        company_id: companyId,
+        job_title: addMeJobTitle.trim(),
+      })
+      if (error) throw error
+      // Refresh both the page-local HM list and the global isHM flag (drives
+      // sidebar HM links + RoleGate access to /hm routes).
+      await refreshIsHM()
+      const { data: comp } = await supabase.from('companies').select('id').eq('id', companyId).maybeSingle()
+      if (comp) {
+        const { data: hmRows } = await supabase
+          .from('hiring_managers')
+          .select('id, profile_id, job_title, profiles!inner(full_name)')
+          .eq('company_id', companyId)
+        const userId = session.user.id
+        const newHms: HMRow[] = ((hmRows ?? []) as unknown as Array<{
+          id: string; profile_id: string; job_title: string; profiles: { full_name: string } | null
+        }>).map((h) => ({
+          id: h.id, profile_id: h.profile_id,
+          full_name: h.profiles?.full_name ?? '(unknown)',
+          job_title: h.job_title, role_count: 0,
+          is_self: h.profile_id === userId,
+        }))
+        setHms(newHms)
+      }
+      setAddMeOpen(false)
+      setAddMeJobTitle('')
+      setJustSelfRegistered(true)
+    } catch (e2) {
+      setAddMeErr(e2 instanceof Error ? e2.message : String(e2))
+    } finally {
+      setAddMeBusy(false)
+    }
+  }
+
   if (loading) return <LoadingSpinner />
+
+  const isSelfHM = hms.some((h) => h.is_self)
 
   return (
     <div>
       <PageHeader
         title="HR dashboard"
         description="Manage interview scheduling and your hiring manager team."
-        actions={<Link to="/hr/invite" className="btn-primary">Invite a hiring manager</Link>}
       />
 
       {/* Tab bar */}
@@ -156,6 +269,19 @@ export default function HRDashboard() {
       {hrTab === 'link-hms' && <LinkHMPanel />}
       {hrTab === 'scheduling' && (<>
 
+      {justSelfRegistered && (
+        <div className="mb-6">
+          <Alert tone="green">
+            You&apos;re now a hiring manager too.{' '}
+            <Link to="/onboarding/hm" className="underline font-medium">
+              Complete your leadership profile
+            </Link>{' '}
+            to unlock smarter candidate matching, or jump straight to{' '}
+            <Link to="/hm/post-role" className="underline font-medium">posting a role</Link>.
+          </Alert>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
         <Stat label="To schedule" value={pending.length} tone={pending.length > 0 ? 'brand' : 'default'} />
         <Stat label="Upcoming interviews" value={scheduled.length} />
@@ -169,9 +295,109 @@ export default function HRDashboard() {
 
       {err && <div className="mb-6"><Alert tone="red">{err}</Alert></div>}
 
+      {/* §1 — Your hiring managers */}
+      <section className="mb-10">
+        <SectionHeader
+          number="1"
+          title="Your hiring managers"
+          subtitle="They define what each role on their team needs."
+          count={hms.length}
+          action={<Link to="/hr/invite" className="btn-primary btn-sm">Invite a hiring manager</Link>}
+        />
+        {hms.length === 0 ? (
+          <Card>
+            <EmptyState
+              title="No hiring managers yet"
+              description="Invite the people who'll define their team's needs. They get a magic link, complete a short leadership profile, and start posting roles."
+              action={<Link to="/hr/invite" className="btn-primary">Invite your first hiring manager</Link>}
+            />
+          </Card>
+        ) : (
+          <div className="space-y-2">
+            {hms.map((h) => (
+              <Card key={h.id}>
+                <div className="p-4 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-display text-base text-ink-900">{h.full_name}</h3>
+                      {h.is_self && <Badge tone="brand">you</Badge>}
+                    </div>
+                    <div className="text-xs text-ink-500 mt-0.5">
+                      {h.job_title} · {h.role_count} {h.role_count === 1 ? 'open role' : 'open roles'}
+                    </div>
+                  </div>
+                  {h.is_self && (
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="secondary" onClick={() => navigate('/hm')}>
+                        Switch to HM view
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {!isSelfHM && (
+          <div className="mt-3 flex items-center gap-2 text-sm text-ink-600">
+            <span>Are you also the hiring manager for your team?</span>
+            <button
+              type="button"
+              className="underline text-brand-700 hover:text-brand-800 font-medium"
+              onClick={() => { setAddMeErr(null); setAddMeOpen(true) }}
+            >
+              + Add me as a hiring manager
+            </button>
+          </div>
+        )}
+      </section>
+
+      {/* §2 — Open roles */}
+      <section className="mb-10">
+        <SectionHeader
+          number="2"
+          title="Open roles"
+          subtitle="Posted by your hiring managers. Read-only — they own role content."
+          count={openRoles.length}
+        />
+        {openRoles.length === 0 ? (
+          <Card>
+            <EmptyState
+              title="No open roles yet"
+              description={hms.length === 0
+                ? 'Once you invite hiring managers, the roles they post will appear here.'
+                : 'Your hiring managers haven’t posted any roles yet.'}
+            />
+          </Card>
+        ) : (
+          <div className="space-y-2">
+            {openRoles.map((r) => (
+              <Card key={r.id}>
+                <div className="p-4 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 className="font-display text-base text-ink-900">{r.title}</h3>
+                    <div className="text-xs text-ink-500 mt-0.5">{r.hm_name}</div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* §3 — Scheduling (existing logic) */}
+      <section>
+        <SectionHeader
+          number="3"
+          title="Schedule interviews"
+          subtitle="When a hiring manager invites a candidate, schedule the interview here."
+          count={pending.length + scheduled.length}
+        />
+
       {scheduled.length > 0 && (
-        <section className="mb-10">
-          <SectionHeader title="Upcoming interviews" count={scheduled.length} />
+        <section className="mb-8">
+          <SubHeader title="Upcoming interviews" count={scheduled.length} />
           <div className="space-y-3">
             {scheduled.map((s) => (
               <Card key={s.interview_id}>
@@ -220,7 +446,7 @@ export default function HRDashboard() {
       )}
 
       <section>
-        <SectionHeader title="Awaiting your scheduling" count={pending.length} />
+        <SubHeader title="Awaiting your scheduling" count={pending.length} />
         {pending.length === 0 ? (
           <Card>
             <EmptyState
@@ -265,15 +491,78 @@ export default function HRDashboard() {
           </div>
         )}
       </section>
+      </section>
       </>)}
+
+      {addMeOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="add-me-hm-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+        >
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
+            <h2 id="add-me-hm-title" className="text-xl font-semibold text-ink-900">
+              Add yourself as a hiring manager
+            </h2>
+            <p className="text-sm text-ink-700">
+              You&apos;ll be added to your company&apos;s hiring-manager list and able to post roles directly.
+              You can complete the leadership profile (used for matching) right after.
+            </p>
+            <form onSubmit={submitAddMe} className="space-y-4">
+              <Input
+                label="Your job title"
+                value={addMeJobTitle}
+                onChange={(e) => setAddMeJobTitle(e.target.value)}
+                placeholder="e.g. Founder, Engineering Manager"
+                required
+                autoFocus
+              />
+              {addMeErr && <Alert tone="red">{addMeErr}</Alert>}
+              <div className="flex gap-2 justify-end pt-2">
+                <Button type="button" variant="secondary" onClick={() => setAddMeOpen(false)} disabled={addMeBusy}>
+                  Cancel
+                </Button>
+                <Button type="submit" loading={addMeBusy} disabled={!addMeJobTitle.trim()}>
+                  Add me
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-function SectionHeader({ title, count }: { title: string; count: number }) {
+function SectionHeader({
+  number, title, subtitle, count, action,
+}: {
+  number?: string
+  title: string
+  subtitle?: string
+  count?: number
+  action?: React.ReactNode
+}) {
   return (
-    <div className="flex items-baseline gap-3 mb-4">
-      <h2 className="font-display text-xl text-ink-900">{title}</h2>
+    <div className="flex items-start justify-between gap-4 mb-4">
+      <div>
+        <div className="flex items-baseline gap-2">
+          {number && <span className="text-sm font-mono text-ink-400">§{number}</span>}
+          <h2 className="font-display text-xl text-ink-900">{title}</h2>
+          {typeof count === 'number' && <span className="text-sm text-ink-400">{count}</span>}
+        </div>
+        {subtitle && <p className="text-sm text-ink-500 mt-1">{subtitle}</p>}
+      </div>
+      {action}
+    </div>
+  )
+}
+
+function SubHeader({ title, count }: { title: string; count: number }) {
+  return (
+    <div className="flex items-baseline gap-3 mb-4 mt-2">
+      <h3 className="font-display text-lg text-ink-800">{title}</h3>
       <span className="text-sm text-ink-400">{count}</span>
     </div>
   )

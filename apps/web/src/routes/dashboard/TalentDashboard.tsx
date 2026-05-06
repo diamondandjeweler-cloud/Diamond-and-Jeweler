@@ -126,6 +126,30 @@ export default function TalentDashboard() {
         if (!t2.salary_structure_preference)              gaps.push('Salary structure preference')
         if (t2.notice_period_days == null)                gaps.push('Notice period')
         if (!cancelled) setProfileGaps(gaps)
+
+        // Rehydrate the most recent successful urgent job result so it survives
+        // page reload (BUG 5 fix). Only for find_job requests, last 24h, with
+        // a result_id that still points at an active role.
+        const { data: lastUrgent } = await supabase
+          .from('urgent_priority_requests')
+          .select('id, result_id, completed_at')
+          .eq('user_id', session.user.id)
+          .eq('request_type', 'find_job')
+          .eq('status', 'completed')
+          .gte('created_at', new Date(Date.now() - 24 * 3600 * 1000).toISOString())
+          .order('completed_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        if (!cancelled && lastUrgent?.result_id) {
+          const { data: urgentRole } = await supabase.from('roles')
+            .select('id, title, description, salary_min, salary_max, location, work_arrangement, status')
+            .eq('id', lastUrgent.result_id)
+            .maybeSingle()
+          if (urgentRole && urgentRole.status === 'active') {
+            setUrgentResult({ role: urgentRole as { id: string; title: string; description: string | null; salary_min: number | null; salary_max: number | null; location: string | null; work_arrangement: string | null } })
+          }
+        }
+
         const { data, error } = await supabase
           .from('matches')
           .select('id, compatibility_score, status, expires_at, public_reasoning, application_summary, roles(id, title, description, salary_min, salary_max, location, work_arrangement, employment_type, hourly_rate, duration_days)')

@@ -10,12 +10,21 @@
  * Flow:
  *   1. authenticate caller (talent or hiring_manager)
  *   2. ownership / role-status checks
- *   3. charge_urgent_priority RPC — atomic balance check + deduct + audit row
- *   4. run the search synchronously (urgent = caller waits for result)
- *      - find_worker: matchForRole(roleId, isExtraMatch=true) → inserts 1 match
- *                     then flag matches.is_urgent = true
- *      - find_job:    get_urgent_jobs_for_talent RPC → returns 1 role id
- *   5. mark_urgent_request_completed RPC writes terminal state
+ *   3. (find_worker only) PRE-FLIGHT: can_run_urgent_match_for_role RPC.
+ *      If matchForRole would refuse to run (refresh limit hit, expired,
+ *      etc.), bail BEFORE charging. — fixes BUG 4.
+ *   4. charge_urgent_priority RPC — atomic, row-locked balance check
+ *      + deduct + audit row. — race-safe per BUG 2 fix in 0077.
+ *   5. run the search synchronously (urgent = caller waits for result)
+ *      - find_worker: snap timestamp → matchForRole(isExtraMatch=true)
+ *                     → look up matches for THIS role created after the
+ *                       cutoff (avoids tagging a concurrent insert) → flag
+ *                       is_urgent + force status='generated' so the HM sees
+ *                       it immediately even when approval_mode='manual'.
+ *                       — fixes BUG 1 + BUG 3.
+ *      - find_job:    get_urgent_jobs_for_talent RPC → returns 1 role id.
+ *   6. mark_urgent_request_completed RPC writes terminal state + result_id
+ *      so the talent dashboard can rehydrate the result on reload (BUG 5).
  *
  * Daily cap is enforced inside charge_urgent_priority (default 5/24h).
  */
@@ -77,6 +86,16 @@ serve(async (req) => {
       if (!hm) return json({ error: 'Not the role owner' }, 403)
     }
     roleId = role.id
+
+    // BUG 4 fix — refuse to charge if matchForRole would no-op anyway.
+    const { data: gateRows, error: gateErr } = await db.rpc('can_run_urgent_match_for_role', {
+      p_role_id: roleId,
+    })
+    if (gateErr) return json({ error: `Pre-flight check failed: ${gateErr.message}` }, 500)
+    const gate = Array.isArray(gateRows) ? gateRows[0] : gateRows
+    if (gate && gate.ok === false) {
+      return json({ error: gate.reason ?? 'Urgent search not available for this role' }, 400)
+    }
   } else {
     const { data: t } = await db.from('talents').select('id, is_open_to_offers, profile_expires_at')
       .eq('profile_id', auth.userId).maybeSingle()
@@ -108,6 +127,14 @@ serve(async (req) => {
   // ── Run the search synchronously ──────────────────────────────────────────
   try {
     if (requestType === 'find_worker') {
+      // BUG 3 fix: snap a cutoff *before* matchForRole runs. We later look
+      // up the match created on or after this cutoff for THIS role, so a
+      // concurrent insert by process-match-queue (or any other path) cannot
+      // be misattributed as our urgent result.
+      // 100 ms safety margin compensates for clock skew between DB and the
+      // Edge Function host.
+      const cutoffIso = new Date(Date.now() - 100).toISOString()
+
       // Reuse matchForRole — isExtraMatch=true returns exactly 1 candidate.
       // Service-role context bypasses ownership check inside match-core.
       const result = await matchForRole({
@@ -134,17 +161,30 @@ serve(async (req) => {
         })
       }
 
-      // Pick the freshest just-inserted match for this role and flag it urgent.
-      const { data: latest } = await db.from('matches')
-        .select('id, talent_id, compatibility_score')
+      // BUG 3 fix: pick the match created at/after cutoff for this role.
+      // BUG 1 fix: force is_urgent=true AND status='generated' so the HM
+      // sees the match immediately, even when match_approval_mode='manual'.
+      // Urgent matches bypass the admin approval queue by design — that's
+      // the entire value proposition of paying 9 points.
+      const { data: ours } = await db.from('matches')
+        .select('id, talent_id, compatibility_score, status')
         .eq('role_id', roleId!)
+        .gte('created_at', cutoffIso)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
+
       let flagged: { id: string; talent_id: string; compatibility_score: number | null } | null = null
-      if (latest) {
-        await db.from('matches').update({ is_urgent: true }).eq('id', latest.id)
-        flagged = latest as { id: string; talent_id: string; compatibility_score: number | null }
+      if (ours) {
+        const newStatus = ours.status === 'pending_approval' ? 'generated' : ours.status
+        await db.from('matches')
+          .update({ is_urgent: true, status: newStatus })
+          .eq('id', ours.id)
+        flagged = {
+          id: ours.id,
+          talent_id: ours.talent_id,
+          compatibility_score: ours.compatibility_score,
+        }
       }
 
       await db.rpc('mark_urgent_request_completed', {

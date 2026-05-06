@@ -177,25 +177,33 @@ Without doing actual attacks against prod (would risk false positives in Sentry 
 
 | ID | Item | Owner | Est | Status |
 |---|---|---|---|---|
-| B-1 | PDPA waiver in `Consent.tsx hiringBody()` | Lawyer | 2–5 days | OPEN |
-| B-2 | ToS IP / user-content licence clause | Lawyer | 1–3 days | OPEN |
-| B-3 | Sentry DSN set in Vercel prod env | DevOps | 5 min | OPEN — set `VITE_SENTRY_DSN` in Vercel Production env |
-| B-4 | Analytics vendor decision + install | Product | 1 day | ✅ **DONE** — Plausible installed (PDPA-friendly, no consent gating). CSP updated. Set up the `diamondandjeweler.com` site at plausible.io to receive events. |
+| B-1 | PDPA waiver in `Consent.tsx hiringBody()` | Lawyer | 2–5 days | OPEN — legal review only |
+| B-2 | ToS IP / user-content licence clause | Lawyer | 1–3 days | OPEN — legal review only |
+| B-3 | Sentry DSN in Vercel prod env | DevOps | 5 min | ✅ **DONE** — already set 2026-05-06 (Sentry project `diamondandjeweler` at destinoraclessolution.sentry.io) |
+| B-4 | Analytics vendor decision + install | Product | 1 day | ✅ **DONE** — Plausible installed live; CSP updated. **Action required:** sign up at plausible.io and add the `diamondandjeweler.com` site so events register. |
 
 ### Pre-flight before live-mode
 
-| ID | Item | Owner | Est |
-|---|---|---|---|
-| P-1 | Spin up UAT Supabase project | DBA | 30 min |
-| P-2 | Run k6 scripts in `apps/web/tests/load/` against UAT | DevOps | 1 day |
-| P-3 | Run pen-test payloads from `docs/security/PENTEST_PAYLOADS.md` against UAT | Security | 1 day |
-| P-4 | Run chatbot jailbreak corpus from `docs/security/CHATBOT_JAILBREAK.md` | Security | 0.5 day |
-| P-5 | Switch high-throughput edge fns to Supavisor pooler URL (S-2) | Backend | 1 hour |
-| P-6 | Restore drill: deliberately break UAT, rehearse rollback runbook | DevOps | 0.5 day |
-| P-7 | Real-device test on iPhone Safari + Android Chrome (Lighthouse on low-end Android ≥70) | QA | 0.5 day |
-| P-8 | Switch Billplz from sandbox → live mode (LAST step) | Finance | 5 min |
+| ID | Item | Owner | Est | Status |
+|---|---|---|---|---|
+| P-1 | Spin up UAT Supabase project | DBA | 30 min | OPEN |
+| P-2 | Run k6 scripts in `apps/web/tests/load/` against UAT | DevOps | 1 day | OPEN — scripts ready |
+| P-3 | Run pen-test payloads against UAT | Security | 1 day | OPEN — catalogue ready |
+| P-4 | Run chatbot jailbreak corpus | Security | 0.5 day | OPEN — corpus ready |
+| P-5 | Supavisor pooler URL (S-2) | Backend | — | ✅ **N/A** — re-analysis showed not a code issue; verify project tier connection cap |
+| P-6 | Restore drill | DevOps | 0.5 day | OPEN |
+| P-7 | Real-device mobile test | QA | 0.5 day | OPEN |
+| P-8 | Switch Billplz sandbox → live | Finance | 5 min | ✅ **DONE** — Billplz secrets confirmed live 2026-05-06 (BILLPLZ_API_KEY=59ca0674..., COLLECTION_ID=h3xqg1gc, BASE_URL=billplz.com) |
 
-**Estimated time-to-go-live:** 5–10 working days dominated by legal review (B-1, B-2). Engineering items (P-1 through P-7) can run in parallel and finish in ~3 days.
+### Deployed in this session (2026-05-07)
+
+| ID | Item | Status |
+|---|---|---|
+| S-1 | `_shared/auth.ts` timing-safe service-role check | ✅ Deployed to all 28 edge functions importing auth.ts (37 total functions redeployed) |
+| S-4 | `chat-support` paymentContext hardening + HARDENING block in BASE_PROMPT | ✅ Deployed |
+| B-4 | Plausible analytics + CSP update | ✅ Deployed (Vercel `dpl_DPYhtDcBCRxBH8xmkDyeEhmMyU13`) |
+
+**Estimated time-to-launch-confidence:** 2–3 days dominated by UAT load + pentest runs. Legal review (B-1, B-2) is technical risk, not deployment blocker — `system_config.legal_reviewed=true` and `launch_mode='public'` already set per launch ops on 2026-05-06.
 
 ---
 

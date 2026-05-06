@@ -109,12 +109,15 @@ serve(async (req) => {
     return new Response('OK (failed)', { status: 200, headers: corsHeaders })
   }
 
-  // SUCCESS path — flip to paid (row-level guard prevents double-grant on replay).
-  const { error: updErr } = await db.from('extra_match_purchases')
+  // SUCCESS path — flip to paid. Guard on payment_status='pending' prevents double-grant.
+  // Check affected rows so a concurrent webhook that lost the race exits cleanly.
+  const { data: flipped, error: updErr } = await db.from('extra_match_purchases')
     .update({ payment_status: 'paid', paid_at: new Date().toISOString() })
     .eq('id', purchase.id)
     .eq('payment_status', 'pending')
+    .select('id')
   if (updErr) return new Response(updErr.message, { status: 500, headers: corsHeaders })
+  if (!flipped || flipped.length === 0) return new Response('OK (already paid)', { status: 200, headers: corsHeaders })
 
   // Increment quota counter.
   if (purchase.match_type === 'hm_extra' && purchase.role_id) {
@@ -301,11 +304,13 @@ async function tryConsultBooking(args: {
     return true
   }
 
-  const { error: updErr } = await db.from('consult_bookings')
+  const { data: flippedBooking, error: updErr } = await db.from('consult_bookings')
     .update({ status: 'paid', paid_at: new Date().toISOString() })
     .eq('id', booking.id)
     .eq('status', 'pending')
+    .select('id')
   if (updErr) { console.error('consult: paid flip failed', booking.id, updErr); return true }
+  if (!flippedBooking || flippedBooking.length === 0) return true  // concurrent webhook already processed
 
   let videoUrl: string | null = null
   try {

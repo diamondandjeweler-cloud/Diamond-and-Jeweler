@@ -96,13 +96,18 @@
   },
   "landing": {
     "pilot": "Malaysia · Perintis",
-    "title": "Anda di pihak mana?",
-    "subtitle": "Pilih satu sahaja. Selebihnya kami uruskan.",
-    "talent": "Saya pencari kerja",
-    "talentDesc": "Cari kerja tanpa perlu mohon. Tiga tawaran terpilih khas untuk anda.",
-    "hiring": "Saya sedang mengambil pekerja",
-    "hiringDesc": "Cari bakat tanpa timbunan resume. Tiga calon terpilih khas untuk anda.",
-    "haveAccount": "Sudah ada akaun?"
+    "eyebrow": "Selamat datang ke DNJ",
+    "titleLead": "Kami hubungkan",
+    "titleHighlight": "kecemerlangan",
+    "titleTrail": "dengan peluang.",
+    "title": "Kami hubungkan kecemerlangan dengan peluang.",
+    "subtitle": "AI memadankan bakat yang tepat dengan syarikat yang tepat. Anda fokus pada perkara yang penting.",
+    "talent": "Saya Pencari Kerja",
+    "talentDesc": "Biarkan AI cari peluang yang sesuai untuk anda. Dapat 3 jawatan terpilih — tanpa permohonan.",
+    "hiring": "Saya Sedang Mengambil",
+    "hiringDesc": "Biarkan AI cari bakat yang sesuai untuk peranan anda. 3 calon terpilih, pantas.",
+    "haveAccount": "Sudah ada akaun?",
+    "signInDashboard": "Log masuk ke papan pemuka anda"
   },
   "consent": {
     "title": "Persetujuan Pemprosesan Data dan Penepian Tuntutan",

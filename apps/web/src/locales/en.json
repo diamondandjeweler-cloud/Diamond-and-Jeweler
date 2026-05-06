@@ -96,13 +96,18 @@
   },
   "landing": {
     "pilot": "Malaysia · Pilot",
-    "title": "Which side are you on?",
-    "subtitle": "Pick one. We'll take it from there.",
-    "talent": "I'm a talent",
-    "talentDesc": "Looking for a role. Get three curated offers — no applications.",
-    "hiring": "I'm hiring",
-    "hiringDesc": "Looking for talent. Three curated candidates — no résumé pile.",
-    "haveAccount": "Already have an account?"
+    "eyebrow": "Welcome to DNJ",
+    "titleLead": "We connect",
+    "titleHighlight": "brilliance",
+    "titleTrail": "with opportunity.",
+    "title": "We connect brilliance with opportunity.",
+    "subtitle": "AI matches the right talent with the right company. You focus on what matters.",
+    "talent": "I'm a Talent",
+    "talentDesc": "Let AI find the right opportunities for you. Get 3 curated roles, no applications.",
+    "hiring": "I'm Hiring",
+    "hiringDesc": "Let AI find the right talent for your role. Get 3 curated candidates, fast.",
+    "haveAccount": "Already have an account?",
+    "signInDashboard": "Sign in to your dashboard"
   },
   "consent": {
     "title": "Data Processing Consent and Waiver",

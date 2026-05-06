@@ -96,13 +96,18 @@
   },
   "landing": {
     "pilot": "马来西亚 · 试运行",
-    "title": "您是哪一方?",
-    "subtitle": "选一边，其余交给我们。",
-    "talent": "我是求职者",
-    "talentDesc": "无需投递。系统为您送上三份精选职位。",
+    "eyebrow": "欢迎来到 DNJ",
+    "titleLead": "我们以",
+    "titleHighlight": "璀璨",
+    "titleTrail": "连接机遇。",
+    "title": "我们以璀璨连接机遇。",
+    "subtitle": "AI 为合适的人才匹配合适的企业。您只需专注重要的事。",
+    "talent": "我是人才",
+    "talentDesc": "让 AI 为您找到合适的机会。三份精选职位，无需投递。",
     "hiring": "我在招聘",
-    "hiringDesc": "无需翻看简历。系统为您送上三位精选候选人。",
-    "haveAccount": "已有账号?"
+    "hiringDesc": "让 AI 为您的职位找到合适的人才。三位精选候选人，速达。",
+    "haveAccount": "已有账号?",
+    "signInDashboard": "登录您的仪表板"
   },
   "consent": {
     "title": "数据处理同意书与责任豁免",

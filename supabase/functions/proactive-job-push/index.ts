@@ -116,34 +116,35 @@ serve(async (req) => {
         })),
       }
 
-      const { data: outboxId, error: oErr } = await db.rpc('enqueue_notification', {
-        p_user_id: c.profile_id,
-        p_notify_type: 'growth_opportunity',
-        p_payload: payload,
-        p_channel: 'email',
-      })
-      if (oErr) { errors++; continue }
+      // Dispatch via the notify edge fn synchronously. notify owns consent
+      // gating, locale rendering, and Resend/WATI fan-out. We only bump the
+      // cooldown if the dispatch returned 2xx — failures fall through and
+      // the user becomes eligible again next month.
+      const baseUrl = Deno.env.get('SUPABASE_URL')!
+      const svcKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      let dispatched = false
+      try {
+        const r = await fetch(`${baseUrl}/functions/v1/notify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${svcKey}` },
+          body: JSON.stringify({
+            user_id: c.profile_id,
+            type: 'growth_opportunity',
+            data: payload,
+          }),
+        })
+        dispatched = r.ok
+      } catch {
+        dispatched = false
+      }
+      if (!dispatched) { errors++; continue }
 
       const { error: rErr } = await db.rpc('record_growth_nudge', {
         p_talent_id: c.talent_id,
-        p_outbox_id: outboxId,
+        p_outbox_id: null,
         p_role_ids: roleIds,
       })
       if (rErr) { errors++; continue }
-
-      // Best-effort dispatch via the existing notify edge fn. Failures land
-      // in the outbox and the retry cron picks them up — no need to await.
-      const baseUrl = Deno.env.get('SUPABASE_URL')!
-      const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-      void fetch(`${baseUrl}/functions/v1/notify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${svcKey}` },
-        body: JSON.stringify({
-          user_id: c.profile_id,
-          type: 'growth_opportunity',
-          data: payload,
-        }),
-      }).catch(() => { /* outbox catches the miss */ })
 
       nudged++
     } catch {

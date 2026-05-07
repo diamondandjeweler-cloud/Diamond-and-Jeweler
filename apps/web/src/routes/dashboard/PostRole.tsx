@@ -49,6 +49,32 @@ export default function PostRole() {
   const [marketWarning, setMarketWarning] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const [drafting, setDrafting] = useState(false)
+  const [draftErr, setDraftErr] = useState<string | null>(null)
+
+  async function generateDraft() {
+    setDraftErr(null)
+    if (!title.trim()) {
+      setDraftErr('Type a role title first — the draft is built from it.')
+      return
+    }
+    setDrafting(true)
+    try {
+      const res = await callFunction<{ description: string }>('draft-role-description', {
+        title: title.trim(),
+        location: location || undefined,
+        employment_type: employmentType,
+        weight_preset: weightPreset === 'default' ? undefined : weightPreset,
+        industry: industry.trim() || undefined,
+      })
+      if (res?.description) setDescription(res.description)
+      else setDraftErr('No draft returned. Try again.')
+    } catch (e) {
+      setDraftErr(e instanceof Error ? e.message : String(e))
+    } finally {
+      setDrafting(false)
+    }
+  }
 
   useEffect(() => {
     if (!session) return
@@ -149,7 +175,22 @@ export default function PostRole() {
         <form onSubmit={submit} className="p-6 md:p-8 space-y-6">
           <Input label="Role title" value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="e.g. Senior Backend Engineer" />
 
-          <Textarea label="Description" hint="What the candidate will own. Keep it concrete." value={description} onChange={(e) => setDescription(e.target.value)} rows={4} />
+          <div>
+            <div className="flex items-end justify-between gap-3 mb-1">
+              <div className="field-label">Description</div>
+              <button
+                type="button"
+                onClick={() => void generateDraft()}
+                disabled={drafting || !title.trim()}
+                className="text-xs px-2.5 py-1 rounded-md border border-ink-200 text-ink-700 hover:border-ink-400 hover:text-ink-900 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                title={!title.trim() ? 'Type a role title first' : 'Generate a starter draft from the title'}
+              >
+                {drafting ? 'Drafting…' : description ? 'Regenerate draft' : '✨ Generate draft'}
+              </button>
+            </div>
+            <Textarea hint="What the candidate will own. Keep it concrete. Click 'Generate draft' if you're stuck." value={description} onChange={(e) => setDescription(e.target.value)} rows={5} />
+            {draftErr && <p className="text-xs text-red-600 mt-1">{draftErr}</p>}
+          </div>
 
           <div className="grid md:grid-cols-2 gap-5">
             <Input label="Department" value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="e.g. Engineering" />

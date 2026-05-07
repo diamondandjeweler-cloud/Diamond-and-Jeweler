@@ -81,9 +81,11 @@ export default function SupportChat() {
     setInput('')
     setStreaming(true)
 
-    // Build conversation history (exclude greeting, convert to API format)
+    // Build conversation history (exclude greeting, convert to API format).
+    // Anthropic requires the first message to use the user role — the greeting
+    // is a client-side string, not a real assistant turn, so it must be dropped.
     const history = [...messages, userMsg]
-      .filter((m) => m.id !== 'greeting' || m.from === 'ai')
+      .filter((m) => m.id !== 'greeting')
       .map((m) => ({ role: m.from === 'user' ? 'user' as const : 'assistant' as const, content: m.content }))
       .filter((m) => m.content.length > 0)
 

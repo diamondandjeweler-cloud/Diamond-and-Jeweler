@@ -6,8 +6,10 @@ test.use({ locale: 'en-US' })
 test.describe('landing + waitlist + signup smoke', () => {
   test('landing renders the hero', async ({ page }) => {
     await page.goto('/')
-    await expect(page).toHaveTitle(/three matches/i)
-    await expect(page.getByRole('heading', { name: /which side are you on/i })).toBeVisible()
+    await expect(page).toHaveTitle(/we connect brilliance with opportunity/i)
+    await expect(
+      page.getByRole('heading', { name: /we connect.*brilliance.*with opportunity/i }),
+    ).toBeVisible()
   })
 
   test('signup form blocks submit until required consents are checked', async ({ page }) => {
@@ -35,7 +37,7 @@ test.describe('landing + waitlist + signup smoke', () => {
 
   test('login link routes to login page', async ({ page }) => {
     await page.goto('/')
-    await page.getByRole('link', { name: /^log in$|^sign in$/i }).first().click()
+    await page.getByRole('link', { name: /sign in to your dashboard/i }).click()
     await expect(page).toHaveURL(/\/login/)
     await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible()
   })

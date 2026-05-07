@@ -90,7 +90,7 @@ export default function PostRole() {
 
     setBusy(true)
     try {
-      const { data: inserted, error: insErr } = await supabase.from('roles').insert({
+      const insertPromise = supabase.from('roles').insert({
         hiring_manager_id: hmId, title,
         description: description || null, department: department || null,
         location: location || null,
@@ -114,6 +114,10 @@ export default function PostRole() {
         is_commission_based: isCommissionBased,
         weight_preset: weightPreset === 'default' ? null : weightPreset,
       }).select('id').single()
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Network timeout — check your connection and try again.')), 15000),
+      )
+      const { data: inserted, error: insErr } = await Promise.race([insertPromise, timeout]) as Awaited<typeof insertPromise>
       if (insErr) throw insErr
       void callFunction('match-generate', { role_id: inserted.id }).catch(() => {})
       navigate('/hm', { replace: true })

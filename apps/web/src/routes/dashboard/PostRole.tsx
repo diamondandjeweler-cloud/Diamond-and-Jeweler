@@ -115,8 +115,7 @@ export default function PostRole() {
         weight_preset: weightPreset === 'default' ? null : weightPreset,
       }).select('id').single()
       if (insErr) throw insErr
-      try { await callFunction('match-generate', { role_id: inserted.id }) }
-      catch { setErr('Role created but match generation failed — our team will retry shortly.') }
+      void callFunction('match-generate', { role_id: inserted.id }).catch(() => {})
       navigate('/hm', { replace: true })
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e))

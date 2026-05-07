@@ -17,7 +17,7 @@ serve(async (req) => {
   const pre = handleOptions(req); if (pre) return pre
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
 
-  const auth = await authenticate(req, { requiredRoles: ['hiring_manager', 'admin'] })
+  const auth = await authenticate(req, { requiredRoles: ['hiring_manager', 'hr_admin', 'admin'] })
   if (auth instanceof Response) return auth
 
   let body: Body = {}

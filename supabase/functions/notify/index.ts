@@ -286,9 +286,9 @@ function compose(
       const roleTitle = typeof data.role_title === 'string' ? data.role_title : 'a role'
       const safeRole = escapeHtml(roleTitle)
       const T = {
-        en: { subject: 'You have received a job offer!', greet: 'Hi', body: `Congratulations! A hiring manager has made you an offer for ${roleTitle}. Log in to review and respond.`, linkText: 'View offer' },
-        ms: { subject: 'Anda menerima tawaran kerja!', greet: 'Hai', body: `Tahniah! Seorang pengurus pengambilan telah membuat tawaran untuk ${roleTitle}. Log masuk untuk semak dan bertindak balas.`, linkText: 'Lihat tawaran' },
-        zh: { subject: '您收到了一份工作邀约！', greet: '嗨', body: `恭喜！有招聘经理向您提出了 ${roleTitle} 的录用邀约。请登入查看并回复。`, linkText: '查看邀约' },
+        en: { subject: `An offer has been made for ${roleTitle}`, greet: 'Hi', body: `A hiring manager has made you an offer for ${roleTitle}. Log in to review and respond.`, linkText: 'View offer' },
+        ms: { subject: `Tawaran kerja untuk ${roleTitle}`, greet: 'Hai', body: `Seorang pengurus pengambilan telah membuat tawaran untuk ${roleTitle}. Log masuk untuk semak dan bertindak balas.`, linkText: 'Lihat tawaran' },
+        zh: { subject: `${roleTitle} 的工作邀约`, greet: '嗨', body: `有招聘经理向您提出了 ${roleTitle} 的录用邀约。请登入查看并回复。`, linkText: '查看邀约' },
       }[locale]
       return {
         subject: T.subject,
@@ -302,9 +302,9 @@ function compose(
       const safeT = escapeHtml(talentName)
       const safeR = escapeHtml(roleTitle)
       const T = {
-        en: { subject: 'Offer accepted!', greet: 'Hi', body: `${talentName} has accepted your offer for ${roleTitle}. Log in to view contact details and next steps.`, linkText: 'View details' },
-        ms: { subject: 'Tawaran diterima!', greet: 'Hai', body: `${talentName} telah menerima tawaran anda untuk ${roleTitle}. Log masuk untuk lihat maklumat hubungan dan langkah seterusnya.`, linkText: 'Lihat butiran' },
-        zh: { subject: '邀约已接受！', greet: '嗨', body: `${talentName} 已接受您对 ${roleTitle} 的邀约。请登入查看联系方式及后续步骤。`, linkText: '查看详情' },
+        en: { subject: `Offer accepted by ${talentName}`, greet: 'Hi', body: `${talentName} has accepted your offer for ${roleTitle}. Log in to view contact details and next steps.`, linkText: 'View details' },
+        ms: { subject: `${talentName} telah menerima tawaran`, greet: 'Hai', body: `${talentName} telah menerima tawaran anda untuk ${roleTitle}. Log masuk untuk lihat maklumat hubungan dan langkah seterusnya.`, linkText: 'Lihat butiran' },
+        zh: { subject: `${talentName} 已接受邀约`, greet: '嗨', body: `${talentName} 已接受您对 ${roleTitle} 的邀约。请登入查看联系方式及后续步骤。`, linkText: '查看详情' },
       }[locale]
       return {
         subject: T.subject,

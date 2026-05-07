@@ -113,9 +113,19 @@ export default function HMDashboard() {
   useEffect(() => {
     let cancelled = false
     let hmRoleIds: string[] = []
+    // Watchdog: if any Supabase query stalls (no response, no error), the
+    // try/catch never fires and the spinner hangs forever. Force-clear loading
+    // after 12s so the user sees an error instead of an indefinite spinner.
+    let watchdog: ReturnType<typeof setTimeout> | null = null
 
     async function load() {
-      if (!session) return
+      if (!session) { setLoading(false); return }
+      watchdog = setTimeout(() => {
+        if (cancelled) return
+        console.error('[hm-dashboard] load watchdog tripped — a Supabase query stalled')
+        setErr('Loading timed out — please refresh.')
+        setLoading(false)
+      }, 12000)
       try {
       const { data: hm } = await supabase.from('hiring_managers').select('id, company_id, reputation_score, feedback_volume, phs_offer_accept_rate, hm_quality_factor, hm_cancel_rate').eq('profile_id', session.user.id).maybeSingle()
       if (!hm) { setLoading(false); return }
@@ -218,8 +228,10 @@ export default function HMDashboard() {
           if (!cancelled) setWaiting({ roleCount: coldRows.length, estimatedDays: band?.days ?? 14 })
         }
       }
+      if (watchdog) { clearTimeout(watchdog); watchdog = null }
       setLoading(false)
       } catch (e) {
+        if (watchdog) { clearTimeout(watchdog); watchdog = null }
         if (!cancelled) {
           setErr(e instanceof Error ? e.message : 'Failed to load. Please refresh.')
           setLoading(false)
@@ -241,7 +253,11 @@ export default function HMDashboard() {
       })
       .subscribe()
 
-    return () => { cancelled = true; void supabase.removeChannel(channel) }
+    return () => {
+      cancelled = true
+      if (watchdog) clearTimeout(watchdog)
+      void supabase.removeChannel(channel)
+    }
   }, [session, loadRounds])
 
   async function handleUrgentSearch(roleId: string) {

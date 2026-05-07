@@ -25,6 +25,7 @@ export default function Start() {
     : 'Hire with curation, not résumé piles.'
   const eyebrow = isTalent ? 'TALENT FLOW' : 'HIRING FLOW'
   const signupRole = isTalent ? 'talent' : 'hr_admin'
+  const loginHref = isTalent ? '/login' : '/login?role=hr_admin'
 
   return (
     <div className="relative h-screen flex flex-col overflow-hidden bg-white text-[#0B1220] font-sans">
@@ -95,7 +96,7 @@ export default function Start() {
               <Arrow />
             </Link>
             <Link
-              to="/login"
+              to={loginHref}
               className="inline-flex items-center justify-center gap-2 w-full px-6 py-3 rounded-xl bg-white text-[#0B1220] text-[15px] font-semibold
                          border border-gray-300
                          hover:bg-gray-50 hover:border-gray-400

@@ -206,8 +206,9 @@ export default function CompanyRegister() {
           <Text label="Website" value={website} onChange={setWebsite} />
 
           <div>
-            <label className="block text-sm mb-1">Company size</label>
+            <label htmlFor="company-size" className="block text-sm mb-1">Company size</label>
             <select
+              id="company-size"
               value={size}
               onChange={(e) => setSize(e.target.value as typeof size)}
               className="w-full border rounded px-3 py-2"
@@ -224,11 +225,12 @@ export default function CompanyRegister() {
 
           {!isHM && (
             <div>
-              <label className="block text-sm mb-1">
+              <label htmlFor="company-license-file" className="block text-sm mb-1">
                 Business license
                 <span className="ml-2 text-xs font-normal text-gray-400">(optional — required for verification)</span>
               </label>
               <input
+                id="company-license-file"
                 type="file"
                 accept="image/*,application/pdf"
                 onChange={(e) => setLicenseFile(e.target.files?.[0] ?? null)}

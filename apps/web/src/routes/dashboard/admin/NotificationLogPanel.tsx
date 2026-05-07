@@ -36,6 +36,7 @@ export default function NotificationLogPanel() {
     else setRows((data ?? []) as unknown as NotifRow[])
     setLoading(false)
   }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { void reload() }, [channel])
 
   async function resend(row: NotifRow) {
@@ -57,8 +58,9 @@ export default function NotificationLogPanel() {
   return (
     <div>
       <div className="flex gap-2 mb-4 items-center">
-        <label className="text-sm text-gray-600">Channel:</label>
+        <label htmlFor="notif-channel-filter" className="text-sm text-gray-600">Channel:</label>
         <select
+          id="notif-channel-filter"
           value={channel}
           onChange={(e) => setChannel(e.target.value as typeof channel)}
           className="border rounded px-2 py-1 text-sm"

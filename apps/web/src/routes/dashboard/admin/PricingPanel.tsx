@@ -131,13 +131,15 @@ export default function PricingPanel() {
           {packages.map((pkg) => (
             <div key={pkg.id} className="flex items-center gap-2 bg-white border border-ink-200 rounded-lg px-3 py-2">
               <input
+                aria-label="Package name"
                 value={pkg.name}
                 onChange={(e) => updatePkg(pkg.id, 'name', e.target.value)}
                 placeholder="Package name"
                 className="flex-1 text-sm border-0 outline-none bg-transparent"
               />
-              <label className="text-xs text-ink-500 shrink-0">RM</label>
+              <label htmlFor={`pkg-rm-${pkg.id}`} className="text-xs text-ink-500 shrink-0">RM</label>
               <input
+                id={`pkg-rm-${pkg.id}`}
                 type="number"
                 min="1"
                 step="0.01"
@@ -145,8 +147,9 @@ export default function PricingPanel() {
                 onChange={(e) => updatePkg(pkg.id, 'price_rm', e.target.value)}
                 className="w-20 text-sm border border-ink-200 rounded px-2 py-1"
               />
-              <label className="text-xs text-ink-500 shrink-0">pts</label>
+              <label htmlFor={`pkg-pts-${pkg.id}`} className="text-xs text-ink-500 shrink-0">pts</label>
               <input
+                id={`pkg-pts-${pkg.id}`}
                 type="number"
                 min="1"
                 value={pkg.points || ''}
@@ -177,8 +180,9 @@ export default function PricingPanel() {
         <h2 className="font-semibold text-ink-900 mb-3">Match pricing</h2>
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs text-ink-600 mb-1">Single extra match (RM)</label>
+            <label htmlFor="pricing-single-match-rm" className="block text-xs text-ink-600 mb-1">Single extra match (RM)</label>
             <input
+              id="pricing-single-match-rm"
               type="number"
               min="1"
               step="0.01"
@@ -188,8 +192,9 @@ export default function PricingPanel() {
             />
           </div>
           <div>
-            <label className="block text-xs text-ink-600 mb-1">Redeem cost (pts / match)</label>
+            <label htmlFor="pricing-redemption-cost" className="block text-xs text-ink-600 mb-1">Redeem cost (pts / match)</label>
             <input
+              id="pricing-redemption-cost"
               type="number"
               min="1"
               value={redemptionCost}
@@ -198,8 +203,9 @@ export default function PricingPanel() {
             />
           </div>
           <div>
-            <label className="block text-xs text-ink-600 mb-1">Free matches per account</label>
+            <label htmlFor="pricing-free-quota" className="block text-xs text-ink-600 mb-1">Free matches per account</label>
             <input
+              id="pricing-free-quota"
               type="number"
               min="1"
               value={freeQuota}

@@ -69,6 +69,7 @@ export default function LinkHMPanel() {
     setLoading(false)
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { void load() }, [session])
 
   async function sendRequest(hmId: string, mode: 'request' | 'direct') {

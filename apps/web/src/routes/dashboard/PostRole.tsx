@@ -215,8 +215,9 @@ export default function PostRole() {
             placeholder="e.g. accounting"
           />
 
-          <label className="flex items-start gap-2 text-sm cursor-pointer">
+          <label htmlFor="post-role-accept-no-exp" className="flex items-start gap-2 text-sm cursor-pointer">
             <input
+              id="post-role-accept-no-exp"
               type="checkbox"
               checked={acceptNoExperience}
               onChange={(e) => setAcceptNoExperience(e.target.checked)}

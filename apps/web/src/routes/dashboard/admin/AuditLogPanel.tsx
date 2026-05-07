@@ -55,6 +55,9 @@ export default function AuditLogPanel() {
     setLoading(false)
   }
 
+  // reload also reads actorSearch but we only want to refire on filter/page changes;
+  // actorSearch refetch is driven manually by the Search button / Enter key.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { void reload() }, [page, actionFilter])
 
   return (

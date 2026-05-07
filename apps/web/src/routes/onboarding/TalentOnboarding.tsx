@@ -12,7 +12,7 @@
  * PDPA: name/phone collected locally via form, stored directly to Supabase.
  * They are never forwarded to the chat-onboard Edge Function or any external AI.
  */
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
@@ -220,7 +220,7 @@ export default function TalentOnboarding() {
       const decoder = new TextDecoder()
       let buffer = ''
 
-      outer: while (true) {
+      outer: for (;;) {
         const { done, value } = await reader.read()
         if (done) break
         resetStall()
@@ -499,19 +499,23 @@ export default function TalentOnboarding() {
             Before we start — just your name and a contact number. These stay on our servers and are never shared with AI systems.
           </p>
           <div>
-            <label className="block text-sm font-medium text-ink-700 mb-1">Full name</label>
+            <label htmlFor="talent-onboard-full-name" className="block text-sm font-medium text-ink-700 mb-1">Full name</label>
             <input
+              id="talent-onboard-full-name"
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="Your full name"
+              // First wizard field; intentional focus on entry.
+              // eslint-disable-next-line jsx-a11y/no-autofocus
               autoFocus
               className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-ink-700 mb-1">Phone number</label>
+            <label htmlFor="talent-onboard-phone" className="block text-sm font-medium text-ink-700 mb-1">Phone number</label>
             <input
+              id="talent-onboard-phone"
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
@@ -555,6 +559,8 @@ export default function TalentOnboarding() {
             rows={2}
             disabled={isStreaming}
             className="flex-1 resize-none rounded-xl border border-ink-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:bg-ink-50"
+            // Active chat surface — autoFocus when entering this step is intentional.
+            // eslint-disable-next-line jsx-a11y/no-autofocus
             autoFocus
           />
           {isStreaming ? (
@@ -709,8 +715,9 @@ export default function TalentOnboarding() {
               />
             )}
           </div>
-          <label className="flex items-start gap-2 text-sm cursor-pointer">
+          <label htmlFor="talent-onboard-open-new-field" className="flex items-start gap-2 text-sm cursor-pointer">
             <input
+              id="talent-onboard-open-new-field"
               type="checkbox"
               checked={openToNewField}
               onChange={(e) => setOpenToNewField(e.target.checked)}
@@ -760,7 +767,7 @@ export default function TalentOnboarding() {
     }
 
     if (phase === 'dealbreakers') {
-      function addItem() {
+      const addItem = () => {
         const t = dealBreakerInput.trim()
         if (!t || dealBreakerItems.includes(t)) return
         setDealBreakerItems((prev) => [...prev, t])
@@ -768,7 +775,7 @@ export default function TalentOnboarding() {
       }
       const hasAnyDealBreaker = noWeekendWork || noDrivingLicense || minSalaryHard != null || dealBreakerItems.length > 0 || noTravel || noNightShifts || noOwnCar || remoteOnly || noRelocation || noOvertime || noCommissionOnly
 
-      async function handleContinue() {
+      const handleContinue = async () => {
         // Best-effort: classify free-text items into structured flags via AI
         if (dealBreakerItems.length > 0) {
           try {
@@ -835,9 +842,10 @@ export default function TalentOnboarding() {
               </label>
             ))}
             <div className="border border-ink-200 rounded-lg px-3 py-2.5">
-              <label className="block text-sm text-ink-800 mb-1.5">Minimum salary I will accept (RM / month)</label>
+              <label htmlFor="talent-onboard-min-salary" className="block text-sm text-ink-800 mb-1.5">Minimum salary I will accept (RM / month)</label>
               <div className="flex items-center gap-2">
                 <input
+                  id="talent-onboard-min-salary"
                   type="number"
                   min={0}
                   step={100}
@@ -1137,8 +1145,9 @@ function FileRow({
   required?: boolean
   hint?: string
 }) {
+  const inputId = useId()
   return (
-    <label className="block border border-dashed border-ink-300 rounded-lg p-3 hover:border-ink-400 transition cursor-pointer bg-white">
+    <label htmlFor={inputId} className="block border border-dashed border-ink-300 rounded-lg p-3 hover:border-ink-400 transition cursor-pointer bg-white">
 
       <div className="flex items-center gap-3">
         <div className="h-8 w-8 rounded-md bg-ink-100 flex items-center justify-center text-ink-500 shrink-0">
@@ -1164,6 +1173,7 @@ function FileRow({
         <span className="btn-secondary btn-sm pointer-events-none shrink-0">Choose</span>
       </div>
       <input
+        id={inputId}
         type="file"
         accept={accept}
         onChange={(e) => onChange(e.target.files?.[0] ?? null)}

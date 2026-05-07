@@ -156,10 +156,11 @@ export default function CompanyVerify() {
 
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-ink-700 mb-1">
+            <label htmlFor="company-verify-regno" className="block text-sm font-medium text-ink-700 mb-1">
               SSM registration number <span className="text-red-500">*</span>
             </label>
             <input
+              id="company-verify-regno"
               value={regNo}
               onChange={(e) => setRegNo(e.target.value)}
               placeholder="e.g. 1234567-A"
@@ -170,10 +171,11 @@ export default function CompanyVerify() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-ink-700 mb-1">
+            <label htmlFor="company-verify-license" className="block text-sm font-medium text-ink-700 mb-1">
               Business license <span className="text-red-500">*</span>
             </label>
             <input
+              id="company-verify-license"
               type="file"
               accept="image/*,application/pdf"
               onChange={(e) => setLicenseFile(e.target.files?.[0] ?? null)}

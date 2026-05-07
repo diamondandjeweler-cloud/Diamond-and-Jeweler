@@ -295,10 +295,9 @@ export default function HRDashboard() {
 
       {err && <div className="mb-6"><Alert tone="red">{err}</Alert></div>}
 
-      {/* §1 — Your hiring managers */}
+      {/* Your hiring managers */}
       <section className="mb-10">
         <SectionHeader
-          number="1"
           title="Your hiring managers"
           subtitle="They define what each role on their team needs."
           count={hms.length}
@@ -319,8 +318,9 @@ export default function HRDashboard() {
                 <div className="p-4 flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="font-display text-base text-ink-900">{h.full_name}</h3>
-                      {h.is_self && <Badge tone="brand">you</Badge>}
+                      <h3 className="font-display text-base text-ink-900">
+                        {h.is_self ? 'You' : h.full_name}
+                      </h3>
                     </div>
                     <div className="text-xs text-ink-500 mt-0.5">
                       {h.job_title} · {h.role_count} {h.role_count === 1 ? 'open role' : 'open roles'}
@@ -353,10 +353,9 @@ export default function HRDashboard() {
         )}
       </section>
 
-      {/* §2 — Open roles */}
+      {/* Open roles */}
       <section className="mb-10">
         <SectionHeader
-          number="2"
           title="Open roles"
           subtitle="Posted by your hiring managers. Read-only — they own role content."
           count={openRoles.length}
@@ -386,10 +385,9 @@ export default function HRDashboard() {
         )}
       </section>
 
-      {/* §3 — Scheduling (existing logic) */}
+      {/* Scheduling (existing logic) */}
       <section>
         <SectionHeader
-          number="3"
           title="Schedule interviews"
           subtitle="When a hiring manager invites a candidate, schedule the interview here."
           count={pending.length + scheduled.length}
@@ -516,6 +514,8 @@ export default function HRDashboard() {
                 onChange={(e) => setAddMeJobTitle(e.target.value)}
                 placeholder="e.g. Founder, Engineering Manager"
                 required
+                // Modal opens with this as the only field; focusing it is the expected behaviour.
+                // eslint-disable-next-line jsx-a11y/no-autofocus
                 autoFocus
               />
               {addMeErr && <Alert tone="red">{addMeErr}</Alert>}
@@ -536,9 +536,8 @@ export default function HRDashboard() {
 }
 
 function SectionHeader({
-  number, title, subtitle, count, action,
+  title, subtitle, count, action,
 }: {
-  number?: string
   title: string
   subtitle?: string
   count?: number
@@ -548,7 +547,6 @@ function SectionHeader({
     <div className="flex items-start justify-between gap-4 mb-4">
       <div>
         <div className="flex items-baseline gap-2">
-          {number && <span className="text-sm font-mono text-ink-400">§{number}</span>}
           <h2 className="font-display text-xl text-ink-900">{title}</h2>
           {typeof count === 'number' && <span className="text-sm text-ink-400">{count}</span>}
         </div>

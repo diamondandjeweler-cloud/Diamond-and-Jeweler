@@ -62,6 +62,8 @@ export default function MfaChallenge() {
           onChange={(e) => setCode(e.target.value)}
           maxLength={6}
           required
+          // Single-purpose MFA challenge page; intentional focus on the OTP field.
+          // eslint-disable-next-line jsx-a11y/no-autofocus
           autoFocus
         />
         <Button

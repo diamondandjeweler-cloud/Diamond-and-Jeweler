@@ -168,10 +168,10 @@ export default function EditRole() {
             </Field>
           </div>
           <div>
-            <label className="block text-sm mb-2">
+            <div id="edit-role-traits-label" className="block text-sm mb-2">
               Required traits <span className="text-red-500">*</span>
-            </label>
-            <div className="flex flex-wrap gap-2">
+            </div>
+            <div role="group" aria-labelledby="edit-role-traits-label" className="flex flex-wrap gap-2">
               {TRAITS.map((t) => {
                 const on = r.required_traits.includes(t)
                 const atCap = !on && r.required_traits.length >= 5

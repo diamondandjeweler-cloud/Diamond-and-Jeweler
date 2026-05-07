@@ -36,7 +36,9 @@ module.exports = {
       { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
     ],
     'no-console': ['warn', { allow: ['warn', 'error'] }],
-    'jsx-a11y/label-has-associated-control': 'warn',
+    // Allow text up to three levels deep — checkbox labels in this project commonly
+    // wrap a control + a span containing a styled <span>title</span> + <span>hint</span>.
+    'jsx-a11y/label-has-associated-control': ['warn', { depth: 3 }],
     'jsx-a11y/no-autofocus': 'warn',
     'no-constant-condition': 'warn',
     'no-inner-declarations': 'warn',

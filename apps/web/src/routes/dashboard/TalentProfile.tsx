@@ -61,6 +61,9 @@ export default function TalentProfile() {
       setWhatsappNumber(profile.whatsapp_number ?? '')
       setWhatsappOptIn(profile.whatsapp_opt_in ?? false)
     }
+    // We intentionally key on profile.id only — re-syncing on every profile field change
+    // would clobber unsaved edits in the input.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.id])
 
   async function saveWhatsApp() {
@@ -359,8 +362,9 @@ export default function TalentProfile() {
             <h2 className="font-semibold mb-2">Salary expectation (RM / month)</h2>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm mb-1">Minimum</label>
+                <label htmlFor="talent-salary-min" className="block text-sm mb-1">Minimum</label>
                 <input
+                  id="talent-salary-min"
                   type="number" min={0}
                   value={salaryMin || ''}
                   onChange={(e) => setSalaryMin(parseInt(e.target.value, 10) || 0)}
@@ -368,8 +372,9 @@ export default function TalentProfile() {
                 />
               </div>
               <div>
-                <label className="block text-sm mb-1">Maximum</label>
+                <label htmlFor="talent-salary-max" className="block text-sm mb-1">Maximum</label>
                 <input
+                  id="talent-salary-max"
                   type="number" min={0}
                   value={salaryMax || ''}
                   onChange={(e) => setSalaryMax(parseInt(e.target.value, 10) || 0)}

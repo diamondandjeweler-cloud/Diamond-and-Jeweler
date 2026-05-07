@@ -524,8 +524,9 @@ export default function HMDashboard() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
             <h2 className="text-lg font-bold mb-4">Schedule interview round</h2>
-            <label className="block text-sm mb-1 text-ink-700">Date & time (MYT)</label>
+            <label htmlFor="hm-schedule-at" className="block text-sm mb-1 text-ink-700">Date & time (MYT)</label>
             <input
+              id="hm-schedule-at"
               type="datetime-local"
               value={scheduleAt}
               onChange={(e) => setScheduleAt(e.target.value)}

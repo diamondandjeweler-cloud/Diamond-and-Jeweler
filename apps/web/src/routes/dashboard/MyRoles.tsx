@@ -32,6 +32,8 @@ export default function MyRoles() {
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState<string | null>(null)
 
+  // reload uses `session` and is intentionally only refired when it changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (session) void reload() }, [session])
 
   async function reload() {

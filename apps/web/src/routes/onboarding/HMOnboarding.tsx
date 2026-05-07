@@ -157,7 +157,7 @@ export default function HMOnboarding() {
       const decoder = new TextDecoder()
       let buffer = ''
 
-      outer: while (true) {
+      outer: for (;;) {
         const { done, value } = await reader.read()
         if (done) break
         resetStall()
@@ -382,16 +382,21 @@ export default function HMOnboarding() {
             Before we start — just your name and job title. These stay on our servers and are never shared with AI systems.
           </p>
           <div>
-            <label className="block text-sm font-medium text-ink-700 mb-1">Full name</label>
+            <label htmlFor="hm-onboard-full-name" className="block text-sm font-medium text-ink-700 mb-1">Full name</label>
             <input
+              id="hm-onboard-full-name"
               type="text" value={fullName} onChange={(e) => setFullName(e.target.value)}
-              placeholder="Your full name" autoFocus
+              placeholder="Your full name"
+              // First field of the onboarding step; autoFocus mirrors a fresh wizard arrival.
+              // eslint-disable-next-line jsx-a11y/no-autofocus
+              autoFocus
               className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-ink-700 mb-1">Job title</label>
+            <label htmlFor="hm-onboard-job-title" className="block text-sm font-medium text-ink-700 mb-1">Job title</label>
             <input
+              id="hm-onboard-job-title"
               type="text" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)}
               placeholder="e.g. Operations Manager, Hiring Manager"
               className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
@@ -416,6 +421,8 @@ export default function HMOnboarding() {
             placeholder={isStreaming ? 'BoLe is typing…' : 'Type your message… (Shift + Enter for new line)'}
             rows={2} disabled={isStreaming}
             className="flex-1 resize-none rounded-xl border border-ink-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:bg-ink-50"
+            // Active chat surface — autoFocus when entering this step is intentional.
+            // eslint-disable-next-line jsx-a11y/no-autofocus
             autoFocus
           />
           {isStreaming ? (
@@ -428,7 +435,7 @@ export default function HMOnboarding() {
     }
 
     if (phase === 'mustHaves') {
-      function addItem() {
+      const addItem = () => {
         const t = mustHaveInput.trim()
         if (!t || mustHaveItems.includes(t)) return
         setMustHaveItems((prev) => [...prev, t])
@@ -471,6 +478,8 @@ export default function HMOnboarding() {
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addItem() } }}
                 placeholder="Type a requirement and press Enter or Add"
                 className="flex-1 border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                // Wizard step surfaces this input front and centre; intentional focus.
+                // eslint-disable-next-line jsx-a11y/no-autofocus
                 autoFocus
               />
               <button
@@ -616,8 +625,9 @@ export default function HMOnboarding() {
 
           {/* Deadline */}
           <div className="space-y-1">
-            <label className="block text-sm font-medium text-ink-700">Deadline to fill (optional)</label>
+            <label htmlFor="hm-onboard-deadline" className="block text-sm font-medium text-ink-700">Deadline to fill (optional)</label>
             <input
+              id="hm-onboard-deadline"
               type="date" value={deadlineToFill} onChange={(e) => setDeadlineToFill(e.target.value)}
               min={new Date().toISOString().slice(0, 10)}
               className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
@@ -654,11 +664,12 @@ export default function HMOnboarding() {
 
           {/* Failure at 90 days */}
           <div className="space-y-1">
-            <label className="block text-sm font-medium text-ink-700">
+            <label htmlFor="hm-onboard-failure-90d" className="block text-sm font-medium text-ink-700">
               What does failure look like at 90 days? <span className="text-ink-400 font-normal">(optional)</span>
             </label>
             <p className="text-xs text-ink-400">e.g. "Unable to close first deal independently", "Still asking basic process questions"</p>
             <textarea
+              id="hm-onboard-failure-90d"
               value={failureAt90Days} onChange={(e) => setFailureAt90Days(e.target.value)}
               rows={3} placeholder="Describe what a disappointing first 90 days would look like…"
               className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"

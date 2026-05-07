@@ -35,6 +35,7 @@ export default function MatchPanel() {
     else setRows((data ?? []) as unknown as MatchAdminRow[])
     setLoading(false)
   }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { void reload() }, [statusFilter])
 
   async function forceExpire(id: string) {

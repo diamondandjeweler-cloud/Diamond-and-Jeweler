@@ -41,6 +41,7 @@ export default function DsrPanel() {
     setLoading(false)
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { void reload() }, [filter])
 
   async function setStatus(r: DsrRow, status: 'in_review' | 'completed' | 'rejected') {

@@ -66,6 +66,7 @@ export default function SupportPanel() {
     setLoading(false)
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { void reload() }, [filter])
 
   async function setStatus(ticket: Ticket, status: TicketStatus) {

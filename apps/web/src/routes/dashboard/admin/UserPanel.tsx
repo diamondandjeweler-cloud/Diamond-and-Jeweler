@@ -35,6 +35,8 @@ export default function UserPanel() {
     else setRows((data ?? []) as UserRow[])
     setLoading(false)
   }
+  // q-search is triggered manually via Enter / Refresh; we only auto-refire on filter changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { void reload() }, [filter])
 
   async function setBan(id: string, is_banned: boolean) {

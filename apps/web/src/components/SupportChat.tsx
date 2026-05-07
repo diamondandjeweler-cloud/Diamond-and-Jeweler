@@ -107,7 +107,8 @@ export default function SupportChat() {
 
     const ac = new AbortController()
     abortRef.current = ac
-    const timeout = setTimeout(() => ac.abort(), 45_000)
+    let timedOut = false
+    const timeout = setTimeout(() => { timedOut = true; ac.abort() }, 45_000)
 
     try {
       const { data: { session: s } } = await supabase.auth.getSession()
@@ -176,10 +177,17 @@ export default function SupportChat() {
       }
     } catch (e: unknown) {
       clearTimeout(timeout)
-      if ((e as Error)?.name !== 'AbortError') {
+      const isAbort = (e as Error)?.name === 'AbortError'
+      if (!isAbort || timedOut) {
         setMessages((prev) => prev.map((m) =>
           m.id === aiMsgId
-            ? { ...m, content: 'Sorry, something went wrong. Please try again.', typing: false }
+            ? {
+                ...m,
+                content: timedOut
+                  ? 'The AI is taking too long to respond. Please try again in a moment.'
+                  : 'Sorry, something went wrong. Please try again.',
+                typing: false,
+              }
             : m
         ))
       }

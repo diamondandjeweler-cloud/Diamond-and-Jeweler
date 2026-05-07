@@ -308,7 +308,7 @@ export default function HRDashboard() {
           <Card>
             <EmptyState
               title="No hiring managers yet"
-              description="Invite the people who'll define their team's needs. They get a magic link, complete a short leadership profile, and start posting roles."
+              description="Let hiring managers create the vacancy — they work with the role every day and know the right fit better than anyone else. They are the jewelers who shape the diamond."
               action={<Link to="/hr/invite" className="btn-primary">Invite your first hiring manager</Link>}
             />
           </Card>

@@ -80,6 +80,8 @@ export default function Consult() {
     }
     void loadConfig()
     return () => { cancelled = true }
+    // TIER_LABELS is a module-level constant; including it in deps would never change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {

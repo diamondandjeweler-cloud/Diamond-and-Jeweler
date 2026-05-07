@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { Alert, Button } from './ui'
 
@@ -28,9 +28,14 @@ export default function ManagerPin({
   const [reason, setReason] = useState(initialReason ?? '')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const pinInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (open) { setPin(''); setReason(initialReason ?? ''); setErr(null); setBusy(false) }
+    if (open) {
+      setPin(''); setReason(initialReason ?? ''); setErr(null); setBusy(false)
+      // Focus the PIN input when the modal opens (modal-scoped focus, not page-load autoFocus).
+      requestAnimationFrame(() => pinInputRef.current?.focus())
+    }
   }, [open, initialReason])
 
   if (!open) return null
@@ -67,14 +72,14 @@ export default function ManagerPin({
         <h3 className="font-display text-xl mb-1 capitalize">{action.replace(/_/g, ' ')}</h3>
         <p className="text-xs text-ink-500 mb-3">A manager (shift manager / admin / owner) must enter their PIN to authorise this.</p>
         <div className="field mb-3">
-          <label className="field-label">Manager PIN</label>
-          <input type="password" inputMode="numeric" maxLength={6} value={pin}
-            onChange={(e) => setPin(e.target.value)} placeholder="••••" autoFocus className="w-full" />
+          <label htmlFor="manager-pin-input" className="field-label">Manager PIN</label>
+          <input ref={pinInputRef} id="manager-pin-input" type="password" inputMode="numeric" maxLength={6} value={pin}
+            onChange={(e) => setPin(e.target.value)} placeholder="••••" className="w-full" />
         </div>
         {action !== 'shift_variance' && (
           <div className="field mb-3">
-            <label className="field-label">Reason</label>
-            <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2} className="w-full" placeholder="Why this is being approved" />
+            <label htmlFor="manager-pin-reason" className="field-label">Reason</label>
+            <textarea id="manager-pin-reason" value={reason} onChange={(e) => setReason(e.target.value)} rows={2} className="w-full" placeholder="Why this is being approved" />
           </div>
         )}
         {err && <Alert tone="red">{err}</Alert>}

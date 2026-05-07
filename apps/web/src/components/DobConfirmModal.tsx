@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from './ui'
 
 interface Props {
@@ -15,9 +15,15 @@ interface Props {
 export default function DobConfirmModal({ dob, onConfirm, onCancel }: Props) {
   const [typedYear, setTypedYear] = useState('')
   const [showError, setShowError] = useState(false)
+  const yearInputRef = useRef<HTMLInputElement>(null)
 
   const expectedYear = dob.slice(0, 4)
   const matches = typedYear === expectedYear
+
+  useEffect(() => {
+    // Focus the year input when the modal mounts (modal-scoped focus).
+    requestAnimationFrame(() => yearInputRef.current?.focus())
+  }, [])
 
   function handleConfirm() {
     if (!matches) {
@@ -53,6 +59,7 @@ export default function DobConfirmModal({ dob, onConfirm, onCancel }: Props) {
             To confirm, type your <strong>birth year</strong> ({expectedYear.length === 4 ? '4 digits' : '...'})
           </label>
           <input
+            ref={yearInputRef}
             id="dob-year-confirm"
             type="text"
             inputMode="numeric"
@@ -62,7 +69,6 @@ export default function DobConfirmModal({ dob, onConfirm, onCancel }: Props) {
             onChange={(e) => { setTypedYear(e.target.value.replace(/\D/g, '').slice(0, 4)); setShowError(false) }}
             className="w-full border border-ink-300 rounded-lg px-3 py-2 text-base font-mono focus:outline-none focus:ring-2 focus:ring-brand-500"
             placeholder="YYYY"
-            autoFocus
           />
           {showError && (
             <p className="mt-1 text-sm text-red-600">

@@ -167,8 +167,8 @@ export default function InterviewFeedback() {
         </p>
 
         <div>
-          <label className="block text-sm mb-2">How did it go? (1 = poor, 5 = excellent)</label>
-          <div className="flex gap-2">
+          <div id="rating-question" className="block text-sm mb-2">How did it go? (1 = poor, 5 = excellent)</div>
+          <div role="group" aria-labelledby="rating-question" className="flex gap-2">
             {[1, 2, 3, 4, 5].map((n) => (
               <button
                 key={n}
@@ -186,8 +186,9 @@ export default function InterviewFeedback() {
         </div>
 
         <div>
-          <label className="block text-sm mb-1">Anything else? (optional)</label>
+          <label htmlFor="interview-notes" className="block text-sm mb-1">Anything else? (optional)</label>
           <textarea
+            id="interview-notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={4}

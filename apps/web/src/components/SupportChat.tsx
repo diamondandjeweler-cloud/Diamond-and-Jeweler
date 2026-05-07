@@ -56,7 +56,18 @@ export default function SupportChat() {
         content: `Hi${profile.full_name ? ` ${profile.full_name.split(' ')[0]}` : ''}! I'm your AI Support Officer. How can I help you today? Feel free to ask about the platform, report an issue, or let me know if there's a payment problem.`,
       }])
     }
-  }, [open, profile])
+  }, [open, profile, messages.length])
+
+  const createTicket = useCallback(async (meta: TicketMeta, transcript: ChatMessage[]) => {
+    const { error } = await supabase.from('support_tickets').insert({
+      user_id: session!.user.id,
+      category: meta.category,
+      summary: meta.summary,
+      transcript: transcript.map((m) => ({ from: m.from, content: m.content })),
+      status: 'open',
+    })
+    if (!error) setTicketCreated(true)
+  }, [session])
 
   const sendMessage = useCallback(async () => {
     const text = input.trim()
@@ -117,7 +128,7 @@ export default function SupportChat() {
       let buffer = ''
       let fullText = ''
 
-      while (true) {
+      for (;;) {
         const { done, value } = await reader.read()
         if (done) break
         buffer += decoder.decode(value, { stream: true })
@@ -176,18 +187,7 @@ export default function SupportChat() {
       setStreaming(false)
       abortRef.current = null
     }
-  }, [input, messages, streaming, session, ticketCreated])
-
-  async function createTicket(meta: TicketMeta, transcript: ChatMessage[]) {
-    const { error } = await supabase.from('support_tickets').insert({
-      user_id: session!.user.id,
-      category: meta.category,
-      summary: meta.summary,
-      transcript: transcript.map((m) => ({ from: m.from, content: m.content })),
-      status: 'open',
-    })
-    if (!error) setTicketCreated(true)
-  }
+  }, [input, messages, streaming, session, ticketCreated, createTicket])
 
   function handleKey(e: React.KeyboardEvent) {
     if (e.key === 'Enter' && !e.shiftKey) {

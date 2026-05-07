@@ -4,7 +4,7 @@
  * Phases:
  *   basics — structured form: name + phone (never sent to AI)
  *   chat   — Bo (Claude) career conversation, ends with [PROFILE_READY]
- *   dob    — structured date input (encrypted for BaZi matching)
+ *   dob    — structured date input (encrypted, used internally for matching)
  *   docs   — IC + résumé upload
  *   submit — extract profile from transcript, upload files, insert talents row
  *   done   — redirect to /talent
@@ -583,10 +583,10 @@ export default function TalentOnboarding() {
       return (
         <div className="space-y-3">
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900">
-            <strong>Date of birth is required.</strong> Our proprietary matching algorithm uses
-            it. Without it we cannot produce matches and the platform serves no purpose for you.
-            You may decline, but in that case you cannot use the platform. DOB is encrypted at
-            rest and is <strong>never shown</strong> to employers or other users.
+            <strong>Date of birth is required.</strong> We use it to find roles where you&apos;ll
+            thrive at this stage of your career. Without it we cannot produce matches and the
+            platform serves no purpose for you. DOB is encrypted at rest and is{' '}
+            <strong>never shown</strong> to employers or other users.
           </div>
           <p className="text-xs text-ink-500">
             You must be <strong>18 or older</strong> to use DNJ.
@@ -599,7 +599,7 @@ export default function TalentOnboarding() {
             className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
           <div className="space-y-1">
-            <p className="text-sm text-ink-600">Gender (used alongside your other profile data for compatibility analysis):</p>
+            <p className="text-sm text-ink-600">Gender:</p>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -726,7 +726,7 @@ export default function TalentOnboarding() {
           <Consent
             checked={dobConsent}
             onChange={setDobConsent}
-            label="I consent to DNJ collecting my date of birth for career timing and compatibility analysis. It is encrypted and never shown to employers."
+            label="I agree to share my date of birth with DNJ to help find roles where I'll thrive. Encrypted and never shown to employers."
             required
           />
           <Button

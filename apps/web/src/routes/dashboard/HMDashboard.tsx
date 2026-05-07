@@ -9,6 +9,7 @@ import { Button, Card, Badge, Alert, EmptyState, PageHeader, Stat } from '../../
 import MatchExplain from '../../components/MatchExplain'
 import ScreeningChecklist from '../../components/ScreeningChecklist'
 import CareerNudgePanel from '../../components/CareerNudgePanel'
+import AddHmDobModal from '../../components/AddHmDobModal'
 import type { PublicReasoning, CultureComparison } from '../../types/db'
 
 const HM_OUTCOMES = [
@@ -86,6 +87,9 @@ export default function HMDashboard() {
   const [companyId, setCompanyId] = useState<string | null>(null)
   const [linkRequest, setLinkRequest] = useState<{ id: string; companyName: string } | null>(null)
   const [linkBusy, setLinkBusy] = useState(false)
+  const [hmId, setHmId] = useState<string | null>(null)
+  const [hmHasDob, setHmHasDob] = useState<boolean | null>(null)
+  const [showAddDobModal, setShowAddDobModal] = useState(false)
 
   // Interview flow state
   const [roundsByMatch, setRoundsByMatch] = useState<Record<string, InterviewRound[]>>({})
@@ -127,8 +131,12 @@ export default function HMDashboard() {
         setLoading(false)
       }, 12000)
       try {
-      const { data: hm } = await supabase.from('hiring_managers').select('id, company_id, reputation_score, feedback_volume, phs_offer_accept_rate, hm_quality_factor, hm_cancel_rate').eq('profile_id', session.user.id).maybeSingle()
+      const { data: hm } = await supabase.from('hiring_managers').select('id, company_id, reputation_score, feedback_volume, phs_offer_accept_rate, hm_quality_factor, hm_cancel_rate, date_of_birth_encrypted').eq('profile_id', session.user.id).maybeSingle()
       if (!hm) { setLoading(false); return }
+      if (!cancelled) {
+        setHmId((hm as unknown as { id: string }).id)
+        setHmHasDob((hm as unknown as { date_of_birth_encrypted: string | null }).date_of_birth_encrypted != null)
+      }
       if ((hm as unknown as { company_id: string | null }).company_id) {
         const cid = (hm as unknown as { company_id: string }).company_id
         if (!cancelled) setCompanyId(cid)
@@ -472,6 +480,18 @@ export default function HMDashboard() {
 
       {err && <div className="mb-6"><Alert tone="red">{err}</Alert></div>}
 
+      {hmHasDob === false && (
+        <div className="mb-6">
+          <Alert tone="amber" title="Add a little more about you to start matching">
+            We&apos;re missing your date of birth — without it we can&apos;t pitch you to the right
+            talent. Takes 10 seconds. Encrypted, never shown to candidates.
+            <div className="mt-2">
+              <Button size="sm" onClick={() => setShowAddDobModal(true)}>Add now</Button>
+            </div>
+          </Alert>
+        </div>
+      )}
+
       {companyVerified === false && companyId && (
         <div className="mb-6">
           <Alert tone="amber" title="Company verification pending">
@@ -637,6 +657,15 @@ export default function HMDashboard() {
             </div>
           </div>
         </Card>
+      )}
+
+      {showAddDobModal && hmId && session && (
+        <AddHmDobModal
+          hmId={hmId}
+          profileId={session.user.id}
+          onSaved={() => { setShowAddDobModal(false); setHmHasDob(true) }}
+          onCancel={() => setShowAddDobModal(false)}
+        />
       )}
     </div>
   )

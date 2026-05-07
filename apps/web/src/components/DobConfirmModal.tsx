@@ -9,8 +9,8 @@ interface Props {
 
 /**
  * Asks the user to type their birth year a second time before we encrypt + lock
- * the DOB into matching. PDPA + matching-quality double-check: bad DOB = bad
- * compatibility score forever, with no way to fix without a Data Request.
+ * the DOB. PDPA + matching-quality double-check: a wrong DOB stays wrong forever,
+ * with no way to correct it without a Data Request.
  */
 export default function DobConfirmModal({ dob, onConfirm, onCancel }: Props) {
   const [typedYear, setTypedYear] = useState('')
@@ -45,8 +45,8 @@ export default function DobConfirmModal({ dob, onConfirm, onCancel }: Props) {
           Confirm your date of birth
         </h2>
         <p className="text-sm text-ink-700">
-          Once locked, your date of birth feeds the matching engine and cannot be changed
-          without submitting a Data Request. Please double-check.
+          Once locked, your date of birth cannot be changed without submitting a Data Request.
+          Please double-check.
         </p>
         <div className="rounded-lg border border-ink-200 bg-ink-50 px-4 py-3 text-center">
           <div className="text-xs text-ink-500 uppercase tracking-wider mb-1">You entered</div>

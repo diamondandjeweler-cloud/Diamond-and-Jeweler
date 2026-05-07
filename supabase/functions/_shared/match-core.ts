@@ -105,6 +105,17 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
   const { data: hm } = await db.from('hiring_managers')
     .select('date_of_birth_encrypted, culture_offers, life_chart_character, must_haves, culture_data_source, hm_quality_factor, hm_cancel_rate, required_work_authorization, career_growth_potential, leadership_tags, hire_urgency')
     .eq('id', role.hiring_manager_id).maybeSingle()
+
+  // Hard gate: matching requires HM DOB on file. Without it, our scoring is
+  // missing core signal — the role is parked rather than producing low-quality
+  // matches. The frontend detects HM_DOB_REQUIRED and surfaces a "complete your
+  // profile" banner that links back to the onboarding DOB step.
+  if (!hm?.date_of_birth_encrypted) {
+    throw new MatchError(
+      'HM_DOB_REQUIRED: Your hiring profile is missing a date of birth. Add it from your profile so we can match you with the right talent.',
+      422,
+    )
+  }
   let hmDobText: string | null = null
   let cultureOffers: Record<string, number> | null = null
   const hmCharacter: string | null = (hm?.life_chart_character as string | null) ?? null

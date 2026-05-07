@@ -50,6 +50,8 @@ export default function HMOnboarding() {
   const [dob, setDob] = useState('')
   const [gender, setGender] = useState<Gender | ''>('')
   const [dobConsent, setDobConsent] = useState(false)
+  const [dobSkipPrompt, setDobSkipPrompt] = useState(false)
+  const [dobSkipped, setDobSkipped] = useState(false)
 
   // mustHaves structured checkboxes
   const [hmRequiresDrivingLicense, setHmRequiresDrivingLicense] = useState(false)
@@ -228,11 +230,14 @@ export default function HMOnboarding() {
     try {
       const userId = session.user.id
 
-      const [dobEncrypted, authData] = await Promise.all([encryptDob(dob), supabase.auth.getSession()])
+      const [dobEncrypted, authData] = await Promise.all([
+        dob ? encryptDob(dob) : Promise.resolve(null),
+        supabase.auth.getSession(),
+      ])
       const token = authData.data.session?.access_token
       if (!token) throw new Error('Not authenticated')
 
-      if (dobConsent) {
+      if (dob && dobConsent) {
         const nextConsents = {
           ...(profile?.consents as Record<string, unknown>),
           dob: true,
@@ -499,7 +504,7 @@ export default function HMOnboarding() {
       return (
         <div className="space-y-4">
           <p className="text-sm text-ink-600 leading-relaxed">
-            A few quick details about you — used by our compatibility matching engine. Encrypted and never shown to candidates.
+            A few quick details about you — helps us pitch you to the right talent. Encrypted and never shown to candidates.
           </p>
           <div className="space-y-1">
             <p className="text-sm text-ink-600">Race / ethnicity:</p>
@@ -669,37 +674,65 @@ export default function HMOnboarding() {
       return (
         <div className="space-y-3">
           <p className="text-sm text-ink-600">
-            Your date of birth is encrypted and only used by our compatibility matching engine. Candidates never see it.
+            We&apos;d love to know a little more about you so we can pitch you to the right talent —
+            the kind of person who&apos;ll really click with how you work. Just your date of birth and
+            gender. Encrypted and never shown to candidates.
           </p>
           <input
-            type="date" value={dob} onChange={(e) => setDob(e.target.value)}
+            type="date" value={dob} onChange={(e) => { setDob(e.target.value); setDobSkipped(false) }}
             max={new Date(Date.now() - 18 * 365 * 86400000).toISOString().slice(0, 10)}
             className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
           <div className="space-y-1">
-            <p className="text-sm text-ink-600">Gender (used by the matching engine alongside DOB):</p>
+            <p className="text-sm text-ink-600">Gender:</p>
             <div className="grid grid-cols-2 gap-2">
               <button
-                type="button" onClick={() => setGender('male')}
+                type="button" onClick={() => { setGender('male'); setDobSkipped(false) }}
                 className={`border rounded-lg px-3 py-2 text-sm ${gender === 'male' ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 text-ink-700 hover:bg-ink-50'}`}
               >Male</button>
               <button
-                type="button" onClick={() => setGender('female')}
+                type="button" onClick={() => { setGender('female'); setDobSkipped(false) }}
                 className={`border rounded-lg px-3 py-2 text-sm ${gender === 'female' ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 text-ink-700 hover:bg-ink-50'}`}
               >Female</button>
             </div>
           </div>
           <Consent
             checked={dobConsent} onChange={setDobConsent}
-            label="I consent to DNJ collecting my date of birth for advanced AI-powered compatibility analysis. It will be encrypted and never disclosed to candidates."
+            label="I agree to share these details with DNJ to help find the right talent for me. Encrypted and never shown to candidates."
             required
           />
           {err && <Alert tone="red">{err}</Alert>}
           <Button
-            onClick={() => setPhase('review')}
+            onClick={() => { setDobSkipped(false); setPhase('review') }}
             disabled={!dob || !gender || !dobConsent}
             className="w-full" size="lg"
           >Review &amp; confirm</Button>
+
+          <div className="pt-3 border-t border-ink-100">
+            {!dobSkipPrompt ? (
+              <button
+                type="button" onClick={() => setDobSkipPrompt(true)}
+                className="text-xs text-ink-400 hover:text-ink-600 underline"
+              >Prefer not to share?</button>
+            ) : (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">
+                <p className="text-sm text-amber-900">
+                  No problem — without it, we&apos;ll just try to match you with talent around your age
+                  or younger. You can always add this later from your profile to unlock our full matching.
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm" variant="secondary"
+                    onClick={() => {
+                      setDob(''); setGender(''); setDobConsent(false)
+                      setDobSkipped(true); setDobSkipPrompt(false); setPhase('review')
+                    }}
+                  >Skip &amp; continue</Button>
+                  <Button size="sm" onClick={() => setDobSkipPrompt(false)}>Add it now</Button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )
     }
@@ -723,8 +756,12 @@ export default function HMOnboarding() {
           </p>
 
           <HMReviewRow label="Chat" value="Completed ✓" ok />
-          <HMReviewRow label="Date of birth" value={dob ? `${dob} (encrypted)` : '—'} ok={!!dob} />
-          <HMReviewRow label="Gender" value={gender || '—'} ok={!!gender} />
+          <HMReviewRow
+            label="Date of birth"
+            value={dob ? `${dob} (encrypted)` : dobSkipped ? 'Skipped — you can add this later from your profile' : '—'}
+            ok={!!dob}
+          />
+          <HMReviewRow label="Gender" value={gender || (dobSkipped ? 'Skipped' : '—')} ok={!!gender} />
           <HMReviewRow label="Race" value={race || '—'} ok={!!race} />
           <HMReviewRow label="Religion" value={religion || '—'} ok={!!religion} />
           <HMReviewRow label="Languages" value={languages.length > 0 ? languages.join(', ') : '—'} ok={languages.length > 0} />

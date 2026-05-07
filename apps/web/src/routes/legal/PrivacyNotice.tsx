@@ -85,10 +85,11 @@ export default function PrivacyNotice() {
 
         <p className="font-semibold mt-3">Date of Birth (required for matching)</p>
         <p>
-          Your date of birth is required because our proprietary matching algorithm uses it.
-          Without it we cannot produce matches and the platform serves no purpose for you.
-          You may decline, but in that case you cannot use the platform. DOB is encrypted at
-          the database column level and is never shown to employers or other users.
+          Your date of birth is required for our matching system to find roles where you&apos;ll
+          thrive at this stage of your career. Without it we cannot produce matches and the
+          platform serves no purpose for you. You may decline, but in that case you cannot use
+          the platform. DOB is encrypted at the database column level and is never shown to
+          employers or other users.
         </p>
 
         <p className="font-semibold mt-3">Professional Data (Talents)</p>
@@ -129,7 +130,7 @@ export default function PrivacyNotice() {
           <li>Operating accounts and authentication.</li>
           <li>Performing matching and interview scheduling.</li>
           <li>
-            Generating AI-powered compatibility scoring using profile data.{' '}
+            Generating AI-powered match scores using profile data.{' '}
             <strong>Sensitive data (NRIC/Passport, full DOB digits) is never shown to employers
               or other users.</strong>
           </li>

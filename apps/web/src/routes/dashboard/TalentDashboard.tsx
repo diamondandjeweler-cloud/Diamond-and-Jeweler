@@ -8,6 +8,7 @@ import { useSeo } from '../../lib/useSeo'
 import { Button, Card, Badge, Alert, EmptyState, PageHeader, Stat } from '../../components/ui'
 import MatchExplain from '../../components/MatchExplain'
 import CareerNudgePanel from '../../components/CareerNudgePanel'
+import GrowthNudgePreferences from '../../components/GrowthNudgePreferences'
 import type { PublicReasoning } from '../../types/db'
 
 interface MatchRow {
@@ -415,6 +416,8 @@ export default function TalentDashboard() {
       </div>
 
       <CareerNudgePanel side="talent" />
+
+      <GrowthNudgePreferences />
 
       {profileGaps.length > 0 && (
         <ProfileCompletenessBar gaps={profileGaps} />

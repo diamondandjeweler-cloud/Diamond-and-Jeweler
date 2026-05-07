@@ -44,6 +44,7 @@ type NotifyType =
   | 'company_verified' | 'dsr_export_ready'
   | 'interview_round_scheduled' | 'interview_cancelled'
   | 'offer_made_notify' | 'offer_accepted' | 'offer_declined'
+  | 'growth_opportunity'
 
 interface Payload {
   user_id: string
@@ -64,7 +65,7 @@ serve(async (req) => {
   }
 
   // Marketing-category notifications require consents.market = true.
-  const MARKETING_TYPES: NotifyType[] = ['match_expiring', 'match_no_action_48h']
+  const MARKETING_TYPES: NotifyType[] = ['match_expiring', 'match_no_action_48h', 'growth_opportunity']
   const isMarketing = (MARKETING_TYPES as string[]).includes(payload.type)
 
   const db = adminClient()
@@ -385,6 +386,51 @@ function compose(
         body: `${T.greet} ${first},\n\n${T.body}\n\n${T.linkLabel}: ${SITE}/hr\n\n– DNJ`,
         html: `<p>${T.greet} ${safeFirst},</p><p>${T.body} <a href="${SITE}/hr">${T.linkLabel}</a>.</p>`,
       }
+    }
+    case 'growth_opportunity': {
+      const rawRoles = Array.isArray(data.roles) ? data.roles as Array<Record<string, unknown>> : []
+      const lines = rawRoles.slice(0, 5).map((r) => {
+        const title = typeof r.title === 'string' ? r.title : 'Open role'
+        const loc   = typeof r.location === 'string' && r.location ? ` — ${r.location}` : ''
+        return `${title}${loc}`
+      })
+      const linesHtml = rawRoles.slice(0, 5).map((r) => {
+        const title = escapeHtml(typeof r.title === 'string' ? r.title : 'Open role')
+        const loc   = typeof r.location === 'string' && r.location ? ` — ${escapeHtml(r.location)}` : ''
+        const id    = typeof r.id === 'string' ? encodeURIComponent(r.id) : ''
+        const href  = id ? `${SITE}/home?role=${id}` : `${SITE}/home`
+        return `<li><a href="${href}">${title}</a>${loc}</li>`
+      }).join('')
+      const T = {
+        en: {
+          subject: 'New roles matched to your profile',
+          greet: 'Hi',
+          intro: "We've curated a few roles that match your profile. Take a look when you have a moment:",
+          linkText: 'View all matches',
+          snoozeHint: 'Not the right time? You can pause these in your dashboard settings.',
+        },
+        ms: {
+          subject: 'Jawatan baharu yang sepadan dengan profil anda',
+          greet: 'Hai',
+          intro: 'Kami telah pilihkan beberapa jawatan yang sepadan dengan profil anda. Sila lihat apabila anda lapang:',
+          linkText: 'Lihat semua padanan',
+          snoozeHint: 'Bukan masa yang sesuai? Anda boleh menjeda ini dalam tetapan papan pemuka.',
+        },
+        zh: {
+          subject: '为您匹配到新职位',
+          greet: '嗨',
+          intro: '我们为您精选了几个匹配您资料的职位，方便时请查看：',
+          linkText: '查看所有匹配',
+          snoozeHint: '现在不是合适时机？您可以在控制台设置中暂停。',
+        },
+      }[locale]
+      const bodyText = `${T.greet} ${first},\n\n${T.intro}\n${lines.map((l) => `• ${l}`).join('\n')}\n\n${SITE}/home\n\n${T.snoozeHint}\n\n– DNJ`
+      const html = `<p>${T.greet} ${safeFirst},</p>`
+        + `<p>${T.intro}</p>`
+        + (linesHtml ? `<ul style="padding-left:18px">${linesHtml}</ul>` : '')
+        + `<p><a href="${SITE}/home">${T.linkText}</a>.</p>`
+        + `<p style="font-size:12px;color:#6b7280;">${T.snoozeHint}</p>`
+      return { subject: T.subject, body: bodyText, html }
     }
     case 'dsr_export_ready': {
       const url = typeof data.download_url === 'string' ? data.download_url : SITE

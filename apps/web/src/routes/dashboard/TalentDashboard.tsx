@@ -65,7 +65,7 @@ export default function TalentDashboard() {
   const [urgentResult, setUrgentResult] = useState<{
     role: { id: string; title: string; description: string | null; salary_min: number | null; salary_max: number | null; location: string | null; work_arrangement: string | null }
   } | null>(null)
-  const [urgentMsg, setUrgentMsg] = useState<{ tone: 'green' | 'amber' | 'red'; text: string } | null>(null)
+  const [urgentMsg, setUrgentMsg] = useState<{ tone: 'green' | 'amber' | 'red'; text: React.ReactNode } | null>(null)
   const [pointsBalance, setPointsBalance] = useState<number | null>(null)
   const URGENT_COST = 9
   const [profileExpiresAt, setProfileExpiresAt] = useState<string | null>(null)
@@ -277,7 +277,14 @@ export default function TalentDashboard() {
     if (pointsBalance != null && pointsBalance < URGENT_COST) {
       setUrgentMsg({
         tone: 'amber',
-        text: `You need ${URGENT_COST} Diamond Points (you have ${pointsBalance}). Earn or buy more in your points wallet.`,
+        text: (
+          <>
+            You need {URGENT_COST} Diamond Points (you have {pointsBalance}).{' '}
+            <Link to="/points" className="font-semibold underline hover:text-ink-900">
+              Buy or earn more →
+            </Link>
+          </>
+        ),
       })
       return
     }

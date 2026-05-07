@@ -76,7 +76,7 @@ export default function HMDashboard() {
   const [unlockingRoleId, setUnlockingRoleId] = useState<string | null>(null)
   const [urgentRoleId, setUrgentRoleId] = useState<string | null>(null)
   const [urgentBusy, setUrgentBusy] = useState(false)
-  const [urgentMsg, setUrgentMsg] = useState<{ tone: 'green' | 'amber' | 'red'; text: string } | null>(null)
+  const [urgentMsg, setUrgentMsg] = useState<{ tone: 'green' | 'amber' | 'red'; text: React.ReactNode } | null>(null)
   const [pointsBalance, setPointsBalance] = useState<number | null>(null)
   const URGENT_COST = 9
   const [feedbackState, setFeedbackState] = useState<Record<string, { rating: number; hired: boolean; notes: string; outcome: string; freeText: string; saving: boolean; saved: boolean; pointsAwarded?: number }>>({})
@@ -249,7 +249,14 @@ export default function HMDashboard() {
     if (pointsBalance != null && pointsBalance < URGENT_COST) {
       setUrgentMsg({
         tone: 'amber',
-        text: `You need ${URGENT_COST} Diamond Points (you have ${pointsBalance}). Earn or buy more in your points wallet.`,
+        text: (
+          <>
+            You need {URGENT_COST} Diamond Points (you have {pointsBalance}).{' '}
+            <Link to="/points" className="font-semibold underline hover:text-ink-900">
+              Buy or earn more →
+            </Link>
+          </>
+        ),
       })
       return
     }

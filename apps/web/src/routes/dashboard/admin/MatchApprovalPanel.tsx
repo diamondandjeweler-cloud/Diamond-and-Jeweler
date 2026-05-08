@@ -274,13 +274,13 @@ export default function MatchApprovalPanel() {
                       <ScoreBadge value={m.life_chart_score} label="BaZi" />
                     </div>
 
-                    {/* HM vs Talent character */}
+                    {/* HM vs Talent profile signal */}
                     <div className="flex gap-6 mt-2 text-xs text-gray-600">
                       <span>
-                        HM character: <strong>{m.roles?.hiring_managers?.life_chart_character ?? '—'}</strong>
+                        HM signal: <strong>{m.roles?.hiring_managers?.life_chart_character ?? '—'}</strong>
                       </span>
                       <span>
-                        Talent character: <strong>{m.talents?.life_chart_character ?? '—'}</strong>
+                        Talent signal: <strong>{m.talents?.life_chart_character ?? '—'}</strong>
                       </span>
                     </div>
 
@@ -328,12 +328,12 @@ export default function MatchApprovalPanel() {
                     <div className="grid grid-cols-2 gap-4 text-xs">
                       <div className="bg-white border rounded p-3">
                         <p className="font-semibold text-gray-700 mb-1">Hiring Manager</p>
-                        <p>Character: <strong>{m.roles?.hiring_managers?.life_chart_character ?? '—'}</strong></p>
+                        <p>Signal: <strong>{m.roles?.hiring_managers?.life_chart_character ?? '—'}</strong></p>
                         <p>DOB: {dobs ? (dobs.hm ?? 'not set') : 'Loading…'}</p>
                       </div>
                       <div className="bg-white border rounded p-3">
                         <p className="font-semibold text-gray-700 mb-1">Talent</p>
-                        <p>Character: <strong>{m.talents?.life_chart_character ?? '—'}</strong></p>
+                        <p>Signal: <strong>{m.talents?.life_chart_character ?? '—'}</strong></p>
                         <p>DOB: {dobs ? (dobs.talent ?? 'not set') : 'Loading…'}</p>
                       </div>
                     </div>

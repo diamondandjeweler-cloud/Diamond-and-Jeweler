@@ -39,10 +39,13 @@ export async function authenticate(
   const token = header.slice('Bearer '.length).trim()
   if (!token) return json({ error: 'Empty bearer token' }, 401)
 
-  // Fast path: service-role key. Timing-safe comparison so a user JWT shorter
-  // than the service-role key cannot leak length info via response timing.
-  const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-  if (allowServiceRole && svcKey && timingSafeEqual(token, svcKey)) {
+  // Fast path: service-role detection via JWT role claim.
+  //
+  // Under the new Supabase API-key system, the gateway authenticates the caller
+  // (sb_secret_* opaque key OR legacy service-role JWT) and forwards a verified
+  // JWT carrying role=service_role. We trust the role claim here because the
+  // gateway has already validated the bearer's signature (verify_jwt=true).
+  if (allowServiceRole && isServiceRoleJwt(token)) {
     return {
       userId: SERVICE_ROLE_SENTINEL_ID,
       email: 'service@diamondandjeweler.com',
@@ -99,11 +102,36 @@ function timingSafeEqual(a: string, b: string): boolean {
 }
 
 /**
- * Timing-safe service-role gate for functions that only accept machine callers.
- * Returns a 403 Response when auth fails, undefined when it passes.
+ * Service-role gate for functions that only accept machine callers.
+ * The gateway (verify_jwt=true) authenticates the bearer and forwards a JWT
+ * with role=service_role for any of the project's service credentials.
+ * Returns a 403 Response when the role claim is missing, undefined when it passes.
  */
 export function requireServiceRole(req: Request): Response | undefined {
   const auth = req.headers.get('authorization') ?? ''
-  const expected = `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''}`
-  if (!timingSafeEqual(auth, expected)) return json({ error: 'forbidden' }, 403)
+  if (!auth.startsWith('Bearer ')) return json({ error: 'forbidden' }, 403)
+  const token = auth.slice('Bearer '.length).trim()
+  if (!isServiceRoleJwt(token)) return json({ error: 'forbidden' }, 403)
+}
+
+/**
+ * Decode a JWT (no signature verification — that's the gateway's job) and
+ * return true iff the role claim is service_role and the token has not expired.
+ * Returns false for malformed JWTs or non-service-role tokens.
+ */
+function isServiceRoleJwt(token: string): boolean {
+  const parts = token.split('.')
+  if (parts.length !== 3) return false
+  try {
+    const pad = (s: string) => s + '='.repeat((4 - s.length % 4) % 4)
+    const payload = JSON.parse(atob(pad(parts[1].replace(/-/g, '+').replace(/_/g, '/')))) as {
+      role?: unknown
+      exp?: unknown
+    }
+    if (payload.role !== 'service_role') return false
+    if (typeof payload.exp === 'number' && payload.exp * 1000 <= Date.now()) return false
+    return true
+  } catch {
+    return false
+  }
 }

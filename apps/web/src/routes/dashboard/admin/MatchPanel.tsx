@@ -108,7 +108,7 @@ export default function MatchPanel() {
                   <div className="border-t p-3 bg-gray-50">
                     <div className="grid grid-cols-3 gap-3 text-xs mb-2">
                       <div><span className="text-gray-500">Tag comp:</span> {m.tag_compatibility ?? '—'}</div>
-                      <div><span className="text-gray-500">Life chart:</span> {m.life_chart_score ?? '—'}</div>
+                      <div><span className="text-gray-500">Team-fit:</span> {m.life_chart_score ?? '—'}</div>
                       <div><span className="text-gray-500">Expires:</span> {m.expires_at ? new Date(m.expires_at).toLocaleString() : '—'}</div>
                     </div>
                     <pre className="text-xs bg-white border rounded p-2 overflow-x-auto">

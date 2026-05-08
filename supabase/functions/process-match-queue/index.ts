@@ -12,6 +12,7 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { adminClient } from '../_shared/supabase.ts'
 import { matchForRole, MatchError } from '../_shared/match-core.ts'
+import { requireServiceRole } from '../_shared/auth.ts'
 
 const BATCH_SIZE  = 20  // items claimed per invocation
 const CONCURRENCY = 5   // max parallel matchForRole calls
@@ -22,17 +23,15 @@ serve(async (req) => {
     return respond({ error: 'Method not allowed' }, 405)
   }
 
-  // Only service-role callers (cron, admin scripts)
-  const authHeader = req.headers.get('Authorization') ?? ''
-  const svcKey     = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  if (!svcKey || !authHeader.endsWith(svcKey)) {
-    return respond({ error: 'Unauthorized' }, 401)
-  }
+  // Only service-role callers (cron, admin scripts).
+  // requireServiceRole inspects the gateway-verified JWT's role claim.
+  const authErr = requireServiceRole(req)
+  if (authErr) return authErr
 
   const db = adminClient()
 
   // Reset any items stalled in 'processing' for > 30 min (crash recovery)
-  await db.rpc('reset_stalled_match_queue').catch(() => { /* non-fatal */ })
+  try { await db.rpc('reset_stalled_match_queue') } catch { /* non-fatal */ }
 
   // Atomically claim a batch (FOR UPDATE SKIP LOCKED — safe for concurrent invocations)
   const { data: claimed, error: claimErr } = await db.rpc('claim_match_queue_batch', {

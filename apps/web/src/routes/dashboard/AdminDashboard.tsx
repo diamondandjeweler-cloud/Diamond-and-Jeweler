@@ -7,6 +7,7 @@ import ColdStartPanel from './admin/ColdStartPanel'
 import UserPanel from './admin/UserPanel'
 import MatchPanel from './admin/MatchPanel'
 import MatchApprovalPanel from './admin/MatchApprovalPanel'
+import ModerationPanel from './admin/ModerationPanel'
 import MonthlyBoostPanel from './admin/MonthlyBoostPanel'
 import TagPanel from './admin/TagPanel'
 import DsrPanel from './admin/DsrPanel'
@@ -20,7 +21,7 @@ import { PageHeader } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
 
 type AdminTab =
-  | 'kpi' | 'companies' | 'waitlist' | 'coldstart' | 'users' | 'approvals' | 'matches'
+  | 'kpi' | 'companies' | 'waitlist' | 'coldstart' | 'users' | 'approvals' | 'moderation' | 'matches'
   | 'monthly_boost' | 'tags' | 'dsr' | 'market' | 'notifications' | 'pricing' | 'config'
   | 'support' | 'audit'
 
@@ -31,6 +32,7 @@ const TABS: Array<{ key: AdminTab; label: string; render: () => JSX.Element }> =
   { key: 'coldstart',     label: 'Cold start',    render: () => <ColdStartPanel /> },
   { key: 'users',         label: 'Users',         render: () => <UserPanel /> },
   { key: 'approvals',     label: 'Approvals',     render: () => <MatchApprovalPanel /> },
+  { key: 'moderation',    label: 'Job moderation', render: () => <ModerationPanel /> },
   { key: 'monthly_boost', label: 'Monthly boost', render: () => <MonthlyBoostPanel /> },
   { key: 'matches',       label: 'Matches',       render: () => <MatchPanel /> },
   { key: 'tags',          label: 'Tags',          render: () => <TagPanel /> },

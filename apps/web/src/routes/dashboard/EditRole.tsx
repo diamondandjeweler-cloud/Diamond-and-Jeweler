@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
+import { callFunction } from '../../lib/functions'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import { useSeo } from '../../lib/useSeo'
 
@@ -74,6 +75,16 @@ export default function EditRole() {
       return
     }
     setBusy(true)
+
+    // Re-moderate if the text fields the classifier looks at have changed.
+    const { data: original } = await supabase.from('roles')
+      .select('title, description, industry, department').eq('id', row.id).single()
+    const textChanged = !!original && (
+      original.title !== row.title ||
+      (original.description ?? null) !== (row.description ?? null) ||
+      (original.department ?? null) !== (row.department ?? null)
+    )
+
     const { error } = await supabase.from('roles').update({
       title: row.title,
       description: row.description,
@@ -85,9 +96,14 @@ export default function EditRole() {
       salary_max: row.salary_max,
       required_traits: row.required_traits,
     }).eq('id', row.id)
+    if (error) { setBusy(false); setErr(error.message); return }
+
+    if (textChanged) {
+      void callFunction('moderate-role', { role_id: row.id, force: true }).catch(() => {})
+    }
+
     setBusy(false)
-    if (error) setErr(error.message)
-    else navigate('/hm/roles', { replace: true })
+    navigate('/hm/roles', { replace: true })
   }
 
   if (loading) return <LoadingSpinner />

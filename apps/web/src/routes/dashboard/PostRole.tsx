@@ -145,6 +145,11 @@ export default function PostRole() {
       )
       const { data: inserted, error: insErr } = await Promise.race([insertPromise, timeout]) as Awaited<typeof insertPromise>
       if (insErr) throw insErr
+      // Compliance gate first, then matching. moderate-role flips
+      // moderation_status; match-generate already only runs against approved
+      // active roles, so it's safe to fire-and-forget in parallel — if
+      // moderation rejects the role, the matches just won't surface.
+      void callFunction('moderate-role', { role_id: inserted.id }).catch(() => {})
       void callFunction('match-generate', { role_id: inserted.id }).catch(() => {})
       navigate('/hm', { replace: true })
     } catch (e) {

@@ -11,8 +11,8 @@ interface LegalCopy {
 
 const FALLBACK: LegalCopy = {
   legalReviewed: false,
-  lastUpdated: '2026-05-01',
-  version: '2.0',
+  lastUpdated: '2026-05-08',
+  version: '2.1',
 }
 
 export default function Terms() {
@@ -81,8 +81,34 @@ export default function Terms() {
 
       <Section title="4. Matching">
         <p>
-          Our matching engine is proprietary. You acknowledge that matches are curated by the
-          platform and that DNJ retains sole discretion over which matches are surfaced.
+          <strong>4.1 How matching works.</strong> Matches are produced by a proprietary,
+          data-driven matching engine that combines multiple signals — including your skills,
+          behavioural traits, salary range, location, work-arrangement preferences, and our
+          internal compatibility model. It is a probabilistic recommendation, not a guarantee
+          of fit.
+        </p>
+        <p>
+          <strong>4.2 No claim for mismatch.</strong> You acknowledge that algorithmic
+          recommendations are inherently imperfect. To the maximum extent permitted by
+          Malaysian law, you waive any claim, demand, or cause of action against DNJ arising
+          from the quality, accuracy, or suitability of any individual match. A mismatch is
+          not, by itself, a breach of these Terms.
+        </p>
+        <p>
+          <strong>4.3 Free replacement for category-level mismatch.</strong> As a goodwill
+          remedy (and as your sole and exclusive remedy under these Terms, without prejudice
+          to your statutory rights under the Consumer Protection Act 1999 and the Personal
+          Data Protection Act 2010), DNJ will issue <strong>one free replacement match</strong>
+          {' '}if a candidate is delivered in a clearly different occupational category from
+          the role you posted — for example, a &ldquo;nurse&rdquo; role matched with a
+          &ldquo;barista&rdquo;. The replacement does not count against your Extra Match cap.
+          You must lodge the request via the Support panel within <strong>7 days</strong> of
+          the match being surfaced. DNJ retains sole discretion, acting reasonably and in
+          good faith, to decide whether a category-level mismatch has occurred.
+        </p>
+        <p>
+          <strong>4.4 Discretion.</strong> DNJ retains sole discretion over which matches are
+          surfaced, paused, or withdrawn at any time.
         </p>
       </Section>
 

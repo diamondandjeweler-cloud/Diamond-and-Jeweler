@@ -14,6 +14,8 @@ import SignUp from './routes/auth/SignUp'
 import Login from './routes/auth/Login'
 
 const Start            = lazy(() => import('./routes/Start'))
+const Careers          = lazy(() => import('./routes/Careers'))
+const UrgentHiringPost = lazy(() => import('./routes/UrgentHiringPost'))
 const WaitlistConfirm  = lazy(() => import('./routes/WaitlistConfirm'))
 const PasswordReset    = lazy(() => import('./routes/auth/PasswordReset'))
 const AuthCallback     = lazy(() => import('./routes/auth/AuthCallback'))
@@ -82,6 +84,9 @@ export default function App() {
       <Routes>
         {/* Public */}
         <Route path="/" element={<Landing />} />
+        <Route path="/careers" element={<Careers />} />
+        <Route path="/job-vacancy" element={<Careers />} />
+        <Route path="/careers/urgent-hiring-malaysia-2026" element={<UrgentHiringPost />} />
         <Route path="/start/:side" element={<Start />} />
         <Route path="/waitlist/confirm" element={<WaitlistConfirm />} />
         <Route path="/auth/callback" element={<AuthCallback />} />

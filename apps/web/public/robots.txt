@@ -1,5 +1,7 @@
 User-agent: *
 Allow: /
+Allow: /careers
+Allow: /job-vacancy
 Disallow: /admin
 Disallow: /talent
 Disallow: /hm

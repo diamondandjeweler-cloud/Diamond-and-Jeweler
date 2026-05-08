@@ -8,8 +8,9 @@ export default function Landing() {
   const { t } = useTranslation()
   const { session, profile, loading } = useSession()
   useSeo({
-    title: 'We connect brilliance with opportunity',
-    description: 'DNJ — AI-curated recruitment that matches the right talent with the right company.',
+    title: 'Urgent Job Vacancy Malaysia — Pilot, Diamond & Jeweler Hiring Now',
+    description: 'Latest job vacancy in Malaysia. Urgent hiring for pilot, diamond & jeweler, sales, admin, finance, fresh graduate roles in Kuala Lumpur. Apply online — walk-in interview, immediate hiring, full time and part time jobs near you.',
+    keywords: 'jobs near me, job vacancy near me, urgent hiring near me, walk in interview, hiring immediately, apply job online, latest job vacancy, part time job near me, full time job, fresh graduate job, no experience job, immediate hiring, hiring now, pilot job vacancy, jeweler job vacancy, diamond expert job vacancy, luxury retail job vacancy, job vacancy in Kuala Lumpur, job vacancy in PJ, job vacancy in Penang, job vacancy in Malaysia, work from home Kuala Lumpur, remote job Malaysia, fresh graduate job vacancy, cadet pilot program, aviation job vacancy, gemologist job, jewellery shop hiring, career opportunity, career growth job, account assistant job vacancy, admin executive job vacancy, software developer job vacancy, sales executive job vacancy, graphic designer job vacancy, marketing executive job vacancy, customer service job vacancy, hr assistant job vacancy, finance job vacancy, operation job vacancy',
   })
   if (!loading && session && profile) return <Navigate to="/home" replace />
 
@@ -89,16 +90,77 @@ export default function Landing() {
         </div>
       </main>
 
-      <footer className="relative z-10 pt-1 pb-2 text-center text-[10px] text-gray-500 flex-shrink-0 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
-        <Link to="/privacy" className="hover:text-[#0B1220]">{t('footer.privacy')}</Link>
-        <span>·</span>
-        <Link to="/terms" className="hover:text-[#0B1220]">{t('footer.terms')}</Link>
-        <span>·</span>
-        <span>© 2026 DNJ</span>
-        <span>·</span>
-        <LanguageSwitcher />
+      <footer className="relative z-10 pt-1 pb-2 text-center text-[10px] text-gray-500 flex-shrink-0 flex flex-col items-center gap-1">
+        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+          <Link to="/careers" className="hover:text-[#0B1220]">Careers</Link>
+          <span>·</span>
+          <Link to="/privacy" className="hover:text-[#0B1220]">{t('footer.privacy')}</Link>
+          <span>·</span>
+          <Link to="/terms" className="hover:text-[#0B1220]">{t('footer.terms')}</Link>
+          <span>·</span>
+          <span>© 2026 DNJ</span>
+          <span>·</span>
+          <LanguageSwitcher />
+        </div>
+        <PopularSearches />
       </footer>
     </div>
+  )
+}
+
+function PopularSearches() {
+  return (
+    <details className="text-[10px] text-gray-400 max-w-3xl mx-auto px-4">
+      <summary className="cursor-pointer hover:text-gray-600 list-none select-none">
+        Popular searches
+      </summary>
+      <nav
+        aria-label="Popular job search terms"
+        className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 leading-relaxed"
+      >
+        <Link to="/careers" className="hover:text-[#0B1220]">Jobs near me</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Job vacancy near me</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Urgent hiring near me</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Walk in interview</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Hiring immediately</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Apply job online</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Latest job vacancy</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Part time job near me</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Full time job</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Fresh graduate job</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">No experience job</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Immediate hiring</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Hiring now</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Pilot job vacancy</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Cadet pilot program</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Aviation job vacancy</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Jeweler job vacancy</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Diamond expert job vacancy</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Gemologist job</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Luxury retail job vacancy</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Sales executive job vacancy</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Account assistant job vacancy</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Admin executive job vacancy</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Software developer job vacancy</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Graphic designer job vacancy</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Marketing executive job vacancy</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Customer service job vacancy</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">HR assistant job vacancy</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Finance job vacancy</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Operation job vacancy</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Job vacancy in Kuala Lumpur</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Job vacancy in PJ</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Job vacancy in Penang</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Job vacancy in Malaysia</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Work from home Kuala Lumpur</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Remote job Malaysia</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Internship</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Graduate trainee program</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">Diploma holder job</Link>
+        <Link to="/careers" className="hover:text-[#0B1220]">SPM leaver job</Link>
+        <Link to="/careers/urgent-hiring-malaysia-2026" className="hover:text-[#0B1220]">Urgent hiring near me 2026</Link>
+      </nav>
+    </details>
   )
 }
 
@@ -280,7 +342,14 @@ function BrandMark() {
 function DiamondIllustration() {
   // Front-view brilliant cut with luminous halo, glow filter, sparkles
   return (
-    <svg width="160" height="148" viewBox="0 0 200 200" fill="none" aria-hidden>
+    <svg
+      width="160"
+      height="148"
+      viewBox="0 0 200 200"
+      fill="none"
+      role="img"
+      aria-label="Diamond and jeweler career opportunity in Malaysia — fresh graduate friendly luxury retail job vacancy"
+    >
       <defs>
         <radialGradient id="d-halo-1" cx="0.5" cy="0.5" r="0.55">
           <stop offset="0" stopColor="#cdd6ff" stopOpacity="0.85" />
@@ -384,7 +453,14 @@ function DiamondIllustration() {
 
 function MagnifierIllustration() {
   return (
-    <svg width="160" height="148" viewBox="0 0 200 200" fill="none" aria-hidden>
+    <svg
+      width="160"
+      height="148"
+      viewBox="0 0 200 200"
+      fill="none"
+      role="img"
+      aria-label="Hiring manager searching for talent — urgent job vacancy Malaysia, walk-in interview, immediate hiring in Kuala Lumpur"
+    >
       <defs>
         <radialGradient id="m-halo-warm" cx="0.42" cy="0.42" r="0.55">
           <stop offset="0" stopColor="#fff5db" stopOpacity="0.85" />

@@ -242,6 +242,16 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     ? approvalModeCfg.value : 'manual'
   const initialStatus = approvalMode === 'autopilot' ? 'generated' : 'pending_approval'
 
+  // ── Life-chart diversity v2 flag ──────────────────────────────────────────
+  // When enabled: bad-bucket talents are no longer hard-filtered in SQL; the
+  // proposal contains 2 non-bad picks + 1 bad-bucket "contrast" pick. Paid
+  // unlocks (isExtraMatch) always return non-bad. When disabled: the Edge
+  // Function strips bad-bucket from the pool client-side to preserve the
+  // legacy hard-filter behaviour (since the SQL no longer does it).
+  const { data: diversityFlag } = await db.from('system_config').select('value')
+    .eq('key', 'lifechart_diversity_v2_enabled').maybeSingle()
+  const useDiversityV2 = diversityFlag?.value === true
+
   // ── Active match count guard ──────────────────────────────────────────────
   const activeStatuses = [
     'pending_approval', 'generated', 'viewed', 'accepted_by_talent', 'invited_by_manager',
@@ -266,6 +276,7 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
   }
 
   // ── Role flags (needed for RPC call + closure inside scoreTalent) ───────────
+  const employmentType: string = ((role as { employment_type?: string }).employment_type || 'full_time').toLowerCase()
   const roleSalaryMax          = (role as unknown as { salary_max: number | null }).salary_max ?? null
   const roleRequiresWeekend    = (role as { requires_weekend?: boolean }).requires_weekend === true
   const roleRequiresDriving    = (role as { requires_driving_license?: boolean }).requires_driving_license === true
@@ -278,15 +289,17 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
   const roleWorkArrangement    = ((role as { work_arrangement?: string | null }).work_arrangement ?? null)
 
   // ── Candidate pool ─────────────────────────────────────────────────────────
-  // ALL hard filters run inside the DB via get_match_candidates RPC.
-  // Zero rows for eliminated candidates are ever transferred.
+  // Hard filters (availability, employment, salary, deal-breakers, work-auth,
+  // commission) run inside the DB via get_match_candidates RPC. Life-chart
+  // bucket is no longer a hard filter — it's applied at selection time below.
   //
   //   100k talents
   //     → SQL: availability + employment type + salary + deal-breakers
-  //            + work-auth + commission conflict + BaZi 'bad' join
+  //            + work-auth + commission conflict
   //     → ~200 survivors  (ordered by feedback_score DESC, capped at 500)
   //     → fetch full rows for those IDs only
-  //     → score in chunks of 50 → top 3
+  //     → score in chunks of 50 → 2 non-bad + 1 bad-bucket contrast (v2)
+  //                              or top 3 non-bad (legacy)
 
   const { data: prior } = await db.from('matches').select('talent_id').eq('role_id', roleId)
   const excludedIds = (prior ?? []).map((m) => m.talent_id as string)
@@ -343,7 +356,6 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
   const roleTitle = ((role.title as string) || '').toLowerCase()
   const roleIndustry = (((role.industry as string | null) || '') || '').toLowerCase()
   const acceptNoExperience: boolean = (role as { accept_no_experience?: boolean }).accept_no_experience === true
-  const employmentType: string = ((role as { employment_type?: string }).employment_type || 'full_time').toLowerCase()
   const experienceLevel: string = ((role as { experience_level?: string }).experience_level || '').toLowerCase()
   const isLongTermRole = employmentType === 'full_time' || employmentType === 'contract'
   const isQualificationRole = experienceLevel === 'senior' || experienceLevel === 'lead'
@@ -431,8 +443,10 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     const talentJobAreas = parsedResume?.job_areas
     const aiSummary = (parsedResume?.ai_summary as string | null) ?? null
 
-    // Character bucket — fetched for SCORING (priority/two_match/neutral).
-    // 'bad' pairs are already eliminated by get_match_candidates SQL join.
+    // Character bucket — fetched for SCORING (priority/two_match/neutral/bad).
+    // Bad-bucket pairs reach here when diversity-v2 is on (used as the contrast
+    // slot in the proposal). When the flag is off, they're stripped from the
+    // pool below before selection to preserve legacy behaviour.
     let characterBucket: string | null = null
     if (hmCharacter && talentCharacter) {
       const { data: bucketRaw } = await db.rpc('get_life_chart_bucket', { hm_char: hmCharacter, talent_char: talentCharacter })
@@ -837,7 +851,37 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
   scoredOk.sort((a, b) => b.finalScore - a.finalScore)
 
   const slots = isExtraMatch ? 1 : 3 - (activeCount ?? 0)
-  const top = scoredOk.slice(0, slots).filter((s) => s.finalScore > 0)
+
+  // Selection rule:
+  //   v2 on, fresh proposal (slots>=2, not paid unlock):
+  //       slots-1 highest-scoring non-bad + 1 highest-scoring bad (contrast).
+  //       If no bad-bucket exists, fall back to next-highest non-bad.
+  //   v2 on, paid unlock (isExtraMatch) or single-slot top-up:
+  //       1 highest-scoring non-bad. Never insert a bad-bucket via paid path.
+  //   v2 off (legacy):
+  //       Strip bad-bucket from the pool, then top N — matches the prior
+  //       hard-filter behaviour now that SQL no longer eliminates them.
+  const positiveScored = scoredOk.filter((s) => s.finalScore > 0)
+  const nonBad = positiveScored.filter((s) => s.characterBucket !== 'bad')
+  const bad    = positiveScored.filter((s) => s.characterBucket === 'bad')
+  let top: ScoredCandidate[]
+  if (!useDiversityV2) {
+    top = nonBad.slice(0, slots)
+  } else if (isExtraMatch || slots < 2) {
+    top = nonBad.slice(0, slots)
+  } else {
+    const nNonBad = slots - 1
+    const goodPicks = nonBad.slice(0, nNonBad)
+    const badPick: ScoredCandidate[] = bad.length > 0 ? [bad[0]!] : nonBad.slice(nNonBad, nNonBad + 1)
+    top = [...goodPicks, ...badPick]
+    if (top.length < slots) {
+      const used = new Set(top.map((s) => s.talent_id))
+      for (const s of nonBad) {
+        if (top.length >= slots) break
+        if (!used.has(s.talent_id)) { top.push(s); used.add(s.talent_id) }
+      }
+    }
+  }
 
   if (top.length === 0) {
     const { data: talentCount } = await db.rpc('active_talent_count')
@@ -871,7 +915,7 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     culture_fit_score: Number(s.cultureFit.toFixed(2)),
     life_chart_score: s.characterScore == null ? null : Number(s.characterScore.toFixed(2)),
     internal_reasoning: s.reasoning,
-    public_reasoning: buildPublicReasoning(s, roleTraits),
+    public_reasoning: buildPublicReasoning(s, roleTraits, useDiversityV2),
     application_summary: applicationSummaries[i],
     status: initialStatus,
     expires_at: expiresAt,
@@ -936,7 +980,7 @@ async function generateApplicationSummary(
 
 // ── Helper: build public reasoning for HM ────────────────────────────────────
 
-export function buildPublicReasoning(s: ScoredCandidate, roleTraits: string[]) {
+export function buildPublicReasoning(s: ScoredCandidate, roleTraits: string[], useDiversityV2 = false) {
   const overlap = s.reasoning.talent_tag_overlap ?? {}
   const matchedTraits = Object.keys(overlap)
   const missingTraits = roleTraits.filter((t) => !matchedTraits.includes(t))
@@ -1035,6 +1079,20 @@ export function buildPublicReasoning(s: ScoredCandidate, roleTraits: string[]) {
   if (weakBehavior.length > 0) watchouts.push(`Interview showed weak signals on: ${weakBehavior.slice(0, 3).join(', ')} — probe these.`)
   if (s.mustHaveItems.length > 0) watchouts.push(`Verify HM's non-negotiables in interview: ${s.mustHaveItems.slice(0, 3).join('; ')}.`)
   if (s.dealBreakerItems.length > 0) watchouts.push(`Talent's non-negotiables (must be honoured): ${s.dealBreakerItems.slice(0, 3).join('; ')}.`)
+
+  // Team-dynamic compatibility sentence (v2 only). Wording is intentionally
+  // generic — never references the underlying compatibility model.
+  if (useDiversityV2 && s.characterBucket) {
+    if (s.characterBucket === 'bad') {
+      watchouts.push(
+        "This candidate's qualifications strongly match your role, but our team-dynamic compatibility analysis suggests the working-style fit with your existing team may need extra attention. Worth a deeper conversation on collaboration style and team dynamics during the interview.",
+      )
+    } else {
+      strengths.push(
+        "Based on our team-dynamic compatibility analysis, this candidate is likely to integrate smoothly with your existing team's working style.",
+      )
+    }
+  }
 
   return {
     score_band: s.finalScore >= 75 ? 'strong' : s.finalScore >= 50 ? 'good' : 'cautious',

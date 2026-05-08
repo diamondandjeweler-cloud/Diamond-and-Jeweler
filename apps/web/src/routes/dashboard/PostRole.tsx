@@ -19,6 +19,9 @@ export default function PostRole() {
 
   const [hmId, setHmId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showTeamDynamic, setShowTeamDynamic] = useState(false)
+  const [teamSize, setTeamSize] = useState<number | ''>('')
+  const [teamBirthYears, setTeamBirthYears] = useState<(number | '')[]>([])
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -87,6 +90,21 @@ export default function PostRole() {
   }, [session])
 
   useEffect(() => {
+    supabase.from('system_config').select('value').eq('key', 'lifechart_diversity_v2_enabled').maybeSingle()
+      .then(({ data }) => { setShowTeamDynamic(data?.value === true) })
+  }, [])
+
+  useEffect(() => {
+    const n = typeof teamSize === 'number' ? Math.max(0, Math.min(50, teamSize)) : 0
+    setTeamBirthYears((prev) => {
+      if (prev.length === n) return prev
+      const next = prev.slice(0, n)
+      while (next.length < n) next.push('')
+      return next
+    })
+  }, [teamSize])
+
+  useEffect(() => {
     if (!title || !salaryMin || !salaryMax) { setMarketWarning(null); return }
     let cancelled = false
     supabase.from('market_rate_cache').select('min_salary, max_salary, median_salary')
@@ -139,6 +157,9 @@ export default function PostRole() {
         requires_overtime: requiresOvertime,
         is_commission_based: isCommissionBased,
         weight_preset: weightPreset === 'default' ? null : weightPreset,
+        team_member_birth_years: showTeamDynamic
+          ? teamBirthYears.filter((y): y is number => typeof y === 'number' && y >= 1900 && y <= new Date().getFullYear())
+          : null,
       }).select('id').single()
       const timeout = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('Network timeout — check your connection and try again.')), 45000),
@@ -361,6 +382,47 @@ export default function PostRole() {
               })}
             </div>
           </div>
+
+          {showTeamDynamic && (
+            <div className="space-y-3 pt-4 border-t border-ink-100">
+              <div>
+                <div className="field-label">Team-dynamic reference (optional)</div>
+                <div className="field-hint mb-2">
+                  Tell us how many existing colleagues this hire will work with directly, then enter their birth years.
+                  We use this to gauge team-dynamic compatibility — it stays private and is never shown to candidates.
+                </div>
+              </div>
+              <Input
+                label="How many existing colleagues will this hire work with directly?"
+                type="number"
+                min={0}
+                max={50}
+                value={teamSize === '' ? '' : teamSize}
+                onChange={(e) => setTeamSize(e.target.value === '' ? '' : Math.max(0, Math.min(50, parseInt(e.target.value, 10) || 0)))}
+                placeholder="e.g. 4"
+              />
+              {teamBirthYears.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {teamBirthYears.map((y, idx) => (
+                    <Input
+                      key={idx}
+                      label={`Colleague ${idx + 1} birth year`}
+                      type="number"
+                      min={1900}
+                      max={new Date().getFullYear()}
+                      value={y === '' ? '' : y}
+                      onChange={(e) => {
+                        const raw = e.target.value
+                        const parsed = raw === '' ? '' : parseInt(raw, 10)
+                        setTeamBirthYears((prev) => prev.map((p, i) => i === idx ? (typeof parsed === 'number' && !Number.isNaN(parsed) ? parsed : '') : p))
+                      }}
+                      placeholder="e.g. 1990"
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {err && <Alert tone="red">{err}</Alert>}
 

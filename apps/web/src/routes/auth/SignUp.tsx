@@ -172,34 +172,6 @@ export default function SignUp() {
           </div>
         )}
 
-        {/* Google button */}
-        <button
-          type="button"
-          onClick={handleGoogleSignUp}
-          disabled={busy}
-          className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all shadow-sm disabled:opacity-50"
-          style={{
-            borderColor: 'rgba(0,0,0,0.12)',
-            backgroundColor: '#fff',
-            color: '#1a1a2e',
-          }}
-        >
-          <GoogleIcon />
-          {t('auth.continueWithGoogle')}
-        </button>
-
-        <p className="text-center text-[11px] text-ink-400 leading-relaxed -mt-1">
-          {t('auth.byContinuing')}{' '}
-          <Link to="/terms" className="underline hover:text-ink-700">{t('auth.byContinuingTerms')}</Link>{' '}
-          {t('auth.byContinuingTail')}
-        </p>
-
-        <div className="relative flex items-center gap-3">
-          <div className="flex-1 border-t border-ink-200" />
-          <span className="text-xs text-ink-400">{t('auth.orSignUpEmail')}</span>
-          <div className="flex-1 border-t border-ink-200" />
-        </div>
-
         <form onSubmit={handleSubmit} method="post" className="space-y-4">
           <Input
             label={t('common.fullName')}
@@ -276,7 +248,7 @@ export default function SignUp() {
                 <Consent
                   checked={consents.dob}
                   onChange={(v) => setConsents((c) => ({ ...c, dob: v }))}
-                  label="I consent to DNJ collecting my personal data to power advanced AI-driven compatibility analysis. All data is fully encrypted and never disclosed to employers."
+                  label="I consent to DNJ collecting my personal data to power advanced AI-driven compatibility analysis. My data is encrypted at rest and is never disclosed to employers without my explicit consent at the offer stage."
                   required
                 />
                 <Consent
@@ -314,6 +286,34 @@ export default function SignUp() {
                   : t('auth.createAccount')}
           </Button>
         </form>
+
+        <div className="relative flex items-center gap-3 pt-2">
+          <div className="flex-1 border-t border-ink-200" />
+          <span className="text-xs text-ink-400">{t('auth.orSignUpEmail')}</span>
+          <div className="flex-1 border-t border-ink-200" />
+        </div>
+
+        {/* Google button — gated on the same required consents as email signup
+            so that PDPA explicit-consent applies to OAuth flow too. */}
+        <button
+          type="button"
+          onClick={handleGoogleSignUp}
+          disabled={busy || !consents.dob || !consents.tos}
+          className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{
+            borderColor: 'rgba(0,0,0,0.12)',
+            backgroundColor: '#fff',
+            color: '#1a1a2e',
+          }}
+        >
+          <GoogleIcon />
+          {t('auth.continueWithGoogle')}
+        </button>
+        {(!consents.dob || !consents.tos) && (
+          <p className="text-center text-[11px] text-ink-400 leading-relaxed -mt-1">
+            Please tick the required consents above before continuing with Google.
+          </p>
+        )}
       </div>
     </AuthShell>
   )

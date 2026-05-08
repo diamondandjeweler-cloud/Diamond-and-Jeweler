@@ -2,6 +2,7 @@ import { Link, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../state/useSession'
 import { useSeo } from '../lib/useSeo'
+import LanguageSwitcher from '../components/LanguageSwitcher'
 
 export default function Landing() {
   const { t } = useTranslation()
@@ -88,12 +89,14 @@ export default function Landing() {
         </div>
       </main>
 
-      <footer className="relative z-10 pt-1 pb-2 text-center text-[10px] text-gray-500 flex-shrink-0">
+      <footer className="relative z-10 pt-1 pb-2 text-center text-[10px] text-gray-500 flex-shrink-0 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
         <Link to="/privacy" className="hover:text-[#0B1220]">{t('footer.privacy')}</Link>
-        <span className="mx-2">·</span>
+        <span>·</span>
         <Link to="/terms" className="hover:text-[#0B1220]">{t('footer.terms')}</Link>
-        <span className="mx-2">·</span>
+        <span>·</span>
         <span>© 2026 DNJ</span>
+        <span>·</span>
+        <LanguageSwitcher />
       </footer>
     </div>
   )

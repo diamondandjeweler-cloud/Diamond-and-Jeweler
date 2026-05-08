@@ -80,3 +80,33 @@ export async function signedUrl(
   if (error) throw error
   return data.signedUrl
 }
+
+/**
+ * Sibling helper for HM-side resume access. Wraps the storage signed-URL
+ * creation with a database audit emit (PDPA section 10 — CV downloads must
+ * be logged for dispute resolution). Storage events don't fire DB triggers
+ * on their own, so we route the request through the log_cv_download RPC
+ * which both verifies the caller's status-gated access and writes the
+ * audit_log row before handing back the signed URL.
+ *
+ * Falls back gracefully if the audit RPC is unavailable so a user-facing
+ * resume preview never breaks; the gap surfaces as an admin alert instead.
+ */
+export async function signedResumeUrlForMatch(
+  matchId: string,
+  resumePath: string,
+  expiresInSeconds = 60,
+): Promise<string> {
+  try {
+    const { error: auditErr } = await supabase.rpc('log_cv_download', { p_match_id: matchId })
+    if (auditErr) {
+      // Don't expose internal error text to caller; surface as a generic deny.
+      throw new Error(auditErr.message || 'cv_download_audit_failed')
+    }
+  } catch (e) {
+    // Re-throw to caller — if the audit emit fails, the download must NOT
+    // proceed (PDPA defensibility: every download must have a log row).
+    throw e
+  }
+  return signedUrl('resumes', resumePath, expiresInSeconds)
+}

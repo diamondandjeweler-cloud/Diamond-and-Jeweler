@@ -14,7 +14,7 @@ export default function Landing() {
   if (!loading && session && profile) return <Navigate to="/home" replace />
 
   return (
-    <div className="relative h-screen flex flex-col overflow-hidden bg-white text-[#0B1220] font-sans">
+    <div className="relative min-h-screen md:h-screen flex flex-col md:overflow-hidden bg-white text-[#0B1220] font-sans">
       <BackgroundDecor />
 
       {/* Top Bar */}
@@ -33,7 +33,7 @@ export default function Landing() {
         </div>
       </header>
 
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-2 min-h-0">
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-start md:justify-center px-6 py-4 md:py-2 md:min-h-0">
         {/* Hero */}
         <div className="text-center max-w-3xl mx-auto mb-4 md:mb-6">
           <div className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2">

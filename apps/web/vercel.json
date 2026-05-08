@@ -98,7 +98,19 @@
       "dest": "/password-reset.html"
     },
     {
-      "src": "^/(?:home|login|signup|signout|password-reset|consent|start(?:/[^/]+)?|auth/callback|mfa/(?:challenge|enroll)|onboarding/(?:talent|hm|company(?:/verify)?)|talent(?:/profile)?|hm(?:/post-role|/roles(?:/[^/]+/edit)?)?|hr(?:/invite)?|admin|referrals|points|consult(?:/return)?|feedback/[^/]+|data-requests|privacy|terms|waitlist/confirm|payment/(?:return|mock)|restaurant(?:/.*)?|menu/[^/]+)$",
+      "src": "^/careers/urgent-hiring-malaysia-2026/?$",
+      "dest": "/careers/urgent-hiring-malaysia-2026.html"
+    },
+    {
+      "src": "^/careers/?$",
+      "dest": "/careers.html"
+    },
+    {
+      "src": "^/job-vacancy/?$",
+      "dest": "/job-vacancy.html"
+    },
+    {
+      "src": "^/(?:home|login|signup|signout|password-reset|consent|start(?:/[^/]+)?|auth/callback|mfa/(?:challenge|enroll)|onboarding/(?:talent|hm|company(?:/verify)?)|talent(?:/profile)?|hm(?:/post-role|/roles(?:/[^/]+/edit)?)?|hr(?:/invite)?|admin|referrals|points|consult(?:/return)?|feedback/[^/]+|data-requests|privacy|terms|waitlist/confirm|payment/(?:return|mock)|restaurant(?:/.*)?|menu/[^/]+|careers(?:/[^/]+)?|job-vacancy)$",
       "dest": "/index.html"
     },
     { "src": "^/$", "dest": "/index.html" },

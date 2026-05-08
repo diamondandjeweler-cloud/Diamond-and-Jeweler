@@ -54,6 +54,21 @@ const ROUTES = {
     title: 'Reset your password · DNJ',
     description: 'Request a secure password reset link for your DNJ account.',
   },
+  '/careers': {
+    title: 'Careers — Job Vacancy Malaysia | Pilot, Diamond & Jeweler Hiring Now',
+    description:
+      'Latest job vacancy near me in Malaysia. Apply online for pilot, diamond grader, jeweler, gemologist, sales executive, admin executive, software developer, graphic designer, marketing, finance, customer service and fresh graduate roles. Walk-in interview, immediate hiring.',
+  },
+  '/job-vacancy': {
+    title: 'Job Vacancy Malaysia — Urgent Hiring Now in Kuala Lumpur, PJ, Penang',
+    description:
+      'Latest job vacancy in Malaysia. Urgent hiring near me for pilot, diamond and jeweler, sales, admin, finance, customer service and fresh graduate roles. Walk-in interview, same day interview, immediate hiring — apply online today.',
+  },
+  '/careers/urgent-hiring-malaysia-2026': {
+    title: 'Urgent Hiring Near Me: Top Job Vacancies in Kuala Lumpur 2026',
+    description:
+      'Where to find urgent hiring near me in 2026. Top job vacancies in Kuala Lumpur, PJ and Penang — pilot, diamond and jeweler, sales, admin, finance, fresh graduate roles. Walk-in interview, immediate hiring, apply online today.',
+  },
 }
 
 function escapeAttr(str) {

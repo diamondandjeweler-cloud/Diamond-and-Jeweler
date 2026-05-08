@@ -141,7 +141,7 @@ export default function PostRole() {
         weight_preset: weightPreset === 'default' ? null : weightPreset,
       }).select('id').single()
       const timeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Network timeout — check your connection and try again.')), 15000),
+        setTimeout(() => reject(new Error('Network timeout — check your connection and try again.')), 45000),
       )
       const { data: inserted, error: insErr } = await Promise.race([insertPromise, timeout]) as Awaited<typeof insertPromise>
       if (insErr) throw insErr

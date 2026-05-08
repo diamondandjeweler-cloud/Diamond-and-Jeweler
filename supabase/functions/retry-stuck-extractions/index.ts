@@ -15,6 +15,7 @@
  */
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { adminClient } from '../_shared/supabase.ts'
+import { requireServiceRole } from '../_shared/auth.ts'
 import {
   runExtraction,
   type ExtractionMessage,
@@ -33,11 +34,8 @@ serve(async (req) => {
   }
 
   // Only service-role callers (cron, admin scripts).
-  const authHeader = req.headers.get('Authorization') ?? ''
-  const svcKey     = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  if (!svcKey || !authHeader.endsWith(svcKey)) {
-    return respond({ error: 'Unauthorized' }, 401)
-  }
+  const authErr = requireServiceRole(req)
+  if (authErr) return authErr
 
   const db = adminClient()
   const cutoff = new Date(Date.now() - STUCK_AGE_MINUTES * 60_000).toISOString()

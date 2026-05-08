@@ -10,16 +10,12 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { corsHeaders, handleOptions } from '../_shared/cors.ts'
 import { adminClient } from '../_shared/supabase.ts'
+import { requireServiceRole } from '../_shared/auth.ts'
 
 serve(async (req) => {
   const pre = handleOptions(req); if (pre) return pre
-  const auth = req.headers.get('authorization') ?? ''
-  const expected = `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''}`
-  if (auth !== expected) {
-    return new Response(JSON.stringify({ error: 'forbidden' }), {
-      status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  }
+  const authErr = requireServiceRole(req)
+  if (authErr) return authErr
 
   const db = adminClient() as unknown as {
     schema: (n: string) => ReturnType<typeof adminClient>

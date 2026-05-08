@@ -153,13 +153,23 @@ export default function UrgentHiringPost() {
             job vacancy roles offer the strongest career advancement for diploma and degree holders.
           </p>
 
-          <h2 className="text-xl font-bold mt-8 mb-2">Where to apply online</h2>
+          <h2 className="text-xl font-bold mt-8 mb-2">Where to apply online — precision recruitment, powered by AI</h2>
           <p className="text-gray-700 leading-relaxed mb-3">
-            DNJ (Diamond &amp; Jeweler) is a curated recruitment platform — three matches, zero noise.
-            Instead of spamming you with hundreds of irrelevant openings, we use AI to match the
-            right talent with the right hiring company. <Link to="/careers" className="text-[#1B2A6B] underline underline-offset-2">Browse open job vacancies</Link>{' '}
+            DNJ (Diamond &amp; Jeweler) is an AI-powered curated recruitment platform — three matches,
+            zero noise. Instead of spamming you with hundreds of irrelevant openings, our proprietary
+            compatibility engine matches the right talent with the right hiring company. Multi-dimensional
+            career analysis goes far beyond the résumé. Your profile works passively, end-to-end encrypted
+            and PDPA-compliant. <Link to="/careers" className="text-[#1B2A6B] underline underline-offset-2">Browse open job vacancies</Link>{' '}
             or <Link to="/start/talent" className="text-[#1B2A6B] underline underline-offset-2">apply now as a talent</Link>.
           </p>
+
+          <ul className="list-disc pl-5 text-gray-700 leading-relaxed space-y-1.5 mb-3">
+            <li><strong>AI-curated matches</strong> — only roles aligned to your career profile.</li>
+            <li><strong>Three offers at a time</strong> — quality over volume, zero application fatigue.</li>
+            <li>Candidate confidentiality — employers see only what you choose to share.</li>
+            <li>Early visibility into roles before they reach the open market.</li>
+            <li>Personalised career trajectory insights delivered over time.</li>
+          </ul>
 
           <h2 className="text-xl font-bold mt-8 mb-2">Tips for landing urgent hiring roles</h2>
           <ul className="list-disc pl-5 text-gray-700 leading-relaxed space-y-1.5 mb-3">

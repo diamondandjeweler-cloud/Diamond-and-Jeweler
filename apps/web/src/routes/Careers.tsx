@@ -261,6 +261,64 @@ export default function Careers() {
         </section>
 
         <section className="mt-12">
+          <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2">
+            PRECISION RECRUITMENT · POWERED BY AI
+          </p>
+          <h2 className="text-xl md:text-2xl font-bold mb-4">Why DNJ — AI-curated matching, not endless scrolling</h2>
+          <p className="text-gray-700 leading-relaxed max-w-3xl mb-6">
+            DNJ is an AI-powered recruitment platform built for Malaysia. Our proprietary
+            compatibility engine goes far beyond the résumé — multi-dimensional career analysis that
+            matches the right talent with the right company. Three matches at a time. Zero noise.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="rounded-2xl ring-1 ring-[#e8edff] bg-gradient-to-b from-white to-[#fafbff] p-6">
+              <h3 className="font-bold text-[#0B1220] mb-1">For talents — your career, on autopilot</h3>
+              <p className="text-xs text-gray-500 mb-3">Precision recruitment, powered by AI</p>
+              <ul className="text-sm text-gray-700 space-y-2 leading-snug list-disc pl-5">
+                <li><strong>AI-curated matches</strong> — only roles genuinely aligned to your career profile</li>
+                <li><strong>Three offers at a time</strong> — quality over volume, zero application fatigue</li>
+                <li>Proprietary compatibility engine that goes far beyond the résumé</li>
+                <li>Your profile works <strong>passively</strong> — no job boards, no cold applications</li>
+                <li>Advanced multi-dimensional career analysis for precision employer fit</li>
+                <li>Candidate confidentiality — employers see only what you choose to share</li>
+                <li>End-to-end encrypted personal data, fully <strong>PDPA-compliant</strong></li>
+                <li>Early visibility into roles before they reach the open market</li>
+                <li>Personalised career trajectory insights delivered over time</li>
+              </ul>
+              <Link
+                to="/start/talent"
+                className="inline-flex items-center mt-4 text-sm font-semibold text-[#1B2A6B] hover:text-[#0B1220]"
+              >
+                Apply as a talent →
+              </Link>
+            </div>
+
+            <div className="rounded-2xl ring-1 ring-[#e8edff] bg-gradient-to-b from-white to-[#fafbff] p-6">
+              <h3 className="font-bold text-[#0B1220] mb-1">For hiring managers — find the right hire, not just any hire</h3>
+              <p className="text-xs text-gray-500 mb-3">AI-matched candidates · zero CV pile</p>
+              <ul className="text-sm text-gray-700 space-y-2 leading-snug list-disc pl-5">
+                <li><strong>AI-matched candidates</strong> — only talent genuinely aligned to your requirements</li>
+                <li>Receive up to <strong>three curated profiles per role</strong> — no CV pile, no noise</li>
+                <li>Proprietary compatibility engine that scores culture fit, trajectory, and compensation</li>
+                <li>Access <strong>passive talent</strong> — your next hire may not be actively job-hunting</li>
+                <li>Multi-dimensional analysis: skills, culture alignment, career goals</li>
+                <li>Full candidate confidentiality until mutual interest is confirmed</li>
+                <li><strong>PDPA-compliant</strong> data handling with end-to-end encryption</li>
+                <li>Early access to talent before they reach the open market</li>
+                <li>Hiring intelligence reports delivered with every match</li>
+              </ul>
+              <Link
+                to="/start/hiring"
+                className="inline-flex items-center mt-4 text-sm font-semibold text-[#1B2A6B] hover:text-[#0B1220]"
+              >
+                Hire with DNJ →
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-12">
           <h2 className="text-xl md:text-2xl font-bold mb-4">Open job vacancies</h2>
           <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {ROLES.map((r) => (

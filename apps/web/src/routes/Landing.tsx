@@ -8,8 +8,8 @@ export default function Landing() {
   const { t } = useTranslation()
   const { session, profile, loading } = useSession()
   useSeo({
-    title: 'Urgent Job Vacancy Malaysia — Pilot, Diamond & Jeweler Hiring Now',
-    description: 'Latest job vacancy in Malaysia. Urgent hiring for pilot, diamond & jeweler, sales, admin, finance, fresh graduate roles in Kuala Lumpur. Apply online — walk-in interview, immediate hiring, full time and part time jobs near you.',
+    title: 'AI-Curated Job Vacancy Malaysia — Pilot, Diamond & Jeweler Hiring Now',
+    description: 'Precision recruitment powered by AI. DNJ matches the right talent with the right company in Malaysia — three curated matches at a time, zero noise. Pilot, diamond & jeweler, sales, admin, finance, fresh graduate roles in KL, PJ, Penang. PDPA-compliant, end-to-end encrypted. Apply online — walk-in interview, immediate hiring.',
     keywords: 'jobs near me, job vacancy near me, urgent hiring near me, walk in interview, hiring immediately, apply job online, latest job vacancy, part time job near me, full time job, fresh graduate job, no experience job, immediate hiring, hiring now, pilot job vacancy, jeweler job vacancy, diamond expert job vacancy, luxury retail job vacancy, job vacancy in Kuala Lumpur, job vacancy in PJ, job vacancy in Penang, job vacancy in Malaysia, work from home Kuala Lumpur, remote job Malaysia, fresh graduate job vacancy, cadet pilot program, aviation job vacancy, gemologist job, jewellery shop hiring, career opportunity, career growth job, account assistant job vacancy, admin executive job vacancy, software developer job vacancy, sales executive job vacancy, graphic designer job vacancy, marketing executive job vacancy, customer service job vacancy, hr assistant job vacancy, finance job vacancy, operation job vacancy',
   })
   if (!loading && session && profile) return <Navigate to="/home" replace />

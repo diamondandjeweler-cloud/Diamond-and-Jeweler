@@ -55,19 +55,19 @@ const ROUTES = {
     description: 'Request a secure password reset link for your DNJ account.',
   },
   '/careers': {
-    title: 'Careers — Job Vacancy Malaysia | Pilot, Diamond & Jeweler Hiring Now',
+    title: 'AI-Curated Careers Malaysia — Pilot, Diamond & Jeweler Job Vacancy | DNJ',
     description:
-      'Latest job vacancy near me in Malaysia. Apply online for pilot, diamond grader, jeweler, gemologist, sales executive, admin executive, software developer, graphic designer, marketing, finance, customer service and fresh graduate roles. Walk-in interview, immediate hiring.',
+      'Precision recruitment powered by AI. Three matches at a time, zero noise. Apply online for pilot, diamond grader, jeweler, gemologist, sales executive, admin executive, software developer, graphic designer, marketing, finance, customer service and fresh graduate roles. PDPA-compliant, end-to-end encrypted.',
   },
   '/job-vacancy': {
-    title: 'Job Vacancy Malaysia — Urgent Hiring Now in Kuala Lumpur, PJ, Penang',
+    title: 'Job Vacancy Malaysia — AI-Matched Roles, Urgent Hiring in KL, PJ, Penang | DNJ',
     description:
-      'Latest job vacancy in Malaysia. Urgent hiring near me for pilot, diamond and jeweler, sales, admin, finance, customer service and fresh graduate roles. Walk-in interview, same day interview, immediate hiring — apply online today.',
+      'Latest job vacancy in Malaysia matched by AI to your career profile. Three curated offers at a time. Pilot, diamond and jeweler, sales, admin, finance, customer service, fresh graduate roles. Walk-in interview, same day interview, immediate hiring — apply online today.',
   },
   '/careers/urgent-hiring-malaysia-2026': {
-    title: 'Urgent Hiring Near Me: Top Job Vacancies in Kuala Lumpur 2026',
+    title: 'Urgent Hiring Near Me: Top Job Vacancies in Kuala Lumpur 2026 | DNJ AI Recruitment',
     description:
-      'Where to find urgent hiring near me in 2026. Top job vacancies in Kuala Lumpur, PJ and Penang — pilot, diamond and jeweler, sales, admin, finance, fresh graduate roles. Walk-in interview, immediate hiring, apply online today.',
+      'Where to find urgent hiring near me in 2026. AI-curated guide to top job vacancies in Kuala Lumpur, PJ and Penang — pilot, diamond and jeweler, sales, admin, finance, fresh graduate roles. Walk-in interview, immediate hiring, apply online today.',
   },
 }
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useSearchParams, Link } from 'react-router-dom'
+import { useSearchParams, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useSession } from '../../state/useSession'
 import { markAdminVerified } from '../../lib/adminReauth'
@@ -16,7 +16,6 @@ import { markAdminVerified } from '../../lib/adminReauth'
  * subscribers, which triggers an infinite remount loop.
  */
 export default function AuthCallback() {
-  const navigate = useNavigate()
   const [params] = useSearchParams()
   const type = params.get('type')
   const hasCode = !!params.get('code')
@@ -34,7 +33,11 @@ export default function AuthCallback() {
   useEffect(() => {
     if (!session) return
     if (type === 'recovery') {
-      setMode('recover')
+      // Don't downgrade from 'done' (or back to 'recover' if already there) when
+      // session re-fires due to USER_UPDATED after password change. Otherwise the
+      // post-success transition (recover → done → /home) gets clobbered and the
+      // user appears stuck on "Updating…".
+      setMode((m) => (m === 'done' || m === 'recover' ? m : 'recover'))
       return
     }
     if (navigated.current) return
@@ -103,12 +106,36 @@ export default function AuthCallback() {
     e.preventDefault()
     setErr(null)
     setBusy(true)
-    const { error } = await supabase.auth.updateUser({ password: newPw })
-    setBusy(false)
-    if (error) { setErr(error.message); return }
-    markAdminVerified()
-    setMode('done')
-    setTimeout(() => navigate('/home', { replace: true }), 1500)
+
+    // Hard 12s ceiling: if updateUser ever hangs (USER_UPDATED race, edge
+    // network blip, etc.) we MUST release the busy state so the user isn't
+    // staring at "Updating…" forever. The actual server-side password update
+    // is idempotent — if it succeeded, retrying or re-sign-in works.
+    let timedOut = false
+    const ceiling = setTimeout(() => {
+      timedOut = true
+      setBusy(false)
+      setErr('That took longer than expected. Try signing in with your new password — it may have already been saved.')
+    }, 12000)
+
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPw })
+      clearTimeout(ceiling)
+      if (timedOut) return
+      setBusy(false)
+      if (error) { setErr(error.message); return }
+      markAdminVerified()
+      setMode('done')
+      // Use window.location so any pending in-flight session refresh
+      // resolves cleanly under the new origin context, avoiding a stale-state
+      // loop where the recovery callback URL is still in history.
+      setTimeout(() => { window.location.replace('/home') }, 1200)
+    } catch (e) {
+      clearTimeout(ceiling)
+      if (timedOut) return
+      setBusy(false)
+      setErr(e instanceof Error ? e.message : 'Could not update password. Please try again.')
+    }
   }
 
   if (mode === 'recover') {

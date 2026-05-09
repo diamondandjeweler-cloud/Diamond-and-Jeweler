@@ -10,7 +10,7 @@ export default function UrgentHiringPost() {
   useSeo({
     title: 'Urgent Hiring Near Me: Top Job Vacancies in Kuala Lumpur 2026',
     description:
-      'Where to find urgent hiring near me in 2026. The top job vacancies in Kuala Lumpur, PJ and Penang — pilot, diamond and jeweler, sales, admin, finance, fresh graduate roles. Walk-in interview, immediate hiring, apply online today.',
+      'Where to find urgent hiring near me in 2026. The top job vacancies in Kuala Lumpur, PJ and Penang — pilot, diamond and jeweler, sales, admin, finance, fresh graduate roles. AI-curated matching, apply online today.',
     keywords: POST_KEYWORDS,
     canonicalPath: '/careers/urgent-hiring-malaysia-2026',
     jsonLd: [
@@ -88,10 +88,9 @@ export default function UrgentHiringPost() {
             Searching for <strong>urgent hiring near me</strong> in 2026? Whether you are a fresh
             graduate, SPM leaver, diploma holder or career changer, Malaysia's hiring market is moving
             fast — especially across Kuala Lumpur, Petaling Jaya (PJ) and Penang. This guide rounds
-            up the latest job vacancy and walk-in interview options that are actively hiring now,
-            with a focus on <strong>pilot job vacancy</strong>, <strong>diamond and jeweler
-            careers</strong>, sales, admin, finance, marketing, customer service, software developer
-            and graphic designer roles.
+            up the latest job vacancy opportunities actively recruiting now, with a focus on{' '}
+            <strong>pilot job vacancy</strong>, <strong>diamond and jeweler careers</strong>, sales,
+            admin, finance, marketing, customer service, software developer and graphic designer roles.
           </p>
 
           <h2 className="text-xl font-bold mt-8 mb-2">1. Pilot job vacancy &amp; cadet pilot program</h2>
@@ -99,14 +98,14 @@ export default function UrgentHiringPost() {
             Aviation hiring in Malaysia is back in a big way. The <strong>cadet pilot program</strong>
             is one of the top entry points for fresh graduates with zero experience — a structured
             graduate trainee program that takes you from classroom to airline first officer. If you
-            are a degree or diploma holder with strong English and STEM aptitude, you can apply now
-            and get matched with airline partners hiring immediately.
+            are a degree or diploma holder with strong English and STEM aptitude, complete your profile
+            and our AI engine matches you with airline partners actively recruiting.
           </p>
           <p className="text-gray-700 leading-relaxed mb-3">
             Pilot fresh graduate routes typically include: cadet pilot program (no experience job),
             airline pilot trainee, and direct entry first officer for those with prior CPL/ATPL.
-            Walk-in interview slots run regularly during peak hiring quarters — quick hiring with
-            same day interview is common for shortlisted candidates.
+            Submit your profile via DNJ and receive up to 3 curated matches from airlines aligned to
+            your qualifications — no cold applications, no CV pile.
           </p>
 
           <h2 className="text-xl font-bold mt-8 mb-2">2. Diamond &amp; jeweler career Malaysia</h2>
@@ -127,7 +126,7 @@ export default function UrgentHiringPost() {
 
           <h2 className="text-xl font-bold mt-8 mb-2">3. Sales executive, admin executive &amp; account assistant</h2>
           <p className="text-gray-700 leading-relaxed mb-3">
-            For fast immediate hiring, the <strong>sales executive job vacancy</strong> and{' '}
+            The <strong>sales executive job vacancy</strong> and{' '}
             <strong>admin executive job vacancy</strong> categories consistently lead in volume across
             Malaysia. These roles welcome SPM leaver job seekers, diploma holder job applicants and
             degree holders — junior level and entry level positions are abundant. Account assistant
@@ -141,8 +140,8 @@ export default function UrgentHiringPost() {
             options. <strong>Software developer job vacancy</strong> postings often allow remote or
             hybrid arrangements. <strong>Graphic designer job vacancy</strong> and{' '}
             <strong>marketing executive job vacancy</strong> roles span freelance, contract and
-            full time options. Submit resume with a portfolio link to apply online and increase your
-            same-week interview chances.
+            full time options. Submit your profile with a portfolio link — our AI engine matches
+            you with companies looking for your specific creative or technical skill set.
           </p>
 
           <h2 className="text-xl font-bold mt-8 mb-2">5. Customer service, HR assistant, finance &amp; operation</h2>
@@ -173,11 +172,11 @@ export default function UrgentHiringPost() {
 
           <h2 className="text-xl font-bold mt-8 mb-2">Tips for landing urgent hiring roles</h2>
           <ul className="list-disc pl-5 text-gray-700 leading-relaxed space-y-1.5 mb-3">
-            <li>Apply online within 24 hours of seeing a job opening near me — quick hiring favours fast applicants.</li>
-            <li>Send resume in PDF, named clearly with your full name and the role.</li>
-            <li>Mention if you can attend a walk-in interview or same day interview.</li>
+            <li>Complete your DNJ profile fully — a richer profile gets more accurate AI matches.</li>
+            <li>Keep your availability and salary expectations up to date so matches stay relevant.</li>
             <li>For no experience job listings, highlight transferable skills and willingness to learn.</li>
-            <li>Use precise location keywords (Kuala Lumpur, PJ, Penang, Cyberjaya, Shah Alam).</li>
+            <li>When a company reaches out after a match, respond quickly — employers value responsiveness.</li>
+            <li>Use precise location preferences (Kuala Lumpur, PJ, Penang, Cyberjaya, Shah Alam) to get nearby matches.</li>
           </ul>
 
           <h2 className="text-xl font-bold mt-8 mb-2">Final word</h2>

@@ -64,6 +64,7 @@ export default function DataRequests() {
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState('')
 
   useEffect(() => {
     if (!session) { navigate('/login'); return }
@@ -106,11 +107,9 @@ export default function DataRequests() {
     if (!session) return
     setErr(null)
 
-    if (requestType === 'deletion') {
-      const ok = confirm(
-        'Deletion is permanent. We purge sensitive data 30 days after your request is approved. Continue?',
-      )
-      if (!ok) return
+    if (requestType === 'deletion' && deleteConfirm !== 'DELETE') {
+      setErr('Type DELETE in the confirmation box to proceed.')
+      return
     }
 
     // For correction, coerce values into their typed form before submitting.
@@ -158,6 +157,7 @@ export default function DataRequests() {
     setSubmitted(true)
     setNotes('')
     setItems([{ field: 'profiles.full_name', new_value: '' }])
+    setDeleteConfirm('')
   }
 
   if (loading) return <LoadingSpinner />
@@ -311,12 +311,37 @@ export default function DataRequests() {
             />
           </div>
 
+          {requestType === 'deletion' && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 space-y-3">
+              <p className="text-sm font-semibold text-red-800">⚠ This will permanently erase your account</p>
+              <ul className="text-xs text-red-700 list-disc ml-4 space-y-1">
+                <li>Your profile, matches, and activity are purged 30 days after the request is approved.</li>
+                <li>Any unused Diamond Points are forfeited and cannot be refunded.</li>
+                <li>Audit records required for legal compliance are retained per PDPA obligations.</li>
+              </ul>
+              <div>
+                <label htmlFor="delete-confirm" className="block text-xs font-medium text-red-800 mb-1">
+                  Type <span className="font-mono font-bold">DELETE</span> to confirm
+                </label>
+                <input
+                  id="delete-confirm"
+                  type="text"
+                  value={deleteConfirm}
+                  onChange={(e) => setDeleteConfirm(e.target.value)}
+                  placeholder="DELETE"
+                  className="border border-red-300 rounded px-3 py-1.5 text-sm w-full font-mono focus:outline-none focus:ring-2 focus:ring-red-400"
+                  autoComplete="off"
+                />
+              </div>
+            </div>
+          )}
+
           {err && <p className="text-sm text-red-600">{err}</p>}
 
           <button
             type="submit"
-            disabled={busy}
-            className="bg-brand-600 text-white px-4 py-2 rounded hover:bg-brand-700 disabled:bg-gray-300"
+            disabled={busy || (requestType === 'deletion' && deleteConfirm !== 'DELETE')}
+            className="bg-brand-600 text-white px-4 py-2 rounded hover:bg-brand-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
             {busy ? t('common.submitting') : t('data.submit')}
           </button>

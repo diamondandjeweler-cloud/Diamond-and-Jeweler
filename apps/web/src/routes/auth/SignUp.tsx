@@ -18,7 +18,7 @@ export default function SignUp() {
   const [params] = useSearchParams()
   const referralCode = (params.get('ref') ?? '').toUpperCase().slice(0, 16)
   const roleParam = params.get('role')
-  const role = (roleParam === 'hr_admin' ? 'hr_admin' : roleParam === 'hiring_manager' ? 'hiring_manager' : 'talent') as 'talent' | 'hr_admin' | 'hiring_manager'
+  const role = (roleParam === 'hr_admin' ? 'hr_admin' : (roleParam === 'hiring_manager' || roleParam === 'hiring') ? 'hiring_manager' : 'talent') as 'talent' | 'hr_admin' | 'hiring_manager'
   const isHiring = role !== 'talent'
   const isHRAdmin = role === 'hr_admin'
 
@@ -178,6 +178,7 @@ export default function SignUp() {
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             required
+            minLength={2}
             autoComplete="name"
           />
           <Input

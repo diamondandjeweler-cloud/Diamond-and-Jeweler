@@ -11,7 +11,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
     location: 'Kuala Lumpur, Malaysia',
     level: 'Fresh graduate · No experience needed',
     blurb:
-      'Cadet pilot program for fresh graduates and SPM leavers. Aviation career opportunity with structured trainee programme, career growth and promotion path. Walk-in interview for shortlisted candidates.',
+      'Cadet pilot program for fresh graduates and SPM leavers. Aviation career opportunity with structured trainee programme, career growth and promotion path. Apply via AI-curated matching — get matched to aviation partners actively hiring.',
   },
   {
     title: 'Airline Pilot — Experienced',
@@ -19,7 +19,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
     location: 'Kuala Lumpur, Malaysia',
     level: 'Mid-level / Senior',
     blurb:
-      'Pilot job vacancy for experienced first officers and captains. Stable job with good salary, hybrid roster options, immediate hiring for qualified applicants.',
+      'Pilot job vacancy for experienced first officers and captains. Stable job with good salary, hybrid roster options. Submit your profile and receive curated matches from airlines seeking your experience level.',
   },
   {
     title: 'Jeweler / Diamond Grader',
@@ -35,7 +35,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
     location: 'Kuala Lumpur',
     level: 'Junior to senior',
     blurb:
-      'Gemologist job for graduate trainees and certified professionals. Same day interview available. Career growth job with stable salary and benefits.',
+      'Gemologist job for graduate trainees and certified professionals. Career growth job with stable salary and benefits. AI-curated matches connect you directly with companies seeking your certification level.',
   },
   {
     title: 'Luxury Retail Sales Associate',
@@ -43,7 +43,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
     location: 'Kuala Lumpur, PJ, Penang',
     level: 'Entry level · No experience welcome',
     blurb:
-      'Luxury retail job vacancy in Malaysia. Sales associate luxury, customer service and clienteling. Freshers welcome — quick hiring with same day interview.',
+      'Luxury retail job vacancy in Malaysia. Sales associate luxury, customer service and clienteling. Freshers welcome — create your profile and receive curated matches from luxury brands hiring in your area.',
   },
   {
     title: 'Jewelry Designer',
@@ -59,7 +59,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
     location: 'Kuala Lumpur, PJ',
     level: 'Junior · Mid-level',
     blurb:
-      'Sales executive job vacancy with attractive commission and good salary. Career with promotion and clear growth path. Walk-in interview available.',
+      'Sales executive job vacancy with attractive commission and good salary. Career with promotion and clear growth path. Get matched directly with companies actively recruiting sales professionals.',
   },
   {
     title: 'Account Assistant',
@@ -75,7 +75,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
     location: 'Kuala Lumpur, Penang',
     level: 'Junior · Mid-level',
     blurb:
-      'Admin executive job vacancy with hybrid work options. Apply online today — immediate hiring for shortlisted applicants.',
+      'Admin executive job vacancy with hybrid work options. Apply online — your profile is matched to companies hiring admin professionals across Kuala Lumpur and Penang.',
   },
   {
     title: 'Software Developer',
@@ -107,7 +107,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
     location: 'Kuala Lumpur',
     level: 'Entry level',
     blurb:
-      'Customer service job vacancy with no experience job opportunity. Direct hiring with quick hiring process. Walk-in interview daily.',
+      'Customer service job vacancy with no experience job opportunity. Entry-level friendly — AI matching connects you with companies seeking your communication skills and availability.',
   },
   {
     title: 'HR Assistant',
@@ -138,7 +138,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
 const FAQS: Array<{ q: string; a: string }> = [
   {
     q: 'Is DNJ hiring immediately in Malaysia?',
-    a: 'Yes — DNJ has urgent hiring for pilot, diamond and jeweler, sales executive, admin executive, account assistant, finance, marketing, customer service and graphic designer roles across Kuala Lumpur, PJ and Penang. Walk-in interview options and same day interview available.',
+    a: 'DNJ curates matches for pilot, diamond and jeweler, sales executive, admin executive, account assistant, finance, marketing, customer service and graphic designer roles across Kuala Lumpur, PJ and Penang. Complete your profile and our AI engine reviews new talent every hour — you receive up to 3 curated matches as companies aligned to your profile are identified.',
   },
   {
     q: 'Do I need experience to apply?',
@@ -154,7 +154,7 @@ const FAQS: Array<{ q: string; a: string }> = [
   },
   {
     q: 'How quickly can I get an interview?',
-    a: 'For urgent hiring roles, same day interview and walk-in interview are available. For curated matches, expect quick hiring with three matches at a time and zero noise.',
+    a: 'DNJ\'s curated matching typically delivers up to 3 relevant profiles within the first 14 days. Once matched and connected with a company, interview arrangements are between you and the employer — timelines vary by role and company. Our matching focuses on quality: three right fits, not a hundred applications.',
   },
 ]
 
@@ -237,11 +237,10 @@ export default function Careers() {
           </h1>
           <p className="text-gray-600 max-w-3xl leading-relaxed">
             Looking for a job near you? DNJ Careers lists the latest job vacancy in Kuala Lumpur,
-            Petaling Jaya, Penang and across Malaysia. Apply job online, send resume, and meet hiring
-            companies through AI-curated matches — three matches, zero noise. Walk-in interview and
-            same day interview available for urgent hiring roles. Fresh graduates, SPM leavers, diploma
-            and degree holders welcome — no experience needed for selected positions including the
-            cadet pilot program and luxury retail trainee programme.
+            Petaling Jaya, Penang and across Malaysia. Complete your profile online and our AI engine
+            matches you with hiring companies — three curated picks, zero noise, no cold applications.
+            Fresh graduates, SPM leavers, diploma and degree holders welcome — no experience needed
+            for selected positions including the cadet pilot program and luxury retail trainee programme.
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
@@ -384,10 +383,10 @@ export default function Careers() {
         </section>
 
         <section className="mt-12 rounded-2xl bg-gradient-to-br from-[#0B1742] to-[#1B2A6B] text-white p-8 text-center">
-          <h2 className="text-2xl font-bold mb-2">Apply online — quick hiring, same day interview</h2>
+          <h2 className="text-2xl font-bold mb-2">Apply online — AI-curated matches, three picks, zero noise</h2>
           <p className="text-white/85 max-w-2xl mx-auto leading-relaxed">
-            Submit resume in minutes and get matched with the right hiring company. New job
-            opportunity, career growth, good salary and stable job — all near your location.
+            Complete your profile in minutes and let the AI match you with the right hiring company.
+            Career growth, good salary and stable job — curated to your location, skills, and goals.
           </p>
           <div className="mt-5 flex flex-wrap justify-center gap-3">
             <Link

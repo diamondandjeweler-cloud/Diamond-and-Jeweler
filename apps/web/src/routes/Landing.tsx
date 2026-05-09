@@ -217,7 +217,7 @@ export default function Landing() {
           </div>
           <h1 className="font-sans font-bold text-[34px] md:text-[46px] leading-[1.05] tracking-tight text-[#0B1220] mb-2">
             {t('landing.titleLead')}{' '}
-            <span className="text-[#C9A24D]">{t('landing.titleHighlight')}</span>
+            <span className="text-[#A07D32]">{t('landing.titleHighlight')}</span>
             <br />
             {t('landing.titleTrail')}
           </h1>

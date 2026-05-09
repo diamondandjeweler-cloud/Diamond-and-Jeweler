@@ -110,18 +110,32 @@ export default function MatchApprovalPanel() {
   async function decryptDobs(matchId: string, hmEnc: string | null, talentEnc: string | null) {
     const cached = dobCache[matchId]
     if (cached && cached.expiresAt > Date.now()) return
-    const [hmResult, talentResult] = await Promise.all([
-      hmEnc ? supabase.rpc('decrypt_dob', { encrypted: hmEnc }) : Promise.resolve({ data: null }),
-      talentEnc ? supabase.rpc('decrypt_dob', { encrypted: talentEnc }) : Promise.resolve({ data: null }),
-    ])
-    setDobCache((prev) => ({
-      ...prev,
-      [matchId]: {
-        hm: (hmResult.data as string | null) ?? null,
-        talent: (talentResult.data as string | null) ?? null,
-        expiresAt: Date.now() + 5 * 60_000,
-      },
-    }))
+    // F7 fix — wrap in try/catch + explicit error checks. The decrypt_dob RPC
+    // rejects when is_admin() returns false (transient profile race, stale
+    // role claim, or non-admin caller). The unhandled promise rejection
+    // previously escalated to a global handler that called signOut, kicking
+    // the admin out of the dashboard. Swallow the error here so the panel
+    // degrades gracefully instead.
+    try {
+      const [hmResult, talentResult] = await Promise.all([
+        hmEnc ? supabase.rpc('decrypt_dob', { encrypted: hmEnc }) : Promise.resolve({ data: null, error: null }),
+        talentEnc ? supabase.rpc('decrypt_dob', { encrypted: talentEnc }) : Promise.resolve({ data: null, error: null }),
+      ])
+      if (hmResult.error || talentResult.error) {
+        console.warn('[approvals] decrypt_dob failed', hmResult.error || talentResult.error)
+        return
+      }
+      setDobCache((prev) => ({
+        ...prev,
+        [matchId]: {
+          hm: (hmResult.data as string | null) ?? null,
+          talent: (talentResult.data as string | null) ?? null,
+          expiresAt: Date.now() + 5 * 60_000,
+        },
+      }))
+    } catch (e) {
+      console.warn('[approvals] decryptDobs threw', e)
+    }
   }
 
   function toggleExpand(m: PendingMatch) {

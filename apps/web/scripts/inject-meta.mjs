@@ -12,6 +12,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { dirname, join, resolve } from 'path'
 import { fileURLToPath } from 'url'
+import { execSync } from 'child_process'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const DIST = resolve(__dirname, '../dist')
@@ -269,3 +270,15 @@ for (const [route, { title, description }] of Object.entries(ROUTES)) {
 }
 
 process.stdout.write(`inject-meta: ${Object.keys(ROUTES).length} routes written.\n`)
+
+// QA harness: write the build's git SHA to dist/version.txt so prod/main drift
+// can be verified by qa/scripts/08-vercel-sha.mjs (DNJ has no git integration,
+// so this file is the source of truth for "what's actually deployed").
+try {
+  const sha = (process.env.VERCEL_GIT_COMMIT_SHA || execSync('git rev-parse HEAD').toString())
+    .trim()
+  writeFileSync(join(DIST, 'version.txt'), sha + '\n', 'utf-8')
+  process.stdout.write(`inject-meta: version.txt = ${sha.slice(0, 7)}\n`)
+} catch (err) {
+  process.stdout.write(`inject-meta: failed to write version.txt: ${err.message}\n`)
+}

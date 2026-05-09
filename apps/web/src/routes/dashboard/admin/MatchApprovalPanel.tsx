@@ -271,7 +271,7 @@ export default function MatchApprovalPanel() {
                     <div className="flex gap-4 mt-2 flex-wrap">
                       <ScoreBadge value={m.compatibility_score} label="Overall" />
                       <ScoreBadge value={m.tag_compatibility} label="Skills" />
-                      <ScoreBadge value={m.life_chart_score} label="BaZi" />
+                      <ScoreBadge value={m.life_chart_score} label="Team-fit" />
                     </div>
 
                     {/* HM vs Talent profile signal */}

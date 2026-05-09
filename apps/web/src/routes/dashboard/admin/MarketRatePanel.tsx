@@ -85,6 +85,8 @@ export default function MarketRatePanel() {
       <div className="flex justify-between items-center mb-4">
         <p className="text-sm text-gray-600">
           Salary benchmarks used by the market-rate warning during role creation.
+          Current dataset is <strong>Klang Valley</strong> (KL + Selangor) only;
+          rows for other states still need to be seeded.
         </p>
         {!creating && !editing && (
           <button

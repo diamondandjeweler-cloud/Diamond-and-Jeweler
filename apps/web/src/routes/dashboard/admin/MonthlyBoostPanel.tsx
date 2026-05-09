@@ -4,6 +4,20 @@ import { supabase } from '../../../lib/supabase'
 const ALL_CHARACTERS = ['W', 'E-', 'W+', 'W-', 'E', 'G+', 'G-', 'E+', 'F'] as const
 type Character = typeof ALL_CHARACTERS[number]
 
+// Shown as `title` tooltips on each chip so admins know what each weight
+// signal means without having to dig into 0066_monthly_character_boost.sql.
+const CHARACTER_LEGEND: Record<Character, string> = {
+  'W':  'Wood — growth, leadership, vision; weights upward-trajectory candidates higher.',
+  'W+': 'Wood plus — strong growth signal; favours high-potential, fast-promoting profiles.',
+  'W-': 'Wood minus — softened growth signal; modest weight on stretch profiles.',
+  'E':  'Earth — stability, reliability, ownership; weights long-tenure, steady-hand candidates.',
+  'E+': 'Earth plus — strong stability signal; favours candidates with proven retention.',
+  'E-': 'Earth minus — softened stability signal; small weight on steady profiles.',
+  'G+': 'Gold plus — precision, quality, detail; favours analytical / craftsmanship profiles.',
+  'G-': 'Gold minus — softened precision signal; modest weight on detail-oriented profiles.',
+  'F':  'Fire — energy, drive, sales/customer impact; favours high-output, customer-facing profiles.',
+}
+
 function toMonthFirst(d: Date): string {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-01`
 }
@@ -145,6 +159,8 @@ export default function MonthlyBoostPanel() {
                 key={c}
                 onClick={() => toggle(c)}
                 disabled={disabled}
+                title={CHARACTER_LEGEND[c]}
+                aria-label={`${c} — ${CHARACTER_LEGEND[c]}`}
                 className={`border rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${
                   active
                     ? 'bg-brand-500 text-white border-brand-500 shadow-sm'

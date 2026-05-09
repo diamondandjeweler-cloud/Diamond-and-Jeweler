@@ -67,6 +67,10 @@ export default function MatchApprovalPanel() {
     setLoading(true)
     setErr(null)
     try {
+      // Touch the session before the heavy embed query so a mid-query token
+      // refresh can't race with the abort signal and look like a sign-out
+      // (F7 mitigation). getSession() is cached + idempotent.
+      await supabase.auth.getSession()
       const { data, error } = await supabase
         .from('matches')
         .select(`

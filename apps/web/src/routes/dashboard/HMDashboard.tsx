@@ -560,7 +560,7 @@ export default function HMDashboard() {
             title={roleCount === 0 ? 'Post your first role' : 'Curating candidates…'}
             description={roleCount === 0
               ? 'Tell us about the role you want to fill and we\'ll surface up to three candidates.'
-              : 'Our engine reviews new talent every hour. You\'ll see up to 3 per role as they arrive.'}
+              : 'Our engine reviews new talent every hour. You\'ll see up to 3 per role as they arrive. If 24h passes with nothing, try widening the salary range or removing one required trait.'}
             action={roleCount === 0 ? <Link to="/hm/post-role" className="btn-primary">Post a role</Link> : undefined}
           />
         </Card>

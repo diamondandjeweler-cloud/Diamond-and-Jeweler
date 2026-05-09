@@ -61,7 +61,7 @@ export default function VerificationQueue() {
               <div>
                 <div className="font-semibold">{c.name}</div>
                 <div className="text-xs text-gray-500">
-                  SSM: {c.registration_number} · HR: {c.primary_hr_email}
+                  Company ID: {c.registration_number} · HR: {c.primary_hr_email}
                 </div>
               </div>
               <div className="flex gap-2">

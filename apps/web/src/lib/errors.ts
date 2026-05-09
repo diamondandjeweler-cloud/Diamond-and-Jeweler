@@ -18,9 +18,26 @@ export function formatError(e: unknown): string {
     if (obj.error && typeof (obj.error as { message?: unknown }).message === 'string') {
       return (obj.error as { message: string }).message
     }
+    // Surface useful PostgREST / Supabase error fields when message is empty
+    const code = typeof obj.code === 'string' ? obj.code : null
+    const hint = typeof obj.hint === 'string' ? obj.hint : null
+    const details = typeof obj.details === 'string' ? obj.details : null
+    if (code || hint || details) {
+      const parts = [
+        code ? `[${code}]` : null,
+        details,
+        hint ? `(hint: ${hint})` : null,
+      ].filter(Boolean) as string[]
+      if (parts.length) return parts.join(' ').trim()
+    }
     try {
       const json = JSON.stringify(e)
-      if (json && json !== '{}') return json
+      // {"message":""} is what PostgREST returns on RLS denial without a body —
+      // not useful to render as-is. Convert to a clear hint.
+      if (json === '{"message":""}' || json === '{}') {
+        return 'Empty error from server (likely RLS denial — check that your account has the required role).'
+      }
+      if (json) return json
     } catch {
       // fall through
     }

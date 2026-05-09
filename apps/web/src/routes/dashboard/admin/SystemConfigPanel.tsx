@@ -15,6 +15,23 @@ function isSecretKey(key: string): boolean {
   return /(token|secret|api[_-]?key|password|webhook|private[_-]?key|signing[_-]?key)/.test(k)
 }
 
+// Keys that affect platform-wide behaviour. Save flow shows a confirm()
+// dialog naming the key + new value to prevent fat-finger production
+// changes (e.g. flipping launch_mode to private during business hours).
+const HIGH_RISK_KEYS = new Set<string>([
+  'launch_mode',
+  'match_approval_mode',
+  'match_expiry_days',
+  'free_matches_quota',
+  'extra_match_price_rm',
+  'points_per_extra_match',
+  'urgent_search_cost',
+  'urgent_search_daily_cap',
+  'cold_start_auto_switch_threshold',
+  'legal_version',
+  'legal_reviewed',
+])
+
 export default function SystemConfigPanel() {
   const [rows, setRows] = useState<ConfigRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -47,6 +64,14 @@ export default function SystemConfigPanel() {
       setErrors((x) => ({ ...x, [key]: (e as Error).message }))
       return
     }
+    if (HIGH_RISK_KEYS.has(key)) {
+      const display = JSON.stringify(parsed)
+      const ok = confirm(
+        `High-risk config change.\n\nKey: ${key}\nNew value: ${display}\n\n` +
+        `This affects platform-wide behaviour and takes effect immediately for all users. Proceed?`,
+      )
+      if (!ok) return
+    }
     setSavingKey(key)
     const { error } = await supabase.from('system_config').update({ value: parsed }).eq('key', key)
     setSavingKey(null)
@@ -76,6 +101,14 @@ export default function SystemConfigPanel() {
                   {secret && (
                     <span className="ml-2 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
                       Secret · managed externally
+                    </span>
+                  )}
+                  {!secret && HIGH_RISK_KEYS.has(r.key) && (
+                    <span
+                      className="ml-2 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-red-700 bg-red-100 px-1.5 py-0.5 rounded"
+                      title="Saving this key prompts a confirm dialog because it affects platform-wide behaviour."
+                    >
+                      High risk · confirms on save
                     </span>
                   )}
                   <div className="text-xs text-gray-400">

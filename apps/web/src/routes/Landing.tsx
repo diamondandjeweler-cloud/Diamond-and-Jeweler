@@ -184,7 +184,7 @@ export default function Landing() {
   if (!loading && session && profile) return <Navigate to="/home" replace />
 
   return (
-    <div className="relative min-h-screen md:h-screen flex flex-col md:overflow-hidden bg-white text-[#0B1220] font-sans">
+    <div className="relative min-h-screen flex flex-col bg-white text-[#0B1220] font-sans">
       <a
         href="#landing-main"
         className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-[#0B1220] text-white px-3 py-2 rounded z-50 text-sm"

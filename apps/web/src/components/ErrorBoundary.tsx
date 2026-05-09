@@ -4,10 +4,46 @@ import * as Sentry from '@sentry/react'
 interface Props { children: ReactNode }
 interface State { err: Error | null }
 
+// Stale chunk after deploy: when a user has the previous bundle's index loaded
+// in their tab and Vercel has rolled out a new build, the old index references
+// asset paths like AuthCallback-OqWzbPZL.js that no longer exist on the edge.
+// Vite's lazy-import then throws "Failed to fetch dynamically imported module".
+// The user is staring at a fatal error on a route they just clicked. Hard
+// reload picks up the new index + new chunks.
+function looksLikeStaleChunk(err: Error): boolean {
+  const m = (err.message || '').toLowerCase()
+  return (
+    m.includes('failed to fetch dynamically imported module') ||
+    m.includes('failed to import') ||
+    m.includes('importing a module script failed') ||
+    (m.includes('loading chunk') && m.includes('failed'))
+  )
+}
+
+const RELOAD_FLAG = 'dnj.errorboundary.reloaded'
+
 export default class ErrorBoundary extends Component<Props, State> {
   state: State = { err: null }
 
-  static getDerivedStateFromError(err: Error) { return { err } }
+  static getDerivedStateFromError(err: Error) {
+    // Auto-recover from stale-chunk-after-deploy by reloading exactly once.
+    // The sessionStorage flag prevents an infinite reload loop if the underlying
+    // problem isn't a stale chunk (in which case we surface the error UI).
+    if (looksLikeStaleChunk(err)) {
+      try {
+        if (!sessionStorage.getItem(RELOAD_FLAG)) {
+          sessionStorage.setItem(RELOAD_FLAG, '1')
+          window.location.reload()
+          return { err: null }
+        }
+      } catch { /* tolerate quota / sandboxed iframe */ }
+    } else {
+      // Not a stale-chunk error — clear any leftover flag so a future stale
+      // chunk on this tab still gets one auto-reload.
+      try { sessionStorage.removeItem(RELOAD_FLAG) } catch { /* tolerate */ }
+    }
+    return { err }
+  }
 
   componentDidCatch(err: Error, info: unknown) {
     console.error('ErrorBoundary caught:', err, info)

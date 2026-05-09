@@ -3,6 +3,174 @@ import { useTranslation } from 'react-i18next'
 import { useSession } from '../state/useSession'
 import { useSeo } from '../lib/useSeo'
 import LanguageSwitcher from '../components/LanguageSwitcher'
+import { ROLES, LOCATIONS, ROLE_SLUGS, LOCATION_SLUGS } from '../data/silo-data'
+
+const ORIGIN = 'https://diamondandjeweler.com'
+
+// Build crawler-visible JSON-LD that mirrors every silo URL we publish.
+// Massive ItemList + OccupationalCategory entries + extended FAQ — zero visual impact.
+const HOMEPAGE_JSON_LD: Record<string, unknown>[] = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Job categories on DNJ — Diamond & Jeweler Careers Malaysia',
+    itemListOrder: 'https://schema.org/ItemListOrderDescending',
+    numberOfItems: ROLE_SLUGS.length,
+    itemListElement: ROLE_SLUGS.map((slug, i) => {
+      const r = ROLES[slug]
+      return {
+        '@type': 'ListItem',
+        position: i + 1,
+        item: {
+          '@type': 'Occupation',
+          name: r.name,
+          description: r.description,
+          url: `${ORIGIN}/jobs/${slug}`,
+          occupationalCategory: r.occupationalCategory,
+          industry: r.industry,
+          occupationLocation: r.locations.map((locSlug) => ({
+            '@type': 'Place',
+            address: {
+              '@type': 'PostalAddress',
+              addressLocality: LOCATIONS[locSlug]?.name,
+              addressRegion: LOCATIONS[locSlug]?.state,
+              addressCountry: 'MY',
+            },
+          })),
+        },
+      }
+    }),
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Hiring locations on DNJ — Malaysia',
+    numberOfItems: LOCATION_SLUGS.length,
+    itemListElement: LOCATION_SLUGS.map((slug, i) => {
+      const l = LOCATIONS[slug]
+      return {
+        '@type': 'ListItem',
+        position: i + 1,
+        item: {
+          '@type': 'Place',
+          name: l.name,
+          alternateName: l.shortName,
+          url: `${ORIGIN}/jobs-in-${slug}`,
+          address: {
+            '@type': 'PostalAddress',
+            addressLocality: l.name,
+            addressRegion: l.state,
+            addressCountry: 'MY',
+          },
+          geo: {
+            '@type': 'GeoCoordinates',
+            latitude: l.geo.lat,
+            longitude: l.geo.lng,
+          },
+        },
+      }
+    }),
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: 'Is DNJ hiring immediately in Malaysia?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Yes. DNJ runs urgent hiring across pilot, jeweler, diamond grader, gemologist, luxury retail, sales, admin, finance, software, marketing and customer service roles in Kuala Lumpur, PJ, Penang, Johor Bahru and Cyberjaya. Walk-in interview and same day interview available.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'How does AI matching work on DNJ?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'DNJ uses a proprietary compatibility engine that scores skills, culture fit, career trajectory and compensation alignment beyond the résumé. Candidates and hiring managers each receive up to three curated matches per role — quality over volume, zero noise. Personal data is end-to-end encrypted and PDPA-compliant.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Do I need experience to apply?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'No experience needed for many roles. Fresh graduates, SPM leavers, diploma and degree holders welcome. The cadet pilot program, luxury retail trainee programme, and diamond grading trainee tracks accept candidates with 0 experience.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Is DNJ a recruitment agency?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'DNJ is an AI-curated recruitment platform, not a traditional agency. We match talent directly with hiring companies — passive talent included — without the CV pile or noise. Three matches at a time.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Where can I find the latest job vacancy near me?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Browse DNJ Careers at https://diamondandjeweler.com/careers or explore by city: /jobs-in-kuala-lumpur, /jobs-in-petaling-jaya, /jobs-in-penang, /jobs-in-johor-bahru. Or browse by role: /jobs/pilot, /jobs/jeweler, /jobs/diamond-grader, /jobs/gemologist, /jobs/luxury-retail.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'How is candidate confidentiality protected?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Employers see only what you choose to share until mutual interest is confirmed. Personal data is end-to-end encrypted, PDPA-compliant, and you control your visibility on the platform.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Can I apply for jobs without resume on DNJ?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Yes. DNJ\'s career profile goes far beyond a résumé — multi-dimensional career analysis captures skills, culture preferences, trajectory and goals. Your profile works passively to attract matches without sending applications.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Are part time, remote and hybrid jobs available?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Yes. DNJ lists full time, part time, contract, temporary, internship, freelance, remote, hybrid, shift and permanent jobs across Malaysia.',
+        },
+      },
+    ],
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'EducationalOccupationalProgram',
+    name: 'Cadet Pilot Program Malaysia',
+    description: 'Structured trainee programme for fresh graduates, SPM leavers, diploma and degree holders to become commercial airline pilots in Malaysia. No flight experience required.',
+    url: `${ORIGIN}/jobs/cadet-pilot`,
+    occupationalCategory: '53-2011 Airline Pilots, Copilots, and Flight Engineers',
+    programType: 'Cadet pilot program',
+    educationalCredentialAwarded: 'Commercial Pilot Licence (CPL) progression',
+    provider: {
+      '@type': 'Organization',
+      name: 'DNJ — Airline partner network',
+      url: ORIGIN,
+    },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    name: 'AI-curated recruitment Malaysia',
+    description: 'Three matches at a time, zero noise. AI-powered compatibility engine for talent and hiring managers across Malaysia.',
+    serviceType: 'Recruitment platform',
+    areaServed: { '@type': 'Country', name: 'Malaysia' },
+    provider: {
+      '@type': 'Organization',
+      name: 'DNJ — Diamond & Jeweler',
+      url: ORIGIN,
+    },
+    audience: { '@type': 'Audience', audienceType: 'Job seekers and hiring managers' },
+  },
+]
 
 export default function Landing() {
   const { t } = useTranslation()
@@ -11,6 +179,7 @@ export default function Landing() {
     title: 'AI-Curated Job Vacancy Malaysia — Pilot, Diamond & Jeweler Hiring Now',
     description: 'Precision recruitment powered by AI. DNJ matches the right talent with the right company in Malaysia — three curated matches at a time, zero noise. Pilot, diamond & jeweler, sales, admin, finance, fresh graduate roles in KL, PJ, Penang. PDPA-compliant, end-to-end encrypted. Apply online — walk-in interview, immediate hiring.',
     keywords: 'jobs near me, job vacancy near me, urgent hiring near me, walk in interview, hiring immediately, apply job online, latest job vacancy, part time job near me, full time job, fresh graduate job, no experience job, immediate hiring, hiring now, pilot job vacancy, jeweler job vacancy, diamond expert job vacancy, luxury retail job vacancy, job vacancy in Kuala Lumpur, job vacancy in PJ, job vacancy in Penang, job vacancy in Malaysia, work from home Kuala Lumpur, remote job Malaysia, fresh graduate job vacancy, cadet pilot program, aviation job vacancy, gemologist job, jewellery shop hiring, career opportunity, career growth job, account assistant job vacancy, admin executive job vacancy, software developer job vacancy, sales executive job vacancy, graphic designer job vacancy, marketing executive job vacancy, customer service job vacancy, hr assistant job vacancy, finance job vacancy, operation job vacancy',
+    jsonLd: HOMEPAGE_JSON_LD,
   })
   if (!loading && session && profile) return <Navigate to="/home" replace />
 

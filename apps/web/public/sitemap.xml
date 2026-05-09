@@ -1,58 +1,57 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://diamondandjeweler.com/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://diamondandjeweler.com/careers</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.95</priority>
-  </url>
-  <url>
-    <loc>https://diamondandjeweler.com/job-vacancy</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://diamondandjeweler.com/careers/urgent-hiring-malaysia-2026</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://diamondandjeweler.com/start/talent</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://diamondandjeweler.com/start/hiring</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://diamondandjeweler.com/login</loc>
-    <changefreq>yearly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://diamondandjeweler.com/signup</loc>
-    <changefreq>yearly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://diamondandjeweler.com/password-reset</loc>
-    <changefreq>yearly</changefreq>
-    <priority>0.3</priority>
-  </url>
-  <url>
-    <loc>https://diamondandjeweler.com/privacy</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.4</priority>
-  </url>
-  <url>
-    <loc>https://diamondandjeweler.com/terms</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.4</priority>
-  </url>
+  <url><loc>https://diamondandjeweler.com/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <url><loc>https://diamondandjeweler.com/careers</loc><changefreq>daily</changefreq><priority>0.95</priority></url>
+  <url><loc>https://diamondandjeweler.com/job-vacancy</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <!-- Role silo pages -->
+  <url><loc>https://diamondandjeweler.com/jobs/pilot</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://diamondandjeweler.com/jobs/cadet-pilot</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://diamondandjeweler.com/jobs/jeweler</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://diamondandjeweler.com/jobs/diamond-grader</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://diamondandjeweler.com/jobs/gemologist</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://diamondandjeweler.com/jobs/jewelry-designer</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://diamondandjeweler.com/jobs/luxury-retail</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://diamondandjeweler.com/jobs/sales-executive</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://diamondandjeweler.com/jobs/admin-executive</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://diamondandjeweler.com/jobs/account-assistant</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://diamondandjeweler.com/jobs/software-developer</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://diamondandjeweler.com/jobs/graphic-designer</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://diamondandjeweler.com/jobs/marketing-executive</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://diamondandjeweler.com/jobs/customer-service</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://diamondandjeweler.com/jobs/hr-assistant</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://diamondandjeweler.com/jobs/finance</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>
+
+  <!-- Location silo pages -->
+  <url><loc>https://diamondandjeweler.com/jobs-in-kuala-lumpur</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://diamondandjeweler.com/jobs-in-petaling-jaya</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://diamondandjeweler.com/jobs-in-penang</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://diamondandjeweler.com/jobs-in-johor-bahru</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://diamondandjeweler.com/jobs-in-cyberjaya</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://diamondandjeweler.com/jobs-in-shah-alam</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://diamondandjeweler.com/jobs-in-subang-jaya</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+
+  <!-- Hire (employer) silo pages -->
+  <url><loc>https://diamondandjeweler.com/hire-pilot</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://diamondandjeweler.com/hire-jeweler</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://diamondandjeweler.com/hire-diamond-grader</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://diamondandjeweler.com/hire-gemologist</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://diamondandjeweler.com/hire-sales-team</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://diamondandjeweler.com/hire-luxury-retail-staff</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>
+
+  <!-- Blog posts -->
+  <url><loc>https://diamondandjeweler.com/careers/urgent-hiring-malaysia-2026</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://diamondandjeweler.com/careers/cadet-pilot-program-malaysia-guide</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://diamondandjeweler.com/careers/diamond-grader-vs-gemologist</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+
+  <!-- Conversion -->
+  <url><loc>https://diamondandjeweler.com/start/talent</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://diamondandjeweler.com/start/hiring</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+
+  <!-- Auth + legal -->
+  <url><loc>https://diamondandjeweler.com/login</loc><changefreq>yearly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://diamondandjeweler.com/signup</loc><changefreq>yearly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://diamondandjeweler.com/password-reset</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://diamondandjeweler.com/privacy</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://diamondandjeweler.com/terms</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
 </urlset>

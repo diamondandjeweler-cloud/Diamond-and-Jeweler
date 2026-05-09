@@ -16,6 +16,11 @@ import Login from './routes/auth/Login'
 const Start            = lazy(() => import('./routes/Start'))
 const Careers          = lazy(() => import('./routes/Careers'))
 const UrgentHiringPost = lazy(() => import('./routes/UrgentHiringPost'))
+const RoleSilo         = lazy(() => import('./routes/RoleSilo'))
+const LocationSilo     = lazy(() => import('./routes/LocationSilo'))
+const HireSilo         = lazy(() => import('./routes/HireSilo'))
+const CadetPilotGuide  = lazy(() => import('./routes/blog/CadetPilotGuide'))
+const DiamondVsGemPost = lazy(() => import('./routes/blog/DiamondGraderVsGemologist'))
 const WaitlistConfirm  = lazy(() => import('./routes/WaitlistConfirm'))
 const PasswordReset    = lazy(() => import('./routes/auth/PasswordReset'))
 const AuthCallback     = lazy(() => import('./routes/auth/AuthCallback'))
@@ -87,6 +92,11 @@ export default function App() {
         <Route path="/careers" element={<Careers />} />
         <Route path="/job-vacancy" element={<Careers />} />
         <Route path="/careers/urgent-hiring-malaysia-2026" element={<UrgentHiringPost />} />
+        <Route path="/careers/cadet-pilot-program-malaysia-guide" element={<CadetPilotGuide />} />
+        <Route path="/careers/diamond-grader-vs-gemologist" element={<DiamondVsGemPost />} />
+        <Route path="/jobs/:slug" element={<RoleSilo />} />
+        <Route path="/jobs-in-:slug" element={<LocationSilo />} />
+        <Route path="/hire-:slug" element={<HireSilo />} />
         <Route path="/start/:side" element={<Start />} />
         <Route path="/waitlist/confirm" element={<WaitlistConfirm />} />
         <Route path="/auth/callback" element={<AuthCallback />} />

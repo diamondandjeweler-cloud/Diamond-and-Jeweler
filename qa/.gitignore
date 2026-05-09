@@ -1,0 +1,6 @@
+# Local QA secrets — never commit.
+.env.qa
+
+# Local artifacts
+*.log
+node_modules/

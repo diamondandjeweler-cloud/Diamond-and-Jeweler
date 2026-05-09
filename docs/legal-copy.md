@@ -4,14 +4,14 @@ Drafts for all user-facing legal text. **Must be reviewed by a Malaysian
 privacy lawyer before public launch.** Keep this file as the authoritative
 source — the React pages (`apps/web/src/routes/legal/*`) mirror it.
 
-Version: 0.1 · Last updated: 2026-04-21
+Version: 0.2 · Last updated: 2026-05-10 · Renamed BoLe → DNJ throughout (rebrand abandoned)
 
 ---
 
 ## Signup consents
 
 **DOB consent (required):**
-> I consent to BoLe using my date of birth for its compatibility matching
+> I consent to DNJ using my date of birth for its compatibility matching
 > algorithm. My DOB will be encrypted and never shared with employers or
 > other users.
 
@@ -26,7 +26,7 @@ Version: 0.1 · Last updated: 2026-04-21
 
 ## Hiring-manager DOB consent (during onboarding)
 
-> I consent to BoLe using my date of birth for its compatibility matching
+> I consent to DNJ using my date of birth for its compatibility matching
 > algorithm. My DOB will be encrypted and never shown to candidates.
 
 ---
@@ -76,6 +76,6 @@ Version: 0.1 · Last updated: 2026-04-21
 
 When we launch the coaching concierge, users must consent to:
 
-> A BoLe coach may contact you before your interview to help prepare. You
+> A DNJ coach may contact you before your interview to help prepare. You
 > can opt out at any time. Coaches are bound by the same privacy
 > obligations as the platform.

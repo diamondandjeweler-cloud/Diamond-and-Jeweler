@@ -75,25 +75,25 @@ serve(async (req) => {
 
   const { data: purchase, error: lookupErr } = await db
     .from(table)
-    .select('id, billplz_bill_id, status, profile_id')
+    .select('id, payment_intent_id, payment_status, user_id')
     .eq('id', body.purchase_id)
     .maybeSingle()
   if (lookupErr) return json({ error: 'Purchase lookup failed', detail: lookupErr.message }, 500)
   if (!purchase) return json({ error: 'Purchase not found' }, 404)
-  if (purchase.status === 'refunded') {
+  if (purchase.payment_status === 'refunded') {
     return json({ refunded: true, billplz_status: 'already_refunded' })
   }
-  if (purchase.status !== 'paid') {
-    return json({ error: `Purchase is ${purchase.status} — only paid purchases can be refunded` }, 400)
+  if (purchase.payment_status !== 'paid') {
+    return json({ error: `Purchase is ${purchase.payment_status} — only paid purchases can be refunded` }, 400)
   }
 
-  const refund = await billplzRefund(purchase.billplz_bill_id ?? '', reason)
+  const refund = await billplzRefund(purchase.payment_intent_id ?? '', reason)
   if (!refund.ok) return json({ error: refund.error ?? 'Refund failed' }, 502)
 
   const { error: updErr } = await db
     .from(table)
     .update({
-      status: 'refunded',
+      payment_status: 'refunded',
       refunded_at: new Date().toISOString(),
       refund_reason: reason.slice(0, 500),
       refunded_by: auth.userId,
@@ -110,7 +110,7 @@ serve(async (req) => {
   await logAudit({
     actorId: auth.userId,
     actorRole: 'admin',
-    subjectId: purchase.profile_id,
+    subjectId: purchase.user_id,
     action: 'admin_action',
     resourceType: table,
     resourceId: purchase.id,
@@ -119,7 +119,7 @@ serve(async (req) => {
     metadata: {
       kind: 'refund',
       purchase_type: body.purchase_type,
-      billplz_bill_id: purchase.billplz_bill_id,
+      billplz_bill_id: purchase.payment_intent_id,
       billplz_status: refund.status,
       reason,
     },

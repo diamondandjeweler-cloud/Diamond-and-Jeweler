@@ -284,57 +284,42 @@ export default function Landing() {
 }
 
 function PopularSearches() {
+  // SEO-only keyword block — non-interactive plain text spans so search-engine
+  // crawlers index the keyword phrases for relevance, but human users have
+  // no clickable target. Wrapped in collapsed <details> so the block isn't
+  // visually loud either; users can choose to expand to read.
+  const TERMS = [
+    'Jobs near me', 'Job vacancy near me', 'Urgent hiring near me', 'Walk in interview',
+    'Hiring immediately', 'Apply job online', 'Latest job vacancy', 'Part time job near me',
+    'Full time job', 'Fresh graduate job', 'No experience job', 'Immediate hiring',
+    'Hiring now', 'Pilot job vacancy', 'Cadet pilot program', 'Aviation job vacancy',
+    'Jeweler job vacancy', 'Diamond expert job vacancy', 'Gemologist job',
+    'Luxury retail job vacancy', 'Sales executive job vacancy',
+    'Account assistant job vacancy', 'Admin executive job vacancy',
+    'Software developer job vacancy', 'Graphic designer job vacancy',
+    'Marketing executive job vacancy', 'Customer service job vacancy',
+    'HR assistant job vacancy', 'Finance job vacancy', 'Operation job vacancy',
+    'Job vacancy in Kuala Lumpur', 'Job vacancy in PJ', 'Job vacancy in Penang',
+    'Job vacancy in Malaysia', 'Work from home Kuala Lumpur', 'Remote job Malaysia',
+    'Internship', 'Graduate trainee program', 'Diploma holder job', 'SPM leaver job',
+    'Urgent hiring near me 2026',
+  ]
   return (
     <details className="text-[10px] text-gray-500 max-w-3xl mx-auto px-4">
       <summary className="cursor-pointer hover:text-gray-700 list-none select-none">
         Popular searches
       </summary>
-      <nav
+      <div
+        role="list"
         aria-label="Popular job search terms"
-        className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 leading-relaxed"
+        className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 leading-relaxed select-text"
       >
-        <Link to="/careers" className="hover:text-[#0B1220]">Jobs near me</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Job vacancy near me</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Urgent hiring near me</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Walk in interview</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Hiring immediately</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Apply job online</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Latest job vacancy</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Part time job near me</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Full time job</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Fresh graduate job</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">No experience job</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Immediate hiring</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Hiring now</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Pilot job vacancy</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Cadet pilot program</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Aviation job vacancy</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Jeweler job vacancy</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Diamond expert job vacancy</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Gemologist job</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Luxury retail job vacancy</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Sales executive job vacancy</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Account assistant job vacancy</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Admin executive job vacancy</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Software developer job vacancy</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Graphic designer job vacancy</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Marketing executive job vacancy</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Customer service job vacancy</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">HR assistant job vacancy</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Finance job vacancy</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Operation job vacancy</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Job vacancy in Kuala Lumpur</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Job vacancy in PJ</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Job vacancy in Penang</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Job vacancy in Malaysia</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Work from home Kuala Lumpur</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Remote job Malaysia</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Internship</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Graduate trainee program</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">Diploma holder job</Link>
-        <Link to="/careers" className="hover:text-[#0B1220]">SPM leaver job</Link>
-        <Link to="/careers/urgent-hiring-malaysia-2026" className="hover:text-[#0B1220]">Urgent hiring near me 2026</Link>
-      </nav>
+        {TERMS.map((term) => (
+          <span key={term} role="listitem">
+            {term}
+          </span>
+        ))}
+      </div>
     </details>
   )
 }

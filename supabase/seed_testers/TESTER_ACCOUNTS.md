@@ -45,7 +45,7 @@ Each HM owns one verified company + one approved active role posting at `salary_
 | H05 | `h05.meiling.health@dnj-test.my` | `TestDNJ#2026` | Tan Mei Ling | Healthcare / Medical | KlinikQ Holdings Sdn Bhd | Clinic Operations Lead | 7 000 – 9 500 |
 | H06 | `h06.faridah.edtech@dnj-test.my` | `TestDNJ#2026` | Faridah Hashim | EdTech / Education | Lumio Learning Sdn Bhd | Curriculum Lead | 6 500 – 9 000 |
 | H07 | `h07.vijay.logistics@dnj-test.my` | `TestDNJ#2026` | Vijay Raman | Logistics / Supply Chain | KargoLink Logistics Sdn Bhd | Warehouse Operations Manager | 7 500 – 10 500 |
-| H08 | `h08.sofia.hospitality@dnj-test.my` | `TestDNJ#2026` | Sofia Abdullah | Hospitality / Hotel | Heritage Hotels Group Sdn Bhd | F&B Director | 8 500 – 12 000 |
+| H08 | `h08.sofia.hospitality@dnj-test.my` | `TestDNJ#2026` | Sofia Abdullah | Hospitality / Hotel | Heritage Hotels Group Sdn Bhd | Hotel F&B Director | 8 500 – 12 000 |
 | H09 | `h09.kwanghoe.construction@dnj-test.my` | `TestDNJ#2026` | Lee Kwang Hoe | Construction / Real Estate | Granitebuild Engineering Sdn Bhd | Project Manager (M&E) | 9 000 – 13 000 |
 | H10 | `h10.chloe.design@dnj-test.my` | `TestDNJ#2026` | Chloe Ng | Design / Creative | Studio Lumens Creative Sdn Bhd | Senior UX Designer | 7 500 – 10 500 |
 

@@ -11,8 +11,8 @@ interface LegalCopy {
 
 const FALLBACK: LegalCopy = {
   legalReviewed: false,
-  lastUpdated: '2026-05-08',
-  version: '2.1',
+  lastUpdated: '9 May 2026',
+  version: '3.2',
 }
 
 export default function Terms() {
@@ -172,6 +172,40 @@ export default function Terms() {
         <p>
           We may update these terms. Material changes will be notified by email and require
           re-consent to continue using the platform.
+        </p>
+      </Section>
+
+      <Section title="11. Refunds & Chargebacks">
+        <p>
+          <strong>11.1 Eligibility.</strong> Diamond Points purchases and Extra Match
+          purchases via Billplz are non-refundable, except where:
+        </p>
+        <ul className="list-disc ml-6 space-y-1">
+          <li>You were charged in error (duplicate transaction, wrong amount).</li>
+          <li>The platform failed to credit your account within 24 hours of a successful payment.</li>
+          <li>
+            You are entitled to the §4.3 free replacement remedy and you elect a points
+            refund instead of a replacement match.
+          </li>
+        </ul>
+        <p>
+          <strong>11.2 How to request.</strong> Submit refund requests via the in-app Support
+          panel within <strong>14 days</strong> of the transaction. Include your Billplz
+          receipt number, the amount, and a brief reason. We aim to respond within 5 business
+          days.
+        </p>
+        <p>
+          <strong>11.3 Chargebacks.</strong> If you initiate a chargeback through your bank
+          without first contacting us, we may suspend your account pending investigation.
+          Chargebacks raised on transactions for services successfully delivered (matches
+          surfaced, points credited) will be contested with Billplz under their dispute
+          arbitration policy.
+        </p>
+        <p>
+          <strong>11.4 Discretion.</strong> Approved refunds are issued in Diamond Points
+          where possible, or to the original payment method at our discretion. Processing
+          time is up to 14 days from approval; bank credit timelines may add up to a further
+          7 days.
         </p>
       </Section>
 

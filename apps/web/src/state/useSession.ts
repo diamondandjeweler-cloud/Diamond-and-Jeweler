@@ -18,6 +18,23 @@ interface SessionState {
   refreshIsHM: () => Promise<void>
 }
 
+// Soft auth-presence cookie read by apps/web/middleware.ts to redirect
+// drive-by visits to /admin to /login before the SPA shell is served. Not a
+// real auth token — Supabase RLS + AdminGate enforce real authorization.
+function setAuthHintCookie() {
+  try {
+    const secure = location.protocol === 'https:' ? '; Secure' : ''
+    document.cookie = `dnj-auth=1; Path=/; Max-Age=2592000; SameSite=Lax${secure}`
+  } catch { /* tolerate */ }
+}
+
+function clearAuthHintCookie() {
+  try {
+    const secure = location.protocol === 'https:' ? '; Secure' : ''
+    document.cookie = `dnj-auth=; Path=/; Max-Age=0; SameSite=Lax${secure}`
+  } catch { /* tolerate */ }
+}
+
 async function fetchIsHM(userId: string): Promise<boolean> {
   const { data, error } = await supabase
     .from('hiring_managers')
@@ -83,6 +100,7 @@ export const useSession = create<SessionState>((set) => ({
         if (k.startsWith('sb-') || k === 'supabase.auth.token') localStorage.removeItem(k)
       })
     } catch { /* tolerate */ }
+    clearAuthHintCookie()
     set({ session: null, profile: null, isHM: false, loading: false })
     // Hard reload — clears all JS state and prevents any token-refresh race
     // from restoring the session before React Router can redirect.
@@ -126,12 +144,14 @@ export function bootstrapSession() {
     clearTimeout(watchdog)
     try {
       if (!session) {
+        clearAuthHintCookie()
         useSession.setState({ session: null, profile: null, isHM: false, loading: false })
         return
       }
       // Set the session immediately so route guards see auth state, even
       // before profile resolves. ConsentGate shows a spinner while profile
       // is null + session truthy.
+      setAuthHintCookie()
       useSession.setState({ session, loading: false })
       const [profile, isHM] = await Promise.all([
         fetchProfile(session.user.id).catch((e) => {

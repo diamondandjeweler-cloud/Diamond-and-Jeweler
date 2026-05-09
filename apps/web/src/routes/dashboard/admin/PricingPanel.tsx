@@ -125,7 +125,7 @@ export default function PricingPanel() {
     <div className="space-y-8 max-w-2xl">
       {/* Points packages */}
       <section>
-        <h2 className="font-semibold text-ink-900 mb-1">Points packages</h2>
+        <h2 className="font-semibold text-ink-900 mb-1">Diamond Points packages</h2>
         <p className="text-xs text-ink-500 mb-3">Packages users can buy via Billplz FPX. Add, remove, or edit freely.</p>
         <div className="space-y-2">
           {packages.map((pkg) => (
@@ -147,7 +147,7 @@ export default function PricingPanel() {
                 onChange={(e) => updatePkg(pkg.id, 'price_rm', e.target.value)}
                 className="w-20 text-sm border border-ink-200 rounded px-2 py-1"
               />
-              <label htmlFor={`pkg-pts-${pkg.id}`} className="text-xs text-ink-500 shrink-0">pts</label>
+              <label htmlFor={`pkg-pts-${pkg.id}`} className="text-xs text-ink-500 shrink-0">Points</label>
               <input
                 id={`pkg-pts-${pkg.id}`}
                 type="number"
@@ -192,7 +192,7 @@ export default function PricingPanel() {
             />
           </div>
           <div>
-            <label htmlFor="pricing-redemption-cost" className="block text-xs text-ink-600 mb-1">Redeem cost (pts / match)</label>
+            <label htmlFor="pricing-redemption-cost" className="block text-xs text-ink-600 mb-1">Redeem cost (Diamond Points / match)</label>
             <input
               id="pricing-redemption-cost"
               type="number"

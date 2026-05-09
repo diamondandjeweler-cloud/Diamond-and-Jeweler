@@ -1,7 +1,12 @@
+// Vercel Edge middleware. Two responsibilities:
+//   1. Sliding-window rate-limit /api/* (per IP, 100 req/min).
+//   2. Soft edge gate on /admin/* — redirect to /login if no client-set
+//      'dnj-auth' presence cookie. The cookie is set by useSession.ts when
+//      a Supabase session boots (and cleared on signOut). It is NOT a real
+//      auth token — real authorization is enforced by Supabase RLS and the
+//      client-side AdminGate. The edge gate exists only to stop drive-by
+//      visits to /admin from being served the SPA shell.
 
-// Simple in-process sliding window rate limiter.
-// State resets on cold start — acceptable for MVP. For production scale,
-// replace with Upstash Redis (@upstash/ratelimit).
 const WINDOW_MS = 60_000   // 1 minute
 const MAX_REQS  = 100       // per IP per window
 
@@ -20,7 +25,6 @@ function rateLimit(ip: string): { allowed: boolean; remaining: number } {
   return { allowed: b.count <= MAX_REQS, remaining }
 }
 
-// Evict expired buckets every 500 requests to prevent unbounded growth.
 let evictCounter = 0
 function maybeEvict() {
   if (++evictCounter < 500) return
@@ -31,9 +35,29 @@ function maybeEvict() {
   }
 }
 
+function hasAuthHint(req: Request): boolean {
+  const cookie = req.headers.get('cookie') ?? ''
+  return /(?:^|;\s*)dnj-auth=1(?:;|$)/.test(cookie)
+}
+
 export default function middleware(req: Request) {
-  // Only rate-limit API routes, not static assets or the SPA shell.
   const { pathname } = new URL(req.url)
+
+  // /admin gate — soft cookie-presence check before serving the SPA shell.
+  if (pathname === '/admin' || pathname.startsWith('/admin/')) {
+    if (!hasAuthHint(req)) {
+      return new Response(null, {
+        status: 302,
+        headers: {
+          Location: `/login?from=${encodeURIComponent(pathname)}`,
+          'Cache-Control': 'no-store',
+        },
+      })
+    }
+    return
+  }
+
+  // /api/* — rate limit only.
   if (!pathname.startsWith('/api/')) return
 
   const ip =
@@ -62,5 +86,5 @@ export default function middleware(req: Request) {
 }
 
 export const config = {
-  matcher: ['/api/:path*'],
+  matcher: ['/api/:path*', '/admin', '/admin/:path*'],
 }

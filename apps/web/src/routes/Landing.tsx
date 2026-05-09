@@ -16,6 +16,12 @@ export default function Landing() {
 
   return (
     <div className="relative min-h-screen md:h-screen flex flex-col md:overflow-hidden bg-white text-[#0B1220] font-sans">
+      <a
+        href="#landing-main"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-[#0B1220] text-white px-3 py-2 rounded z-50 text-sm"
+      >
+        Skip to main content
+      </a>
       <BackgroundDecor />
 
       {/* Top Bar */}
@@ -34,7 +40,7 @@ export default function Landing() {
         </div>
       </header>
 
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-start md:justify-center px-6 py-4 md:py-2 md:min-h-0">
+      <main id="landing-main" className="relative z-10 flex-1 flex flex-col items-center justify-start md:justify-center px-6 py-4 md:py-2 md:min-h-0">
         {/* Hero */}
         <div className="text-center max-w-3xl mx-auto mb-4 md:mb-6">
           <div className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2">
@@ -110,8 +116,8 @@ export default function Landing() {
 
 function PopularSearches() {
   return (
-    <details className="text-[10px] text-gray-400 max-w-3xl mx-auto px-4">
-      <summary className="cursor-pointer hover:text-gray-600 list-none select-none">
+    <details className="text-[10px] text-gray-500 max-w-3xl mx-auto px-4">
+      <summary className="cursor-pointer hover:text-gray-700 list-none select-none">
         Popular searches
       </summary>
       <nav

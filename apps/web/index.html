@@ -4,11 +4,13 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Critical-path preconnects (max 4 per Lighthouse): Supabase + Google Fonts. -->
     <link rel="preconnect" href="https://sfnrpbsdscikpmbhrzub.supabase.co" />
-    <link rel="preconnect" href="https://challenges.cloudflare.com" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="preconnect" href="https://plausible.io" />
+    <!-- Non-critical (auth-only / analytics): just dns-prefetch to avoid the preconnect handshake cost. -->
+    <link rel="dns-prefetch" href="https://challenges.cloudflare.com" />
+    <link rel="dns-prefetch" href="https://plausible.io" />
 
     <!-- Privacy-friendly analytics by Plausible -->
     <script async src="https://plausible.io/js/pa-n3Oe5Vl4m278zpn7VmHts.js"></script>

@@ -1,4 +1,4 @@
-import { Link, useParams, Navigate } from 'react-router-dom'
+import { Link, useLocation, Navigate } from 'react-router-dom'
 import { useSeo } from '../lib/useSeo'
 import RelatedLinks from '../components/RelatedLinks'
 import { LOCATIONS, ROLES, type LocationSlug } from '../data/silo-data'
@@ -6,8 +6,11 @@ import { LOCATIONS, ROLES, type LocationSlug } from '../data/silo-data'
 const ORIGIN = 'https://diamondandjeweler.com'
 
 export default function LocationSilo() {
-  const { slug } = useParams<{ slug: string }>()
-  const loc = slug ? LOCATIONS[slug as LocationSlug] : undefined
+  // Route is literal `/jobs-in-<slug>` (React Router can't bind `:slug` after a hyphen),
+  // so derive the slug from the URL path instead of useParams.
+  const { pathname } = useLocation()
+  const slug = pathname.replace(/^\/jobs-in-/, '').replace(/\/$/, '') as LocationSlug
+  const loc = LOCATIONS[slug]
 
   if (!loc) return <Navigate to="/careers" replace />
 

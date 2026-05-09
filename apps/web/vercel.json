@@ -24,7 +24,11 @@
     },
     {
       "src": "/(?:admin|talent|hm|hr|onboarding|mfa|consent|home|referrals|points|consult|data-requests|feedback|payment)(.*)",
-      "headers": { "X-Robots-Tag": "noindex, nofollow" },
+      "headers": {
+        "X-Robots-Tag": "noindex, nofollow",
+        "Cache-Control": "no-store, no-cache, must-revalidate, private",
+        "Pragma": "no-cache"
+      },
       "continue": true
     },
     {

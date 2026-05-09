@@ -17,15 +17,17 @@ import SystemConfigPanel from './admin/SystemConfigPanel'
 import PricingPanel from './admin/PricingPanel'
 import SupportPanel from './admin/SupportPanel'
 import AuditLogPanel from './admin/AuditLogPanel'
+import DevSeedPanel from './admin/DevSeedPanel'
 import { PageHeader } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
+import { useSession } from '../../state/useSession'
 
 type AdminTab =
   | 'kpi' | 'companies' | 'waitlist' | 'coldstart' | 'users' | 'approvals' | 'moderation' | 'matches'
   | 'monthly_boost' | 'tags' | 'dsr' | 'market' | 'notifications' | 'pricing' | 'config'
-  | 'support' | 'audit'
+  | 'support' | 'audit' | 'dev_seed'
 
-const TABS: Array<{ key: AdminTab; label: string; render: () => JSX.Element }> = [
+const TABS: Array<{ key: AdminTab; label: string; render: () => JSX.Element; testOnly?: boolean }> = [
   { key: 'kpi',           label: 'Overview',      render: () => <KpiPanel /> },
   { key: 'companies',     label: 'Verification',  render: () => <VerificationQueue /> },
   { key: 'waitlist',      label: 'Waitlist',      render: () => <WaitlistPanel /> },
@@ -43,12 +45,17 @@ const TABS: Array<{ key: AdminTab; label: string; render: () => JSX.Element }> =
   { key: 'pricing',       label: 'Pricing',       render: () => <PricingPanel /> },
   { key: 'config',        label: 'Config (raw)',  render: () => <SystemConfigPanel /> },
   { key: 'support',       label: 'Support',       render: () => <SupportPanel /> },
+  { key: 'dev_seed',      label: 'Dev seed',      render: () => <DevSeedPanel />, testOnly: true },
 ]
 
 export default function AdminDashboard() {
   useSeo({ title: 'Admin console', noindex: true })
+  const { profile } = useSession()
+  const isTestEnv = import.meta.env.DEV ||
+    (profile?.email?.toLowerCase().endsWith('@dnj-test.my') ?? false)
+  const visibleTabs = TABS.filter((t) => !t.testOnly || isTestEnv)
   const [tab, setTab] = useState<AdminTab>('kpi')
-  const active = TABS.find((t) => t.key === tab) ?? TABS[0]
+  const active = visibleTabs.find((t) => t.key === tab) ?? visibleTabs[0]
 
   return (
     <div>
@@ -63,7 +70,7 @@ export default function AdminDashboard() {
         role="tablist"
         aria-label="Admin sections"
       >
-        {TABS.map((t) => (
+        {visibleTabs.map((t) => (
           <TabButton key={t.key} active={tab === t.key} onClick={() => setTab(t.key)}>
             {t.label}
           </TabButton>

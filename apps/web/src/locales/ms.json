@@ -80,7 +80,12 @@
     "passwordUpdated": "Kata laluan dikemas kini",
     "redirectingHome": "Mengarahkan anda ke papan pemuka…",
     "signedInOk": "Telah log masuk",
-    "signInTimeout": "Log masuk tamat masa — sila muat semula halaman dan cuba lagi."
+    "signInTimeout": "Log masuk tamat masa — sila muat semula halaman dan cuba lagi.",
+    "verifyingHuman": "Mengesahkan anda manusia…"
+  },
+  "dashboard": {
+    "talentGreeting": "Selamat kembali, {{name}}",
+    "hmGreeting": "Mengambil untuk pasukan {{name}}"
   },
   "nav": {
     "home": "Utama",

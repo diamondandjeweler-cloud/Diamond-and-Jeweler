@@ -1,10 +1,13 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { callFunction } from '../../lib/functions'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import { useSeo } from '../../lib/useSeo'
+import { getDisplayName } from '../../lib/displayName'
+import { formatError } from '../../lib/errors'
 import { Button, Card, Badge, Alert, EmptyState, PageHeader, Stat } from '../../components/ui'
 import MatchExplain from '../../components/MatchExplain'
 import ScreeningChecklist from '../../components/ScreeningChecklist'
@@ -67,6 +70,7 @@ const ACTIVE = [
 
 export default function HMDashboard() {
   useSeo({ title: 'Candidates', noindex: true })
+  const { t } = useTranslation()
   const { session, profile } = useSession()
   const [roleCount, setRoleCount] = useState<number>(0)
   const [candidates, setCandidates] = useState<CandidateRow[]>([])
@@ -424,7 +428,7 @@ export default function HMDashboard() {
       setLinkRequest(null)
       if (action === 'accept') window.location.reload()
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e))
+      setErr(formatError(e))
     }
     setLinkBusy(false)
   }
@@ -454,7 +458,7 @@ export default function HMDashboard() {
       )}
 
       <PageHeader
-        eyebrow={profile && `Hiring for ${profile.full_name.split(' ')[0]}'s team`}
+        eyebrow={profile && t('dashboard.hmGreeting', { name: getDisplayName(profile) })}
         title="Your candidates"
         description="Curated shortlists for your active roles. Invite to interview or decline — up to three per role."
         actions={

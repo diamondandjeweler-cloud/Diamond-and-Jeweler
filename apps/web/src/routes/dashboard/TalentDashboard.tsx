@@ -1,10 +1,12 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { callFunction } from '../../lib/functions'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import { useSeo } from '../../lib/useSeo'
+import { getDisplayName } from '../../lib/displayName'
 import { Button, Card, Badge, Alert, EmptyState, PageHeader, Stat } from '../../components/ui'
 import MatchExplain from '../../components/MatchExplain'
 import CareerNudgePanel from '../../components/CareerNudgePanel'
@@ -49,6 +51,7 @@ const TALENT_OUTCOMES = [
 
 export default function TalentDashboard() {
   useSeo({ title: 'My offers', noindex: true })
+  const { t } = useTranslation()
   const { session, profile } = useSession()
   const location = useLocation()
   const navigate = useNavigate()
@@ -379,7 +382,7 @@ export default function TalentDashboard() {
   return (
     <div>
       <PageHeader
-        eyebrow={profile && `Welcome back, ${profile.full_name.split(' ')[0]}`}
+        eyebrow={profile && t('dashboard.talentGreeting', { name: getDisplayName(profile) })}
         title="Your top opportunities"
         description="Up to three curated matches at a time. Accept or decline — no applications needed."
         actions={<Link to="/talent/profile" className="btn-secondary">Edit profile</Link>}

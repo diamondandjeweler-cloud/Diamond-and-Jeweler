@@ -80,7 +80,12 @@
     "passwordUpdated": "Password updated",
     "redirectingHome": "Redirecting you to your dashboard…",
     "signedInOk": "Signed in",
-    "signInTimeout": "Sign-in timed out — please refresh the page and try again."
+    "signInTimeout": "Sign-in timed out — please refresh the page and try again.",
+    "verifyingHuman": "Verifying you're human…"
+  },
+  "dashboard": {
+    "talentGreeting": "Welcome back, {{name}}",
+    "hmGreeting": "Hiring for {{name}}'s team"
   },
   "nav": {
     "home": "Home",

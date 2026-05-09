@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import CookieBanner from '../../components/CookieBanner'
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -8,6 +8,7 @@ import { Button, Input, PasswordInput, Alert } from '../../components/ui'
 import { markAdminVerified } from '../../lib/adminReauth'
 import Turnstile from '../../components/Turnstile'
 import { useSeo } from '../../lib/useSeo'
+import { logAuthFailure } from '../../lib/authTelemetry'
 
 export default function Login() {
   useSeo({
@@ -30,6 +31,13 @@ export default function Login() {
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  // Queue a submit when the user clicks before the Turnstile token has
+  // arrived. Without this, the click was either (a) suppressed by the
+  // disabled-button race or (b) early-returned with a confusing "complete the
+  // verification" error. We now show "verifying..." and submit automatically
+  // once the token populates.
+  const queuedRef = useRef(false)
+  const [waitingForCaptcha, setWaitingForCaptcha] = useState(false)
 
   async function handleGoogleSignIn() {
     setErr(null)
@@ -54,23 +62,53 @@ export default function Login() {
     if (error) { setErr(error.message); setBusy(false) }
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setErr(null)
-    if (!captchaToken) { setErr('Please complete the verification.'); return }
+  async function doSubmit(token: string) {
     setBusy(true)
+    setWaitingForCaptcha(false)
     const timeout = new Promise<{ error: { message: string } }>(resolve =>
       setTimeout(() => resolve({ error: { message: t('auth.signInTimeout') } }), 15000)
     )
     const { error } = await Promise.race([
-      supabase.auth.signInWithPassword({ email, password, options: { captchaToken } }),
+      supabase.auth.signInWithPassword({ email, password, options: { captchaToken: token } }),
       timeout,
     ])
     setBusy(false)
-    if (error) { setErr(error.message); setCaptchaToken(null); return }
+    if (error) {
+      setErr(error.message)
+      setCaptchaToken(null)
+      logAuthFailure(email, error.message)
+      return
+    }
     markAdminVerified()
     navigate(redirectTo, { replace: true })
   }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setErr(null)
+    if (!email || !password) { setErr('Please enter your email and password.'); return }
+    if (!captchaToken) {
+      // Token not in yet — queue submit instead of bouncing the user.
+      queuedRef.current = true
+      setWaitingForCaptcha(true)
+      return
+    }
+    await doSubmit(captchaToken)
+  }
+
+  // When the Turnstile token arrives after the user clicked, fire the queued
+  // submit. We also clear queue state on token expiry/error so the next click
+  // works normally.
+  useEffect(() => {
+    if (captchaToken && queuedRef.current) {
+      queuedRef.current = false
+      void doSubmit(captchaToken)
+    } else if (!captchaToken && waitingForCaptcha && !busy) {
+      // Token cleared without a submit — drop the waiting state.
+      // (Don't clear if we're mid-submit; doSubmit handles its own busy flag.)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [captchaToken])
 
   return (
     <>
@@ -114,8 +152,11 @@ export default function Login() {
           <PasswordInput label={t('common.password')} value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
           <Turnstile onToken={setCaptchaToken} />
           {err && <Alert tone="red">{err}</Alert>}
-          <Button type="submit" loading={busy} className="w-full" size="lg" disabled={!captchaToken}>
-            {busy ? t('auth.signingIn') : t('common.signIn')}
+          {waitingForCaptcha && !err && (
+            <Alert tone="amber">{t('auth.verifyingHuman')}</Alert>
+          )}
+          <Button type="submit" loading={busy || waitingForCaptcha} className="w-full" size="lg">
+            {busy ? t('auth.signingIn') : waitingForCaptcha ? t('auth.verifyingHuman') : t('common.signIn')}
           </Button>
           <div className="text-center text-sm">
             <Link to="/password-reset" className="text-ink-500 hover:text-ink-800">{t('auth.forgotPassword')}</Link>

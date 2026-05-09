@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import LoadingSpinner from '../../../components/LoadingSpinner'
+import { formatError } from '../../../lib/errors'
 
 interface Kpis {
   total_matches: number
@@ -86,7 +87,7 @@ export default function KpiPanel() {
         waitlist_pending, avg_hours_to_first_view, interview_hire_rate,
       })
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e))
+      setErr(formatError(e))
     } finally {
       setLoading(false)
     }

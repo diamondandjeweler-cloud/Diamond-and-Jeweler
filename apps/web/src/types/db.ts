@@ -4,6 +4,7 @@ export interface Profile {
   id: string
   email: string
   full_name: string
+  display_name: string | null
   phone: string | null
   role: Role
   consents: Record<string, unknown>

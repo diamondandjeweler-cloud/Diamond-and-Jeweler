@@ -80,7 +80,12 @@
     "passwordUpdated": "密码已更新",
     "redirectingHome": "正在将您带到仪表板…",
     "signedInOk": "已登录",
-    "signInTimeout": "登录超时——请刷新页面重试。"
+    "signInTimeout": "登录超时——请刷新页面重试。",
+    "verifyingHuman": "正在验证您是否为真人…"
+  },
+  "dashboard": {
+    "talentGreeting": "欢迎回来，{{name}}",
+    "hmGreeting": "为 {{name}} 的团队招聘"
   },
   "nav": {
     "home": "首页",

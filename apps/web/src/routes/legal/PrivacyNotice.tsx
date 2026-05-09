@@ -17,14 +17,14 @@ const FALLBACK: LegalCopy = {
   contactEmail: 'privacy@diamondandjeweler.com',
   dpoEmail: 'dpo@diamondandjeweler.com',
   legalReviewed: false,
-  lastUpdated: '2026-05-01',
-  version: '2.0',
+  lastUpdated: '1 May 2026',
+  version: '3.1',
 }
 
 export default function PrivacyNotice() {
   useSeo({
     title: 'Privacy notice',
-    description: 'How DNJ collects, uses, and protects your personal data under PDPA (Malaysia) and applicable privacy laws.',
+    description: 'How DNJ collects, uses, and protects your personal data under the Personal Data Protection Act 2010 (Malaysia).',
   })
   const [copy, setCopy] = useState<LegalCopy>(FALLBACK)
 
@@ -49,6 +49,8 @@ export default function PrivacyNotice() {
     return () => { cancelled = true }
   }, [])
 
+  const entity = copy.entityName ?? 'CRM Solution (003808986-A)'
+
   return (
     <article className="max-w-3xl mx-auto px-4 py-10">
       <Link to="/" className="text-brand-600 text-sm underline">← Home</Link>
@@ -58,15 +60,19 @@ export default function PrivacyNotice() {
         {!copy.legalReviewed && ' · Draft pending legal review'}
         {' · Version: '}{copy.version}
       </p>
+      <p className="text-sm text-gray-700 mb-6">
+        This Privacy Notice is issued in accordance with the Personal Data Protection Act 2010
+        (&ldquo;PDPA&rdquo;).
+      </p>
 
-      <Section title="0. Data Controller">
+      <Section title="0. Data Controller (Data User)">
         <p>
-          DNJ Recruitment Platform operated by{' '}
-          <strong>{copy.entityName ?? 'CRM Solution (003808986-A)'}</strong>,
-          a company registered in Malaysia.
+          DNJ Recruitment Platform is operated by <strong>{entity}</strong>, Malaysia
+          (&ldquo;DNJ&rdquo;, &ldquo;we&rdquo;, &ldquo;our&rdquo;, &ldquo;us&rdquo;).
         </p>
+        <p>{entity} is the Data User for the purposes of the PDPA.</p>
         <p>
-          Data Protection Officer (DPO):{' '}
+          Data Protection Officer:{' '}
           <a href={`mailto:${copy.dpoEmail}`} className="underline">{copy.dpoEmail}</a>
         </p>
         <p>
@@ -75,242 +81,251 @@ export default function PrivacyNotice() {
         </p>
       </Section>
 
-      <Section title="1. Data We Collect">
-        <p className="font-semibold mt-2">Account Identity (required to create account)</p>
+      <Section title="1. Personal Data We Collect">
+        <p className="font-semibold mt-2">A. Account Identity — Required for Account Creation</p>
         <ul className="list-disc ml-6 space-y-1">
           <li>Full name</li>
           <li>Email address</li>
           <li>Phone number</li>
+          <li>Date of birth (DOB)</li>
         </ul>
-
-        <p className="font-semibold mt-3">Date of Birth (required for matching)</p>
+        <p className="font-semibold mt-3">Date of Birth</p>
         <p>
-          Your date of birth is required for our matching system to find roles where you&apos;ll
-          thrive at this stage of your career. Without it we cannot produce matches and the
-          platform serves no purpose for you. You may decline, but in that case you cannot use
-          the platform. DOB is encrypted at the database column level and is never shown to
-          employers or other users.
+          Your date of birth is a required parameter in our matching system. It is used to ensure
+          the roles recommended to you are appropriate for your career stage and profile. Without
+          your date of birth, the platform cannot generate meaningful matches and you will not be
+          able to use the service.
+        </p>
+        <p>
+          Your DOB is encrypted at database column level and is never disclosed to hiring
+          companies or other users.
         </p>
 
-        <p className="font-semibold mt-3">Professional Data (Talents)</p>
+        <p className="font-semibold mt-3">B. Professional Data (Talents)</p>
         <ul className="list-disc ml-6 space-y-1">
-          <li>Résumé</li>
-          <li>Interview answers</li>
-          <li>Workplace preference ratings</li>
-          <li>Salary expectations</li>
+          <li>Résumé / CV</li>
+          <li>Employment history</li>
+          <li>Interview responses</li>
         </ul>
+        <p className="mt-2">
+          This information enables us to assess your professional background, competencies, and
+          experience so that we can match you with roles that are genuinely suitable.
+        </p>
 
-        <p className="font-semibold mt-3">Company Data (Hiring Side)</p>
+        <p className="font-semibold mt-3">C. Workplace Preferences and Salary Expectations</p>
+        <p>
+          Your stated workplace preferences and salary expectations allow the platform to
+          recommend opportunities, work environments, and roles that align with your goals and
+          expectations.
+        </p>
+
+        <p className="font-semibold mt-3">D. Company Data (Hiring Users)</p>
         <ul className="list-disc ml-6 space-y-1">
           <li>SSM registration number</li>
-          <li>Business license</li>
+          <li>Business licence information</li>
           <li>Role requirements</li>
         </ul>
 
-        <p className="font-semibold mt-3">Technical Data</p>
+        <p className="font-semibold mt-3">E. Technical Data</p>
         <ul className="list-disc ml-6 space-y-1">
           <li>IP address</li>
           <li>Browser user agent</li>
-          <li>Session tokens</li>
+          <li>Session identifiers</li>
         </ul>
 
-        <p className="font-semibold mt-3">Optional Identity-Verification Data (Voluntary)</p>
-        <p>
-          The following are <strong>not required</strong> to use matching features and are
-          collected only if you opt into the optional Identity-Verification Badge in future:
-        </p>
+        <p className="font-semibold mt-3">F. Optional Identity Verification Data (Voluntary)</p>
+        <p>Collected only if you opt into the Identity Verification Badge:</p>
         <ul className="list-disc ml-6 space-y-1">
           <li>NRIC / Passport number and copy</li>
           <li>Photograph</li>
         </ul>
-      </Section>
-
-      <Section title="2. Purposes of Processing">
-        <ul className="list-disc ml-6 space-y-1">
-          <li>Operating accounts and authentication.</li>
-          <li>Performing matching and interview scheduling.</li>
-          <li>
-            Generating AI-powered match scores using profile data.{' '}
-            <strong>Sensitive data (NRIC/Passport, full DOB digits) is never shown to employers
-              or other users.</strong>
-          </li>
-          <li>Providing anonymised market-rate salary comparisons.</li>
-          <li>Sending transactional emails via Resend Inc.</li>
-          <li>Sending optional WhatsApp messages via WATI when you opt in.</li>
-        </ul>
         <p className="mt-2">
-          The matching methodology is proprietary and is treated as a trade secret. We do not
-          disclose the exact rules.
+          This information is <strong>not required</strong> to use the platform&rsquo;s matching
+          features and is used strictly for verification.
         </p>
       </Section>
 
-      <Section title="3. Legal Basis (PDPA)">
-        <p>
-          Processing is based on your <strong>explicit consent</strong>, captured at signup and
-          recorded against your profile. You may withdraw consent at any time via the{' '}
-          <Link to="/data-requests" className="text-brand-600 underline">Data Requests</Link>{' '}
-          page. Withdrawal may end your access to the platform if the data is required for the
-          service to function (e.g. DOB).
+      <Section title="2. Purposes of Processing">
+        <p>Your personal data is processed to:</p>
+        <ul className="list-disc ml-6 space-y-1">
+          <li>Create and authenticate accounts</li>
+          <li>Perform talent-to-role matching and interview scheduling</li>
+          <li>Generate compatibility scores using profile data</li>
+          <li>Provide anonymised salary insights</li>
+          <li>Send transactional communications</li>
+          <li>Send WhatsApp communications where you opt in</li>
+          <li>Perform optional identity verification</li>
+          <li>Maintain platform security, fraud prevention, and audit logging</li>
+          <li>Comply with legal and regulatory obligations</li>
+        </ul>
+        <p className="mt-2">
+          Sensitive identifiers (NRIC, Passport, full DOB digits) are never disclosed to hiring
+          companies or other users.
+        </p>
+      </Section>
+
+      <Section title="3. Legal Basis of Processing">
+        <p>Processing is based on:</p>
+        <ul className="list-disc ml-6 space-y-1">
+          <li>Your consent at registration; and</li>
+          <li>The necessity of processing to provide the platform services you request.</li>
+        </ul>
+        <p className="mt-2">
+          You may withdraw consent at any time. Where the withdrawn data is essential to platform
+          functionality (e.g. DOB), you may no longer be able to use the service.
         </p>
       </Section>
 
       <Section title="4. Mandatory Notice under Section 7 PDPA">
-        <ul className="list-disc ml-6 space-y-1">
+        <p>You are informed that:</p>
+        <ul className="list-none ml-2 space-y-1">
           <li>
-            <strong>(a)</strong> Data marked &ldquo;required&rdquo; in §1 is obligatory to create
-            an account. Other data is voluntary.
+            <strong>(a)</strong> Data listed as &ldquo;required&rdquo; in Section 1 is obligatory
+            to create an account.
           </li>
           <li>
-            <strong>(b)</strong> Failure to provide required data prevents account creation. You
-            cannot use the platform without DOB.
+            <strong>(b)</strong> Failure to provide required data prevents account creation and
+            platform use.
           </li>
           <li>
-            <strong>(c)</strong> You may request access to and correction of your data via the{' '}
-            <Link to="/data-requests" className="text-brand-600 underline">Data Requests</Link>{' '}
-            page.
+            <strong>(c)</strong> You may request access to and correction of your personal data.
           </li>
           <li>
-            <strong>(d)</strong> You may limit processing via privacy settings or by withdrawing
-            consent.
+            <strong>(d)</strong> You may limit or withdraw consent to processing.
           </li>
           <li>
-            <strong>(e)</strong> Data may be disclosed to <strong>data processors</strong>{' '}
-            (Supabase, Resend, WATI), to <strong>matched hiring companies</strong> as described
-            in §6, or to <strong>authorities</strong> where legally required.
-          </li>
-          <li>
-            <strong>(f)</strong> Data is obtained directly from you. We do not buy or scrape
-            personal data from third parties.
-          </li>
-        </ul>
-      </Section>
-
-      <Section title="5. How Your Data Is Protected">
-        <ul className="list-disc ml-6 space-y-1">
-          <li>TLS (HTTPS) in transit, AES-256 at rest.</li>
-          <li>Column-level encryption for DOB using pgcrypto.</li>
-          <li>Private storage buckets with Row-Level Security policies.</li>
-          <li>
-            Role-based, logged admin access. Admin access is strictly for verification, dispute
-            resolution, legal compliance, and security auditing — not browsing.
-          </li>
-          <li>NRIC / Passport copies (if provided for the optional badge) are deleted 30 days
-            after verification completes.</li>
-        </ul>
-      </Section>
-
-      <Section title="6. Who Sees Your Data">
-        <ul className="list-disc ml-6 space-y-1">
-          <li>
-            <strong>Hiring managers</strong> see only derived tags, preference ratings, and
-            salary expectations. They never see DOB, IC, email, or full name (unless you set your
-            profile to &lsquo;public&rsquo;).
-          </li>
-          <li>
-            <strong>HR admins</strong> see only the interview-scheduling queue for talents their
-            hiring managers have shortlisted. They do not browse talent data.
-          </li>
-          <li>
-            <strong>Talents</strong> see only their own matches and the company name attached to
-            each role. They do not see other talents.
-          </li>
-          <li>
-            <strong>Platform admins</strong> may access data <strong>strictly under role control
-            and audit logging</strong> for verification, dispute resolution, legal compliance,
-            and security auditing. All admin reads of sensitive data are logged.
-          </li>
-          <li>
-            <strong>Third parties</strong> act as Data Processors under written agreements:
+            <strong>(e)</strong> Personal data may be disclosed to:
             <ul className="list-disc ml-6 mt-1 space-y-1">
-              <li>Supabase Inc. — infrastructure hosting (Singapore)</li>
-              <li>Resend Inc. — email delivery</li>
-              <li>WATI — WhatsApp delivery (only if you opt in)</li>
+              <li>Our appointed data processors (listed in Section 6),</li>
+              <li>Hiring companies to the extent described in Section 6,</li>
+              <li>Authorities where legally required.</li>
             </ul>
           </li>
+          <li>
+            <strong>(f)</strong> All personal data is collected directly from you.
+          </li>
         </ul>
+      </Section>
+
+      <Section title="5. Security Measures">
+        <p>We implement concrete technical and organisational safeguards including:</p>
+        <ul className="list-disc ml-6 space-y-1">
+          <li>TLS (HTTPS) encryption in transit</li>
+          <li>AES-256 encryption at rest</li>
+          <li>Column-level encryption for DOB</li>
+          <li>Role-based access control with audit logging</li>
+          <li>Private storage architecture with access policies</li>
+        </ul>
+        <p className="mt-2">
+          Administrative access is strictly limited to verification, dispute resolution, legal
+          compliance, and security auditing. All access to sensitive data is logged.
+        </p>
+        <p className="mt-2">
+          NRIC / Passport copies (if provided) are permanently deleted 30 days after verification.
+        </p>
+      </Section>
+
+      <Section title="6. Disclosure of Personal Data">
+        <p className="font-semibold mt-2">Hiring Companies see only:</p>
+        <ul className="list-disc ml-6 space-y-1">
+          <li>Derived professional tags</li>
+          <li>Preference ratings</li>
+          <li>Salary expectations</li>
+        </ul>
+        <p className="mt-2">
+          They do not see your DOB, NRIC, email, or full name unless you explicitly make your
+          profile public.
+        </p>
+
+        <p className="font-semibold mt-3">Talents</p>
+        <p>Talents see only their own matches and company names.</p>
+
+        <p className="font-semibold mt-3">Platform Administrators</p>
+        <p>
+          Access data only under strict role control and logging for legitimate operational
+          purposes.
+        </p>
+
+        <p className="font-semibold mt-3">Data Processors (under written agreements)</p>
+        <ul className="list-disc ml-6 space-y-1">
+          <li>
+            Supabase Inc. — Infrastructure hosting (Singapore) —{' '}
+            <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="underline">Supabase</a>
+          </li>
+          <li>
+            Resend Inc. — Transactional email delivery —{' '}
+            <a href="https://resend.com" target="_blank" rel="noopener noreferrer" className="underline">Resend</a>
+          </li>
+          <li>
+            WATI — WhatsApp delivery (opt-in only) —{' '}
+            <a href="https://www.wati.io" target="_blank" rel="noopener noreferrer" className="underline">WATI</a>
+          </li>
+        </ul>
+        <p className="mt-2">These parties process data strictly on our instructions.</p>
       </Section>
 
       <Section title="7. Cross-Border Transfer (Section 129 PDPA)">
         <p>
-          Data is hosted in Singapore by Supabase Inc. Singapore provides protection
-          substantially similar to the Malaysian PDPA. By using the platform you consent to this
-          transfer. You may withdraw consent, but this may affect your ability to use the
-          platform.
+          Your data is hosted in Singapore by Supabase. We ensure through contractual safeguards
+          that our processors provide a level of protection comparable to the PDPA.
+        </p>
+        <p>
+          By using the platform, you consent to this transfer. Withdrawal of consent may affect
+          your ability to use the service.
         </p>
       </Section>
 
       <Section title="8. Data Breach Notification">
-        <p>If a data breach risks significant harm to you:</p>
+        <p>Where a breach is likely to result in significant harm:</p>
         <ul className="list-disc ml-6 space-y-1">
-          <li>JPDP will be notified within <strong>72 hours</strong> of detection.</li>
-          <li>Affected users will be notified within <strong>7 days</strong> of detection.</li>
-          <li>Records of the incident will be retained for <strong>2 years</strong>.</li>
+          <li>
+            The Jabatan Perlindungan Data Peribadi (JPDP) will be notified within{' '}
+            <strong>72 hours</strong> of detection.
+          </li>
+          <li>Affected users will be notified without undue delay.</li>
+          <li>Incident records are retained for <strong>2 years</strong>.</li>
         </ul>
       </Section>
 
-      <Section title="9. Retention">
+      <Section title="9. Retention of Data">
         <ul className="list-disc ml-6 space-y-1">
-          <li>Active account data is retained while the account is open.</li>
-          <li>NRIC / Passport (if provided) is deleted 30 days after verification.</li>
+          <li>Personal data is retained while your account is active.</li>
+          <li>NRIC / Passport copies deleted after 30 days.</li>
           <li>
-            After a deletion request, the account enters soft-delete state. Sensitive data is
-            purged 30 days later.
+            Upon deletion request, a 30-day soft-delete period applies before permanent erasure.
           </li>
-          <li>De-identified audit log rows are retained as required by law.</li>
+          <li>De-identified audit logs retained only as required by law.</li>
         </ul>
       </Section>
 
       <Section title="10. Your Rights">
-        <p>Under PDPA you have the right to:</p>
+        <p>You have the right to:</p>
         <ul className="list-disc ml-6 space-y-1">
-          <li><strong>Access</strong> a copy of your personal data.</li>
-          <li><strong>Correct</strong> inaccurate data.</li>
-          <li><strong>Delete</strong> your personal data (subject to legal retention requirements).</li>
-          <li><strong>Receive</strong> your data in a portable format (JSON+CSV bundle).</li>
-          <li><strong>Withdraw consent</strong> at any time.</li>
+          <li>Access your personal data</li>
+          <li>Correct inaccurate data</li>
+          <li>Request deletion (subject to legal retention requirements)</li>
+          <li>Withdraw consent</li>
+          <li>Request a portable copy of your data</li>
         </ul>
         <p className="mt-2">
-          To exercise any of these rights, submit a{' '}
-          <Link to="/data-requests" className="text-brand-600 underline">Data Request</Link>.
-          We respond within <strong>21 days</strong>.
+          Requests are handled within <strong>21 days</strong> via the{' '}
+          <Link to="/data-requests" className="text-brand-600 underline">Data Requests</Link>{' '}
+          page.
         </p>
       </Section>
 
       <Section title="11. Browser Storage (localStorage)">
-        <p>
-          This platform does <strong>not</strong> use advertising cookies or third-party tracking
-          cookies. We use browser <code>localStorage</code> for the following strictly necessary
-          purposes only:
-        </p>
-        <ul className="list-disc ml-6 space-y-1 mt-2">
-          <li>
-            <strong>Session token</strong> — keeps you signed in across page reloads. Managed by
-            Supabase Auth and cleared on sign-out.
-          </li>
-          <li>
-            <strong>Admin re-authentication timestamp</strong> — records the time you last confirmed
-            your password for admin access. Expires after 30 minutes.
-          </li>
-          <li>
-            <strong>Signup referral code</strong> — stored temporarily during the registration flow
-            and removed once account creation completes.
-          </li>
-          <li>
-            <strong>Selected account role</strong> — stored temporarily during signup and removed
-            after account creation.
-          </li>
-          <li>
-            <strong>Storage acknowledgement flag</strong> (<code>dnj_storage_ack</code>) — records
-            that you have seen this storage notice. No personal data.
-          </li>
+        <p>We do not use advertising or tracking cookies.</p>
+        <p>Browser storage is used strictly for essential platform functions including:</p>
+        <ul className="list-disc ml-6 space-y-1">
+          <li>Session management</li>
+          <li>Admin re-authentication timer</li>
+          <li>Temporary signup state</li>
+          <li>Storage acknowledgement flag</li>
         </ul>
         <p className="mt-2">
-          All items above are strictly necessary for the platform to function. They cannot be
-          disabled without breaking core features. Because they are not optional, no opt-in or
-          opt-out is offered for these items.
-        </p>
-        <p className="mt-2">
-          No cross-site tracking, behavioural advertising, or analytics cookies are set.
+          These items are strictly necessary for platform operation and cannot be disabled
+          without breaking core features.
         </p>
       </Section>
 
@@ -322,6 +337,9 @@ export default function PrivacyNotice() {
         <p>
           Privacy:{' '}
           <a href={`mailto:${copy.contactEmail}`} className="underline">{copy.contactEmail}</a>
+        </p>
+        <p className="mt-3 text-xs text-gray-500 italic">
+          Issued in compliance with the Personal Data Protection Act 2010 (Malaysia).
         </p>
       </Section>
 

@@ -12,6 +12,7 @@ import RoleGate from './components/RoleGate'
 import Landing from './routes/Landing'
 import SignUp from './routes/auth/SignUp'
 import Login from './routes/auth/Login'
+import { LOCATION_SLUGS, HIRE_SLUGS } from './data/silo-data'
 
 const Start            = lazy(() => import('./routes/Start'))
 const Careers          = lazy(() => import('./routes/Careers'))
@@ -95,8 +96,14 @@ export default function App() {
         <Route path="/careers/cadet-pilot-program-malaysia-guide" element={<CadetPilotGuide />} />
         <Route path="/careers/diamond-grader-vs-gemologist" element={<DiamondVsGemPost />} />
         <Route path="/jobs/:slug" element={<RoleSilo />} />
-        <Route path="/jobs-in-:slug" element={<LocationSilo />} />
-        <Route path="/hire-:slug" element={<HireSilo />} />
+        {/* React Router v6 cannot match a `:slug` parameter after a hyphen in literal path text,
+            so /jobs-in-:slug and /hire-:slug fall through to NotFound. Enumerate explicitly. */}
+        {LOCATION_SLUGS.map((slug) => (
+          <Route key={`loc-${slug}`} path={`/jobs-in-${slug}`} element={<LocationSilo />} />
+        ))}
+        {HIRE_SLUGS.map((slug) => (
+          <Route key={`hire-${slug}`} path={`/hire-${slug}`} element={<HireSilo />} />
+        ))}
         <Route path="/start/:side" element={<Start />} />
         <Route path="/waitlist/confirm" element={<WaitlistConfirm />} />
         <Route path="/auth/callback" element={<AuthCallback />} />

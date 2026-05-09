@@ -109,7 +109,7 @@ export default function HMOnboarding() {
     <div className="mb-4 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-900">
       <span className="font-semibold">You get 3 free matches.</span>{' '}
       Earn Diamond Points by giving feedback, completing interviews, and referring friends — or buy more.
-      {' '}<span className="font-semibold">21 pts = 1 extra match.</span>
+      {' '}<span className="font-semibold">21 Diamond Points = 1 extra match.</span>
     </div>
   ) : null
 

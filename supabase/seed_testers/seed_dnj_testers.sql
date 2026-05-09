@@ -1,0 +1,340 @@
+-- ============================================================
+-- DNJ AI Tester Seed
+-- Creates 1 admin (A01) + 9 hiring managers (H02..H10) + 20 talents (T01..T20)
+-- All emails end in @dnj-test.my
+-- All passwords: TestDNJ#2026
+-- Re-runnable: deletes prior @dnj-test.my data first.
+-- ============================================================
+
+-- 1) CLEANUP (idempotent)
+-- Order matters: hiring_managers RESTRICT-references companies; companies NO-ACTION-references
+-- profiles (created_by + verified_by). So drop in dependency order before auth.users cascade.
+DELETE FROM public.hiring_managers WHERE profile_id IN (SELECT id FROM public.profiles WHERE email LIKE '%@dnj-test.my');
+DELETE FROM public.companies       WHERE primary_hr_email LIKE '%@dnj-test.my';
+-- Now auth.users can safely cascade to profiles -> talents.
+DELETE FROM auth.users             WHERE email LIKE '%@dnj-test.my';
+
+-- ============================================================
+-- 2) CREATE auth.users + auth.identities for all 30 testers
+--    profiles row is auto-created by handle_new_user() trigger.
+-- ============================================================
+WITH t(tester_id, email, full_name, user_role) AS (VALUES
+  ('A01','a01.admin@dnj-test.my',                       'BoLe Test Admin',           'admin'),
+  ('H02','h02.andrew.finance@dnj-test.my',              'Andrew Lee',                'hiring_manager'),
+  ('H03','h03.anita.retail@dnj-test.my',                'Anita Selvaraj',            'hiring_manager'),
+  ('H04','h04.khairul.fnb@dnj-test.my',                 'Khairul Anwar',             'hiring_manager'),
+  ('H05','h05.meiling.health@dnj-test.my',              'Tan Mei Ling',              'hiring_manager'),
+  ('H06','h06.faridah.edtech@dnj-test.my',              'Faridah Hashim',            'hiring_manager'),
+  ('H07','h07.vijay.logistics@dnj-test.my',             'Vijay Raman',               'hiring_manager'),
+  ('H08','h08.sofia.hospitality@dnj-test.my',           'Sofia Abdullah',            'hiring_manager'),
+  ('H09','h09.kwanghoe.construction@dnj-test.my',       'Lee Kwang Hoe',             'hiring_manager'),
+  ('H10','h10.chloe.design@dnj-test.my',                'Chloe Ng',                  'hiring_manager'),
+  ('T01','t01.aiman.tech@dnj-test.my',                  'Aiman Rashid',              'talent'),
+  ('T02','t02.weiming.finance@dnj-test.my',             'Tan Wei Ming',              'talent'),
+  ('T03','t03.priya.retail@dnj-test.my',                'Priya Devi',                'talent'),
+  ('T04','t04.hafiz.fnb@dnj-test.my',                   'Hafiz Bin Yusof',           'talent'),
+  ('T05','t05.sueann.health@dnj-test.my',               'Lim Sue Ann',               'talent'),
+  ('T06','t06.aisyah.edtech@dnj-test.my',               'Nurul Aisyah',              'talent'),
+  ('T07','t07.ravi.logistics@dnj-test.my',              'Ravi Krishnan',             'talent'),
+  ('T08','t08.hidayah.hospitality@dnj-test.my',         'Nurul Hidayah',             'talent'),
+  ('T09','t09.kahleong.construction@dnj-test.my',       'Choo Kah Leong',            'talent'),
+  ('T10','t10.sarah.design@dnj-test.my',                'Sarah Chong',               'talent'),
+  ('T11','t11.faisal.manufacturing@dnj-test.my',        'Faisal Hakim',              'talent'),
+  ('T12','t12.joanna.marketing@dnj-test.my',            'Joanna Yeoh',               'talent'),
+  ('T13','t13.dharmendra.legal@dnj-test.my',            'Dharmendra Singh',          'talent'),
+  ('T14','t14.suzanne.hr@dnj-test.my',                  'Suzanne Lim',               'talent'),
+  ('T15','t15.rohan.consulting@dnj-test.my',            'Rohan Menon',               'talent'),
+  ('T16','t16.adlina.telecom@dnj-test.my',              'Adlina Binti Ismail',       'talent'),
+  ('T17','t17.razif.energy@dnj-test.my',                'Razif Bin Hamid',           'talent'),
+  ('T18','t18.vinothini.pharma@dnj-test.my',            'Vinothini Suppiah',         'talent'),
+  ('T19','t19.kokwei.automotive@dnj-test.my',           'Tan Kok Wei',               'talent'),
+  ('T20','t20.nurin.sales@dnj-test.my',                 'Nurin Iskandar',            'talent')
+), inserted AS (
+  INSERT INTO auth.users (
+    instance_id, id, aud, role, email, encrypted_password,
+    email_confirmed_at, created_at, updated_at,
+    confirmation_token, email_change, email_change_token_new, recovery_token,
+    raw_app_meta_data, raw_user_meta_data
+  )
+  SELECT
+    '00000000-0000-0000-0000-000000000000',
+    gen_random_uuid(),
+    'authenticated','authenticated',
+    t.email,
+    crypt('TestDNJ#2026', gen_salt('bf')),
+    now(), now(), now(),
+    '', '', '', '',
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    jsonb_build_object('full_name', t.full_name, 'role', t.user_role, 'tester_id', t.tester_id)
+  FROM t
+  RETURNING id, email
+)
+INSERT INTO auth.identities (
+  provider_id, user_id, identity_data, provider,
+  last_sign_in_at, created_at, updated_at
+)
+SELECT
+  i.id::text, i.id,
+  jsonb_build_object('sub', i.id::text, 'email', i.email, 'email_verified', true),
+  'email', now(), now(), now()
+FROM inserted i;
+
+-- ============================================================
+-- 3) Finalize profiles (trigger created the row already)
+-- ============================================================
+UPDATE public.profiles p
+SET onboarding_complete = true,
+    waitlist_approved   = true,
+    consent_version     = 'v2.1',
+    consent_signed_at   = now(),
+    consents            = '{"pdpa":true,"terms":true,"ai_data":true,"marketing":false}'::jsonb,
+    locale              = 'en',
+    phone               = '+60' || (123450000 + (abs(hashtext(p.email)) % 99999))::text,
+    whatsapp_number     = '+60' || (123450000 + (abs(hashtext(p.email)) % 99999))::text,
+    whatsapp_opt_in     = true
+FROM auth.users u
+WHERE p.id = u.id AND u.email LIKE '%@dnj-test.my';
+
+-- ============================================================
+-- 4) Create one company per HM (H02..H10), HM is created_by + verified by self
+-- ============================================================
+INSERT INTO public.companies (
+  name, registration_number, primary_hr_email,
+  industry, size, website,
+  verified, verified_at, verified_by,
+  created_by
+)
+SELECT d.company_name, d.reg_no, d.hm_email,
+       d.industry, d.size, d.website,
+       true, now(), p.id,
+       p.id
+FROM (VALUES
+  ('h02.andrew.finance@dnj-test.my',        'Pinnacle Capital Sdn Bhd',          '202401000002', 'Finance / Banking',           '51-200', 'https://pinnacle-capital.example.my'),
+  ('h03.anita.retail@dnj-test.my',          'LumiRetail Sdn Bhd',                '202401000003', 'Retail / E-commerce',         '11-50',  'https://lumiretail.example.my'),
+  ('h04.khairul.fnb@dnj-test.my',           'Saji Selera Group Sdn Bhd',         '202401000004', 'F&B / Restaurant',            '51-200', 'https://sajiselera.example.my'),
+  ('h05.meiling.health@dnj-test.my',        'KlinikQ Holdings Sdn Bhd',          '202401000005', 'Healthcare / Medical',        '51-200', 'https://klinikq.example.my'),
+  ('h06.faridah.edtech@dnj-test.my',        'Lumio Learning Sdn Bhd',            '202401000006', 'EdTech / Education',          '11-50',  'https://lumiolearning.example.my'),
+  ('h07.vijay.logistics@dnj-test.my',       'KargoLink Logistics Sdn Bhd',       '202401000007', 'Logistics / Supply Chain',    '201-500','https://kargolink.example.my'),
+  ('h08.sofia.hospitality@dnj-test.my',     'Heritage Hotels Group Sdn Bhd',     '202401000008', 'Hospitality / Hotel',         '201-500','https://heritagehotels.example.my'),
+  ('h09.kwanghoe.construction@dnj-test.my', 'Granitebuild Engineering Sdn Bhd',  '202401000009', 'Construction / Real Estate',  '51-200', 'https://granitebuild.example.my'),
+  ('h10.chloe.design@dnj-test.my',          'Studio Lumens Creative Sdn Bhd',    '202401000010', 'Design / Creative',           '11-50',  'https://studiolumens.example.my')
+) AS d(hm_email, company_name, reg_no, industry, size, website)
+JOIN public.profiles p ON p.email = d.hm_email;
+
+-- ============================================================
+-- 5) Insert hiring_managers rows linked to companies
+-- ============================================================
+INSERT INTO public.hiring_managers (
+  profile_id, company_id, job_title,
+  industry, role_type,
+  salary_offer_min, salary_offer_max,
+  hire_urgency, work_arrangement_offered, role_open_reason, career_growth_potential,
+  team_size, interview_stages, panel_involved,
+  required_traits, culture_offers, must_haves,
+  ai_summary,
+  gender,
+  location_postcode, location_matters,
+  required_work_authorization,
+  budget_approved, salary_flex
+)
+SELECT p.id, c.id, d.job_title,
+       d.industry, d.role_type,
+       d.salary_min, d.salary_max,
+       d.urgency, d.arrangement, d.open_reason, d.career_growth,
+       d.team_size, d.stages, d.panel,
+       d.required_traits::text[],
+       d.culture_offers::jsonb,
+       d.must_haves::jsonb,
+       d.ai_summary,
+       d.gender,
+       d.postcode, true,
+       d.work_auth::text[],
+       'yes', d.salary_flex::boolean
+FROM (VALUES
+  ('h02.andrew.finance@dnj-test.my',        'Hiring Director, Risk & Compliance', 'Risk Manager',             'Finance / Banking',          12000, 16000, 'normal',    'hybrid',  'replacement',  'structured_path', 8,  4, true,  '{analytical,integrity,attention_to_detail}',   '{"learning_budget":true,"hybrid":true,"medical_insurance":true}', '{"min_years_exp":7,"certifications":["FRM","CFA"]}',           'Mid-cap investment firm hiring a senior risk manager.',                          'male',   '50450', '{"citizen","pr"}',                'no'),
+  ('h03.anita.retail@dnj-test.my',          'Head of HR & Operations',            'Operations Lead',          'Retail / E-commerce',         7000, 10000, 'urgent',    'on_site', 'new_headcount','structured_path', 12, 3, true,  '{execution,customer_focus,resilience}',        '{"learning_budget":false,"hybrid":false,"medical_insurance":true}', '{"min_years_exp":4,"languages":["english","bahasa"]}',         'Fast-growing omnichannel retailer needs an ops lead.',                            'female', '47800', '{"citizen","pr","ep"}',           'yes'),
+  ('h04.khairul.fnb@dnj-test.my',           'Operations Manager',                 'Restaurant Manager',       'F&B / Restaurant',            5500,  7500, 'urgent',    'on_site', 'replacement',  'ad_hoc',          25, 2, false, '{energy,ownership,calm_under_pressure}',       '{"learning_budget":false,"hybrid":false,"medical_insurance":false}', '{"min_years_exp":3}',                                          'Heritage Penang restaurant group hiring after recent expansion.',                 'male',   '11900', '{"citizen","pr"}',                'yes'),
+  ('h05.meiling.health@dnj-test.my',        'Group Director, Operations',         'Clinic Operations Lead',   'Healthcare / Medical',        7000,  9500, 'normal',    'on_site', 'new_headcount','structured_path', 18, 3, true,  '{empathy,precision,systems_thinking}',         '{"learning_budget":true,"hybrid":false,"medical_insurance":true}', '{"min_years_exp":5,"licenses":["MOH"]}',                       'Multi-clinic group expanding to 4 new locations.',                                'female', '50100', '{"citizen","pr"}',                'no'),
+  ('h06.faridah.edtech@dnj-test.my',        'Head of Curriculum',                 'Curriculum Lead',          'EdTech / Education',          6500,  9000, 'normal',    'hybrid',  'replacement',  'structured_path', 6,  3, true,  '{curiosity,writing,systems_thinking}',         '{"learning_budget":true,"hybrid":true,"medical_insurance":true}', '{"min_years_exp":4,"languages":["english","bahasa"]}',          'Edtech for B40 students; curriculum lead role.',                                  'female', '63000', '{"citizen","pr","ep"}',           'yes'),
+  ('h07.vijay.logistics@dnj-test.my',       'Director of Operations',             'Warehouse Ops Manager',    'Logistics / Supply Chain',    7500, 10500, 'urgent',    'on_site', 'replacement',  'ad_hoc',          40, 2, false, '{execution,calm_under_pressure,ownership}',    '{"learning_budget":false,"hybrid":false,"medical_insurance":true}', '{"min_years_exp":5,"languages":["english","bahasa"]}',          '3PL serving e-commerce; high-volume warehouse needing a hands-on manager.',       'male',   '40000', '{"citizen","pr"}',                'yes'),
+  ('h08.sofia.hospitality@dnj-test.my',     'GM, Talent Management',              'F&B Director',             'Hospitality / Hotel',         8500, 12000, 'normal',    'on_site', 'replacement',  'structured_path', 30, 4, true,  '{leadership,customer_focus,precision}',        '{"learning_budget":true,"hybrid":false,"medical_insurance":true}', '{"min_years_exp":7}',                                          '5-star city hotel chain hiring a senior F&B leader.',                             'female', '50250', '{"citizen","pr","ep"}',           'no'),
+  ('h09.kwanghoe.construction@dnj-test.my', 'Hiring Lead, Engineering',           'Project Manager (M&E)',    'Construction / Real Estate',  9000, 13000, 'normal',    'on_site', 'new_headcount','structured_path', 15, 3, true,  '{technical_depth,planning,resilience}',        '{"learning_budget":true,"hybrid":false,"medical_insurance":true}', '{"min_years_exp":6,"certifications":["BEM"]}',                  'Civil & M&E contractor with active JB and KL projects.',                          'male',   '80300', '{"citizen","pr"}',                'no'),
+  ('h10.chloe.design@dnj-test.my',          'Studio Director',                    'Senior UX Designer',       'Design / Creative',           7500, 10500, 'exploring', 'remote',  'new_headcount','ad_hoc',          5,  3, false, '{craft,empathy,collaboration}',                '{"learning_budget":true,"hybrid":true,"medical_insurance":true}', '{"min_years_exp":5,"portfolio_required":true}',                'Boutique product studio working with regional fintech and edtech.',               'female', '50450', '{"citizen","pr","ep"}',           'yes')
+) AS d(hm_email, job_title, role_type, industry, salary_min, salary_max,
+       urgency, arrangement, open_reason, career_growth, team_size, stages, panel,
+       required_traits, culture_offers, must_haves, ai_summary, gender, postcode, work_auth, salary_flex)
+JOIN public.profiles p ON p.email = d.hm_email
+JOIN public.companies c ON c.primary_hr_email = d.hm_email;
+
+-- ============================================================
+-- 5b) Seed encrypted DOB + life_chart_character + DOB consent for HMs
+-- Without DOB, the HM dashboard shows the "Add a little more about you"
+-- banner and the matching engine refuses to pitch the HM to talents.
+-- date_of_birth_encrypted is bytea — we go through the SECURITY DEFINER
+-- encrypt_dob() helper. life_chart_character is the same nine-code value
+-- the AddHmDobModal computes client-side (see lifeChartCharacter.ts).
+-- ============================================================
+UPDATE public.hiring_managers hm
+SET date_of_birth_encrypted = public.encrypt_dob(d.dob),
+    life_chart_character    = d.character
+FROM (VALUES
+  ('h02.andrew.finance@dnj-test.my',         '1985-03-12'::text, 'G+'),
+  ('h03.anita.retail@dnj-test.my',           '1988-07-22',       'W+'),
+  ('h04.khairul.fnb@dnj-test.my',            '1980-11-04',       'E-'),
+  ('h05.meiling.health@dnj-test.my',         '1983-05-19',       'G-'),
+  ('h06.faridah.edtech@dnj-test.my',         '1990-09-08',       'E'),
+  ('h07.vijay.logistics@dnj-test.my',        '1979-01-25',       'W-'),
+  ('h08.sofia.hospitality@dnj-test.my',      '1986-04-30',       'W'),
+  ('h09.kwanghoe.construction@dnj-test.my',  '1981-12-14',       'W'),
+  ('h10.chloe.design@dnj-test.my',           '1992-08-03',       'G-')
+) AS d(hm_email, dob, character)
+JOIN public.profiles p ON p.email = d.hm_email
+WHERE hm.profile_id = p.id;
+
+UPDATE public.profiles p
+SET consents = COALESCE(consents, '{}'::jsonb)
+            || jsonb_build_object('dob', true, 'dob_consented_at', now())
+WHERE email LIKE 'h%@dnj-test.my';
+
+-- ============================================================
+-- 6) Insert talents
+-- ============================================================
+INSERT INTO public.talents (
+  profile_id,
+  expected_salary_min, expected_salary_max,
+  current_salary, current_employment_status, notice_period_days,
+  highest_qualification, education_level,
+  work_authorization, work_arrangement_preference,
+  job_intention, career_goal_horizon,
+  salary_structure_preference, role_scope_preference,
+  preferred_management_style,
+  privacy_mode, is_open_to_offers,
+  gender, race, religion,
+  location_postcode, location_matters,
+  has_driving_license,
+  has_management_experience, management_team_size,
+  reason_for_leaving_category, reason_for_leaving_summary,
+  noncompete_industry_scope, has_noncompete,
+  shortest_tenure_months, avg_tenure_months,
+  languages, employment_type_preferences,
+  derived_tags
+)
+SELECT p.id,
+       d.salary_min, d.salary_max,
+       d.cur_salary, d.emp_status, d.notice_days,
+       d.qualification, d.edu_level,
+       d.work_auth, d.arrangement,
+       d.intention, d.horizon,
+       d.salary_struct, d.scope,
+       d.mgmt_style,
+       'public', true,
+       d.gender, d.race, d.religion,
+       d.postcode, true,
+       d.has_license,
+       d.has_mgmt, d.team_size,
+       d.leaving_cat, d.leaving_summary,
+       d.nc_scope, d.has_nc,
+       d.short_tenure, d.avg_tenure,
+       d.languages::jsonb, d.emp_types::text[],
+       d.tags::jsonb
+FROM (VALUES
+  ('t01.aiman.tech@dnj-test.my',           9000, 13000,  8500, 'employed', 30,    'degree', 'degree',  'citizen', 'hybrid',  'long_term_commitment', 'senior_specialist', 'fixed_plus_variable', 'specialist', 'autonomous',    'male',   'Malay',   'Muslim',    '50450', true,  true,  false, 0,  'growth',     'Hit a ceiling at current employer; want exposure to distributed systems.',  'none', false, 24, 36,  '["english","bahasa"]', '{"full_time"}',           '["backend","postgres","aws","node"]'),
+  ('t02.weiming.finance@dnj-test.my',     12000, 16000, 11500, 'employed', 60,    'masters','masters', 'citizen', 'hybrid',  'long_term_commitment', 'people_manager',    'fixed_plus_variable', 'generalist', 'collaborative', 'male',   'Chinese', 'Buddhist',  '50480', true,  true,  true,  4,  'growth',     'Reached director ceiling; seeking risk-leadership role at a growth firm.',   'same_industry', true, 30, 48, '["english","mandarin","bahasa"]', '{"full_time"}', '["risk","compliance","frm","banking"]'),
+  ('t03.priya.retail@dnj-test.my',         7000, 10000,  6500, 'employed', 30,    'degree', 'degree',  'citizen', 'on_site', 'long_term_commitment', 'people_manager',    'fixed_plus_variable', 'generalist', 'hands_on',      'female', 'Indian',  'Hindu',     '47800', true,  true,  true,  6,  'salary',     'Salary stagnated despite store expansion; ready for a step-up.',             'none', false, 18, 30,  '["english","bahasa","tamil"]', '{"full_time"}',  '["retail_ops","p_l","staff_management"]'),
+  ('t04.hafiz.fnb@dnj-test.my',            5500,  7500,  5000, 'employed', 30,    'diploma','diploma', 'citizen', 'on_site', 'skill_building',       'people_manager',    'fixed_only',          'generalist', 'hands_on',      'male',   'Malay',   'Muslim',    '11900', true,  true,  true,  10, 'culture',    'Owner-operator culture became toxic after acquisition.',                     'none', false, 14, 24,  '["english","bahasa"]', '{"full_time"}',           '["fnb_ops","customer_service","staff_scheduling"]'),
+  ('t05.sueann.health@dnj-test.my',        7000,  9500,  6800, 'employed', 60,    'degree', 'degree',  'citizen', 'on_site', 'long_term_commitment', 'people_manager',    'fixed_only',          'specialist', 'collaborative', 'female', 'Chinese', 'Christian', '50100', true,  false, true,  3,  'growth',     'Want larger network; current single-clinic role limits scope.',              'none', false, 24, 42,  '["english","mandarin"]', '{"full_time"}',         '["clinic_ops","patient_journey","compliance"]'),
+  ('t06.aisyah.edtech@dnj-test.my',        6500,  9000,  6200, 'employed', 30,    'masters','masters', 'citizen', 'hybrid',  'long_term_commitment', 'senior_specialist', 'fixed_only',          'specialist', 'collaborative', 'female', 'Malay',   'Muslim',    '63000', true,  true,  false, 0,  'growth',     'Burnt out doing pure content; want product/curriculum hybrid role.',         'none', false, 30, 36,  '["english","bahasa"]', '{"full_time"}',           '["curriculum","instructional_design","b40"]'),
+  ('t07.ravi.logistics@dnj-test.my',       7500, 10500,  7000, 'employed', 30,    'degree', 'degree',  'citizen', 'on_site', 'long_term_commitment', 'people_manager',    'fixed_plus_variable', 'generalist', 'hands_on',      'male',   'Indian',  'Hindu',     '40000', true,  true,  true,  20, 'redundancy', 'Warehouse closure due to client loss; seeking stable 3PL role.',             'none', false, 12, 28,  '["english","tamil","bahasa"]', '{"full_time"}',   '["warehouse","wms","sap","kpi"]'),
+  ('t08.hidayah.hospitality@dnj-test.my',  8500, 12000,  8000, 'employed', 60,    'degree', 'degree',  'citizen', 'on_site', 'long_term_commitment', 'people_manager',    'fixed_plus_variable', 'generalist', 'collaborative', 'female', 'Malay',   'Muslim',    '50250', true,  true,  true,  15, 'growth',     'Capped at AGM level; seeking director track at heritage brand.',             'none', false, 24, 48,  '["english","bahasa","arabic"]', '{"full_time"}', '["fnb_director","banquet","luxury"]'),
+  ('t09.kahleong.construction@dnj-test.my',9000, 13000,  8500, 'employed', 60,    'degree', 'degree',  'citizen', 'on_site', 'long_term_commitment', 'senior_specialist', 'fixed_only',          'specialist', 'autonomous',    'male',   'Chinese', 'Christian', '80300', true,  true,  true,  8,  'salary',     'Mid-tier consultancy; want to own end-to-end projects at a contractor.',     'none', false, 36, 48,  '["english","mandarin","bahasa"]', '{"full_time"}','["m_e","project_management","bem","aconex"]'),
+  ('t10.sarah.design@dnj-test.my',         7500, 10500,  7000, 'employed', 30,    'degree', 'degree',  'citizen', 'remote',  'skill_building',       'senior_specialist', 'fixed_only',          'specialist', 'autonomous',    'female', 'Chinese', 'Buddhist',  '50450', false, true,  false, 0,  'culture',    'Agency-style burnout; want product-team craft work.',                        'none', false, 18, 26,  '["english","mandarin"]', '{"full_time","contract"}',     '["ux","figma","research","fintech"]'),
+  ('t11.faisal.manufacturing@dnj-test.my', 6500,  9000,  6200, 'employed', 30,    'degree', 'degree',  'citizen', 'on_site', 'long_term_commitment', 'senior_specialist', 'fixed_only',          'specialist', 'hands_on',      'male',   'Malay',   'Muslim',    '11800', true,  true,  false, 0,  'growth',     'Want exposure to advanced semiconductor process.',                           'none', false, 24, 30,  '["english","bahasa"]', '{"full_time"}',           '["production","sixsigma","semiconductor"]'),
+  ('t12.joanna.marketing@dnj-test.my',     8000, 11000,  7500, 'employed', 30,    'degree', 'degree',  'citizen', 'hybrid',  'long_term_commitment', 'people_manager',    'fixed_plus_variable', 'generalist', 'collaborative', 'female', 'Chinese', 'Christian', '50480', true,  true,  true,  4,  'growth',     'Hit a ceiling on B2C side; want regional brand role.',                       'none', false, 22, 34,  '["english","mandarin"]', '{"full_time"}',         '["brand","performance","content","tiktok"]'),
+  ('t13.dharmendra.legal@dnj-test.my',    11000, 15000, 10500, 'employed', 90,    'masters','masters', 'citizen', 'hybrid',  'long_term_commitment', 'senior_specialist', 'fixed_only',          'specialist', 'autonomous',    'male',   'Indian',  'Sikh',      '50250', true,  true,  false, 0,  'salary',     'In-house counsel salary stagnated; weighing private practice vs. inhouse.',  'same_industry', true, 36, 48, '["english","tamil","bahasa"]', '{"full_time"}', '["compliance","contracts","data_privacy"]'),
+  ('t14.suzanne.hr@dnj-test.my',           7500, 10500,  7000, 'employed', 30,    'degree', 'degree',  'citizen', 'hybrid',  'long_term_commitment', 'people_manager',    'fixed_plus_variable', 'generalist', 'collaborative', 'female', 'Chinese', 'Christian', '47810', true,  true,  true,  3,  'culture',    'Boss departed and replacement is misaligned; quietly looking.',              'none', false, 18, 30, '["english","mandarin"]', '{"full_time"}',         '["talent_acquisition","employer_brand","ats"]'),
+  ('t15.rohan.consulting@dnj-test.my',    12000, 17000, 11500, 'employed', 90,    'masters','masters', 'citizen', 'hybrid',  'skill_building',       'senior_specialist', 'fixed_plus_variable', 'specialist', 'autonomous',    'male',   'Indian',  'Hindu',     '50100', true,  true,  true,  4,  'growth',     'Big-4 burnout; seeking corporate strategy role with shorter project cycles.','same_industry', false, 24, 30, '["english","tamil"]', '{"full_time"}',           '["strategy","ma","financial_modelling"]'),
+  ('t16.adlina.telecom@dnj-test.my',       7000,  9500,  6800, 'employed', 30,    'degree', 'degree',  'citizen', 'on_site', 'long_term_commitment', 'senior_specialist', 'fixed_only',          'specialist', 'hands_on',      'female', 'Malay',   'Muslim',    '50300', true,  true,  false, 0,  'growth',     'Want to move from 4G/5G ops to architect role.',                             'none', false, 28, 36, '["english","bahasa"]', '{"full_time"}',           '["network","5g","cisco","sdn"]'),
+  ('t17.razif.energy@dnj-test.my',         8500, 11500,  8000, 'employed', 60,    'degree', 'degree',  'citizen', 'on_site', 'long_term_commitment', 'senior_specialist', 'fixed_only',          'specialist', 'hands_on',      'male',   'Malay',   'Muslim',    '97000', true,  true,  true,  6,  'relocation', 'Family relocating to KL; want similar engineering role in Klang Valley.',    'none', false, 30, 42, '["english","bahasa"]', '{"full_time"}',           '["plant_ops","gas","hse","permit_to_work"]'),
+  ('t18.vinothini.pharma@dnj-test.my',     9000, 12500,  8500, 'employed', 90,    'masters','masters', 'citizen', 'hybrid',  'long_term_commitment', 'senior_specialist', 'fixed_only',          'specialist', 'autonomous',    'female', 'Indian',  'Hindu',     '46100', true,  true,  false, 0,  'growth',     'Want regulatory role with broader ASEAN scope.',                             'same_industry', true, 36, 48, '["english","tamil"]', '{"full_time"}',           '["regulatory","npra","quality"]'),
+  ('t19.kokwei.automotive@dnj-test.my',    7000,  9500,  6500, 'employed', 30,    'diploma','diploma', 'citizen', 'on_site', 'long_term_commitment', 'people_manager',    'fixed_plus_variable', 'generalist', 'hands_on',      'male',   'Chinese', 'Buddhist',  '47500', true,  true,  true,  12, 'growth',     'Want flagship workshop manager role.',                                       'none', false, 24, 36, '["english","mandarin","bahasa"]', '{"full_time"}','["workshop","ev","aftersales","kpi"]'),
+  ('t20.nurin.sales@dnj-test.my',          6500,  9500,  6200, 'employed', 30,    'degree', 'degree',  'citizen', 'hybrid',  'skill_building',       'people_manager',    'fixed_plus_variable', 'generalist', 'collaborative', 'female', 'Malay',   'Muslim',    '50470', true,  true,  false, 0,  'salary',     'Quota cleared but commission cut; testing market.',                          'none', false, 14, 22, '["english","bahasa"]', '{"full_time"}',           '["b2b_sales","saas","crm","hubspot"]')
+) AS d(t_email, salary_min, salary_max, cur_salary, emp_status, notice_days,
+       qualification, edu_level, work_auth, arrangement,
+       intention, horizon, salary_struct, scope, mgmt_style,
+       gender, race, religion, postcode, location_matters,
+       has_license, has_mgmt, team_size,
+       leaving_cat, leaving_summary, nc_scope, has_nc,
+       short_tenure, avg_tenure,
+       languages, emp_types, tags)
+JOIN public.profiles p ON p.email = d.t_email;
+
+-- ============================================================
+-- 7) Open job role per HM (H02..H10), pre-approved for matching
+-- ============================================================
+INSERT INTO public.roles (
+  hiring_manager_id, title, description,
+  industry, location, location_postcode,
+  work_arrangement, employment_type, experience_level,
+  salary_min, salary_max, required_traits,
+  status, moderation_status, moderation_score, moderation_category,
+  moderation_provider, moderation_checked_at,
+  accept_no_experience
+)
+SELECT hm.id, d.title, d.description,
+       d.industry, d.location, d.postcode,
+       d.arrangement, 'full_time', d.exp_level,
+       d.sal_min, d.sal_max, d.traits::text[],
+       'active', 'approved', 95, 'safe',
+       'seed', now(),
+       false
+FROM (VALUES
+  ('h02.andrew.finance@dnj-test.my',        'Risk Manager',                   'Lead the risk & compliance function for a mid-cap investment firm. Build and govern enterprise risk models, partner with audit and legal, and own regulatory reporting.', 'Finance / Banking',          'Kuala Lumpur',  '50450', 'hybrid',  'senior',     12000, 16000, '{analytical,integrity,attention_to_detail}'),
+  ('h03.anita.retail@dnj-test.my',          'Operations Lead, Omnichannel',   'Run day-to-day store and warehouse operations across 22 outlets and our online fulfilment hub. Own SKU velocity, returns, and CX. Hands-on, KPI-driven.',                'Retail / E-commerce',         'Petaling Jaya', '47800', 'onsite',  'senior',      7000, 10000, '{execution,customer_focus,resilience}'),
+  ('h04.khairul.fnb@dnj-test.my',           'Restaurant Manager',             'Own end-to-end operations of our flagship Penang outlet. Lead 25 staff, manage P&L, deliver guest experience, and grow weekday lunch programme.',                       'F&B / Restaurant',            'Penang',        '11900', 'onsite',  'mid',   5500,  7500, '{energy,ownership,calm_under_pressure}'),
+  ('h05.meiling.health@dnj-test.my',        'Clinic Operations Lead',         'Standardise SOPs, staffing, and patient journey across 4 new clinics opening in 2026. Partner with medical directors and finance.',                                  'Healthcare / Medical',        'Kuala Lumpur',  '50100', 'onsite',  'senior',      7000,  9500, '{empathy,precision,systems_thinking}'),
+  ('h06.faridah.edtech@dnj-test.my',        'Curriculum Lead',                'Design grade-aligned learning pathways for B40 students across STEM and bahasa modules. Work cross-functionally with product and content.',                          'EdTech / Education',          'Cyberjaya',     '63000', 'hybrid',  'senior',      6500,  9000, '{curiosity,writing,systems_thinking}'),
+  ('h07.vijay.logistics@dnj-test.my',       'Warehouse Operations Manager',   'Own a 40-headcount warehouse serving 3 marketplace clients. Drive WMS rollout, peak-season planning, and SLA performance.',                                       'Logistics / Supply Chain',    'Shah Alam',     '40000', 'onsite',  'senior',      7500, 10500, '{execution,calm_under_pressure,ownership}'),
+  ('h08.sofia.hospitality@dnj-test.my',     'F&B Director',                   'Lead the F&B function across 3 city hotels (banquet + 7 outlets). Set culinary direction, manage P&L, partner with brand and operations.',                       'Hospitality / Hotel',         'Kuala Lumpur',  '50250', 'onsite',  'lead',    8500, 12000, '{leadership,customer_focus,precision}'),
+  ('h09.kwanghoe.construction@dnj-test.my', 'Project Manager (M&E)',          'Run end-to-end M&E delivery for a mixed-use development in JB. Manage subcontractors, BEM compliance, and client interface.',                                    'Construction / Real Estate',  'Johor Bahru',   '80300', 'onsite',  'senior',      9000, 13000, '{technical_depth,planning,resilience}'),
+  ('h10.chloe.design@dnj-test.my',          'Senior UX Designer',             'Lead UX on regional fintech and edtech accounts. Own discovery, IA, prototypes, and design system. Mentor 2 mid-level designers.',                              'Design / Creative',           'Kuala Lumpur',  '50450', 'remote',  'senior',      7500, 10500, '{craft,empathy,collaboration}')
+) AS d(hm_email, title, description, industry, location, postcode,
+       arrangement, exp_level, sal_min, sal_max, traits)
+JOIN public.profiles p ON p.email = d.hm_email
+JOIN public.hiring_managers hm ON hm.profile_id = p.id;
+
+-- ============================================================
+-- 7b) Re-approve seeded roles
+-- The tg_roles_moderation_on_insert trigger (migration 0090) overrides any
+-- non-service-role insert: it forces moderation_status='pending' and
+-- demotes status='active' to 'paused' so the role sits out of matching
+-- until the moderate-role Edge Function runs. Test seeds bypass that
+-- worker, so we drive moderation_status to 'approved' here — which fires
+-- tg_roles_moderation_on_update and auto-restores status='active'.
+-- ============================================================
+UPDATE public.roles r
+SET moderation_status   = 'approved',
+    moderation_score    = 95,
+    moderation_category = 'safe',
+    moderation_provider = 'seed',
+    moderation_reason   = 'pre-approved test role',
+    moderation_checked_at = now()
+FROM public.hiring_managers hm
+JOIN public.profiles p ON p.id = hm.profile_id
+WHERE r.hiring_manager_id = hm.id
+  AND p.email LIKE '%@dnj-test.my'
+  AND r.moderation_status = 'pending';
+
+-- ============================================================
+-- Final verification: counts
+-- ============================================================
+SELECT 'auth.users'      AS table_name, COUNT(*) AS rows FROM auth.users      WHERE email LIKE '%@dnj-test.my'
+UNION ALL
+SELECT 'profiles'        , COUNT(*)                  FROM public.profiles      WHERE email LIKE '%@dnj-test.my'
+UNION ALL
+SELECT 'talents'         , COUNT(*)                  FROM public.talents       WHERE profile_id IN (SELECT id FROM public.profiles WHERE email LIKE '%@dnj-test.my')
+UNION ALL
+SELECT 'hiring_managers' , COUNT(*)                  FROM public.hiring_managers WHERE profile_id IN (SELECT id FROM public.profiles WHERE email LIKE '%@dnj-test.my')
+UNION ALL
+SELECT 'companies'       , COUNT(*)                  FROM public.companies     WHERE primary_hr_email LIKE '%@dnj-test.my'
+UNION ALL
+SELECT 'roles'           , COUNT(*)                  FROM public.roles         WHERE hiring_manager_id IN (SELECT hm.id FROM public.hiring_managers hm JOIN public.profiles p ON p.id=hm.profile_id WHERE p.email LIKE '%@dnj-test.my');

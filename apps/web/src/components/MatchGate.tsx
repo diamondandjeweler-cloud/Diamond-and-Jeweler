@@ -87,13 +87,12 @@ export default function MatchGate({ matchType, roleId, talentId, onUnlocked }: P
 
   return (
     <div className="rounded-2xl border-2 border-brand-200 bg-brand-50 p-6 text-center max-w-md mx-auto">
-      <div className="mb-2 text-3xl">💎</div>
       <h2 className="font-display text-lg font-bold text-ink-900 mb-1">
         Your 3 free matches are used
       </h2>
       <p className="text-sm text-ink-600 mb-5">
         Unlock your next match by paying or using Diamond Points.
-        You currently have <strong>{pts} pts</strong>.
+        You currently have <strong>{pts} Diamond Points</strong>.
       </p>
 
       <div className="grid grid-cols-1 gap-3">
@@ -115,7 +114,7 @@ export default function MatchGate({ matchType, roleId, talentId, onUnlocked }: P
         >
           {canRedeem
             ? `Redeem ${redemptionCost} Diamond Points`
-            : `Need ${redemptionCost} pts — you have ${pts}`}
+            : `Need ${redemptionCost} Diamond Points — you have ${pts}`}
         </Button>
       </div>
 

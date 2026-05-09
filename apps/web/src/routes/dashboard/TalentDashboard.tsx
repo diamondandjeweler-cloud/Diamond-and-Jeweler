@@ -305,7 +305,7 @@ export default function TalentDashboard() {
         setUrgentResult({ role: res.result.role })
         setUrgentMsg({
           tone: 'green',
-          text: `Found 1 top-matching open job. Balance: ${res.balance_after} pts.`,
+          text: `Found 1 top-matching open job. Balance: ${res.balance_after} Diamond Points.`,
         })
       }
     } catch (e) {
@@ -476,7 +476,7 @@ export default function TalentDashboard() {
             </div>
             {pointsBalance != null && (
               <div className="text-xs text-ink-600 whitespace-nowrap">
-                Balance: <span className="font-semibold text-ink-900">{pointsBalance} pts</span>
+                Balance: <span className="font-semibold text-ink-900">{pointsBalance} Diamond Points</span>
               </div>
             )}
           </div>
@@ -507,7 +507,7 @@ export default function TalentDashboard() {
             </div>
           )}
           <Button onClick={handleUrgentJobSearch} disabled={urgentBusy}>
-            {urgentBusy ? 'Searching…' : `Urgent — ${URGENT_COST}💎`}
+            {urgentBusy ? 'Searching…' : `Urgent — ${URGENT_COST} Diamond Points`}
           </Button>
         </div>
       </Card>
@@ -733,7 +733,7 @@ function OfferCard({
                   disabled={feedbackEntry.rating === 0 || feedbackEntry.saving}
                   loading={feedbackEntry.saving}
                 >
-                  Save feedback (+5 pts)
+                  Save feedback (+5 Diamond Points)
                 </Button>
               )}
             </div>

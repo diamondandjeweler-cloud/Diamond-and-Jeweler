@@ -186,7 +186,7 @@ export default function Referrals() {
       setRoles((prev) => prev.map((row) => row.id === pickedRoleId
         ? { ...row, extra_matches_used: row.extra_matches_used + 1 }
         : row))
-      flashCopy(`Redeemed ${j.cost ?? pointsCfg.perExtra} pts — extra match generating shortly.`)
+      flashCopy(`Redeemed ${j.cost ?? pointsCfg.perExtra} Diamond Points — extra match generating shortly.`)
     } catch (e) {
       alert((e as Error).message)
     } finally {
@@ -208,7 +208,7 @@ export default function Referrals() {
       const j = await r.json() as { error?: string; cost?: number }
       if (!r.ok) throw new Error(j.error || 'Failed')
       await refresh()
-      flashCopy(`Redeemed ${j.cost ?? pointsCfg.perExtra} pts — your next match is being generated.`)
+      flashCopy(`Redeemed ${j.cost ?? pointsCfg.perExtra} Diamond Points — your next match is being generated.`)
     } catch (e) {
       alert((e as Error).message)
     } finally {
@@ -249,7 +249,7 @@ export default function Referrals() {
                 <div className="text-xs text-brand-700 font-medium mb-0.5">Your referral link</div>
                 <div className="font-mono text-sm text-ink-900 break-all">{shareUrl}</div>
                 <div className="text-xs text-ink-500 mt-1">
-                  Friend earns +{pointsCfg.perWelcome} pts · You earn +{pointsCfg.perReferral} pts when they finish onboarding
+                  Friend earns +{pointsCfg.perWelcome} Diamond Points · You earn +{pointsCfg.perReferral} Diamond Points when they finish onboarding
                 </div>
               </div>
             </div>
@@ -293,7 +293,7 @@ export default function Referrals() {
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
         <Stat label={t('points.balance')} value={points} tone="brand" hint={`${profile?.points_earned_total ?? 0} earned all time`} />
-        <Stat label="Successful referrals" value={rewarded.length} hint={`${rewarded.length * pointsCfg.perReferral} pts earned`} />
+        <Stat label="Successful referrals" value={rewarded.length} hint={`${rewarded.length * pointsCfg.perReferral} Diamond Points earned`} />
         <Stat label="Pending referrals" value={list.length - rewarded.length} />
       </div>
 
@@ -350,7 +350,7 @@ export default function Referrals() {
           <CardBody>
             <h2 className="font-display text-lg mb-2">Redeem points for an extra match</h2>
             <p className="text-sm text-ink-600 mb-3">
-              Spend {pointsCfg.perExtra} pts to add 1 extra match slot on a role.
+              Spend {pointsCfg.perExtra} Diamond Points to add 1 extra match slot on a role.
             </p>
             {roles.length === 0 ? (
               <Alert tone="amber">You haven't posted any roles yet. Create one to redeem.</Alert>
@@ -380,13 +380,13 @@ export default function Referrals() {
                   loading={redeeming}
                   onClick={() => void redeemForRole()}
                 >
-                  Redeem {pointsCfg.perExtra} pts
+                  Redeem {pointsCfg.perExtra} Diamond Points
                 </Button>
               </div>
             )}
             {!canRedeem && (
               <p className="text-xs text-ink-500 mt-2">
-                You need {pointsCfg.perExtra - points} more pts. Earn them by referring friends or sharing match feedback.
+                You need {pointsCfg.perExtra - points} more Diamond Points. Earn them by referring friends or sharing match feedback.
               </p>
             )}
           </CardBody>
@@ -399,7 +399,7 @@ export default function Referrals() {
           <CardBody>
             <h2 className="font-display text-lg mb-2">Redeem points for an extra match</h2>
             <p className="text-sm text-ink-600 mb-3">
-              Spend {pointsCfg.perExtra} pts to unlock 1 extra match opportunity for yourself (capped at 3 paid extras total).
+              Spend {pointsCfg.perExtra} Diamond Points to unlock 1 extra match opportunity for yourself (capped at 3 paid extras total).
             </p>
             <Button
               variant="brand"
@@ -407,11 +407,11 @@ export default function Referrals() {
               loading={redeeming}
               onClick={() => void redeemForTalent()}
             >
-              Redeem {pointsCfg.perExtra} pts → 1 extra match
+              Redeem {pointsCfg.perExtra} Diamond Points → 1 extra match
             </Button>
             {!canRedeem && (
               <p className="text-xs text-ink-500 mt-2">
-                You need {pointsCfg.perExtra - points} more pts. Earn them by referring friends or sharing match feedback.
+                You need {pointsCfg.perExtra - points} more Diamond Points. Earn them by referring friends or sharing match feedback.
               </p>
             )}
           </CardBody>

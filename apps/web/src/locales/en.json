@@ -146,8 +146,8 @@
     "earned": "{{n}} successful referrals · {{p}} points earned"
   },
   "points": {
-    "balance": "Points",
-    "redeem": "Redeem {{cost}} pts for 1 free extra match",
+    "balance": "Diamond Points",
+    "redeem": "Redeem {{cost}} Diamond Points for 1 free extra match",
     "eyebrow": "Diamond Points",
     "title": "Your points wallet",
     "subtitle": "Earn points by engaging with the platform. Redeem them for extra matches.",
@@ -156,7 +156,7 @@
     "costToUnlock": "Cost to unlock match",
     "costSuffix": "or RM {{rm}} via Billplz FPX",
     "referralReward": "Referral reward",
-    "referralFriendBonus": "{{n}} pts for new friend too",
+    "referralFriendBonus": "{{n}} Diamond Points for new friend too",
     "howToEarnTitle": "How to earn Diamond Points",
     "ruleRejectMatch": "Reject a proposed match and explain why (each)",
     "ruleAcceptMatch": "Accept a match and attend the interview",

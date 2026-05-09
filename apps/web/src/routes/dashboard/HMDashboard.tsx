@@ -300,7 +300,7 @@ export default function HMDashboard() {
       } else {
         setUrgentMsg({
           tone: 'green',
-          text: `Urgent candidate ready (${Math.round(res.result.compatibility_score ?? 0)}% match) — highlighted below. Balance: ${res.balance_after} pts.`,
+          text: `Urgent candidate ready (${Math.round(res.result.compatibility_score ?? 0)}% match) — highlighted below. Balance: ${res.balance_after} Diamond Points.`,
         })
       }
     } catch (e) {
@@ -600,7 +600,7 @@ export default function HMDashboard() {
               </div>
               {pointsBalance != null && (
                 <div className="text-xs text-ink-600 whitespace-nowrap">
-                  Balance: <span className="font-semibold text-ink-900">{pointsBalance} pts</span>
+                  Balance: <span className="font-semibold text-ink-900">{pointsBalance} Diamond Points</span>
                 </div>
               )}
             </div>
@@ -621,7 +621,7 @@ export default function HMDashboard() {
                     onClick={() => void handleUrgentSearch(r.id)}
                     disabled={urgentBusy}
                   >
-                    {urgentBusy && urgentRoleId === r.id ? 'Searching…' : `Urgent — ${URGENT_COST}💎`}
+                    {urgentBusy && urgentRoleId === r.id ? 'Searching…' : `Urgent — ${URGENT_COST} Diamond Points`}
                   </Button>
                 </div>
               ))}
@@ -953,7 +953,7 @@ function CandidateCard({
                   disabled={feedbackEntry.rating === 0 || feedbackEntry.saving}
                   loading={feedbackEntry.saving}
                 >
-                  Save feedback (+5 pts)
+                  Save feedback (+5 Diamond Points)
                 </Button>
               )}
             </div>

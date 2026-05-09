@@ -11,6 +11,10 @@
 -- profiles (created_by + verified_by). So drop in dependency order before auth.users cascade.
 DELETE FROM public.hiring_managers WHERE profile_id IN (SELECT id FROM public.profiles WHERE email LIKE '%@dnj-test.my');
 DELETE FROM public.companies       WHERE primary_hr_email LIKE '%@dnj-test.my';
+-- MFA factors don't cascade with auth.users in some Supabase versions and survive
+-- a re-seed if left in place. Stale 'unverified' factors created by browsing
+-- /mfa/enroll then trip "factor already exists" on every subsequent enrol.
+DELETE FROM auth.mfa_factors       WHERE user_id IN (SELECT id FROM auth.users WHERE email LIKE '%@dnj-test.my');
 -- Now auth.users can safely cascade to profiles -> talents.
 DELETE FROM auth.users             WHERE email LIKE '%@dnj-test.my';
 

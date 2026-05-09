@@ -7,6 +7,14 @@ import { supabase } from '../lib/supabase'
 
 type AalState = 'loading' | 'aal2' | 'need_challenge' | 'need_enroll'
 
+// Test-domain bypass: admin accounts under @dnj-test.my skip the MFA gate so
+// automated smoke tests can drive the admin console without a human relaying
+// TOTP codes. Production admins (real @diamondandjeweler.com or personal
+// gmail addresses) are unaffected. Mirrors the planned BYPASS_CAPTCHA shape.
+function isTestAdmin(email: string | undefined | null): boolean {
+  return !!email && email.toLowerCase().endsWith('@dnj-test.my')
+}
+
 export default function AdminGate({ children }: { children: ReactNode }) {
   const { loading, profile } = useSession()
   const location = useLocation()
@@ -14,6 +22,7 @@ export default function AdminGate({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (loading || !profile || profile.role !== 'admin') return
+    if (isTestAdmin(profile.email)) { setAal('aal2'); return }
     let cancelled = false
     async function checkAal() {
       const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()

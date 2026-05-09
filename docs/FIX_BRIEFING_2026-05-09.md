@@ -12,9 +12,11 @@ Single-shot deploy plan to unblock prelaunch testing.
 
 ✅ **Admin tester role verified**: `a01.admin@dnj-test.my` and `diamondandjeweler@gmail.com` both have `role='admin'`, `is_banned=false`, `onboarding_complete=true`. F1/F8 now have no remaining data-side blocker.
 
-⚠️ **F19 forgot-password silent submit** — not investigated this session. May resolve itself with the next Vercel deploy if the bug was a stale build. Otherwise the 3-step investigation in §F19 still applies.
+✅ **F7 patch deployed** via `vercel --prod` (deployment `dpl_FFMuS2ACGuLrxPPzV3nti5drYu5F`, READY). Verified in deployed bundle `AdminDashboard-5BJygBSN.js` — contains exact patch markers `[approvals] decrypt_dob failed` and `decryptDobs threw`. The user/linter additionally hardened `reload()` with `await supabase.auth.getSession()` + `AbortSignal.timeout(20000)` on the embed query (a sibling F7 mitigation against token-refresh-during-query racing the abort).
 
-⚠️ **Vercel CLI not installed** in this environment — recommend `npm i -g vercel` then `vercel deploy --prod` from `C:\Users\DC\Desktop\Diamond and Jeweler\` to ship the F7 patch.
+✅ **F19 forgot-password fixed** — the stale-build hypothesis was correct. Re-tested live after fresh deploy: filling email + completing Turnstile + clicking "Send reset link" now fires `OPTIONS /auth/v1/recover` to Supabase (HTTP 200) and the page transitions to "Check your inbox / Email sent". S21 unblocked.
+
+✅ **Vercel CLI installed and authenticated** in this environment (53.3.1, signed in as `diamondandjeweler-5185`). Future deploys can be done directly from the same shell.
 
 ---
 

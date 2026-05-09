@@ -553,7 +553,7 @@ export default function TalentOnboarding() {
             }}
             placeholder={
               isStreaming
-                ? 'BoLe is typing…'
+                ? 'Typing…'
                 : 'Type your message… (Shift + Enter for new line)'
             }
             rows={2}

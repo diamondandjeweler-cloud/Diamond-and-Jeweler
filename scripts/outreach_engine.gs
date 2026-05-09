@@ -91,8 +91,9 @@ function getTemplates() {
       email2:  raw['University Email 2'] || '',
       email3:  raw['University Email 3'] || ''
     },
-    autoReplyCall:  raw['Auto Reply Call']  || '',
-    autoReplyEmail: raw['Auto Reply Email'] || ''
+    autoReplyCall:        raw['Auto Reply Call']        || '',
+    autoReplyEmail:       raw['Auto Reply Email']       || '',
+    autoReplyUnsubscribe: raw['Auto Reply Unsubscribe'] || ''
   };
 }
 
@@ -118,6 +119,15 @@ function countTodaySends(sheet) {
 }
 
 // ── MAIN: SEND OUTREACH ───────────────────────────────────────
+// Apps Script free-tier max execution time is 6 minutes. We cap per-run
+// sends to PER_RUN_MAX with short jitter so the loop completes well
+// within the window. Pacing comes from the hourly trigger frequency.
+//   Daily volume = PER_RUN_MAX × 24 (theoretical max = 120/day)
+//   With Daily Limit = 85 and PER_RUN_MAX = 5: caps at 85/day, hit by
+//   ~17 hourly runs (e.g. 9am-1am next day), then silent until reset.
+const PER_RUN_MAX     = 5;        // max sends per single trigger execution
+const PER_SEND_JITTER = 12000;    // ~12s ± random between sends (well under the 6-min ceiling)
+
 function sendOutreach() {
   const settings = getSettings();
   if (settings.paused) { Logger.log('Paused — skipping.'); return; }
@@ -129,6 +139,7 @@ function sendOutreach() {
   const templates  = getTemplates();
   const now        = new Date();
   let todaySends   = countTodaySends(leadsSheet);
+  let runSends     = 0;  // sends in THIS execution (separate from daily total)
 
   if (todaySends >= settings.dailyLimit) {
     Logger.log(`Daily limit reached (${todaySends}/${settings.dailyLimit}).`);
@@ -137,8 +148,21 @@ function sendOutreach() {
 
   const data = leadsSheet.getDataRange().getValues();
 
+  // Build a global suppression set: every email anywhere in the sheet that
+  // already has status 'unsubscribed' (PDPA — never re-email these).
+  const suppressed = new Set();
+  for (let j = 1; j < data.length; j++) {
+    const em = String(data[j][COL.EMAIL  - 1]).trim().toLowerCase();
+    const st = String(data[j][COL.STATUS - 1]).trim().toLowerCase();
+    if (em && st === STATUS.UNSUBSCRIBED) suppressed.add(em);
+  }
+
   for (let i = 1; i < data.length; i++) {
     if (todaySends >= settings.dailyLimit) break;
+    if (runSends   >= PER_RUN_MAX) {
+      Logger.log(`Per-run cap reached (${runSends}/${PER_RUN_MAX}) — exiting; next trigger continues.`);
+      break;
+    }
 
     const row       = data[i];
     const email     = String(row[COL.EMAIL      - 1]).trim();
@@ -152,6 +176,13 @@ function sendOutreach() {
     // Skip terminal statuses
     if ([STATUS.REPLIED, STATUS.COLD, STATUS.SENT3, STATUS.UNSUBSCRIBED].includes(status)) continue;
     if (!email || !email.includes('@')) continue;
+    // PDPA: never re-email an address that previously unsubscribed
+    if (suppressed.has(email.toLowerCase())) {
+      leadsSheet.getRange(i + 1, COL.STATUS).setValue(STATUS.UNSUBSCRIBED);
+      leadsSheet.getRange(i + 1, COL.NOTES).setValue('Suppressed (previously unsubscribed)');
+      Logger.log('Suppressed (prior unsubscribe) → ' + email);
+      continue;
+    }
 
     // Skip if not yet time for follow-up
     if (status !== STATUS.NEW && nextSend instanceof Date && nextSend > now) continue;
@@ -178,7 +209,8 @@ function sendOutreach() {
     if (!bodyTemplate) { Logger.log(`No body for step ${emailCount} (${type}) — check Templates sheet.`); continue; }
 
     const body    = fillTemplate(bodyTemplate, firstName, company);
-    const subject = tmpl.subject;
+    // BUG FIX: subject must be merged too (was sending literal {{company}} in subject line)
+    const subject = fillTemplate(tmpl.subject, firstName, company);
 
     try {
       let sentThreadId = threadId;
@@ -210,11 +242,15 @@ function sendOutreach() {
         leadsSheet.getRange(rowNum, COL.NEXT_SEND ).setValue(nextSendDate);
 
       todaySends++;
-      Logger.log(`[Step ${emailCount}][${type}] → ${email} (${newStatus})`);
+      runSends++;
+      Logger.log(`[Step ${emailCount}][${type}] → ${email} (${newStatus}) — run ${runSends}/${PER_RUN_MAX}, day ${todaySends}/${settings.dailyLimit}`);
 
-      // Human-like random sleep: 2–5 minutes between sends
-      if (todaySends < settings.dailyLimit) {
-        Utilities.sleep((Math.random() * 3 + 2) * 60 * 1000);
+      // Short jitter only (8-16s) — total per-run sleep ~50s for 5 sends,
+      // well under the 6-min Apps Script execution ceiling. Human-like
+      // pacing across the day comes from the hourly trigger, not from
+      // long sleeps inside one run.
+      if (runSends < PER_RUN_MAX && todaySends < settings.dailyLimit) {
+        Utilities.sleep(PER_SEND_JITTER + Math.floor(Math.random() * 4000));
       }
 
     } catch (e) {
@@ -237,14 +273,41 @@ function getLastSentThreadId_(toEmail, subject) {
   return '';
 }
 
+// ── DETECT UNSUBSCRIBE INTENT ────────────────────────────────
+// PDPA compliance: any reply that signals opt-out short-circuits the
+// rest of the sequence. We check this BEFORE the phone-intent check
+// because someone might reply "UNSUBSCRIBE — call me 0123456789" and
+// the unsubscribe wins.
+const UNSUB_PATTERNS = [
+  /\bunsubscribe\b/i,
+  /\bopt\s*-?\s*out\b/i,
+  /\bremove\s+me\b/i,
+  /\btake\s+me\s+off\b/i,
+  /\bstop\s+(emailing|contacting|sending)\b/i,
+  /\bdo\s+not\s+(email|contact|message)\b/i,
+  /\bnot\s+interested\b/i,
+  /\bno\s+thanks?\b.{0,20}\b(remove|unsubscribe|stop)\b/is,
+  /\bplease\s+remove\b/i,
+];
+
+function isUnsubscribeReply(body) {
+  if (!body) return false;
+  return UNSUB_PATTERNS.some(re => re.test(body));
+}
+
 // ── DETECT REPLY INTENT ───────────────────────────────────────
 function detectIntent(body) {
-  // Malaysian phone: +601x, 601x, 01x — with optional spaces/dashes
+  // 1. Unsubscribe wins over everything (PDPA-required)
+  if (isUnsubscribeReply(body)) {
+    return { type: 'unsubscribe', phone: '' };
+  }
+  // 2. Malaysian phone number → call intent
   const phoneRegex = /(?:\+?60|0)1[0-9][-\s]?\d{3,4}[-\s]?\d{3,4}/g;
   const matches = (body || '').match(phoneRegex);
   if (matches && matches.length > 0) {
     return { type: 'call', phone: matches[0].replace(/\s/g, '') };
   }
+  // 3. Otherwise treat as email-reply intent
   return { type: 'email', phone: '' };
 }
 
@@ -260,7 +323,14 @@ function addToCallList(name, company, email, phone, intent, snippet) {
 // ── SEND AUTO-REPLY ───────────────────────────────────────────
 function sendAutoReply(toEmail, firstName, company, threadId, intentType) {
   const templates = getTemplates();
-  const bodyTemplate = intentType === 'call' ? templates.autoReplyCall : templates.autoReplyEmail;
+  let bodyTemplate;
+  if (intentType === 'call') {
+    bodyTemplate = templates.autoReplyCall;
+  } else if (intentType === 'unsubscribe') {
+    bodyTemplate = templates.autoReplyUnsubscribe;
+  } else {
+    bodyTemplate = templates.autoReplyEmail;
+  }
   if (!bodyTemplate) { Logger.log('Auto-reply template missing for: ' + intentType); return; }
   const body = fillTemplate(bodyTemplate, firstName, company);
   try {
@@ -311,7 +381,19 @@ function checkReplies() {
       const firstName = String(row[COL.FIRST_NAME - 1]).trim();
       const company   = String(row[COL.COMPANY    - 1]).trim();
 
-      // Mark as replied
+      if (intent.type === 'unsubscribe') {
+        // PDPA compliance — never email this address again.
+        leadsSheet.getRange(i + 1, COL.STATUS).setValue(STATUS.UNSUBSCRIBED);
+        sendAutoReply(email, firstName, company, threadId, 'unsubscribe');
+        leadsSheet.getRange(i + 1, COL.NOTES).setValue(
+          'UNSUBSCRIBED ' + new Date().toLocaleDateString() +
+          ' | confirmation sent | suppressed permanently'
+        );
+        Logger.log('UNSUBSCRIBE → ' + email);
+        continue;
+      }
+
+      // Mark as replied (call or generic-email intent)
       leadsSheet.getRange(i + 1, COL.STATUS).setValue(STATUS.REPLIED);
 
       if (intent.type === 'call') {
@@ -414,6 +496,246 @@ function setupCallList_() {
 
   Logger.log('Call List sheet created.');
 }
+
+// ── ONE-CLICK PILOT BOOTSTRAP ────────────────────────────────
+// Run this ONCE to apply safe-pilot Settings + verify triggers.
+// Recommended for the first 7-14 days while you warm the sending domain.
+//
+// Settings applied:
+//   Daily Limit       = 85       (15/day headroom under Gmail's 100/day quota
+//                                 for follow-ups + auto-replies)
+//   Paused            = false
+//   Follow Up 1 Days  = 4
+//   Follow Up 2 Days  = 5
+//   Cold After Days   = 7
+//   From Name         = Diamond and Jeweler
+//
+// Triggers ensured:
+//   sendOutreach   — every hour
+//   checkReplies   — every 30 min
+//   markCold       — every day at 3am
+function applyPilotSettings() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SETTINGS_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(SETTINGS_SHEET);
+    sheet.getRange(1, 1, 1, 2).setValues([['Setting', 'Value']]);
+    sheet.getRange(1, 1, 1, 2).setBackground('#1a73e8').setFontColor('#fff').setFontWeight('bold');
+    sheet.setFrozenRows(1);
+    sheet.setColumnWidth(1, 200);
+    sheet.setColumnWidth(2, 250);
+  }
+
+  const target = {
+    'Daily Limit':       85,         // Leaves ~15 emails/day headroom for follow-ups
+                                     //   (Email 2/3 + auto-replies) under the 100/day
+                                     //   free Gmail quota. Safe sustained operation.
+    'Paused':            'false',
+    'From Name':         'Diamond and Jeweler',
+    'Follow Up 1 Days':  4,
+    'Follow Up 2 Days':  5,
+    'Cold After Days':   7,
+  };
+
+  const data = sheet.getDataRange().getValues();
+  const existing = {};
+  for (let i = 0; i < data.length; i++) {
+    if (data[i][0]) existing[data[i][0]] = i + 1;
+  }
+  let updated = 0, appended = 0;
+  Object.keys(target).forEach(key => {
+    if (existing[key]) {
+      sheet.getRange(existing[key], 2).setValue(target[key]);
+      updated++;
+    } else {
+      sheet.appendRow([key, target[key]]);
+      appended++;
+    }
+  });
+  Logger.log(`Settings synced: ${updated} updated, ${appended} added.`);
+
+  // Ensure triggers — clear all, then re-create the canonical trio
+  ScriptApp.getProjectTriggers().forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('sendOutreach').timeBased().everyHours(1).create();
+  ScriptApp.newTrigger('checkReplies').timeBased().everyMinutes(30).create();
+  ScriptApp.newTrigger('markCold').timeBased().everyDays(1).atHour(3).create();
+  Logger.log('Triggers reset: sendOutreach (1h), checkReplies (30m), markCold (daily 3am).');
+
+  ss.toast('Pilot settings applied. Daily limit: 85. Triggers active.', 'DNJ', 6);
+}
+
+
+// ── WRITE ALL EMAIL TEMPLATES (run once) ─────────────────────
+// Writes the full set of 3-step sequences + auto-replies into the
+// Templates sheet. Idempotent: existing keys are updated, missing keys
+// are appended. Safe to re-run after editing copy here.
+function writeAllTemplates_v2() {
+  const HR_SUBJECT =
+    'Best-fit hire for {{company}} — AI matched, free';
+
+  const UNI_SUBJECT =
+    'Best-fit roles for {{company}} students — AI picked, free';
+
+  const HR_1 =
+    "Hi {{firstName}},\n\n" +
+    "I'm Kean, founder of Diamond and Jeweler (DNJ — diamondandjeweler.com).\n\n" +
+    "We're a Malaysian AI recruitment platform. Three matches, zero noise.\n\n" +
+    "Our matching engine runs on big-data signals across each candidate's " +
+    "education, skills, work patterns, and stated career intent — then " +
+    "surfaces exactly 3 matches per role, both ways. No 50-resume floods. " +
+    "No keyword spam. Just three diamonds.\n\n" +
+    "For {{company}}, here's the deal — fair on both sides:\n\n" +
+    "  - You post one role. We send 3 AI-curated candidates within 14 days.\n" +
+    "  - 100% FREE. No subscription, no card, no commitment.\n" +
+    "  - Every talent in our pool is pre-vetted. We say \"every talent is " +
+    "a diamond\" because we screen every grad before they enter.\n" +
+    "  - You stay in control. Reject all 3 and walk away — we won't chase.\n\n" +
+    "In return, our talents get the same: 3 curated companies that actually " +
+    "fit them. No 200-job feed. No noise. Fair for both sides.\n\n" +
+    "If {{company}} has even one open role for fresh grads, interns, or " +
+    "junior hires, just reply with the role and I'll start the matching.\n\n" +
+    "Best,\n" +
+    "Kean — Founder, Diamond and Jeweler\n" +
+    "diamondandjeweler@gmail.com  |  https://diamondandjeweler.com\n\n" +
+    "──────────────────────────────────────────\n" +
+    "PDPA: Your contact was collected from a publicly accessible page on " +
+    "{{company}}'s website. Reply UNSUBSCRIBE to opt out — we'll remove " +
+    "you within 24 hours and never contact again.\n" +
+    "──────────────────────────────────────────";
+
+  const HR_2 =
+    "Hi {{firstName}},\n\n" +
+    "Floating this back up.\n\n" +
+    "Quick recap — DNJ matches {{company}} with 3 AI-curated candidates " +
+    "per role, free. Every talent is a diamond (screened before entering " +
+    "the pool). 14 days from your role description to your first 3 matches.\n\n" +
+    "No signup, no card, no commitment. If you don't like the 3, walk away.\n\n" +
+    "Worth one open role to try?\n\n" +
+    "Best,\nKean";
+
+  const HR_3 =
+    "Hi {{firstName}},\n\n" +
+    "Last note from me — won't keep cluttering your inbox.\n\n" +
+    "If {{company}} ever wants to test 3 AI-matched diamonds for free, " +
+    "just drop a line: diamondandjeweler@gmail.com\n\n" +
+    "Wishing {{company}} a great hiring season.\n\n" +
+    "Best,\nKean";
+
+  const UNI_1 =
+    "Hi {{firstName}},\n\n" +
+    "I'm Kean, founder of Diamond and Jeweler (DNJ — diamondandjeweler.com).\n\n" +
+    "We're a Malaysian AI recruitment platform. Three matches, zero noise.\n\n" +
+    "Our matching engine runs on big-data signals — education, skills, " +
+    "work patterns, career intent — and surfaces exactly 3 matches both " +
+    "ways. No spam, no firehose. Just three diamonds.\n\n" +
+    "For {{company}}'s career services / placement office, fair-both-sides " +
+    "deal:\n\n" +
+    "  - Refer your grad. We match them with 3 AI-curated employers in 14 days.\n" +
+    "  - 100% FREE for {{company}} and the student. No fees, no subscription.\n" +
+    "  - Every employer in our pool is verified — your grads aren't sent to " +
+    "ghost listings or fake postings.\n" +
+    "  - We treat every talent as a diamond. Screened, polished, presented " +
+    "only to the 3 employers that fit them best.\n\n" +
+    "In return, your students get genuine intros — not application black " +
+    "holes. And your career-services team gets weekly placement updates.\n\n" +
+    "Reply with a good time and I'll send a 15-min walkthrough, or just " +
+    "say \"start the digest\" and I'll begin sending vacancies tailored " +
+    "for your graduates.\n\n" +
+    "Best,\n" +
+    "Kean — Founder, Diamond and Jeweler\n" +
+    "diamondandjeweler@gmail.com  |  https://diamondandjeweler.com\n\n" +
+    "──────────────────────────────────────────\n" +
+    "PDPA: Your contact was collected from a publicly accessible page on " +
+    "{{company}}'s website. Reply UNSUBSCRIBE to opt out — we'll remove " +
+    "you within 24 hours and never contact again.\n" +
+    "──────────────────────────────────────────";
+
+  const UNI_2 =
+    "Hi {{firstName}},\n\n" +
+    "Bumping this back up.\n\n" +
+    "Quick recap: DNJ gives {{company}}'s grads 3 AI-matched employers " +
+    "each, free, in 14 days. Every employer verified, every talent treated " +
+    "as a diamond. No fees for the institution or the student.\n\n" +
+    "Want me to start the weekly vacancy digest for {{company}}, or " +
+    "schedule a quick walkthrough?\n\n" +
+    "Best,\nKean";
+
+  const UNI_3 =
+    "Hi {{firstName}},\n\n" +
+    "This will be my last note.\n\n" +
+    "If {{company}}'s career office ever wants free, AI-matched job offers " +
+    "for your grads, the door's always open: diamondandjeweler@gmail.com\n\n" +
+    "Best of luck to your students this placement season.\n\n" +
+    "Best,\nKean";
+
+  const AUTO_CALL =
+    "Hi {{firstName}},\n\n" +
+    "Thank you so much for getting back and sharing your number! I'll give " +
+    "you a call shortly to walk through how DNJ's AI matching works for " +
+    "{{company}}.\n\n" +
+    "Looking forward to speaking with you!\n\n" +
+    "Best,\nKean — Diamond and Jeweler";
+
+  const AUTO_EMAIL =
+    "Hi {{firstName}},\n\n" +
+    "Thanks so much for getting back — really appreciate it.\n\n" +
+    "I'd love to set up a quick 10-min call to show you exactly how DNJ's " +
+    "AI matching delivers 3 diamonds for {{company}}. What time works for " +
+    "you this week?\n\n" +
+    "You can also reach me directly at diamondandjeweler@gmail.com.\n\n" +
+    "Looking forward!\n\n" +
+    "Best,\nKean — Diamond and Jeweler";
+
+  const AUTO_UNSUBSCRIBE =
+    "Hi {{firstName}},\n\n" +
+    "Got it — you've been removed from our list. You won't receive any " +
+    "further messages from Diamond and Jeweler.\n\n" +
+    "Apologies for the interruption, and best of luck to {{company}}.\n\n" +
+    "Best,\nKean — Diamond and Jeweler";
+
+  const entries = [
+    ['HR Subject',         HR_SUBJECT],
+    ['HR Email 1',         HR_1],
+    ['HR Email 2',         HR_2],
+    ['HR Email 3',         HR_3],
+    ['University Subject', UNI_SUBJECT],
+    ['University Email 1', UNI_1],
+    ['University Email 2', UNI_2],
+    ['University Email 3', UNI_3],
+    ['Auto Reply Call',        AUTO_CALL],
+    ['Auto Reply Email',       AUTO_EMAIL],
+    ['Auto Reply Unsubscribe', AUTO_UNSUBSCRIBE],
+  ];
+
+  const ss    = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet   = ss.getSheetByName(TEMPLATES_SHEET);
+  if (!sheet) { sheet = ss.insertSheet(TEMPLATES_SHEET); }
+
+  // Build a map of existing key → row number
+  const existing = {};
+  const data = sheet.getDataRange().getValues();
+  for (let i = 0; i < data.length; i++) {
+    if (data[i][0]) existing[data[i][0]] = i + 1;
+  }
+
+  let updated = 0, appended = 0;
+  entries.forEach(([key, value]) => {
+    if (existing[key]) {
+      sheet.getRange(existing[key], 2).setValue(value);
+      updated++;
+    } else {
+      sheet.appendRow([key, value]);
+      appended++;
+    }
+  });
+
+  Logger.log(`writeAllTemplates_v2 done. updated=${updated} appended=${appended}`);
+  SpreadsheetApp.getActiveSpreadsheet().toast(
+    `Templates synced — ${updated} updated, ${appended} added.`,
+    'DNJ', 4
+  );
+}
+
 
 // ── WRITE AUTO-REPLY TEMPLATES TO SHEET (run once) ───────────
 function addAutoReplyTemplates() {

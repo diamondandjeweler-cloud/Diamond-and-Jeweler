@@ -93,52 +93,58 @@ export default function SignUp() {
       try { sessionStorage.setItem('bole.referral_code', referralCode) } catch { /* tolerate */ }
     }
 
-    const { data, error } = await supabase.auth.signUp({
-      email, password,
-      options: {
-        emailRedirectTo: `${siteUrl}/auth/callback`,
-        captchaToken: captchaToken ?? undefined,
-        data: {
-          full_name: fullName, role,
-          referral_code: referralCode || undefined,
-          consents: {
-            dob: consents.dob, market: consents.market, tos: consents.tos,
-            consented_at: new Date().toISOString(),
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email, password,
+        options: {
+          emailRedirectTo: `${siteUrl}/auth/callback`,
+          captchaToken: captchaToken ?? undefined,
+          data: {
+            full_name: fullName, role,
+            referral_code: referralCode || undefined,
+            consents: {
+              dob: consents.dob, market: consents.market, tos: consents.tos,
+              consented_at: new Date().toISOString(),
+            },
           },
         },
-      },
-    })
-    setBusy(false)
-    if (error) {
-      setErr(error.message)
-      setCaptchaToken(null)
-      try { sessionStorage.removeItem('bole.referral_code') } catch { /* tolerate */ }
-      return
-    }
-    // Auto-confirm is on: signUp returns a session immediately for new users.
-    // Skip the "check your email" screen and go straight to the app.
-    if (data.session) {
-      // The DB trigger creates the profile with role='talent' by default and
-      // ignores the role from options.data, so for hiring signups we have to
-      // overwrite it here before navigating. Awaited to avoid the same race
-      // that AuthCallback hits.
-      if (role !== 'talent') {
-        try {
-          await supabase
-            .from('profiles')
-            .update({ role })
-            .eq('id', data.session.user.id)
-        } catch (e) {
-          console.error('[signup] role update failed', e)
-        }
+      })
+      if (error) {
+        setErr(error.message)
+        setCaptchaToken(null)
+        try { sessionStorage.removeItem('bole.referral_code') } catch { /* tolerate */ }
+        return
       }
-      window.location.replace('/home')
-      return
+      // Auto-confirm is on: signUp returns a session immediately for new users.
+      // Skip the "check your email" screen and go straight to the app.
+      if (data.session) {
+        // The DB trigger creates the profile with role='talent' by default and
+        // ignores the role from options.data, so for hiring signups we have to
+        // overwrite it here before navigating. Awaited to avoid the same race
+        // that AuthCallback hits.
+        if (role !== 'talent') {
+          try {
+            await supabase
+              .from('profiles')
+              .update({ role })
+              .eq('id', data.session.user.id)
+          } catch (e) {
+            console.error('[signup] role update failed', e)
+          }
+        }
+        window.location.replace('/home')
+        return
+      }
+      // Email confirmation required (auto-confirm off, or email already registered).
+      try { sessionStorage.setItem('dnj.pending_email', email) } catch { /* tolerate */ }
+      const callbackRole = role !== 'talent' ? `&role=${role}` : ''
+      navigate(`/auth/callback?type=signup${callbackRole}`, { replace: true })
+    } catch {
+      setErr('Network error — please check your connection and try again.')
+      setCaptchaToken(null)
+    } finally {
+      setBusy(false)
     }
-    // Email confirmation required (auto-confirm off, or email already registered).
-    try { sessionStorage.setItem('dnj.pending_email', email) } catch { /* tolerate */ }
-    const callbackRole = role !== 'talent' ? `&role=${role}` : ''
-    navigate(`/auth/callback?type=signup${callbackRole}`, { replace: true })
   }
 
   return (

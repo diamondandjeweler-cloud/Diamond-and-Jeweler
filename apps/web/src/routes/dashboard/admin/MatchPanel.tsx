@@ -1,7 +1,17 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import LoadingSpinner from '../../../components/LoadingSpinner'
+import { formatError } from '../../../lib/errors'
 
+// F8 — Switched from a direct PostgREST embed (`from('matches').select('…,
+// roles(title)')`) to a SECURITY DEFINER RPC `get_admin_matches`. The embed
+// path was reliably failing with "permission denied for table talents"
+// because the OR'd RLS chain on `matches` includes `matches_select_talent`,
+// whose USING clause does `EXISTS (SELECT 1 FROM talents t WHERE …)`. When
+// PostgREST treated the live request as `anon` (token race / refresh hiccup
+// observed in the wild), evaluating that subquery surfaced the error even
+// though the admin policy would have passed the row. Mirrors KpiPanel's
+// switch to `get_admin_kpis`. See migrations/0104_admin_matches_rpc.sql.
 interface MatchAdminRow {
   id: string
   status: string
@@ -12,7 +22,7 @@ interface MatchAdminRow {
   created_at: string
   expires_at: string | null
   talent_id: string | null
-  roles: { title: string } | null
+  role_title: string | null
 }
 
 export default function MatchPanel() {
@@ -24,16 +34,19 @@ export default function MatchPanel() {
 
   async function reload() {
     setLoading(true)
-    let q = supabase
-      .from('matches')
-      .select('id, status, compatibility_score, tag_compatibility, life_chart_score, internal_reasoning, created_at, expires_at, talent_id, roles(title)')
-      .order('created_at', { ascending: false })
-      .limit(100)
-    if (statusFilter !== 'all') q = q.eq('status', statusFilter)
-    const { data, error } = await q
-    if (error) setErr(error.message)
-    else setRows((data ?? []) as unknown as MatchAdminRow[])
-    setLoading(false)
+    setErr(null)
+    try {
+      const { data, error } = await supabase.rpc('get_admin_matches', {
+        p_status: statusFilter === 'all' ? null : statusFilter,
+        p_limit: 100,
+      })
+      if (error) throw error
+      setRows((data ?? []) as MatchAdminRow[])
+    } catch (e) {
+      setErr(formatError(e))
+    } finally {
+      setLoading(false)
+    }
   }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { void reload() }, [statusFilter])
@@ -79,7 +92,7 @@ export default function MatchPanel() {
               <div key={m.id} className="bg-white border rounded">
                 <div className="flex justify-between items-center p-3">
                   <div className="flex-1">
-                    <div className="text-sm font-medium">{m.roles?.title ?? '(role gone)'}</div>
+                    <div className="text-sm font-medium">{m.role_title ?? '(role gone)'}</div>
                     <div className="text-xs text-gray-500">
                       Talent {m.talent_id?.slice(0, 8) ?? '—'} ·{' '}
                       <span className="capitalize">{m.status.replace(/_/g, ' ')}</span> ·{' '}

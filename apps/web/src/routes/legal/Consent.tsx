@@ -81,12 +81,17 @@ export default function Consent() {
     // is somehow unreadable, preserving prior behaviour for first-time users.
     const recordedVersion = (currentLegal && currentLegal !== 'pending') ? currentLegal : v.version
 
+    // F21 fix — call the SECURITY DEFINER record_consent RPC instead of a
+    // direct PostgREST UPDATE on profiles. The direct UPDATE was hanging
+    // past 15s × 3 retries due to the profiles RLS policy chain stalling
+    // under planner load (same cluster as F1's KpiPanel 503s). The RPC
+    // bypasses RLS entirely; authorisation is preserved by writing only
+    // the row matching auth.uid(). See migrations/0101_record_consent_rpc.sql.
     const writeOnce = async () => {
-      const { error: e1 } = await supabase.from('profiles').update({
-        consent_version: recordedVersion,
-        consent_signed_at: new Date().toISOString(),
-        consent_ip_hash: ipHash,
-      }).eq('id', session.user.id)
+      const { error: e1 } = await supabase.rpc('record_consent', {
+        p_version: recordedVersion,
+        p_ip_hash: ipHash,
+      })
       if (e1) throw e1
     }
 

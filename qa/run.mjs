@@ -24,6 +24,10 @@ const CHECKS = [
   ['15-bazi-ai-probe',         'BaZi AI probe'],
   ['16-tls-headers',           'TLS + headers'],
   ['17-backup-readiness',      'Backup readiness'],
+  ['18-ssl-dns',               'SSL + DNS'],
+  ['19-seo-sanity',            'SEO sanity'],
+  ['20-ai-match-quality',      'AI match quality'],
+  ['21-email-template-scan',   'Email template scan'],
 ]
 
 async function main() {

@@ -1,8 +1,13 @@
 import { Link } from 'react-router-dom'
 import { useSeo } from '../lib/useSeo'
 
+// Keywords meta — search-intent terms only. Removed: walk-in interview,
+// same day interview, quick hiring, immediate hiring, hiring immediately,
+// no experience job. DNJ does not deliver those experiences (curated
+// matching is ~14-day pilot), and listing them in keywords misleads
+// search intent and creates Consumer Protection Act 1999 §10 exposure.
 const CAREERS_KEYWORDS =
-  'jobs near me, job vacancy near me, urgent hiring near me, walk in interview, hiring immediately, apply job online, latest job vacancy, part time job near me, full time job, fresh graduate job, no experience job, immediate hiring, hiring now, walk-in interview, vacancy near me, job opening near me, now hiring, apply now, send resume, job seeking, job search, account assistant job vacancy, admin executive job vacancy, software developer job vacancy, sales executive job vacancy, graphic designer job vacancy, marketing executive job vacancy, customer service job vacancy, hr assistant job vacancy, finance job vacancy, operation job vacancy, pilot job vacancy, jeweler job vacancy, diamond expert job vacancy, luxury retail job vacancy, job vacancy in Kuala Lumpur, job vacancy in PJ, job vacancy in Penang, job vacancy in Malaysia, jobs near KL, hiring in Kuala Lumpur, hiring in Malaysia, work from home Kuala Lumpur, remote job Malaysia, part time Kuala Lumpur, full time Kuala Lumpur, fresh graduate Kuala Lumpur, no experience Kuala Lumpur, urgent, immediate, hiring now, walk-in, freshers welcome, no experience needed, same day interview, quick hiring, direct hiring, without experience, with or without experience, graduate trainee, entry level, junior level, career opportunity, looking for job, better career, career growth job, stable job, career advancement, job with promotion, good salary job, near my location, best company to work for, job satisfaction, career change, new job opportunity, job vacancy, job hiring, job opening, employment, recruitment, career, vacancy, hiring, job posting, apply online, submit resume, full time job vacancy, part time job vacancy, contract job, temporary job, internship, freelance job, remote job, hybrid job, shift job, permanent job, fresh graduate job vacancy, no experience job vacancy, internship for students, entry level job Kuala Lumpur, junior executive, trainee program, graduate trainee program, 0 experience job, spm leaver job, diploma holder job, degree holder job, diamond company hiring, jeweler career Malaysia, luxury brand job, pilot job Malaysia, aviation job vacancy, diamond grader job, jewelry designer job, sales associate luxury, retail job diamond, pilot fresh graduate, cadet pilot program, airline job Malaysia, gemologist job, jewellery shop hiring'
+  'jobs near me, job vacancy near me, apply job online, latest job vacancy, part time job near me, full time job, fresh graduate job, vacancy near me, job opening near me, apply now, send resume, job seeking, job search, account assistant job vacancy, admin executive job vacancy, software developer job vacancy, sales executive job vacancy, graphic designer job vacancy, marketing executive job vacancy, customer service job vacancy, hr assistant job vacancy, finance job vacancy, operation job vacancy, pilot job vacancy, jeweler job vacancy, diamond expert job vacancy, luxury retail job vacancy, job vacancy in Kuala Lumpur, job vacancy in PJ, job vacancy in Penang, job vacancy in Malaysia, jobs near KL, hiring in Kuala Lumpur, hiring in Malaysia, work from home Kuala Lumpur, remote job Malaysia, part time Kuala Lumpur, full time Kuala Lumpur, fresh graduate Kuala Lumpur, freshers welcome, with or without experience, graduate trainee, entry level, junior level, career opportunity, looking for job, better career, career growth job, stable job, career advancement, job with promotion, good salary job, near my location, best company to work for, job satisfaction, career change, new job opportunity, job vacancy, job hiring, job opening, employment, recruitment, career, vacancy, hiring, job posting, apply online, submit resume, full time job vacancy, part time job vacancy, contract job, temporary job, internship, freelance job, remote job, hybrid job, shift job, permanent job, fresh graduate job vacancy, internship for students, entry level job Kuala Lumpur, junior executive, trainee program, graduate trainee program, spm leaver job, diploma holder job, degree holder job, diamond company hiring, jeweler career Malaysia, luxury brand job, pilot job Malaysia, aviation job vacancy, diamond grader job, jewelry designer job, sales associate luxury, retail job diamond, pilot fresh graduate, cadet pilot program, airline job Malaysia, gemologist job, jewellery shop hiring, ai curated matching, ai recruitment Malaysia, curated matching, three matches per role'
 
 const ROLES: Array<{ title: string; type: string; location: string; level: string; blurb: string }> = [
   {
@@ -137,8 +142,8 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
 
 const FAQS: Array<{ q: string; a: string }> = [
   {
-    q: 'Is DNJ hiring immediately in Malaysia?',
-    a: 'DNJ curates matches for pilot, diamond and jeweler, sales executive, admin executive, account assistant, finance, marketing, customer service and graphic designer roles across Kuala Lumpur, PJ and Penang. Complete your profile and our AI engine reviews new talent every hour — you receive up to 3 curated matches as companies aligned to your profile are identified.',
+    q: 'How does DNJ hiring work in Malaysia?',
+    a: 'DNJ is a curated matching platform — not a job board and not a walk-in service. Complete your profile and our AI engine reviews new talent every hour. You receive up to 3 curated matches across pilot, diamond and jeweler, sales executive, admin executive, account assistant, finance, marketing, customer service and graphic designer roles in Kuala Lumpur, PJ and Penang as companies aligned to your profile are identified. Typical pilot timeline: ~14 days from profile completion.',
   },
   {
     q: 'Do I need experience to apply?',
@@ -162,7 +167,7 @@ export default function Careers() {
   useSeo({
     title: 'Careers — Job Vacancy Malaysia | Pilot, Diamond & Jeweler Hiring Now',
     description:
-      'Latest job vacancy near me in Malaysia. Apply online for pilot, diamond grader, jeweler, gemologist, sales executive, admin executive, software developer, graphic designer, marketing, finance, customer service and fresh graduate roles. Walk-in interview, immediate hiring.',
+      'Latest job vacancy near me in Malaysia. Apply online for pilot, diamond grader, jeweler, gemologist, sales executive, admin executive, software developer, graphic designer, marketing, finance, customer service and fresh graduate roles. AI-curated matching — three picks per role, no cold CV pile. Typical pilot timeline: 14 days from profile completion.',
     keywords: CAREERS_KEYWORDS,
     canonicalPath: '/careers',
     jsonLd: [
@@ -230,10 +235,10 @@ export default function Careers() {
 
         <section>
           <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2">
-            URGENT HIRING · MALAYSIA
+            CURATED MATCHING · MALAYSIA
           </p>
           <h1 className="text-3xl md:text-5xl font-bold tracking-tight mb-3">
-            Job Vacancy Malaysia — Pilot, Diamond &amp; Jeweler Hiring Now
+            Job Vacancy Malaysia — AI-curated matches for Pilot, Diamond &amp; Jeweler careers
           </h1>
           <p className="text-gray-600 max-w-3xl leading-relaxed">
             Looking for a job near you? DNJ Careers lists the latest job vacancy in Kuala Lumpur,
@@ -407,20 +412,24 @@ export default function Careers() {
         <section className="mt-12">
           <h2 className="text-base font-semibold text-[#0B1220] mb-2">Popular searches</h2>
           <p className="text-xs text-gray-500 leading-relaxed">
-            Jobs near me · Job vacancy near me · Urgent hiring near me · Walk in interview · Hiring
-            immediately · Apply job online · Latest job vacancy · Part time job near me · Full time
-            job · Fresh graduate job · No experience job · Immediate hiring · Hiring now · Pilot job
-            vacancy · Cadet pilot program · Aviation job vacancy · Jeweler job vacancy · Diamond
-            expert job vacancy · Gemologist job · Luxury retail job vacancy · Sales executive job
-            vacancy · Account assistant job vacancy · Admin executive job vacancy · Software
-            developer job vacancy · Graphic designer job vacancy · Marketing executive job vacancy ·
-            Customer service job vacancy · HR assistant job vacancy · Finance job vacancy · Operation
-            job vacancy · Job vacancy in Kuala Lumpur · Job vacancy in PJ · Job vacancy in Penang ·
-            Job vacancy in Malaysia · Jobs near KL · Hiring in Kuala Lumpur · Hiring in Malaysia ·
-            Work from home Kuala Lumpur · Remote job Malaysia · Internship · Internship for students
-            · Graduate trainee program · Diploma holder job · SPM leaver job · 0 experience job ·
-            Career opportunity · Career growth job · Career advancement · Job with promotion · Good
-            salary job · Stable job · Best company to work for
+            Jobs near me · Job vacancy near me · Apply job online · Latest job vacancy · Part time
+            job near me · Full time job · Fresh graduate job · Pilot job vacancy · Cadet pilot
+            program · Aviation job vacancy · Jeweler job vacancy · Diamond grader job · Gemologist
+            job · Luxury retail job vacancy · Sales executive job vacancy · Account assistant job
+            vacancy · Admin executive job vacancy · Software developer job vacancy · Graphic
+            designer job vacancy · Marketing executive job vacancy · Customer service job vacancy ·
+            HR assistant job vacancy · Finance job vacancy · Operation job vacancy · Job vacancy in
+            Kuala Lumpur · Job vacancy in PJ · Job vacancy in Penang · Job vacancy in Malaysia ·
+            Jobs near KL · Hiring in Kuala Lumpur · Hiring in Malaysia · Work from home Kuala
+            Lumpur · Remote job Malaysia · Internship · Internship for students · Graduate trainee
+            program · Diploma holder job · SPM leaver job · Career opportunity · Career growth job ·
+            Career advancement · Job with promotion · Good salary job · Stable job · Best company
+            to work for
+          </p>
+          <p className="text-[10px] text-gray-400 mt-3 italic">
+            DNJ does not run walk-in interviews or same-day hiring. We curate up to three matches
+            per role; typical pilot timeline is around 14 days from profile completion. Interviews
+            are arranged directly between you and the matched company.
           </p>
         </section>
       </main>

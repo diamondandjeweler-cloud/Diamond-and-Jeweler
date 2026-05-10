@@ -55,7 +55,17 @@ export default function ColdStartPanel() {
       required_traits: q.roles?.required_traits ?? [],
       created_at: q.created_at,
     }))
-    setRows(mapped)
+    // F6 — Defensive UI dedupe by role_id. The 0102 migration adds a
+    // partial unique index on cold_start_queue(role_id) where status='pending'
+    // so this should be a no-op on up-to-date schemas, but environments
+    // that haven't run the migration yet still render one card per role.
+    // Keep the oldest row per role (matches the migration's "keep first" rule).
+    const dedup = new Map<string, ColdStartRole>()
+    for (const row of mapped) {
+      const existing = dedup.get(row.role_id)
+      if (!existing || existing.created_at > row.created_at) dedup.set(row.role_id, row)
+    }
+    setRows(Array.from(dedup.values()))
     setLoading(false)
   }
 

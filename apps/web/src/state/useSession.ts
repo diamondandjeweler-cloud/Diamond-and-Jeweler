@@ -18,13 +18,29 @@ interface SessionState {
   refreshIsHM: () => Promise<void>
 }
 
-// Soft auth-presence cookie read by apps/web/middleware.ts to redirect
-// drive-by visits to /admin to /login before the SPA shell is served. Not a
-// real auth token — Supabase RLS + AdminGate enforce real authorization.
-function setAuthHintCookie() {
+// F13 — JWT cookie read by apps/web/middleware.ts to validate /admin access
+// at the network edge before the SPA shell is served. The cookie carries
+// the actual Supabase access_token so the edge can verify the signature
+// against SUPABASE_JWT_SECRET — that closes the gap where a forged
+// `dnj-auth=1` cookie used to slip past the soft gate.
+//
+// Real authorization (admin role, RLS scopes) still lives in AdminGate +
+// Supabase RLS — the edge gate only confirms the request comes from a
+// holder of a non-expired Supabase JWT.
+function setAuthHintCookie(accessToken?: string | null) {
   try {
     const secure = location.protocol === 'https:' ? '; Secure' : ''
+    // Backwards-compat presence cookie. Older middleware bundles that
+    // haven't picked up the JWT change yet still work.
     document.cookie = `dnj-auth=1; Path=/; Max-Age=2592000; SameSite=Lax${secure}`
+    if (accessToken) {
+      // The Supabase access token is itself a signed JWT; the edge verifies
+      // signature + exp claim with SUPABASE_JWT_SECRET.
+      // Match the access token's expiry (~1h) — supabase-js refreshes it,
+      // and the bootstrap below re-mirrors on every state change.
+      document.cookie =
+        `sb-jwt=${encodeURIComponent(accessToken)}; Path=/; Max-Age=3600; SameSite=Lax${secure}`
+    }
   } catch { /* tolerate */ }
 }
 
@@ -32,6 +48,7 @@ function clearAuthHintCookie() {
   try {
     const secure = location.protocol === 'https:' ? '; Secure' : ''
     document.cookie = `dnj-auth=; Path=/; Max-Age=0; SameSite=Lax${secure}`
+    document.cookie = `sb-jwt=; Path=/; Max-Age=0; SameSite=Lax${secure}`
   } catch { /* tolerate */ }
 }
 
@@ -140,18 +157,36 @@ export function bootstrapSession() {
     }
   }, 8000)
 
-  supabase.auth.onAuthStateChange(async (_event, session) => {
+  supabase.auth.onAuthStateChange(async (event, session) => {
     clearTimeout(watchdog)
     try {
+      // F7 — only react to definitive sign-out events. supabase-js fires
+      // onAuthStateChange with `session: null` for several reasons (USER_UPDATED
+      // mid-call, transient TOKEN_REFRESHED before the new token lands, network
+      // hiccups) — historically that wiped state and made any RLS-failing query
+      // (e.g. the Approvals embed) feel like an auto-logout. Now we only blank
+      // session state on SIGNED_OUT or USER_DELETED, plus the very first
+      // INITIAL_SESSION when there's genuinely no persisted session.
       if (!session) {
-        clearAuthHintCookie()
-        useSession.setState({ session: null, profile: null, isHM: false, loading: false })
+        const definitive =
+          event === 'SIGNED_OUT' ||
+          event === 'USER_DELETED' ||
+          event === 'INITIAL_SESSION'
+        if (definitive) {
+          clearAuthHintCookie()
+          useSession.setState({ session: null, profile: null, isHM: false, loading: false })
+        } else {
+          // Transient null — flip loading off but preserve existing session/profile
+          // so route guards don't bounce the user mid-action.
+          console.warn('[session] ignoring transient null session for event', event)
+          useSession.setState({ loading: false })
+        }
         return
       }
       // Set the session immediately so route guards see auth state, even
       // before profile resolves. ConsentGate shows a spinner while profile
       // is null + session truthy.
-      setAuthHintCookie()
+      setAuthHintCookie(session.access_token)
       useSession.setState({ session, loading: false })
       const [profile, isHM] = await Promise.all([
         fetchProfile(session.user.id).catch((e) => {

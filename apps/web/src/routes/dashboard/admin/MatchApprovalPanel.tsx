@@ -158,20 +158,28 @@ export default function MatchApprovalPanel() {
       setErr(error.message)
     } else {
       // If approving, fire the talent notification via the notify function.
+      // F7 — use the admin's session token (not the anon key) so any 401 is
+      // a function-side reject not an auth listener trigger. Wrapped in
+      // try/catch so a transport failure can never bubble out of transition().
       if (newStatus === 'generated') {
         const row = rows.find((r) => r.id === matchId)
         if (row?.talents?.id) {
-          const notifyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify`
-          const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-          fetch(notifyUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${anonKey}` },
-            body: JSON.stringify({
-              talent_id: row.talents.id,
-              type: 'match_ready',
-              data: { compatibility_score: row.compatibility_score },
-            }),
-          }).catch(() => {/* best effort */})
+          try {
+            const { data: { session } } = await supabase.auth.getSession()
+            const token = session?.access_token ?? import.meta.env.VITE_SUPABASE_ANON_KEY
+            const notifyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify`
+            void fetch(notifyUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify({
+                talent_id: row.talents.id,
+                type: 'match_ready',
+                data: { compatibility_score: row.compatibility_score },
+              }),
+            }).catch((e) => console.warn('[approvals] notify failed', e))
+          } catch (e) {
+            console.warn('[approvals] notify setup failed, continuing', e)
+          }
         }
       }
       await reload()

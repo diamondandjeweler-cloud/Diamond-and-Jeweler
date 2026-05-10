@@ -63,15 +63,14 @@ const ROUTES = {
     description:
       'Precision recruitment powered by AI. Three matches at a time, zero noise. Apply online for pilot, diamond grader, jeweler, gemologist, sales executive, admin executive, software developer, graphic designer, marketing, finance, customer service and fresh graduate roles. PDPA-compliant, end-to-end encrypted.',
   },
-  '/job-vacancy': {
-    title: 'Job Vacancy Malaysia — AI-Matched Roles, Urgent Hiring in KL, PJ, Penang | DNJ',
-    description:
-      'Latest job vacancy in Malaysia matched by AI to your career profile. Three curated offers at a time. Pilot, diamond and jeweler, sales, admin, finance, customer service, fresh graduate roles. Walk-in interview, same day interview, immediate hiring — apply online today.',
-  },
+  // F19 — /job-vacancy retired: it was a duplicate URL of /careers and the
+  // copy contained walk-in / same-day claims that DNJ doesn't deliver.
+  // vercel.json now 301s /job-vacancy → /careers, so this entry stays
+  // commented for the record but is not emitted.
   '/careers/urgent-hiring-malaysia-2026': {
-    title: 'Urgent Hiring Near Me: Top Job Vacancies in Kuala Lumpur 2026 | DNJ AI Recruitment',
+    title: 'Urgent Hiring in Malaysia 2026 — Top AI-Curated Job Vacancies in KL, PJ, Penang | DNJ',
     description:
-      'Where to find urgent hiring near me in 2026. AI-curated guide to top job vacancies in Kuala Lumpur, PJ and Penang — pilot, diamond and jeweler, sales, admin, finance, fresh graduate roles. Walk-in interview, immediate hiring, apply online today.',
+      'Where to find AI-curated job vacancies in Malaysia 2026. Pilot, diamond and jeweler, sales, admin, finance, fresh graduate roles in Kuala Lumpur, PJ and Penang. Three curated picks per role, ~14-day pilot timeline — apply online today.',
   },
   '/careers/cadet-pilot-program-malaysia-guide': {
     title: 'Cadet Pilot Program Malaysia 2026 — Full Guide | DNJ Careers',

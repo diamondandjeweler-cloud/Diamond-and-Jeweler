@@ -151,7 +151,7 @@ const FAQS: Array<{ q: string; a: string }> = [
   },
   {
     q: 'Where can I find job vacancy near me?',
-    a: 'Browse this Careers page or visit /job-vacancy for the latest job vacancy near you in Kuala Lumpur, PJ, Penang and across Malaysia. Apply online, send resume, and get matched with hiring companies through AI-powered curated matching.',
+    a: 'Browse this Careers page for the latest job vacancy near you in Kuala Lumpur, PJ, Penang and across Malaysia. Apply online, send resume, and get matched with hiring companies through AI-powered curated matching.',
   },
   {
     q: 'Are part time, remote and hybrid jobs available?',

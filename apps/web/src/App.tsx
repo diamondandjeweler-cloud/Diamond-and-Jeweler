@@ -91,7 +91,9 @@ export default function App() {
         {/* Public */}
         <Route path="/" element={<Landing />} />
         <Route path="/careers" element={<Careers />} />
-        <Route path="/job-vacancy" element={<Careers />} />
+        {/* F19 — /job-vacancy was a duplicate URL of /careers (SEO cannibalisation
+            risk). Canonicalise to /careers via a client-side redirect. */}
+        <Route path="/job-vacancy" element={<Navigate to="/careers" replace />} />
         <Route path="/careers/urgent-hiring-malaysia-2026" element={<UrgentHiringPost />} />
         <Route path="/careers/cadet-pilot-program-malaysia-guide" element={<CadetPilotGuide />} />
         <Route path="/careers/diamond-grader-vs-gemologist" element={<DiamondVsGemPost />} />

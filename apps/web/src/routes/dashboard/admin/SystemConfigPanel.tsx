@@ -32,6 +32,86 @@ const HIGH_RISK_KEYS = new Set<string>([
   'legal_reviewed',
 ])
 
+// F15 — per-key validation hints. Each entry returns null if the parsed
+// value is acceptable, or a human-readable error string otherwise. Run
+// after JSON.parse but before the confirm dialog so a fat-finger value
+// fails fast instead of round-tripping to PostgREST.
+type Validator = (parsed: unknown) => string | null
+const KEY_VALIDATORS: Record<string, { hint: string; validate: Validator }> = {
+  launch_mode: {
+    hint: 'enum: "public" | "private" | "waitlist_only"',
+    validate: (v) =>
+      typeof v === 'string' && ['public', 'private', 'waitlist_only'].includes(v)
+        ? null
+        : 'Must be one of: "public", "private", "waitlist_only".',
+  },
+  match_approval_mode: {
+    hint: 'enum: "manual" | "autopilot"',
+    validate: (v) =>
+      typeof v === 'string' && ['manual', 'autopilot'].includes(v)
+        ? null
+        : 'Must be one of: "manual", "autopilot".',
+  },
+  match_expiry_days: {
+    hint: 'integer 1–90 (days a match stays active before auto-expire)',
+    validate: (v) =>
+      Number.isInteger(v) && (v as number) >= 1 && (v as number) <= 90
+        ? null
+        : 'Must be an integer between 1 and 90.',
+  },
+  match_expiry_days_urgent: {
+    hint: 'integer 1–14 (urgent-track expiry; must be ≤ match_expiry_days)',
+    validate: (v) =>
+      Number.isInteger(v) && (v as number) >= 1 && (v as number) <= 14
+        ? null
+        : 'Must be an integer between 1 and 14.',
+  },
+  free_matches_quota: {
+    hint: 'integer ≥ 0 (free matches per account before paid wall)',
+    validate: (v) =>
+      Number.isInteger(v) && (v as number) >= 0
+        ? null
+        : 'Must be a non-negative integer.',
+  },
+  extra_match_price_rm: {
+    hint: 'number > 0 (RM, allows decimals)',
+    validate: (v) => (typeof v === 'number' && v > 0 ? null : 'Must be a positive number.'),
+  },
+  points_per_extra_match: {
+    hint: 'integer ≥ 1 (Diamond Points cost to redeem one extra match)',
+    validate: (v) =>
+      Number.isInteger(v) && (v as number) >= 1 ? null : 'Must be a positive integer.',
+  },
+  urgent_search_cost: {
+    hint: 'integer ≥ 1 (Diamond Points cost for an urgent search)',
+    validate: (v) =>
+      Number.isInteger(v) && (v as number) >= 1 ? null : 'Must be a positive integer.',
+  },
+  urgent_search_daily_cap: {
+    hint: 'integer ≥ 1 (per-user urgent searches per 24h)',
+    validate: (v) =>
+      Number.isInteger(v) && (v as number) >= 1 ? null : 'Must be a positive integer.',
+  },
+  cold_start_auto_switch_threshold: {
+    hint: 'integer ≥ 100 (active talents at which manual cold-start disables)',
+    validate: (v) =>
+      Number.isInteger(v) && (v as number) >= 100
+        ? null
+        : 'Must be an integer ≥ 100 (per v4 §17 default 500).',
+  },
+  legal_version: {
+    hint: 'string like "3.2" — bump on material Terms/Privacy changes',
+    validate: (v) =>
+      typeof v === 'string' && /^[0-9]+(\.[0-9]+){0,2}$/.test(v)
+        ? null
+        : 'Must be a semver-like string (e.g. "3.2" or "3.2.1").',
+  },
+  legal_reviewed: {
+    hint: 'boolean — flip to true once Malaysian counsel has reviewed',
+    validate: (v) => (typeof v === 'boolean' ? null : 'Must be true or false.'),
+  },
+}
+
 export default function SystemConfigPanel() {
   const [rows, setRows] = useState<ConfigRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -63,6 +143,16 @@ export default function SystemConfigPanel() {
     catch (e) {
       setErrors((x) => ({ ...x, [key]: (e as Error).message }))
       return
+    }
+    // F15 — per-key validation. Reject values that fail the typed shape
+    // before we round-trip to PostgREST.
+    const validator = KEY_VALIDATORS[key]
+    if (validator) {
+      const reason = validator.validate(parsed)
+      if (reason) {
+        setErrors((x) => ({ ...x, [key]: reason }))
+        return
+      }
     }
     if (HIGH_RISK_KEYS.has(key)) {
       const display = JSON.stringify(parsed)
@@ -110,6 +200,11 @@ export default function SystemConfigPanel() {
                     >
                       High risk · confirms on save
                     </span>
+                  )}
+                  {!secret && KEY_VALIDATORS[r.key] && (
+                    <div className="text-[11px] text-ink-500 mt-1 italic">
+                      Expected: {KEY_VALIDATORS[r.key].hint}
+                    </div>
                   )}
                   <div className="text-xs text-gray-400">
                     updated {new Date(r.updated_at).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur' })}

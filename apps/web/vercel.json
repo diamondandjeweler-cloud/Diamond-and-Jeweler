@@ -7,6 +7,11 @@
       "status": 301
     },
     {
+      "src": "^/job-vacancy/?$",
+      "dest": "/careers",
+      "status": 301
+    },
+    {
       "src": "/(.*)",
       "headers": {
         "X-Content-Type-Options":       "nosniff",
@@ -118,10 +123,6 @@
       "dest": "/careers.html"
     },
     {
-      "src": "^/job-vacancy/?$",
-      "dest": "/job-vacancy.html"
-    },
-    {
       "src": "^/jobs/(pilot|cadet-pilot|jeweler|diamond-grader|gemologist|jewelry-designer|luxury-retail|sales-executive|admin-executive|account-assistant|software-developer|graphic-designer|marketing-executive|customer-service|hr-assistant|finance)/?$",
       "dest": "/jobs/$1.html"
     },
@@ -134,7 +135,7 @@
       "dest": "/hire-$1.html"
     },
     {
-      "src": "^/(?:home|login|signup|signout|password-reset|consent|start(?:/[^/]+)?|auth/callback|mfa/(?:challenge|enroll)|onboarding/(?:talent|hm|company(?:/verify)?)|talent(?:/profile)?|hm(?:/post-role|/roles(?:/[^/]+/edit)?)?|hr(?:/invite)?|admin|referrals|points|consult(?:/return)?|feedback/[^/]+|data-requests|privacy|terms|waitlist/confirm|payment/(?:return|mock)|restaurant(?:/.*)?|menu/[^/]+|careers(?:/[^/]+)?|job-vacancy|jobs/[^/]+|jobs-in-[^/]+|hire-[^/]+)$",
+      "src": "^/(?:home|login|signup|signout|password-reset|consent|start(?:/[^/]+)?|auth/callback|mfa/(?:challenge|enroll)|onboarding/(?:talent|hm|company(?:/verify)?)|talent(?:/profile)?|hm(?:/post-role|/roles(?:/[^/]+/edit)?)?|hr(?:/invite)?|admin|referrals|points|consult(?:/return)?|feedback/[^/]+|data-requests|privacy|terms|waitlist/confirm|payment/(?:return|mock)|restaurant(?:/.*)?|menu/[^/]+|careers(?:/[^/]+)?|jobs/[^/]+|jobs-in-[^/]+|hire-[^/]+)$",
       "dest": "/index.html"
     },
     { "src": "^/$", "dest": "/index.html" },

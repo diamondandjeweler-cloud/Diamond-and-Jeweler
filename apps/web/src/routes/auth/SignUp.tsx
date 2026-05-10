@@ -44,6 +44,15 @@ export default function SignUp() {
     email.length > 3 && pwOk && fullName.length > 1
     && consents.dob && consents.tos && !!captchaToken
 
+  function getBlockReason(): string | null {
+    if (fullName.length <= 1) return 'Please enter your full name.'
+    if (email.length <= 3) return 'Please enter a valid email address.'
+    if (!pwOk) return t('auth.passwordWeak')
+    if (!consents.dob || !consents.tos) return 'Please accept the required consents above.'
+    if (!captchaToken) return 'Please complete the security check (or re-verify if it expired).'
+    return null
+  }
+
   async function handleGoogleSignUp() {
     setErr(null)
     setBusy(true)
@@ -78,7 +87,7 @@ export default function SignUp() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setErr(null)
-    if (!canSubmit) { setErr(t('auth.errorBody')); return }
+    if (!canSubmit) { setErr(getBlockReason() ?? t('auth.errorBody')); return }
     setBusy(true)
     if (referralCode) {
       try { sessionStorage.setItem('bole.referral_code', referralCode) } catch { /* tolerate */ }
@@ -274,7 +283,6 @@ export default function SignUp() {
           <Button
             type="submit"
             loading={busy}
-            disabled={!canSubmit}
             className="w-full"
             size="lg"
           >

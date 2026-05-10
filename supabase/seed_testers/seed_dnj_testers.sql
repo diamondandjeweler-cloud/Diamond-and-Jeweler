@@ -374,6 +374,187 @@ FROM public.profiles p
 WHERE t.profile_id = p.id AND p.email = 't15.rohan.consulting@dnj-test.my';
 
 -- ============================================================
+-- 6c) Phase B continuation — T03..T10 enrichment for H03..H10
+-- One talent per HM, derived_tags aligned to each role's required_traits
+-- (canonical names per the LLM extraction schema), parsed_resume.job_areas
+-- written as plain words so backgroundOverlaps()'s substring fallback fires
+-- even when industry_synonyms hasn't been seeded for the alias. T08's plain
+-- job_areas were specifically necessary because H08's haystack
+-- ("Hotel F&B Director / Hospitality / Hotel") doesn't substring-match any
+-- underscore-style alias and the synonyms table didn't cover them.
+-- All have_noncompete=false here — these are test talents demoing the
+-- happy path; T13's intentional non-compete in 6b above is the
+-- deal-breaker filter demo.
+-- ============================================================
+
+-- T03 Priya Devi — H03 Operations Lead, Omnichannel (retail)
+UPDATE public.talents t SET
+  extraction_status = 'complete', has_noncompete = false, noncompete_industry_scope = 'none',
+  derived_tags = jsonb_build_object(
+    'adaptable', 0.88, 'self_starter', 0.85, 'customer_focused', 0.90, 'customer_focus', 0.90,
+    'execution', 0.85, 'results_orientation', 0.85, 'accountable', 0.85, 'leadership', 0.78,
+    'reliable', 0.85, 'problem_solving', 0.80, 'professional_attitude', 0.85, 'ownership', 0.80,
+    'resilience', 0.82
+  ),
+  parsed_resume = jsonb_build_object(
+    'job_areas',     to_jsonb(ARRAY['retail','operations','omnichannel','store management','inventory','ecommerce','P&L','retail operations']),
+    'key_skills',    to_jsonb(ARRAY['P&L management','inventory control','store team leadership','KPI tracking','omnichannel fulfilment','returns management','customer experience']),
+    'years_experience', 11,
+    'career_goals',  'Step up from area-manager to head-of-operations at a fast-growing omnichannel retailer.',
+    'ai_summary',    'Senior retail ops manager, 11 years across modern trade and omnichannel. Strong P&L, store-team leadership, and inventory ops. Wants a step-up to head-of-operations after stagnating salary at current employer.'
+  ),
+  interview_answers = jsonb_build_object('transcript', '[]'::jsonb),
+  updated_at = now()
+FROM public.profiles p WHERE t.profile_id = p.id AND p.email = 't03.priya.retail@dnj-test.my';
+
+-- T04 Hafiz Bin Yusof — H04 Restaurant Manager (F&B)
+UPDATE public.talents t SET
+  extraction_status = 'complete', has_noncompete = false, noncompete_industry_scope = 'none',
+  derived_tags = jsonb_build_object(
+    'growth_minded', 0.85, 'accountable', 0.88, 'reliable', 0.88,
+    'energy', 0.88, 'ownership', 0.90, 'calm_under_pressure', 0.85,
+    'resilience', 0.82, 'self_starter', 0.85, 'emotional_maturity', 0.80,
+    'results_orientation', 0.80, 'problem_solving', 0.80, 'leadership', 0.75,
+    'customer_focused', 0.82
+  ),
+  parsed_resume = jsonb_build_object(
+    'job_areas',     to_jsonb(ARRAY['restaurant_operations','F&B_management','guest_experience','staff_scheduling','P&L']),
+    'key_skills',    to_jsonb(ARRAY['restaurant P&L','shift scheduling','staff training','POS systems','food safety','inventory ordering','guest service recovery']),
+    'years_experience', 12,
+    'career_goals',  'Move from owner-operator chaos to a heritage F&B brand where I can professionalise the floor.',
+    'ai_summary',    'Hands-on restaurant manager, 12 years across fast-casual and heritage outlets. Strong on shift control, P&L discipline, and team building. Recently exited a toxic post-acquisition culture; ready for a structured operator.'
+  ),
+  interview_answers = jsonb_build_object('transcript', '[]'::jsonb),
+  updated_at = now()
+FROM public.profiles p WHERE t.profile_id = p.id AND p.email = 't04.hafiz.fnb@dnj-test.my';
+
+-- T05 Lim Sue Ann — H05 Clinic Operations Lead (healthcare)
+UPDATE public.talents t SET
+  extraction_status = 'complete', has_noncompete = false, noncompete_industry_scope = 'none',
+  derived_tags = jsonb_build_object(
+    'analytical', 0.86, 'collaborator', 0.88, 'detail_oriented', 0.90,
+    'empathy', 0.90, 'precision', 0.88, 'systems_thinking', 0.85,
+    'emotional_maturity', 0.88, 'problem_solving', 0.85, 'professional_attitude', 0.88,
+    'reliable', 0.85, 'communication_clarity', 0.82, 'accountable', 0.85
+  ),
+  parsed_resume = jsonb_build_object(
+    'job_areas',     to_jsonb(ARRAY['healthcare','clinic','operations','patient','compliance','medical','admin','clinic operations']),
+    'key_skills',    to_jsonb(ARRAY['clinic SOP design','patient flow optimisation','MOH compliance','roster management','medical supplies procurement','EMR systems']),
+    'years_experience', 13,
+    'career_goals',  'Standardise multi-site clinic operations as the group expands to new locations.',
+    'ai_summary',    'Senior clinic ops lead, 13 years in primary care and specialist clinics. Strong on patient-journey design, MOH compliance, and SOP rollout. Wants broader scope than single-clinic management.'
+  ),
+  interview_answers = jsonb_build_object('transcript', '[]'::jsonb),
+  updated_at = now()
+FROM public.profiles p WHERE t.profile_id = p.id AND p.email = 't05.sueann.health@dnj-test.my';
+
+-- T06 Nurul Aisyah — H06 Curriculum Lead (edtech)
+UPDATE public.talents t SET
+  extraction_status = 'complete', has_noncompete = false, noncompete_industry_scope = 'none',
+  derived_tags = jsonb_build_object(
+    'growth_minded', 0.90, 'clear_communicator', 0.88, 'analytical', 0.80,
+    'curiosity', 0.90, 'writing', 0.88, 'systems_thinking', 0.85,
+    'communication_clarity', 0.88, 'problem_solving', 0.85,
+    'self_starter', 0.82, 'coachability', 0.85, 'detail_oriented', 0.78
+  ),
+  parsed_resume = jsonb_build_object(
+    'job_areas',     to_jsonb(ARRAY['curriculum_design','instructional_design','edtech','B40_education','STEM_content']),
+    'key_skills',    to_jsonb(ARRAY['grade-aligned curriculum design','learning-outcome mapping','B40 access programmes','STEM module authoring','cross-functional content production','BM/EN bilingual content']),
+    'years_experience', 8,
+    'career_goals',  'Move from pure content authoring to a curriculum lead role with cross-functional ownership.',
+    'ai_summary',    'Curriculum designer with 8 years in B40-focused edtech. Strong on grade-aligned STEM and bahasa modules. Wants a hybrid product/curriculum lead role rather than pure authoring.'
+  ),
+  interview_answers = jsonb_build_object('transcript', '[]'::jsonb),
+  updated_at = now()
+FROM public.profiles p WHERE t.profile_id = p.id AND p.email = 't06.aisyah.edtech@dnj-test.my';
+
+-- T07 Ravi Krishnan — H07 Warehouse Operations Manager (logistics)
+UPDATE public.talents t SET
+  extraction_status = 'complete', has_noncompete = false, noncompete_industry_scope = 'none',
+  derived_tags = jsonb_build_object(
+    'self_starter', 0.85, 'reliable', 0.88, 'accountable', 0.85,
+    'execution', 0.90, 'calm_under_pressure', 0.88, 'ownership', 0.88,
+    'resilience', 0.85, 'results_orientation', 0.85,
+    'problem_solving', 0.78, 'professional_attitude', 0.82, 'leadership', 0.75,
+    'detail_oriented', 0.80
+  ),
+  parsed_resume = jsonb_build_object(
+    'job_areas',     to_jsonb(ARRAY['warehouse_operations','logistics','WMS','SAP','3PL','peak_season_planning']),
+    'key_skills',    to_jsonb(ARRAY['WMS rollout','SAP MM','peak-season ramp-up','KPI dashboards','forklift safety','cross-dock operations','subcontractor management']),
+    'years_experience', 11,
+    'career_goals',  'Lead a 40+ headcount warehouse with full P&L and SLA ownership at a stable 3PL.',
+    'ai_summary',    'Hands-on warehouse manager, 11 years across 3PL and own-fleet ops. Recently displaced by client loss. Strong on WMS, SAP, and KPI rigour. Looking for a stable mid-sized operator.'
+  ),
+  interview_answers = jsonb_build_object('transcript', '[]'::jsonb),
+  updated_at = now()
+FROM public.profiles p WHERE t.profile_id = p.id AND p.email = 't07.ravi.logistics@dnj-test.my';
+
+-- T08 Nurul Hidayah — H08 Hotel F&B Director (hospitality)
+-- Note: job_areas use plain words because the haystack
+-- "hotel f&b director / hospitality / hotel" only substring-matches plain
+-- tokens and the synonyms table doesn't cover hospitality aliases.
+UPDATE public.talents t SET
+  extraction_status = 'complete', has_noncompete = false, noncompete_industry_scope = 'none',
+  derived_tags = jsonb_build_object(
+    'self_starter', 0.85, 'customer_focused', 0.90, 'detail_oriented', 0.85,
+    'leadership', 0.92, 'customer_focus', 0.90, 'precision', 0.85,
+    'accountable', 0.88, 'professional_attitude', 0.90, 'emotional_maturity', 0.85,
+    'communication_clarity', 0.85, 'results_orientation', 0.85, 'reliable', 0.85
+  ),
+  parsed_resume = jsonb_build_object(
+    'job_areas',     to_jsonb(ARRAY['hospitality','hotel','F&B','food and beverage','banquet','luxury','operations','P&L','director']),
+    'key_skills',    to_jsonb(ARRAY['multi-outlet F&B P&L','banquet sales','luxury service standards','culinary direction','brand partnerships','hospitality compliance']),
+    'years_experience', 14,
+    'career_goals',  'Step from AGM track to F&B Director at a heritage hospitality brand with cross-property scope.',
+    'ai_summary',    'Senior hospitality F&B leader, 14 years across luxury and heritage brands. Strong on banquet P&L, multi-outlet operations, and culinary direction. Capped at AGM in current group; ready for director track.'
+  ),
+  interview_answers = jsonb_build_object('transcript', '[]'::jsonb),
+  updated_at = now()
+FROM public.profiles p WHERE t.profile_id = p.id AND p.email = 't08.hidayah.hospitality@dnj-test.my';
+
+-- T09 Choo Kah Leong — H09 Project Manager M&E (construction)
+UPDATE public.talents t SET
+  extraction_status = 'complete', has_noncompete = false, noncompete_industry_scope = 'none',
+  derived_tags = jsonb_build_object(
+    'analytical', 0.88, 'detail_oriented', 0.82, 'adaptable', 0.80,
+    'technical_depth', 0.90, 'planning', 0.88, 'resilience', 0.85,
+    'problem_solving', 0.88, 'accountable', 0.85,
+    'results_orientation', 0.85, 'professional_attitude', 0.85, 'reliable', 0.85,
+    'ownership', 0.85
+  ),
+  parsed_resume = jsonb_build_object(
+    'job_areas',     to_jsonb(ARRAY['M&E_engineering','project_management','construction','BEM_compliance','Aconex','mixed_use_developments']),
+    'key_skills',    to_jsonb(ARRAY['M&E delivery','BEM compliance','subcontractor management','Aconex','cost control','commissioning','JKR liaison']),
+    'years_experience', 11,
+    'career_goals',  'Own end-to-end M&E delivery as PM at a mid-tier contractor instead of consultancy advisory.',
+    'ai_summary',    'M&E senior engineer, 11 years split between consultancy and contractor side. BEM-registered. Strong on cost control, commissioning, and JKR/local-authority liaison. Ready to own delivery instead of advise.'
+  ),
+  interview_answers = jsonb_build_object('transcript', '[]'::jsonb),
+  updated_at = now()
+FROM public.profiles p WHERE t.profile_id = p.id AND p.email = 't09.kahleong.construction@dnj-test.my';
+
+-- T10 Sarah Chong — H10 Senior UX Designer (design/creative)
+UPDATE public.talents t SET
+  extraction_status = 'complete', has_noncompete = false, noncompete_industry_scope = 'none',
+  derived_tags = jsonb_build_object(
+    'detail_oriented', 0.90, 'collaborator', 0.92, 'reliable', 0.85,
+    'craft', 0.92, 'empathy', 0.88, 'collaboration', 0.90,
+    'emotional_maturity', 0.85, 'professional_attitude', 0.85,
+    'growth_minded', 0.82, 'communication_clarity', 0.82,
+    'problem_solving', 0.80, 'adaptable', 0.85
+  ),
+  parsed_resume = jsonb_build_object(
+    'job_areas',     to_jsonb(ARRAY['design','UX','user research','product','creative','fintech','edtech','designer','UX designer']),
+    'key_skills',    to_jsonb(ARRAY['user research','IA','prototyping (Figma)','design system maintenance','usability testing','cross-functional collaboration','mobile-first design']),
+    'years_experience', 8,
+    'career_goals',  'Move from agency burnout to product-team craft work where I can mentor and shape design culture.',
+    'ai_summary',    'Senior UX designer, 8 years split between agency and in-house. Strong on research, IA, and design systems for fintech and edtech. Wants product-team work after agency burnout.'
+  ),
+  interview_answers = jsonb_build_object('transcript', '[]'::jsonb),
+  updated_at = now()
+FROM public.profiles p WHERE t.profile_id = p.id AND p.email = 't10.sarah.design@dnj-test.my';
+
+-- ============================================================
 -- 7) Open job role per HM (H02..H10), pre-approved for matching
 -- ============================================================
 INSERT INTO public.roles (

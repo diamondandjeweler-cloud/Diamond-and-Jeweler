@@ -6,12 +6,16 @@
 import { mgmtSql } from '../lib/http.mjs'
 import { config } from '../config.mjs'
 
+// Required: must exist + have RLS + have policies.
 const PROTECTED_TABLES = [
   'profiles', 'talents', 'hiring_managers', 'companies', 'roles',
   'matches', 'match_history', 'interviews', 'data_requests', 'waitlist',
   'notifications', 'admin_actions', 'audit_log', 'support_tickets',
-  'life_chart_compatibility', 'life_chart_cache', 'character_anchor_years',
+  'life_chart_compatibility', 'life_chart_cache',
 ]
+// Optional: if present, must be RLS-enabled + admin-only. Migration 0068 wraps
+// character_anchor_years in `do $$ if exists $$` so it may not be deployed.
+const OPTIONAL_TABLES = ['character_anchor_years']
 
 export default async function check() {
   if (!config.SUPABASE_PAT) {
@@ -24,38 +28,35 @@ export default async function check() {
   }
 
   const failures = []
+  const allTables = [...PROTECTED_TABLES, ...OPTIONAL_TABLES]
 
-  // 1. Every protected table must have RLS enabled.
+  // 1. RLS enabled?
   const rlsRows = await mgmtSql(`
     select tablename, rowsecurity
     from pg_tables
     where schemaname = 'public'
-      and tablename = ANY(ARRAY[${PROTECTED_TABLES.map((t) => `'${t}'`).join(',')}])
+      and tablename = ANY(ARRAY[${allTables.map((t) => `'${t}'`).join(',')}])
   `)
-  for (const row of rlsRows) {
-    if (!row.rowsecurity) {
-      failures.push(`${row.tablename}: rowsecurity = FALSE`)
-    }
-  }
-  // Tables that don't exist yet are also failures.
   const seen = new Set(rlsRows.map((r) => r.tablename))
+  for (const row of rlsRows) {
+    if (!row.rowsecurity) failures.push(`${row.tablename}: rowsecurity = FALSE`)
+  }
   for (const t of PROTECTED_TABLES) {
     if (!seen.has(t)) failures.push(`${t}: table not found`)
   }
 
-  // 2. Each protected table must have at least one policy.
+  // 2. At least one policy per table that exists.
   const policyRows = await mgmtSql(`
     select tablename, count(*)::int as n
     from pg_policies
     where schemaname = 'public'
-      and tablename = ANY(ARRAY[${PROTECTED_TABLES.map((t) => `'${t}'`).join(',')}])
+      and tablename = ANY(ARRAY[${allTables.map((t) => `'${t}'`).join(',')}])
     group by tablename
   `)
   const policyMap = Object.fromEntries(policyRows.map((r) => [r.tablename, r.n]))
-  for (const t of PROTECTED_TABLES) {
-    if (!policyMap[t] || policyMap[t] < 1) {
-      failures.push(`${t}: 0 policies`)
-    }
+  for (const t of allTables) {
+    if (!seen.has(t)) continue // optional / missing — already reported or skipped
+    if (!policyMap[t] || policyMap[t] < 1) failures.push(`${t}: 0 policies`)
   }
 
   // 3. anon must not see profiles. Probe via PostgREST as anon.

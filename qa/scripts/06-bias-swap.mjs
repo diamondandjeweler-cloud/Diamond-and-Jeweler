@@ -28,34 +28,47 @@ export default async function check() {
   const failures = []
   const lines = []
 
+  // Find the actual score column on matches.
+  const cols = await mgmtSql(`
+    select column_name
+    from information_schema.columns
+    where table_schema='public' and table_name='matches'
+  `)
+  const colNames = cols.map((r) => r.column_name)
+  const scoreCol = ['compatibility_score', 'total_score', 'score', 'match_score', 'final_score']
+    .find((c) => colNames.includes(c)) ?? null
+
+  // Inspect match_inputs (the matcher's feature surface) — this is the static
+  // bias check: if the model can SEE the name, name-swap could move the score.
+  const inputCols = await mgmtSql(`
+    select column_name
+    from information_schema.columns
+    where table_schema = 'public' and table_name = 'match_inputs'
+  `)
+  const inputColNames = inputCols.map((r) => r.column_name)
+  const nameLeaked = inputColNames.some((c) => /^(full_name|name|display_name|first_name|last_name)$/.test(c))
+  if (nameLeaked) {
+    failures.push(`match_inputs exposes name column(s): ${inputColNames.filter(c => /name/i.test(c)).join(', ')}`)
+  }
+
   for (const pair of PAIRS) {
-    // Get current top-match score for this talent against any HM role.
+    if (!scoreCol) {
+      lines.push(`${pair.id} (${pair.tag}): score column not found on matches — skipping baseline`)
+      continue
+    }
     const rows = await mgmtSql(`
-      select round(avg(m.score)::numeric, 2) as avg_score, count(*)::int as n
+      select round(avg(m.${scoreCol})::numeric, 2) as avg_score, count(*)::int as n
       from public.matches m
       join public.profiles p on p.id = m.talent_id
       where p.email = '${pair.from.replace(/'/g, "''")}'
     `)
     const baseline = rows[0]?.avg_score
-    if (baseline == null || rows[0].n === 0) {
-      lines.push(`${pair.id}: no existing matches for ${pair.from} — score baseline unavailable`)
-      continue
+    const n = rows[0]?.n ?? 0
+    if (baseline == null || n === 0) {
+      lines.push(`${pair.id}: no existing matches for ${pair.from}`)
+    } else {
+      lines.push(`${pair.id} (${pair.tag}): baseline ${baseline} from ${n} matches`)
     }
-
-    // Hypothetical swap: temporarily UPDATE full_name, refresh matches, re-read.
-    // To avoid mutating prod, we do a DRY-RUN: assert that the matcher inputs
-    // do NOT include the full_name column by inspecting match_inputs.
-    // (If full_name is a feature, that's the bias source; flagging is enough.)
-    const inputs = await mgmtSql(`
-      select column_name
-      from information_schema.columns
-      where table_schema = 'public' and table_name = 'match_inputs'
-    `)
-    const cols = inputs.map((r) => r.column_name)
-    if (cols.includes('full_name') || cols.includes('name') || cols.includes('display_name')) {
-      failures.push(`${pair.id} (${pair.tag}): match_inputs includes name column — potential bias source`)
-    }
-    lines.push(`${pair.id} (${pair.tag}): baseline ${baseline} from ${rows[0].n} matches`)
   }
 
   if (failures.length === 0) {

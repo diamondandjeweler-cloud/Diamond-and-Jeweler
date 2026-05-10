@@ -21,6 +21,9 @@ const CHECKS = [
   ['12-dsr-tenant-isolation',  'DSR tenant isolation'],
   ['13-dob-leak-scan',         'DOB leak scan'],
   ['14-storage-rls',           'Storage path-RLS'],
+  ['15-bazi-ai-probe',         'BaZi AI probe'],
+  ['16-tls-headers',           'TLS + headers'],
+  ['17-backup-readiness',      'Backup readiness'],
 ]
 
 async function main() {

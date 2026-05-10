@@ -408,6 +408,8 @@ UPDATE public.talents t SET
 FROM public.profiles p WHERE t.profile_id = p.id AND p.email = 't03.priya.retail@dnj-test.my';
 
 -- T04 Hafiz Bin Yusof — H04 Restaurant Manager (F&B)
+-- job_areas use plain words for backgroundOverlaps substring match (same
+-- reason as T08; underscore-style aliases miss the haystack).
 UPDATE public.talents t SET
   extraction_status = 'complete', has_noncompete = false, noncompete_industry_scope = 'none',
   derived_tags = jsonb_build_object(
@@ -418,7 +420,7 @@ UPDATE public.talents t SET
     'customer_focused', 0.82
   ),
   parsed_resume = jsonb_build_object(
-    'job_areas',     to_jsonb(ARRAY['restaurant_operations','F&B_management','guest_experience','staff_scheduling','P&L']),
+    'job_areas',     to_jsonb(ARRAY['restaurant','F&B','food and beverage','operations','hospitality','guest experience','P&L','shift management','manager']),
     'key_skills',    to_jsonb(ARRAY['restaurant P&L','shift scheduling','staff training','POS systems','food safety','inventory ordering','guest service recovery']),
     'years_experience', 12,
     'career_goals',  'Move from owner-operator chaos to a heritage F&B brand where I can professionalise the floor.',
@@ -635,6 +637,263 @@ SET derived_tags = COALESCE(t.derived_tags,'{}'::jsonb) || jsonb_build_object(
 FROM wants w
 JOIN public.profiles p ON p.email = w.email
 WHERE t.profile_id = p.id;
+
+-- ============================================================
+-- 6e) Phase B saturation — T01 + T11..T20 enrichment
+--
+-- Seeds the remaining 9 talents (the ones with no direct H02..H10
+-- domain match) so they're full citizens in the candidate pool. The
+-- engine surfaces them via cross-pollination — e.g. T11's manufacturing
+-- process tags transfer cleanly to H04 Restaurant Manager, T19's
+-- automotive aftersales experience surfaces for both retail ops (H03)
+-- and warehouse ops (H07). T18 Vinothini keeps her base-seed same-industry
+-- non-compete since pharma regulatory NCs are realistic; the others
+-- flip has_noncompete=false to keep the happy path clean.
+--
+-- wants_* keys are merged directly into derived_tags inside each UPDATE
+-- (rather than via a separate WITH..VALUES like 6d) because we already
+-- know the per-talent narrative when writing the resume — keeps the
+-- diff readable and avoids a second pass over the same rows.
+-- ============================================================
+
+-- T01 Aiman Rashid — backend engineer (no direct role; cross-pollinates to analytical roles)
+UPDATE public.talents t SET
+  extraction_status='complete', has_noncompete=false, noncompete_industry_scope='none',
+  derived_tags = jsonb_build_object(
+    'analytical', 0.88, 'problem_solving', 0.90, 'growth_minded', 0.85,
+    'self_starter', 0.85, 'results_orientation', 0.85, 'accountable', 0.85,
+    'detail_oriented', 0.85, 'adaptable', 0.85, 'professional_attitude', 0.82,
+    'reliable', 0.85, 'communication_clarity', 0.78,
+    'wants_wlb', 0.70, 'wants_fair_pay', 0.70, 'wants_growth', 0.92,
+    'wants_stability', 0.60, 'wants_flexibility', 0.85, 'wants_recognition', 0.55,
+    'wants_mission', 0.50, 'wants_team_culture', 0.70
+  ),
+  parsed_resume = jsonb_build_object(
+    'job_areas',     to_jsonb(ARRAY['software engineering','backend','technology','engineering','developer','tech','AWS','Node.js']),
+    'key_skills',    to_jsonb(ARRAY['Node.js','PostgreSQL','AWS (EC2/Lambda/RDS)','REST API design','TypeScript','system design','CI/CD','monitoring (Datadog)']),
+    'years_experience', 6,
+    'career_goals',  'Move from a single-product engineering team to distributed systems work at a scale-up that ships fast.',
+    'ai_summary',    'Backend engineer, 6 years across fintech and SaaS. Strong on Node.js + PostgreSQL + AWS. Hit the ceiling in current monolith; wants distributed-systems exposure at a growth-stage company.'
+  ),
+  interview_answers = jsonb_build_object('transcript', '[]'::jsonb),
+  updated_at = now()
+FROM public.profiles p WHERE t.profile_id = p.id AND p.email = 't01.aiman.tech@dnj-test.my';
+
+-- T11 Faisal Hakim — manufacturing / semiconductor
+UPDATE public.talents t SET
+  extraction_status='complete', has_noncompete=false, noncompete_industry_scope='none',
+  derived_tags = jsonb_build_object(
+    'analytical', 0.90, 'detail_oriented', 0.88, 'accountable', 0.85,
+    'problem_solving', 0.88, 'results_orientation', 0.85, 'professional_attitude', 0.85,
+    'reliable', 0.85, 'self_starter', 0.78, 'growth_minded', 0.82, 'communication_clarity', 0.78,
+    'wants_wlb', 0.65, 'wants_fair_pay', 0.70, 'wants_growth', 0.85,
+    'wants_stability', 0.70, 'wants_flexibility', 0.40, 'wants_recognition', 0.60,
+    'wants_mission', 0.50, 'wants_team_culture', 0.65
+  ),
+  parsed_resume = jsonb_build_object(
+    'job_areas',     to_jsonb(ARRAY['manufacturing','production','engineering','semiconductor','process improvement','operations','quality']),
+    'key_skills',    to_jsonb(ARRAY['Six Sigma (Black Belt)','process improvement','yield optimisation','SPC','lean manufacturing','production planning','FMEA']),
+    'years_experience', 9,
+    'career_goals',  'Move to advanced semiconductor process role at a leading-edge fab.',
+    'ai_summary',    'Manufacturing engineer, 9 years in EMS and front-end semiconductor. Six Sigma Black Belt. Strong on yield + SPC. Wants advanced-node fab exposure.'
+  ),
+  interview_answers = jsonb_build_object('transcript', '[]'::jsonb),
+  updated_at = now()
+FROM public.profiles p WHERE t.profile_id = p.id AND p.email = 't11.faisal.manufacturing@dnj-test.my';
+
+-- T12 Joanna Yeoh — marketing / B2C brand
+UPDATE public.talents t SET
+  extraction_status='complete', has_noncompete=false, noncompete_industry_scope='none',
+  derived_tags = jsonb_build_object(
+    'customer_focused', 0.88, 'customer_focus', 0.88, 'analytical', 0.82, 'growth_minded', 0.85,
+    'collaborator', 0.85, 'communication_clarity', 0.88, 'clear_communicator', 0.88,
+    'accountable', 0.82, 'problem_solving', 0.78, 'self_starter', 0.82,
+    'professional_attitude', 0.82, 'leadership', 0.75, 'results_orientation', 0.85,
+    'wants_wlb', 0.65, 'wants_fair_pay', 0.70, 'wants_growth', 0.88,
+    'wants_stability', 0.60, 'wants_flexibility', 0.75, 'wants_recognition', 0.70,
+    'wants_mission', 0.50, 'wants_team_culture', 0.70
+  ),
+  parsed_resume = jsonb_build_object(
+    'job_areas',     to_jsonb(ARRAY['marketing','brand','performance marketing','content marketing','B2C','digital marketing','TikTok','social media']),
+    'key_skills',    to_jsonb(ARRAY['brand strategy','performance marketing','content production','TikTok ads','Meta ads','campaign analytics','agency management']),
+    'years_experience', 9,
+    'career_goals',  'Step from B2C brand manager into a regional marketing lead role across SEA.',
+    'ai_summary',    'Marketing manager, 9 years across B2C consumer brands. Strong on brand + performance integration, content engines, and agency partnership. Hit the local-team ceiling; wants regional remit.'
+  ),
+  interview_answers = jsonb_build_object('transcript', '[]'::jsonb),
+  updated_at = now()
+FROM public.profiles p WHERE t.profile_id = p.id AND p.email = 't12.joanna.marketing@dnj-test.my';
+
+-- T14 Suzanne Lim — HR / talent acquisition
+UPDATE public.talents t SET
+  extraction_status='complete', has_noncompete=false, noncompete_industry_scope='none',
+  derived_tags = jsonb_build_object(
+    'collaborator', 0.90, 'customer_focused', 0.85, 'communication_clarity', 0.88,
+    'clear_communicator', 0.88, 'emotional_maturity', 0.85, 'professional_attitude', 0.88,
+    'accountable', 0.85, 'reliable', 0.85, 'detail_oriented', 0.82,
+    'problem_solving', 0.78, 'growth_minded', 0.78, 'adaptable', 0.82,
+    'wants_wlb', 0.70, 'wants_fair_pay', 0.70, 'wants_growth', 0.75,
+    'wants_stability', 0.65, 'wants_flexibility', 0.70, 'wants_recognition', 0.60,
+    'wants_mission', 0.65, 'wants_team_culture', 0.92
+  ),
+  parsed_resume = jsonb_build_object(
+    'job_areas',     to_jsonb(ARRAY['human resources','HR','talent acquisition','recruitment','employer brand','ATS','people operations']),
+    'key_skills',    to_jsonb(ARRAY['full-cycle recruitment','ATS administration (Workable/Greenhouse)','employer brand','candidate experience design','compensation benchmarking','stakeholder management']),
+    'years_experience', 8,
+    'career_goals',  'Move from misaligned post-merger HR team to a values-led people function.',
+    'ai_summary',    'Talent acquisition lead, 8 years in tech and consumer industries. Strong on full-cycle recruitment, employer brand, and stakeholder management. Boss departed and replacement misaligned; quietly looking for values-led people function.'
+  ),
+  interview_answers = jsonb_build_object('transcript', '[]'::jsonb),
+  updated_at = now()
+FROM public.profiles p WHERE t.profile_id = p.id AND p.email = 't14.suzanne.hr@dnj-test.my';
+
+-- T16 Adlina — telecom / 5G
+UPDATE public.talents t SET
+  extraction_status='complete', has_noncompete=false, noncompete_industry_scope='none',
+  derived_tags = jsonb_build_object(
+    'analytical', 0.90, 'detail_oriented', 0.88, 'technical_depth', 0.92,
+    'problem_solving', 0.85, 'accountable', 0.85, 'professional_attitude', 0.85,
+    'reliable', 0.85, 'self_starter', 0.78, 'results_orientation', 0.80, 'growth_minded', 0.82,
+    'wants_wlb', 0.60, 'wants_fair_pay', 0.70, 'wants_growth', 0.88,
+    'wants_stability', 0.70, 'wants_flexibility', 0.50, 'wants_recognition', 0.65,
+    'wants_mission', 0.45, 'wants_team_culture', 0.65
+  ),
+  parsed_resume = jsonb_build_object(
+    'job_areas',     to_jsonb(ARRAY['telecom','telecommunications','network engineering','5G','Cisco','SDN','infrastructure','network operations']),
+    'key_skills',    to_jsonb(ARRAY['Cisco IOS/NX-OS','5G NR architecture','SDN/NFV','network design','BGP/OSPF','SIP/VoIP','performance optimisation']),
+    'years_experience', 10,
+    'career_goals',  'Move from 4G/5G ops into solution architect role designing greenfield networks.',
+    'ai_summary',    'Senior network engineer, 10 years in telco and managed services. Strong on 5G NR + SDN/NFV. Wants architect-level scope after years of ops execution.'
+  ),
+  interview_answers = jsonb_build_object('transcript', '[]'::jsonb),
+  updated_at = now()
+FROM public.profiles p WHERE t.profile_id = p.id AND p.email = 't16.adlina.telecom@dnj-test.my';
+
+-- T17 Razif — energy / oil-gas plant ops
+UPDATE public.talents t SET
+  extraction_status='complete', has_noncompete=false, noncompete_industry_scope='none',
+  derived_tags = jsonb_build_object(
+    'analytical', 0.85, 'detail_oriented', 0.90, 'accountable', 0.92,
+    'professional_attitude', 0.88, 'reliable', 0.92, 'problem_solving', 0.85,
+    'self_starter', 0.78, 'leadership', 0.80, 'results_orientation', 0.82, 'communication_clarity', 0.78,
+    'wants_wlb', 0.70, 'wants_fair_pay', 0.70, 'wants_growth', 0.60,
+    'wants_stability', 0.92, 'wants_flexibility', 0.40, 'wants_recognition', 0.55,
+    'wants_mission', 0.50, 'wants_team_culture', 0.70
+  ),
+  parsed_resume = jsonb_build_object(
+    'job_areas',     to_jsonb(ARRAY['energy','oil and gas','plant operations','engineering','HSE','permit to work','process safety']),
+    'key_skills',    to_jsonb(ARRAY['plant ops','permit to work','HSE compliance','process safety management','shift leadership','RCA','MOC procedures']),
+    'years_experience', 12,
+    'career_goals',  'Relocate to KL for similar plant engineering role; family priorities driving the move.',
+    'ai_summary',    'Plant operations engineer, 12 years across upstream gas. Strong on HSE, permit to work, and shift leadership. Family relocating to KL; needs equivalent role in Klang Valley.'
+  ),
+  interview_answers = jsonb_build_object('transcript', '[]'::jsonb),
+  updated_at = now()
+FROM public.profiles p WHERE t.profile_id = p.id AND p.email = 't17.razif.energy@dnj-test.my';
+
+-- T18 Vinothini — pharma / regulatory (KEEPS base-seed same-industry NC)
+UPDATE public.talents t SET
+  extraction_status='complete',
+  derived_tags = jsonb_build_object(
+    'analytical', 0.85, 'detail_oriented', 0.92, 'accountable', 0.88,
+    'professional_attitude', 0.92, 'reliable', 0.90, 'integrity', 0.92,
+    'problem_solving', 0.82, 'communication_clarity', 0.82, 'self_starter', 0.78, 'growth_minded', 0.82,
+    'wants_wlb', 0.65, 'wants_fair_pay', 0.75, 'wants_growth', 0.85,
+    'wants_stability', 0.70, 'wants_flexibility', 0.70, 'wants_recognition', 0.60,
+    'wants_mission', 0.70, 'wants_team_culture', 0.70
+  ),
+  parsed_resume = jsonb_build_object(
+    'job_areas',     to_jsonb(ARRAY['pharmaceutical','regulatory affairs','quality','compliance','NPRA','GMP','drug registration','ASEAN regulatory']),
+    'key_skills',    to_jsonb(ARRAY['NPRA submission','drug master files','GMP audit','ASEAN harmonisation','regulatory strategy','labeling compliance','post-market surveillance']),
+    'years_experience', 10,
+    'career_goals',  'Move to regional regulatory role with broader ASEAN scope rather than Malaysia-only.',
+    'ai_summary',    'Senior regulatory affairs specialist, 10 years in pharma. Strong on NPRA, GMP, and ASEAN harmonisation. Wants regional remit. Same-industry non-compete (12 months) — discuss carefully.'
+  ),
+  interview_answers = jsonb_build_object('transcript', '[]'::jsonb),
+  updated_at = now()
+FROM public.profiles p WHERE t.profile_id = p.id AND p.email = 't18.vinothini.pharma@dnj-test.my';
+
+-- T19 Tan Kok Wei — automotive / EV aftersales
+UPDATE public.talents t SET
+  extraction_status='complete', has_noncompete=false, noncompete_industry_scope='none',
+  derived_tags = jsonb_build_object(
+    'customer_focused', 0.85, 'accountable', 0.88, 'reliable', 0.85,
+    'detail_oriented', 0.82, 'problem_solving', 0.82, 'leadership', 0.85,
+    'results_orientation', 0.85, 'professional_attitude', 0.85, 'ownership', 0.85,
+    'self_starter', 0.78, 'growth_minded', 0.82, 'calm_under_pressure', 0.82,
+    'wants_wlb', 0.60, 'wants_fair_pay', 0.70, 'wants_growth', 0.85,
+    'wants_stability', 0.70, 'wants_flexibility', 0.45, 'wants_recognition', 0.70,
+    'wants_mission', 0.50, 'wants_team_culture', 0.70
+  ),
+  parsed_resume = jsonb_build_object(
+    'job_areas',     to_jsonb(ARRAY['automotive','workshop','EV','aftersales','service operations','operations','service management','KPI']),
+    'key_skills',    to_jsonb(ARRAY['workshop P&L','EV service training','aftersales KPIs','warranty operations','technician management','diagnostic equipment','parts inventory']),
+    'years_experience', 11,
+    'career_goals',  'Step into flagship workshop manager role at a luxury or EV-focused dealer.',
+    'ai_summary',    'Aftersales manager, 11 years across mass-market and EV dealerships. Strong on workshop P&L and EV service certification. Wants flagship manager role.'
+  ),
+  interview_answers = jsonb_build_object('transcript', '[]'::jsonb),
+  updated_at = now()
+FROM public.profiles p WHERE t.profile_id = p.id AND p.email = 't19.kokwei.automotive@dnj-test.my';
+
+-- T20 Nurin Iskandar — B2B SaaS sales
+UPDATE public.talents t SET
+  extraction_status='complete', has_noncompete=false, noncompete_industry_scope='none',
+  derived_tags = jsonb_build_object(
+    'customer_focused', 0.92, 'customer_focus', 0.92, 'communication_clarity', 0.90,
+    'clear_communicator', 0.90, 'results_orientation', 0.92, 'self_starter', 0.92,
+    'accountable', 0.85, 'growth_minded', 0.85, 'problem_solving', 0.78,
+    'professional_attitude', 0.82, 'confidence', 0.88, 'adaptable', 0.85,
+    'wants_wlb', 0.55, 'wants_fair_pay', 0.92, 'wants_growth', 0.85,
+    'wants_stability', 0.60, 'wants_flexibility', 0.70, 'wants_recognition', 0.85,
+    'wants_mission', 0.50, 'wants_team_culture', 0.65
+  ),
+  parsed_resume = jsonb_build_object(
+    'job_areas',     to_jsonb(ARRAY['sales','B2B sales','SaaS','business development','CRM','HubSpot','enterprise sales','account management']),
+    'key_skills',    to_jsonb(ARRAY['B2B SaaS sales','HubSpot/Salesforce','MEDDIC','enterprise account management','deal forecasting','discovery calls','competitive battlecards']),
+    'years_experience', 7,
+    'career_goals',  'Test market for stronger commission structure; quota cleared but commission was cut at current employer.',
+    'ai_summary',    'B2B SaaS account executive, 7 years across martech and HR-tech verticals. Strong on enterprise pipeline + closing. Quota-clearing rep but commission cut last year; testing market quietly.'
+  ),
+  interview_answers = jsonb_build_object('transcript', '[]'::jsonb),
+  updated_at = now()
+FROM public.profiles p WHERE t.profile_id = p.id AND p.email = 't20.nurin.sales@dnj-test.my';
+
+-- ============================================================
+-- 6f) HM culture_offers — merge wants_* keys so culture_fit_score
+-- becomes non-zero for matches against these HMs. The headline
+-- compatibility_score weight on culture_fit is 0 in match-core, so
+-- this is cosmetic for ranking — but it populates the culture-fit
+-- breakdown in the candidate cards and the CULTURE_LABELS panel,
+-- which is what HMs actually see.
+--
+-- Values per HM are tuned to each company's seeded narrative:
+-- Pinnacle Capital (mid-cap risk) leans growth/recognition/fair pay.
+-- Saji Selera (heritage F&B) leans stability/team culture.
+-- Lumio (B40 edtech) leans mission/flexibility/growth.
+-- Studio Lumens (boutique design) leans flexibility/wlb/team culture.
+-- ============================================================
+WITH offers(email, wlb, fair, growth, stab, flex, recog, mission, team) AS (VALUES
+  ('h02.andrew.finance@dnj-test.my',        0.55, 0.70, 0.90, 0.65, 0.70, 0.70, 0.40, 0.60),
+  ('h03.anita.retail@dnj-test.my',          0.50, 0.70, 0.85, 0.55, 0.40, 0.65, 0.40, 0.70),
+  ('h04.khairul.fnb@dnj-test.my',           0.55, 0.65, 0.60, 0.85, 0.40, 0.60, 0.55, 0.85),
+  ('h05.meiling.health@dnj-test.my',        0.60, 0.70, 0.85, 0.70, 0.50, 0.60, 0.80, 0.70),
+  ('h06.faridah.edtech@dnj-test.my',        0.70, 0.65, 0.85, 0.65, 0.80, 0.60, 0.92, 0.75),
+  ('h07.vijay.logistics@dnj-test.my',       0.50, 0.75, 0.70, 0.70, 0.35, 0.65, 0.40, 0.65),
+  ('h08.sofia.hospitality@dnj-test.my',     0.55, 0.75, 0.85, 0.75, 0.40, 0.85, 0.55, 0.80),
+  ('h09.kwanghoe.construction@dnj-test.my', 0.55, 0.75, 0.80, 0.75, 0.40, 0.70, 0.50, 0.65),
+  ('h10.chloe.design@dnj-test.my',          0.85, 0.70, 0.80, 0.60, 0.92, 0.60, 0.70, 0.85)
+)
+UPDATE public.hiring_managers hm
+SET culture_offers = COALESCE(culture_offers,'{}'::jsonb) || jsonb_build_object(
+      'wants_wlb', o.wlb, 'wants_fair_pay', o.fair, 'wants_growth', o.growth,
+      'wants_stability', o.stab, 'wants_flexibility', o.flex,
+      'wants_recognition', o.recog, 'wants_mission', o.mission,
+      'wants_team_culture', o.team
+    )
+FROM offers o
+JOIN public.profiles p ON p.email = o.email
+WHERE hm.profile_id = p.id;
 
 -- ============================================================
 -- 7) Open job role per HM (H02..H10), pre-approved for matching

@@ -168,10 +168,11 @@ export function bootstrapSession() {
       // session state on SIGNED_OUT or USER_DELETED, plus the very first
       // INITIAL_SESSION when there's genuinely no persisted session.
       if (!session) {
-        const definitive =
-          event === 'SIGNED_OUT' ||
-          event === 'USER_DELETED' ||
-          event === 'INITIAL_SESSION'
+        // supabase-js's AuthChangeEvent union narrows away SIGNED_OUT/USER_DELETED
+        // in some versions, so we widen via Set<string> to keep the runtime check
+        // intact regardless of type-defs.
+        const definitiveEvents = new Set<string>(['SIGNED_OUT', 'USER_DELETED', 'INITIAL_SESSION'])
+        const definitive = definitiveEvents.has(event as unknown as string)
         if (definitive) {
           clearAuthHintCookie()
           useSession.setState({ session: null, profile: null, isHM: false, loading: false })

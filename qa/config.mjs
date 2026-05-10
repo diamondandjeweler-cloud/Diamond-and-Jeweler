@@ -33,8 +33,29 @@ function opt(key, fallback) {
   return process.env[key] || fallback
 }
 
+// Global fetch timeout. Without this, a transient connectivity stall (DNS,
+// TCP, Cloudflare throttle, sleeping laptop) can hang individual checks for
+// minutes — we saw a 31-minute run when half the calls silently timed out.
+// Wrap once at the global level so every script + lib helper inherits it.
+const FETCH_TIMEOUT_MS = parseInt(process.env.QA_FETCH_TIMEOUT_MS || '15000', 10)
+const _origFetch = globalThis.fetch
+globalThis.fetch = async (input, init = {}) => {
+  if (init.signal) return _origFetch(input, init) // caller manages its own
+  const ac = new AbortController()
+  const timer = setTimeout(
+    () => ac.abort(new Error(`fetch timeout after ${FETCH_TIMEOUT_MS}ms`)),
+    FETCH_TIMEOUT_MS,
+  )
+  try {
+    return await _origFetch(input, { ...init, signal: ac.signal })
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 export const config = {
   QA_BASE_URL: opt('QA_BASE_URL', 'https://diamondandjeweler.com'),
+  QA_FETCH_TIMEOUT_MS: FETCH_TIMEOUT_MS,
   SUPABASE_URL: need('SUPABASE_URL'),
   SUPABASE_ANON_KEY: need('SUPABASE_ANON_KEY'),
   SUPABASE_SERVICE_ROLE_KEY: opt('SUPABASE_SERVICE_ROLE_KEY', ''),

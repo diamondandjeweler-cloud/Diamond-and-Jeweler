@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { Alert, Button, Card, CardBody, Spinner } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
+import { clearLegalVersionCache, consentSatisfiesVersion, getCurrentLegalVersion } from '../../lib/legalVersion'
 
 interface ConsentVersion {
   id: string
@@ -22,14 +23,27 @@ export default function Consent() {
   const [agree, setAgree] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Re-consent gating: fetch current legal_version + decide whether this is
+  // a fresh first-time consent or a re-consent driven by a version bump.
+  const [currentLegal, setCurrentLegal] = useState<string | null | 'pending'>('pending')
 
   useEffect(() => {
     void supabase.from('consent_versions').select('*').eq('is_active', true)
       .then(({ data }) => setVersions((data as ConsentVersion[] | null) ?? []))
+    void getCurrentLegalVersion().then(setCurrentLegal)
   }, [])
 
   if (!session) return <Navigate to="/login" replace />
-  if (profile?.consent_version) return <Navigate to="/home" replace />
+
+  // F20 — pass through only when the user's consent is already at the current
+  // legal_version. If it's stale (e.g. v2.1 → v3.2 added §11 Refunds), render
+  // the re-consent UX below.
+  if (currentLegal !== 'pending'
+      && profile?.consent_version
+      && consentSatisfiesVersion(profile.consent_version, currentLegal)) {
+    return <Navigate to="/home" replace />
+  }
+  const isReConsent = !!profile?.consent_version
 
   const baseVersion = versions.find((x) => x.language === 'en') ?? versions[0]
   // Talent and hiring side agree to the same legal waiver, but the
@@ -61,9 +75,15 @@ export default function Consent() {
       ipHash = Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('')
     } catch { /* tolerate */ }
 
+    // Record consent against the platform-wide legal_version (e.g. "v3.2")
+    // so ConsentGate's version comparison resolves cleanly. Falls back to
+    // the consent_versions row's version (e.g. "v2.0-en") if system_config
+    // is somehow unreadable, preserving prior behaviour for first-time users.
+    const recordedVersion = (currentLegal && currentLegal !== 'pending') ? currentLegal : v.version
+
     const writeOnce = async () => {
       const { error: e1 } = await supabase.from('profiles').update({
-        consent_version: v.version,
+        consent_version: recordedVersion,
         consent_signed_at: new Date().toISOString(),
         consent_ip_hash: ipHash,
       }).eq('id', session.user.id)
@@ -86,8 +106,9 @@ export default function Consent() {
         ])
         // Success — update local store immediately so ConsentGate unblocks, then navigate.
         useSession.setState((s) => ({
-          profile: s.profile ? { ...s.profile, consent_version: v.version } : s.profile,
+          profile: s.profile ? { ...s.profile, consent_version: recordedVersion } : s.profile,
         }))
+        clearLegalVersionCache()  // force ConsentGate to refetch on next route check
         navigate('/home', { replace: true })
         void refresh()
         setBusy(false)
@@ -111,8 +132,24 @@ export default function Consent() {
           <h1 className="font-display text-2xl md:text-3xl text-ink-900 mb-1">{t('consent.title')}</h1>
           <p className="text-ink-500 mb-6">{t('consent.subtitle')}</p>
 
+          {isReConsent && (
+            <Alert tone="amber" title="Our terms have been updated">
+              <p className="text-sm mb-2">
+                We've updated our Terms of Service to <strong>{currentLegal !== 'pending' ? currentLegal : 'the latest version'}</strong>.
+                The most notable change is the addition of <strong>§11 Refunds &amp; Chargebacks</strong>, which clarifies our policy for
+                Diamond Points purchases via Billplz, the 14-day refund request window, and how we handle chargebacks.
+              </p>
+              <p className="text-sm">
+                Please review the full <Link to="/terms" className="font-medium underline">Terms of Service</Link> and{' '}
+                <Link to="/privacy" className="font-medium underline">Privacy Notice</Link>, then re-confirm your consent below
+                to keep using DNJ. Your previous consent (<code className="text-xs">{profile?.consent_version}</code>) remains
+                valid for past activity.
+              </p>
+            </Alert>
+          )}
+
           <div
-            className="prose prose-sm max-w-none mb-6 max-h-[50vh] overflow-y-auto border border-ink-200 rounded-lg p-4 bg-ink-50"
+            className="prose prose-sm max-w-none mb-6 max-h-[50vh] overflow-y-auto border border-ink-200 rounded-lg p-4 bg-ink-50 mt-4"
             dangerouslySetInnerHTML={{ __html: simpleMarkdown(v.body_md) }}
           />
 

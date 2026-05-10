@@ -5,7 +5,7 @@ import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { Alert, Button, Card, CardBody, Spinner } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
-import { clearLegalVersionCache, consentSatisfiesVersion, getCurrentLegalVersion } from '../../lib/legalVersion'
+import { clearLegalVersionCache, consentSatisfiesVersion, getCurrentLegalVersion, normaliseLegalVersion } from '../../lib/legalVersion'
 
 interface ConsentVersion {
   id: string
@@ -171,7 +171,7 @@ export default function Consent() {
         </CardBody>
       </Card>
 
-      <p className="text-xs text-ink-400 text-center mt-3">v{v.version} · {v.language.toUpperCase()}</p>
+      <p className="text-xs text-ink-400 text-center mt-3">{normaliseLegalVersion(v.version) ?? v.version} · {v.language.toUpperCase()}</p>
     </div>
   )
 }

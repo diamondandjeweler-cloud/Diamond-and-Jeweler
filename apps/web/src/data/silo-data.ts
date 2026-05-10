@@ -93,7 +93,7 @@ export const ROLES: Record<RoleSlug, RoleConfig> = {
     name: 'Pilot',
     title: 'Pilot Job Vacancy Malaysia — Cadet & Airline Pilot Hiring | DNJ',
     description:
-      'Pilot job vacancy in Malaysia. Cadet pilot program for fresh graduates with no experience, plus experienced first officer and captain roles. AI-curated matching, walk-in interview, immediate hiring — apply online via DNJ.',
+      'Pilot job vacancy in Malaysia. Cadet pilot program for fresh graduates with no experience, plus experienced first officer and captain roles. AI-curated matching — apply online via DNJ.',
     keywords:
       'pilot job vacancy, pilot job Malaysia, cadet pilot program, cadet pilot Malaysia, airline pilot hiring, aviation job vacancy, pilot fresh graduate, first officer job, captain pilot job, airline job Malaysia, pilot job Kuala Lumpur, no experience pilot job, pilot trainee program',
     industry: 'Aviation',
@@ -106,7 +106,7 @@ export const ROLES: Record<RoleSlug, RoleConfig> = {
       'Cadet pilot program — fresh graduate friendly, no experience needed',
       'Direct entry first officer for CPL/ATPL holders',
       'Captain upgrade path with airline partners across Malaysia',
-      'Same day interview for shortlisted candidates',
+      'Structured interview process for shortlisted candidates',
       'Stable career, good salary, structured progression',
       'AI-curated matching with airline hiring partners',
     ],
@@ -153,7 +153,7 @@ export const ROLES: Record<RoleSlug, RoleConfig> = {
     name: 'Jeweler',
     title: 'Jeweler Job Vacancy Malaysia — Bench Jeweler & Setter Hiring | DNJ',
     description:
-      'Jeweler job vacancy in Kuala Lumpur, PJ and Penang. Bench jeweler, setter, polisher and apprentice roles. With or without experience considered. Apply online — walk-in interview, stable career.',
+      'Jeweler job vacancy in Kuala Lumpur, PJ and Penang. Bench jeweler, setter, polisher and apprentice roles. With or without experience considered. Apply online — stable career with growth path.',
     keywords:
       'jeweler job vacancy, jeweler career Malaysia, bench jeweler job, jewelry maker job, jewellery shop hiring, diamond jeweler hiring, jeweler Kuala Lumpur, jeweler PJ, jeweler Penang, jewelry apprentice job',
     industry: 'Luxury Retail / Jewelry',
@@ -166,7 +166,7 @@ export const ROLES: Record<RoleSlug, RoleConfig> = {
       'Bench jeweler, setter, polisher and apprentice tracks',
       'Career path to senior bench jeweler or atelier lead',
       'Stable job, good salary, retirement-friendly career',
-      'Walk-in interview for select boutiques',
+      'Apprenticeship and direct-hire tracks available',
       'Apprenticeship route for SPM leavers and diploma holders',
       'Family-business and luxury-house openings',
     ],
@@ -215,7 +215,7 @@ export const ROLES: Record<RoleSlug, RoleConfig> = {
     name: 'Gemologist',
     title: 'Gemologist Job Malaysia — GIA Path, Lab & Appraisal | DNJ',
     description:
-      'Gemologist job in Malaysia. Lab work, appraisal, certification support. GIA path, structured career growth. Walk-in interview and graduate trainee options. Apply online via DNJ.',
+      'Gemologist job in Malaysia. Lab work, appraisal, certification support. GIA path, structured career growth, graduate trainee options. Apply online via DNJ.',
     keywords:
       'gemologist job, gemologist Malaysia, GIA gemologist, gem appraiser job, gemology career Malaysia, gemological lab job, gemologist Kuala Lumpur, certified gemologist hiring',
     industry: 'Luxury Retail / Jewelry',
@@ -275,7 +275,7 @@ export const ROLES: Record<RoleSlug, RoleConfig> = {
     name: 'Luxury Retail Sales Associate',
     title: 'Luxury Retail Job Vacancy Malaysia — Sales Associate Hiring | DNJ',
     description:
-      'Luxury retail job vacancy in Kuala Lumpur, PJ and Penang. Sales associate, clienteling, boutique manager roles in jewelry, watches and luxury goods. Walk-in interview, immediate hiring.',
+      'Luxury retail job vacancy in Kuala Lumpur, PJ and Penang. Sales associate, clienteling, boutique manager roles in jewelry, watches and luxury goods. Apply online via AI-curated matching.',
     keywords:
       'luxury retail job vacancy, luxury retail Malaysia, luxury sales associate, jewelry sales associate, watch sales associate, boutique manager hiring, luxury brand job, retail job diamond, luxury retail Kuala Lumpur',
     industry: 'Luxury Retail',
@@ -286,7 +286,7 @@ export const ROLES: Record<RoleSlug, RoleConfig> = {
       'SPM and above. Strong English/Bahasa/Mandarin. Customer-first attitude. With or without experience considered.',
     bullets: [
       'Sales associate, clienteling, boutique manager tracks',
-      'Same day interview, immediate hiring for shortlisted',
+      'Fast process for shortlisted candidates',
       'Career path to boutique lead and area manager',
       'Commission and luxury staff perks',
       'Cross-train in jewelry, watches, leather goods',
@@ -306,7 +306,7 @@ export const ROLES: Record<RoleSlug, RoleConfig> = {
     name: 'Sales Executive',
     title: 'Sales Executive Job Vacancy Malaysia — Hiring Now | DNJ',
     description:
-      'Sales executive job vacancy in Kuala Lumpur, PJ, Penang and Malaysia. Strong commission, career growth, walk-in interview. Fresh graduate, junior and mid-level openings.',
+      'Sales executive job vacancy in Kuala Lumpur, PJ, Penang and Malaysia. Strong commission, career growth, AI-curated matching. Fresh graduate, junior and mid-level openings.',
     keywords:
       'sales executive job vacancy, sales executive Malaysia, sales job Kuala Lumpur, sales job PJ, sales job Penang, B2B sales hiring, retail sales executive, junior sales executive',
     industry: 'Sales',
@@ -317,7 +317,7 @@ export const ROLES: Record<RoleSlug, RoleConfig> = {
     bullets: [
       'Attractive commission and incentive structure',
       'Career path to senior sales and team lead',
-      'Walk-in interview options',
+      'Structured interview process for shortlisted candidates',
       'B2B and retail tracks available',
       'Fresh graduate trainee programme',
     ],
@@ -345,7 +345,7 @@ export const ROLES: Record<RoleSlug, RoleConfig> = {
       'Hybrid work options',
       'Stable, predictable hours',
       'Career path to office manager',
-      'Walk-in interview at select employers',
+      'Apply online — AI-curated matching',
       'Fresh graduate friendly',
     ],
     hookCopy:
@@ -360,7 +360,7 @@ export const ROLES: Record<RoleSlug, RoleConfig> = {
     name: 'Account Assistant',
     title: 'Account Assistant Job Vacancy Malaysia — Fresh Graduate | DNJ',
     description:
-      'Account assistant job vacancy in Kuala Lumpur and PJ. Fresh graduate, SPM and diploma holder friendly. Stable career, finance progression path, immediate hiring.',
+      'Account assistant job vacancy in Kuala Lumpur and PJ. Fresh graduate, SPM and diploma holder friendly. Stable career, finance progression path, apply online via DNJ.',
     keywords:
       'account assistant job vacancy, account assistant Malaysia, junior account assistant, accounting clerk job, finance assistant job, account assistant Kuala Lumpur, fresh graduate accounting',
     industry: 'Accounting',
@@ -464,9 +464,9 @@ export const ROLES: Record<RoleSlug, RoleConfig> = {
   'customer-service': {
     slug: 'customer-service',
     name: 'Customer Service',
-    title: 'Customer Service Job Vacancy Malaysia — Walk-in Interview | DNJ',
+    title: 'Customer Service Job Vacancy Malaysia — Fresh Graduate Welcome | DNJ',
     description:
-      'Customer service job vacancy in Kuala Lumpur, PJ, Penang. Walk-in interview, immediate hiring, fresh graduate friendly. Shift and full time options.',
+      'Customer service job vacancy in Kuala Lumpur, PJ, Penang. Fresh graduate friendly, AI-curated matching. Shift and full time options, apply online via DNJ.',
     keywords:
       'customer service job vacancy, customer service Malaysia, customer service Kuala Lumpur, call center job, customer support job, fresh graduate customer service',
     industry: 'Customer Service',
@@ -475,7 +475,7 @@ export const ROLES: Record<RoleSlug, RoleConfig> = {
     locations: ['kuala-lumpur', 'petaling-jaya', 'penang'],
     qualifications: 'SPM and above. Multilingual a plus. Fresh graduate welcome.',
     bullets: [
-      'Walk-in interview, same day decisions',
+      'Shift and full time options — apply online',
       'Shift and full time options',
       'Career path to team lead and operations',
       'Multilingual roles in luxury retail',
@@ -549,7 +549,7 @@ export const LOCATIONS: Record<LocationSlug, LocationConfig> = {
     state: 'Federal Territory of Kuala Lumpur',
     title: 'Jobs in Kuala Lumpur — Latest Hiring | DNJ Careers',
     description:
-      'Latest job vacancy in Kuala Lumpur. AI-curated matches for pilot, jeweler, diamond grader, gemologist, sales, admin, finance, software developer roles. Walk-in interview, immediate hiring.',
+      'Latest job vacancy in Kuala Lumpur. AI-curated matches for pilot, jeweler, diamond grader, gemologist, sales, admin, finance, software developer roles. Apply online via DNJ.',
     keywords:
       'jobs in Kuala Lumpur, job vacancy Kuala Lumpur, hiring in Kuala Lumpur, Kuala Lumpur jobs, jobs near KL, jobs near me KL, KL job vacancy, KLCC jobs, Bukit Bintang jobs, Mont Kiara jobs, fresh graduate Kuala Lumpur',
     intro:
@@ -557,7 +557,7 @@ export const LOCATIONS: Record<LocationSlug, LocationConfig> = {
     highlights: [
       'Largest job market in Malaysia',
       'Strongest concentration of luxury retail and aviation',
-      'Walk-in interview at select boutiques and offices',
+      'Structured interview process for all shortlisted candidates',
       'Hybrid and remote roles available',
       'Fresh graduate friendly across most categories',
       'Public transport (LRT/MRT/Monorail) coverage',
@@ -573,7 +573,7 @@ export const LOCATIONS: Record<LocationSlug, LocationConfig> = {
     state: 'Selangor',
     title: 'Jobs in Petaling Jaya (PJ) — Latest Hiring | DNJ Careers',
     description:
-      'Job vacancy in Petaling Jaya (PJ) and Selangor. AI-curated matches for jeweler, sales, admin, finance, marketing, software developer roles. Walk-in interview, immediate hiring.',
+      'Job vacancy in Petaling Jaya (PJ) and Selangor. AI-curated matches for jeweler, sales, admin, finance, marketing, software developer roles. Apply online via DNJ.',
     keywords:
       'jobs in PJ, job vacancy in PJ, hiring in Petaling Jaya, PJ jobs, jobs in Petaling Jaya, jobs in Selangor, fresh graduate PJ, PJ job vacancy',
     intro:
@@ -584,7 +584,7 @@ export const LOCATIONS: Record<LocationSlug, LocationConfig> = {
       'LRT (Kelana Jaya line) coverage',
       'Cheaper cost of living than KL',
       'Active luxury retail in 1 Utama and Sunway',
-      'Walk-in interview options',
+      'Structured AI-curated matching process',
     ],
     topRoles: ['jeweler', 'diamond-grader', 'sales-executive', 'admin-executive', 'account-assistant', 'software-developer', 'marketing-executive', 'finance'],
     geo: { lat: 3.10726, lng: 101.60671 },
@@ -597,7 +597,7 @@ export const LOCATIONS: Record<LocationSlug, LocationConfig> = {
     state: 'Penang',
     title: 'Jobs in Penang — Latest Hiring | DNJ Careers',
     description:
-      'Job vacancy in Penang (George Town and Bayan Lepas). AI-curated matches for jeweler, luxury retail, sales, customer service, admin roles. Walk-in interview, immediate hiring.',
+      'Job vacancy in Penang (George Town and Bayan Lepas). AI-curated matches for jeweler, luxury retail, sales, customer service, admin roles. Apply online via DNJ.',
     keywords:
       'jobs in Penang, job vacancy in Penang, hiring in Penang, Penang jobs, fresh graduate Penang, George Town jobs, Bayan Lepas jobs, Penang job vacancy',
     intro:
@@ -606,7 +606,7 @@ export const LOCATIONS: Record<LocationSlug, LocationConfig> = {
       'Tech hub in Bayan Lepas',
       'Luxury retail growing in Gurney and George Town',
       'Lower cost of living than KL',
-      'Walk-in interview at select luxury boutiques',
+      'Structured interview process for shortlisted candidates',
       'Fresh graduate friendly',
     ],
     topRoles: ['pilot', 'jeweler', 'luxury-retail', 'sales-executive', 'customer-service', 'admin-executive'],
@@ -620,7 +620,7 @@ export const LOCATIONS: Record<LocationSlug, LocationConfig> = {
     state: 'Johor',
     title: 'Jobs in Johor Bahru (JB) — Latest Hiring | DNJ Careers',
     description:
-      'Job vacancy in Johor Bahru. Aviation, luxury retail and sales hiring. Walk-in interview options, immediate hiring, fresh graduate friendly.',
+      'Job vacancy in Johor Bahru. Aviation, luxury retail and sales hiring. AI-curated matching, fresh graduate friendly, apply online via DNJ.',
     keywords:
       'jobs in Johor, jobs in Johor Bahru, JB jobs, job vacancy Johor, hiring in Johor, fresh graduate Johor Bahru',
     intro:
@@ -629,7 +629,7 @@ export const LOCATIONS: Record<LocationSlug, LocationConfig> = {
       'Growing aviation hub at Senai',
       'Cross-border (Singapore commute) opportunities',
       'Luxury retail at Mid Valley Southkey and KSL',
-      'Walk-in interview options',
+      'Structured AI-curated matching process',
     ],
     topRoles: ['pilot', 'sales-executive', 'luxury-retail', 'customer-service'],
     geo: { lat: 1.49273, lng: 103.74142 },
@@ -664,7 +664,7 @@ export const LOCATIONS: Record<LocationSlug, LocationConfig> = {
     state: 'Selangor',
     title: 'Jobs in Shah Alam — Latest Hiring | DNJ Careers',
     description:
-      'Job vacancy in Shah Alam, Selangor. Admin, sales, finance and customer service hiring. Fresh graduate friendly. Walk-in interview options.',
+      'Job vacancy in Shah Alam, Selangor. Admin, sales, finance and customer service hiring. Fresh graduate friendly. Apply online via DNJ.',
     keywords:
       'jobs in Shah Alam, job vacancy Shah Alam, hiring in Shah Alam, Shah Alam jobs, fresh graduate Shah Alam',
     intro:
@@ -673,7 +673,7 @@ export const LOCATIONS: Record<LocationSlug, LocationConfig> = {
       'Manufacturing and logistics hub',
       'Stable admin and finance hiring',
       'Hybrid-friendly employers',
-      'Walk-in interview options',
+      'Structured AI-curated matching process',
     ],
     topRoles: ['admin-executive', 'sales-executive', 'customer-service', 'account-assistant', 'finance'],
     geo: { lat: 3.0738, lng: 101.5183 },
@@ -686,7 +686,7 @@ export const LOCATIONS: Record<LocationSlug, LocationConfig> = {
     state: 'Selangor',
     title: 'Jobs in Subang Jaya — Latest Hiring | DNJ Careers',
     description:
-      'Job vacancy in Subang Jaya and USJ. Sales, admin, finance, customer service hiring. Walk-in interview, fresh graduate friendly.',
+      'Job vacancy in Subang Jaya and USJ. Sales, admin, finance, customer service hiring. AI-curated matching, fresh graduate friendly, apply online via DNJ.',
     keywords:
       'jobs in Subang Jaya, jobs USJ, job vacancy Subang Jaya, hiring Subang Jaya, fresh graduate Subang',
     intro:

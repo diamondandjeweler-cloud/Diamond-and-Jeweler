@@ -33,7 +33,7 @@ export default function UrgentHiringPost() {
         '@type': 'Article',
         headline: 'Urgent Hiring Near Me: Top Job Vacancies in Kuala Lumpur 2026',
         description:
-          'Guide to finding urgent hiring near me in Malaysia. Latest job vacancy in Kuala Lumpur, walk-in interview, immediate hiring, fresh graduate friendly roles.',
+          'Guide to finding urgent hiring near me in Malaysia. Latest job vacancy in Kuala Lumpur — AI-curated matching for pilot, diamond, jeweler, sales, admin, fresh graduate roles.',
         datePublished: PUBLISHED,
         dateModified: PUBLISHED,
         inLanguage: 'en-MY',

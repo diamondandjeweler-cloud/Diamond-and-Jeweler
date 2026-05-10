@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 
 const SUFFIX = ' · DNJ'
 const DEFAULT_TITLE = 'AI-Curated Job Vacancy Malaysia | DNJ Careers — Pilot, Diamond & Jeweler Hiring Now'
-const DEFAULT_DESC = 'Precision recruitment powered by AI. DNJ matches the right talent with the right company in Malaysia — three curated matches at a time, zero noise. Pilot, diamond & jeweler, sales, admin, finance, fresh graduate roles in Kuala Lumpur, PJ and Penang. Apply online — walk-in interview, immediate hiring.'
+const DEFAULT_DESC = 'Precision recruitment powered by AI. DNJ matches the right talent with the right company in Malaysia — three curated matches at a time, zero noise. Pilot, diamond & jeweler, sales, admin, finance, fresh graduate roles in Kuala Lumpur, PJ and Penang. Apply online.'
 const DEFAULT_KEYWORDS = 'jobs near me, job vacancy near me, urgent hiring near me, walk in interview, hiring immediately, apply job online, latest job vacancy, part time job near me, full time job, fresh graduate job, no experience job, immediate hiring, hiring now, pilot job vacancy, jeweler job vacancy, diamond expert job vacancy, luxury retail job vacancy, job vacancy in Kuala Lumpur, job vacancy in Malaysia, work from home Kuala Lumpur, remote job Malaysia, fresh graduate job vacancy, cadet pilot program, aviation job vacancy, gemologist job, jewellery shop hiring, career opportunity, career growth job'
 const ORIGIN = 'https://diamondandjeweler.com'
 const JSONLD_DATA_ID = 'data-dnj-jsonld'

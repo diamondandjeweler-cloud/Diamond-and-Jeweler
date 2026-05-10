@@ -21,7 +21,7 @@ export default function LanguageSwitcher({ tone = 'light' }: { tone?: 'light' | 
             {i > 0 && <span className={`mx-1 ${colorClass} opacity-60`}>·</span>}
             <button
               type="button"
-              onClick={() => { void i18n.changeLanguage(loc.code) }}
+              onClick={() => { void i18n.changeLanguage(loc.code).then(() => { window.location.reload() }) }}
               aria-pressed={active}
               className={`${colorClass} ${active ? 'font-semibold underline underline-offset-2' : ''} transition-colors focus:outline-none focus:ring-2 focus:ring-[#1B2A6B] focus:ring-offset-1 rounded`}
             >

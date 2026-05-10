@@ -349,7 +349,10 @@ export default function HMDashboard() {
       invited_at: next === 'invited_by_manager' ? new Date().toISOString() : null,
     }).eq('id', id)
     if (error) {
-      setErr(error.message)
+      const msg = error.message.includes('Illegal match status transition')
+        ? 'This candidate is still being reviewed by our team. Please try again in a moment — you\'ll be notified when they\'re ready to invite.'
+        : error.message
+      setErr(msg)
       if (prevStatus) {
         setCandidates((cs) => cs.map((c) => (c.id === id ? { ...c, status: prevStatus } : c)))
       }
@@ -716,6 +719,7 @@ function CandidateCard({
     : `Candidate #${row.talents?.id.slice(0, 6).toUpperCase()}`
 
   const topTags = Object.entries(row.talents?.derived_tags ?? {})
+    .filter(([tag, score]) => !/^\d+$/.test(tag) && typeof score === 'number' && !isNaN(score) && score > 0)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 4)
 

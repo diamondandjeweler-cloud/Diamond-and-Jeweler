@@ -11,8 +11,8 @@ interface MatchAdminRow {
   internal_reasoning: Record<string, unknown> | null
   created_at: string
   expires_at: string | null
+  talent_id: string | null
   roles: { title: string } | null
-  talents: { id: string; profile_id: string } | null
 }
 
 export default function MatchPanel() {
@@ -26,7 +26,7 @@ export default function MatchPanel() {
     setLoading(true)
     let q = supabase
       .from('matches')
-      .select('id, status, compatibility_score, tag_compatibility, life_chart_score, internal_reasoning, created_at, expires_at, roles(title), talents(id, profile_id)')
+      .select('id, status, compatibility_score, tag_compatibility, life_chart_score, internal_reasoning, created_at, expires_at, talent_id, roles(title)')
       .order('created_at', { ascending: false })
       .limit(100)
     if (statusFilter !== 'all') q = q.eq('status', statusFilter)
@@ -81,7 +81,7 @@ export default function MatchPanel() {
                   <div className="flex-1">
                     <div className="text-sm font-medium">{m.roles?.title ?? '(role gone)'}</div>
                     <div className="text-xs text-gray-500">
-                      Talent {m.talents?.id.slice(0, 8) ?? '—'} ·{' '}
+                      Talent {m.talent_id?.slice(0, 8) ?? '—'} ·{' '}
                       <span className="capitalize">{m.status.replace(/_/g, ' ')}</span> ·{' '}
                       {m.compatibility_score != null ? `${Math.round(m.compatibility_score)}%` : '—'} ·{' '}
                       {new Date(m.created_at).toLocaleDateString()}

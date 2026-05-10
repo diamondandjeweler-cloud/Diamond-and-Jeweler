@@ -147,7 +147,7 @@ export default function PricingPanel() {
                 onChange={(e) => updatePkg(pkg.id, 'price_rm', e.target.value)}
                 className="w-20 text-sm border border-ink-200 rounded px-2 py-1"
               />
-              <label htmlFor={`pkg-pts-${pkg.id}`} className="text-xs text-ink-500 shrink-0">Points</label>
+              <label htmlFor={`pkg-pts-${pkg.id}`} className="text-xs text-ink-500 shrink-0">Diamond Points</label>
               <input
                 id={`pkg-pts-${pkg.id}`}
                 type="number"

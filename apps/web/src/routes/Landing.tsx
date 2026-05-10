@@ -77,10 +77,10 @@ const HOMEPAGE_JSON_LD: Record<string, unknown>[] = [
     mainEntity: [
       {
         '@type': 'Question',
-        name: 'Is DNJ hiring immediately in Malaysia?',
+        name: 'Is DNJ actively hiring in Malaysia?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'Yes. DNJ runs urgent hiring across pilot, jeweler, diamond grader, gemologist, luxury retail, sales, admin, finance, software, marketing and customer service roles in Kuala Lumpur, PJ, Penang, Johor Bahru and Cyberjaya. Walk-in interview and same day interview available.',
+          text: 'Yes. DNJ runs active hiring across pilot, jeweler, diamond grader, gemologist, luxury retail, sales, admin, finance, software, marketing and customer service roles in Kuala Lumpur, PJ, Penang, Johor Bahru and Cyberjaya. Apply online and get AI-curated matches.',
         },
       },
       {
@@ -177,7 +177,7 @@ export default function Landing() {
   const { session, profile, loading } = useSession()
   useSeo({
     title: 'AI-Curated Job Vacancy Malaysia — Pilot, Diamond & Jeweler Hiring Now',
-    description: 'Precision recruitment powered by AI. DNJ matches the right talent with the right company in Malaysia — three curated matches at a time, zero noise. Pilot, diamond & jeweler, sales, admin, finance, fresh graduate roles in KL, PJ, Penang. PDPA-compliant, end-to-end encrypted. Apply online — walk-in interview, immediate hiring.',
+    description: 'Precision recruitment powered by AI. DNJ matches the right talent with the right company in Malaysia — three curated matches at a time, zero noise. Pilot, diamond & jeweler, sales, admin, finance, fresh graduate roles in KL, PJ, Penang. PDPA-compliant, end-to-end encrypted. Apply online.',
     keywords: 'jobs near me, job vacancy near me, urgent hiring near me, walk in interview, hiring immediately, apply job online, latest job vacancy, part time job near me, full time job, fresh graduate job, no experience job, immediate hiring, hiring now, pilot job vacancy, jeweler job vacancy, diamond expert job vacancy, luxury retail job vacancy, job vacancy in Kuala Lumpur, job vacancy in PJ, job vacancy in Penang, job vacancy in Malaysia, work from home Kuala Lumpur, remote job Malaysia, fresh graduate job vacancy, cadet pilot program, aviation job vacancy, gemologist job, jewellery shop hiring, career opportunity, career growth job, account assistant job vacancy, admin executive job vacancy, software developer job vacancy, sales executive job vacancy, graphic designer job vacancy, marketing executive job vacancy, customer service job vacancy, hr assistant job vacancy, finance job vacancy, operation job vacancy',
     jsonLd: HOMEPAGE_JSON_LD,
   })
@@ -619,7 +619,7 @@ function MagnifierIllustration() {
       viewBox="0 0 200 200"
       fill="none"
       role="img"
-      aria-label="Hiring manager searching for talent — urgent job vacancy Malaysia, walk-in interview, immediate hiring in Kuala Lumpur"
+      aria-label="Hiring manager searching for talent — AI-curated job vacancy Malaysia, precision matching in Kuala Lumpur"
     >
       <defs>
         <radialGradient id="m-halo-warm" cx="0.42" cy="0.42" r="0.55">

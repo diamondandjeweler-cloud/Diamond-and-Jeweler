@@ -57,12 +57,23 @@ export default function SupportPanel() {
     setLoading(true)
     let q = supabase
       .from('support_tickets')
-      .select('*, profiles(email, full_name)')
+      .select('id, user_id, category, payment_sub_type, summary, transcript, status, admin_notes, payment_transaction_id, payment_amount, payment_status_snapshot, created_at, resolved_at')
       .order('created_at', { ascending: false })
     if (filter !== 'all') q = q.eq('status', filter)
     const { data, error } = await q.limit(100)
-    if (error) setErr(error.message)
-    else setTickets((data ?? []) as unknown as Ticket[])
+    if (error) { setErr(error.message); setLoading(false); return }
+
+    const tickets = (data ?? []) as unknown as Omit<Ticket, 'profiles'>[]
+    const userIds = [...new Set(tickets.map((t) => t.user_id).filter(Boolean))] as string[]
+    let profilesById: Record<string, { email: string; full_name: string }> = {}
+    if (userIds.length > 0) {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('id, email, full_name')
+        .in('id', userIds)
+      for (const p of profileData ?? []) profilesById[(p as { id: string; email: string; full_name: string }).id] = { email: (p as { id: string; email: string; full_name: string }).email, full_name: (p as { id: string; email: string; full_name: string }).full_name }
+    }
+    setTickets(tickets.map((t) => ({ ...t, profiles: t.user_id ? (profilesById[t.user_id] ?? null) : null })) as Ticket[])
     setLoading(false)
   }
 

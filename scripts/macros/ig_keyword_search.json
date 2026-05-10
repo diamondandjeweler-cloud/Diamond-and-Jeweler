@@ -1,0 +1,36 @@
+{
+  "Name": "ig_keyword_search",
+  "CreationDate": "2026-5-10",
+  "Description": "Instagram keyword/account search → POST extracted handles to DNJ Apps Script web app. Set APPS_SCRIPT_URL and API_SECRET in UI.Vision Storage Manager (project-wide vars). Edit the 'keyword' store at the top before each run.",
+  "Commands": [
+    { "Command": "comment", "Target": "", "Value": "── INPUTS ──────────────────────────────────────────" },
+    { "Command": "store", "Target": "malaysia recruitment", "Value": "keyword" },
+    { "Command": "store", "Target": "12", "Value": "scrollCount" },
+    { "Command": "store", "Target": "ig_keyword_search", "Value": "source" },
+
+    { "Command": "comment", "Target": "", "Value": "── NAV: account search ─────────────────────────────" },
+    { "Command": "executeScript_Sandbox", "Target": "return encodeURIComponent(${keyword})", "Value": "encKeyword" },
+    { "Command": "open", "Target": "https://www.instagram.com/explore/search/keyword/?q=${encKeyword}", "Value": "" },
+    { "Command": "pause", "Target": "6000", "Value": "" },
+
+    { "Command": "comment", "Target": "", "Value": "── Click the 'Accounts' filter pill if present ─────" },
+    { "Command": "executeScript_Sandbox", "Target": "const els=[...document.querySelectorAll('div,span,a,button')];const t=els.find(e=>e.textContent && e.textContent.trim()==='Accounts'); if(t){t.click();return 'clicked';} return 'no_pill';", "Value": "pillClick" },
+    { "Command": "pause", "Target": "3000", "Value": "" },
+
+    { "Command": "comment", "Target": "", "Value": "── Scroll to load more results ─────────────────────" },
+    { "Command": "while_v2", "Target": "${scrollCount} > 0", "Value": "" },
+    { "Command": "executeScript_Sandbox", "Target": "window.scrollTo(0, document.body.scrollHeight); return 'ok';", "Value": "" },
+    { "Command": "pause", "Target": "2500", "Value": "" },
+    { "Command": "executeScript_Sandbox", "Target": "return ${scrollCount} - 1", "Value": "scrollCount" },
+    { "Command": "end", "Target": "", "Value": "" },
+
+    { "Command": "comment", "Target": "", "Value": "── Extract handles from profile links ──────────────" },
+    { "Command": "executeScript_Sandbox", "Target": "const links=[...document.querySelectorAll('a[href^=\"/\"]')];const skip=new Set(['p','reels','reel','explore','accounts','tags','direct','stories','tv','about','press','jobs','privacy','terms']);const handles=[];links.forEach(a=>{const href=a.getAttribute('href')||'';const m=href.match(/^\\/([A-Za-z0-9._]+)\\/?$/);if(m){const h=m[1].toLowerCase();if(skip.has(h)) return;if(h.length<2||h.length>30) return;handles.push(h);}});const dedup=[...new Set(handles)];return dedup.join(',');", "Value": "handlesCsv" },
+    { "Command": "echo", "Target": "Extracted handles: ${handlesCsv}", "Value": "" },
+
+    { "Command": "comment", "Target": "", "Value": "── POST to Apps Script ─────────────────────────────" },
+    { "Command": "executeScript_Sandbox", "Target": "const arr=(${handlesCsv}||'').split(',').filter(Boolean); return JSON.stringify({secret:${API_SECRET},action:'add_handles_to_queue',platform:'instagram',handles:arr,source:${source}});", "Value": "postBody" },
+    { "Command": "XHTTP", "Target": "${APPS_SCRIPT_URL}", "Value": "POST | application/json | ${postBody}", "ResponseVar": "apiResponse" },
+    { "Command": "echo", "Target": "Apps Script response: ${apiResponse}", "Value": "" }
+  ]
+}

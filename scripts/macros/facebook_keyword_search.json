@@ -1,0 +1,29 @@
+{
+  "Name": "facebook_keyword_search",
+  "CreationDate": "2026-5-10",
+  "Description": "STUB — Facebook people search. Requires login + the FB DOM is heavily obfuscated. Selectors below are educated guesses; expect to update them before first real run. Test in DevTools first: search a keyword, find the People tab, inspect a profile link card to confirm href pattern.",
+  "Commands": [
+    { "Command": "comment", "Target": "", "Value": "── PREREQUISITE: log into facebook.com first ──────" },
+    { "Command": "store", "Target": "kuala lumpur recruiter", "Value": "keyword" },
+    { "Command": "store", "Target": "8", "Value": "scrollCount" },
+    { "Command": "store", "Target": "facebook_keyword_search", "Value": "source" },
+
+    { "Command": "executeScript_Sandbox", "Target": "return encodeURIComponent(${keyword})", "Value": "encKeyword" },
+    { "Command": "open", "Target": "https://www.facebook.com/search/people/?q=${encKeyword}", "Value": "" },
+    { "Command": "pause", "Target": "8000", "Value": "" },
+
+    { "Command": "while_v2", "Target": "${scrollCount} > 0", "Value": "" },
+    { "Command": "executeScript_Sandbox", "Target": "window.scrollTo(0, document.body.scrollHeight); return 'ok';", "Value": "" },
+    { "Command": "pause", "Target": "3000", "Value": "" },
+    { "Command": "executeScript_Sandbox", "Target": "return ${scrollCount} - 1", "Value": "scrollCount" },
+    { "Command": "end", "Target": "", "Value": "" },
+
+    { "Command": "comment", "Target": "", "Value": "── Extract username/profile.php IDs ────────────────" },
+    { "Command": "executeScript_Sandbox", "Target": "const skip=new Set(['home','marketplace','watch','gaming','groups','events','memories','saved','pages','ads']);const links=[...document.querySelectorAll('a[href*=\"facebook.com/\"], a[role=\"link\"][href^=\"/\"]')];const handles=[];links.forEach(a=>{let href=a.getAttribute('href')||'';href=href.replace('https://www.facebook.com',''); const m=href.match(/^\\/([A-Za-z0-9.]+)\\/?(?:\\?|$)/); if(m){const h=m[1].toLowerCase(); if(skip.has(h)) return; if(h==='profile.php'){const id=(href.match(/id=(\\d+)/)||[])[1]; if(id) handles.push('profile.php?id='+id); return;} handles.push(h);}});const dedup=[...new Set(handles)];return dedup.join(',');", "Value": "handlesCsv" },
+    { "Command": "echo", "Target": "Extracted handles: ${handlesCsv}", "Value": "" },
+
+    { "Command": "executeScript_Sandbox", "Target": "const arr=(${handlesCsv}||'').split(',').filter(Boolean); return JSON.stringify({secret:${API_SECRET},action:'add_handles_to_queue',platform:'facebook',handles:arr,source:${source}});", "Value": "postBody" },
+    { "Command": "XHTTP", "Target": "${APPS_SCRIPT_URL}", "Value": "POST | application/json | ${postBody}", "ResponseVar": "apiResponse" },
+    { "Command": "echo", "Target": "Apps Script response: ${apiResponse}", "Value": "" }
+  ]
+}

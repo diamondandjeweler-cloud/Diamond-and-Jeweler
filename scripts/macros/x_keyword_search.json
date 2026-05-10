@@ -1,0 +1,32 @@
+{
+  "Name": "x_keyword_search",
+  "CreationDate": "2026-5-10",
+  "Description": "X (Twitter) people search → POST extracted handles to DNJ Apps Script web app. Set APPS_SCRIPT_URL and API_SECRET in UI.Vision Storage Manager. Edit the 'keyword' store at the top before each run.",
+  "Commands": [
+    { "Command": "comment", "Target": "", "Value": "── INPUTS ──────────────────────────────────────────" },
+    { "Command": "store", "Target": "malaysia recruiter", "Value": "keyword" },
+    { "Command": "store", "Target": "20", "Value": "scrollCount" },
+    { "Command": "store", "Target": "x_keyword_search", "Value": "source" },
+
+    { "Command": "comment", "Target": "", "Value": "── NAV: people-only search ─────────────────────────" },
+    { "Command": "executeScript_Sandbox", "Target": "return encodeURIComponent(${keyword})", "Value": "encKeyword" },
+    { "Command": "open", "Target": "https://x.com/search?q=${encKeyword}&src=typed_query&f=user", "Value": "" },
+    { "Command": "pause", "Target": "6000", "Value": "" },
+
+    { "Command": "comment", "Target": "", "Value": "── Scroll to load more accounts ────────────────────" },
+    { "Command": "while_v2", "Target": "${scrollCount} > 0", "Value": "" },
+    { "Command": "executeScript_Sandbox", "Target": "window.scrollTo(0, document.body.scrollHeight); return 'ok';", "Value": "" },
+    { "Command": "pause", "Target": "2500", "Value": "" },
+    { "Command": "executeScript_Sandbox", "Target": "return ${scrollCount} - 1", "Value": "scrollCount" },
+    { "Command": "end", "Target": "", "Value": "" },
+
+    { "Command": "comment", "Target": "", "Value": "── Extract handles ─────────────────────────────────" },
+    { "Command": "executeScript_Sandbox", "Target": "const skip=new Set(['home','explore','notifications','messages','search','settings','i','compose','about','tos','privacy','help','jobs','signup','login','logout']);const links=[...document.querySelectorAll('a[role=\"link\"][href^=\"/\"]')];const handles=[];links.forEach(a=>{const href=a.getAttribute('href')||'';const m=href.match(/^\\/([A-Za-z0-9_]{1,15})$/);if(m){const h=m[1].toLowerCase();if(skip.has(h)) return;handles.push(h);}});const dedup=[...new Set(handles)];return dedup.join(',');", "Value": "handlesCsv" },
+    { "Command": "echo", "Target": "Extracted handles: ${handlesCsv}", "Value": "" },
+
+    { "Command": "comment", "Target": "", "Value": "── POST to Apps Script ─────────────────────────────" },
+    { "Command": "executeScript_Sandbox", "Target": "const arr=(${handlesCsv}||'').split(',').filter(Boolean); return JSON.stringify({secret:${API_SECRET},action:'add_handles_to_queue',platform:'x',handles:arr,source:${source}});", "Value": "postBody" },
+    { "Command": "XHTTP", "Target": "${APPS_SCRIPT_URL}", "Value": "POST | application/json | ${postBody}", "ResponseVar": "apiResponse" },
+    { "Command": "echo", "Target": "Apps Script response: ${apiResponse}", "Value": "" }
+  ]
+}

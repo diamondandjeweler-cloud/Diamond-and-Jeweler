@@ -1,0 +1,28 @@
+{
+  "Name": "lemon8_keyword_search",
+  "CreationDate": "2026-5-10",
+  "Description": "STUB — Lemon8 search. ByteDance lifestyle app, web view at lemon8-app.com is limited. Login required. Selectors below are guesses; update after manual test in DevTools.",
+  "Commands": [
+    { "Command": "comment", "Target": "", "Value": "── PREREQUISITE: log into lemon8-app.com first ────" },
+    { "Command": "store", "Target": "malaysia beauty", "Value": "keyword" },
+    { "Command": "store", "Target": "8", "Value": "scrollCount" },
+    { "Command": "store", "Target": "lemon8_keyword_search", "Value": "source" },
+
+    { "Command": "executeScript_Sandbox", "Target": "return encodeURIComponent(${keyword})", "Value": "encKeyword" },
+    { "Command": "open", "Target": "https://www.lemon8-app.com/discover/search?q=${encKeyword}&tab=user", "Value": "" },
+    { "Command": "pause", "Target": "7000", "Value": "" },
+
+    { "Command": "while_v2", "Target": "${scrollCount} > 0", "Value": "" },
+    { "Command": "executeScript_Sandbox", "Target": "window.scrollTo(0, document.body.scrollHeight); return 'ok';", "Value": "" },
+    { "Command": "pause", "Target": "3000", "Value": "" },
+    { "Command": "executeScript_Sandbox", "Target": "return ${scrollCount} - 1", "Value": "scrollCount" },
+    { "Command": "end", "Target": "", "Value": "" },
+
+    { "Command": "executeScript_Sandbox", "Target": "const links=[...document.querySelectorAll('a[href*=\"/@\"], a[href*=\"/user/\"]')];const handles=[];links.forEach(a=>{const href=a.getAttribute('href')||'';let m=href.match(/\\/@([A-Za-z0-9._]+)(?:\\?|$|\\/)/);if(m){handles.push(m[1].toLowerCase());return;}m=href.match(/\\/user\\/([A-Za-z0-9._]+)(?:\\?|$|\\/)/);if(m) handles.push(m[1].toLowerCase());});const dedup=[...new Set(handles)];return dedup.join(',');", "Value": "handlesCsv" },
+    { "Command": "echo", "Target": "Extracted handles: ${handlesCsv}", "Value": "" },
+
+    { "Command": "executeScript_Sandbox", "Target": "const arr=(${handlesCsv}||'').split(',').filter(Boolean); return JSON.stringify({secret:${API_SECRET},action:'add_handles_to_queue',platform:'lemon8',handles:arr,source:${source}});", "Value": "postBody" },
+    { "Command": "XHTTP", "Target": "${APPS_SCRIPT_URL}", "Value": "POST | application/json | ${postBody}", "ResponseVar": "apiResponse" },
+    { "Command": "echo", "Target": "Apps Script response: ${apiResponse}", "Value": "" }
+  ]
+}

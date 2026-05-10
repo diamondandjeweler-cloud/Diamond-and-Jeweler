@@ -1,0 +1,33 @@
+{
+  "Name": "rednote_keyword_search",
+  "CreationDate": "2026-5-10",
+  "Description": "STUB — RedNote (Xiaohongshu) requires login first. Once logged in: edit selectors below to match the real DOM. Search URL pattern: https://www.xiaohongshu.com/search_result?keyword=...&source=web&type=54 (type=54 = users).",
+  "Commands": [
+    { "Command": "comment", "Target": "", "Value": "── PREREQUISITE: log into xiaohongshu.com first ───" },
+    { "Command": "comment", "Target": "", "Value": "── INPUTS ──────────────────────────────────────────" },
+    { "Command": "store", "Target": "招聘", "Value": "keyword" },
+    { "Command": "store", "Target": "8", "Value": "scrollCount" },
+    { "Command": "store", "Target": "rednote_keyword_search", "Value": "source" },
+
+    { "Command": "executeScript_Sandbox", "Target": "return encodeURIComponent(${keyword})", "Value": "encKeyword" },
+    { "Command": "open", "Target": "https://www.xiaohongshu.com/search_result?keyword=${encKeyword}&source=web_explore_feed&type=54", "Value": "" },
+    { "Command": "pause", "Target": "8000", "Value": "" },
+
+    { "Command": "comment", "Target": "", "Value": "── If a login modal blocks scrolling, abort ────────" },
+    { "Command": "executeScript_Sandbox", "Target": "const modal=document.querySelector('.login-container,[class*=\"login\"]');return modal && modal.offsetParent ? 'login_required' : 'ok';", "Value": "loginCheck" },
+
+    { "Command": "while_v2", "Target": "${scrollCount} > 0", "Value": "" },
+    { "Command": "executeScript_Sandbox", "Target": "window.scrollTo(0, document.body.scrollHeight); return 'ok';", "Value": "" },
+    { "Command": "pause", "Target": "3000", "Value": "" },
+    { "Command": "executeScript_Sandbox", "Target": "return ${scrollCount} - 1", "Value": "scrollCount" },
+    { "Command": "end", "Target": "", "Value": "" },
+
+    { "Command": "comment", "Target": "", "Value": "── Extract user IDs from profile URLs ──────────────" },
+    { "Command": "executeScript_Sandbox", "Target": "const links=[...document.querySelectorAll('a[href*=\"/user/profile/\"]')];const ids=[];links.forEach(a=>{const m=(a.getAttribute('href')||'').match(/\\/user\\/profile\\/([a-z0-9]+)/i);if(m) ids.push(m[1]);});const dedup=[...new Set(ids)];return dedup.join(',');", "Value": "handlesCsv" },
+    { "Command": "echo", "Target": "Extracted handles: ${handlesCsv}", "Value": "" },
+
+    { "Command": "executeScript_Sandbox", "Target": "const arr=(${handlesCsv}||'').split(',').filter(Boolean); return JSON.stringify({secret:${API_SECRET},action:'add_handles_to_queue',platform:'rednote',handles:arr,source:${source}});", "Value": "postBody" },
+    { "Command": "XHTTP", "Target": "${APPS_SCRIPT_URL}", "Value": "POST | application/json | ${postBody}", "ResponseVar": "apiResponse" },
+    { "Command": "echo", "Target": "Apps Script response: ${apiResponse}", "Value": "" }
+  ]
+}

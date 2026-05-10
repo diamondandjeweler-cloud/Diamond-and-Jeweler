@@ -1,0 +1,28 @@
+{
+  "Name": "threads_keyword_search",
+  "CreationDate": "2026-5-10",
+  "Description": "STUB — Threads search. Threads is Meta's Twitter clone; profile URLs are /@handle similar to TikTok. Login required (uses IG account). Update selectors after first manual test.",
+  "Commands": [
+    { "Command": "comment", "Target": "", "Value": "── PREREQUISITE: log into threads.net via IG ──────" },
+    { "Command": "store", "Target": "malaysia food", "Value": "keyword" },
+    { "Command": "store", "Target": "12", "Value": "scrollCount" },
+    { "Command": "store", "Target": "threads_keyword_search", "Value": "source" },
+
+    { "Command": "executeScript_Sandbox", "Target": "return encodeURIComponent(${keyword})", "Value": "encKeyword" },
+    { "Command": "open", "Target": "https://www.threads.net/search?q=${encKeyword}&serp_type=users", "Value": "" },
+    { "Command": "pause", "Target": "6000", "Value": "" },
+
+    { "Command": "while_v2", "Target": "${scrollCount} > 0", "Value": "" },
+    { "Command": "executeScript_Sandbox", "Target": "window.scrollTo(0, document.body.scrollHeight); return 'ok';", "Value": "" },
+    { "Command": "pause", "Target": "2500", "Value": "" },
+    { "Command": "executeScript_Sandbox", "Target": "return ${scrollCount} - 1", "Value": "scrollCount" },
+    { "Command": "end", "Target": "", "Value": "" },
+
+    { "Command": "executeScript_Sandbox", "Target": "const links=[...document.querySelectorAll('a[href^=\"/@\"]')];const handles=[];links.forEach(a=>{const m=(a.getAttribute('href')||'').match(/^\\/@([A-Za-z0-9._]+)(?:\\?|$|\\/)/);if(m){const h=m[1].toLowerCase();if(h.length<2||h.length>30) return;handles.push(h);}});const dedup=[...new Set(handles)];return dedup.join(',');", "Value": "handlesCsv" },
+    { "Command": "echo", "Target": "Extracted handles: ${handlesCsv}", "Value": "" },
+
+    { "Command": "executeScript_Sandbox", "Target": "const arr=(${handlesCsv}||'').split(',').filter(Boolean); return JSON.stringify({secret:${API_SECRET},action:'add_handles_to_queue',platform:'threads',handles:arr,source:${source}});", "Value": "postBody" },
+    { "Command": "XHTTP", "Target": "${APPS_SCRIPT_URL}", "Value": "POST | application/json | ${postBody}", "ResponseVar": "apiResponse" },
+    { "Command": "echo", "Target": "Apps Script response: ${apiResponse}", "Value": "" }
+  ]
+}

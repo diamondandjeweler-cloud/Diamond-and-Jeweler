@@ -1,0 +1,32 @@
+{
+  "Name": "tiktok_keyword_search",
+  "CreationDate": "2026-5-10",
+  "Description": "TikTok user search → POST extracted handles to DNJ Apps Script web app. Set APPS_SCRIPT_URL and API_SECRET in UI.Vision Storage Manager. Edit the 'keyword' store at the top before each run.",
+  "Commands": [
+    { "Command": "comment", "Target": "", "Value": "── INPUTS ──────────────────────────────────────────" },
+    { "Command": "store", "Target": "malaysia jobs", "Value": "keyword" },
+    { "Command": "store", "Target": "10", "Value": "scrollCount" },
+    { "Command": "store", "Target": "tiktok_keyword_search", "Value": "source" },
+
+    { "Command": "comment", "Target": "", "Value": "── NAV: user-tab search ────────────────────────────" },
+    { "Command": "executeScript_Sandbox", "Target": "return encodeURIComponent(${keyword})", "Value": "encKeyword" },
+    { "Command": "open", "Target": "https://www.tiktok.com/search/user?q=${encKeyword}", "Value": "" },
+    { "Command": "pause", "Target": "7000", "Value": "" },
+
+    { "Command": "comment", "Target": "", "Value": "── Scroll to load more users ───────────────────────" },
+    { "Command": "while_v2", "Target": "${scrollCount} > 0", "Value": "" },
+    { "Command": "executeScript_Sandbox", "Target": "window.scrollTo(0, document.body.scrollHeight); return 'ok';", "Value": "" },
+    { "Command": "pause", "Target": "3000", "Value": "" },
+    { "Command": "executeScript_Sandbox", "Target": "return ${scrollCount} - 1", "Value": "scrollCount" },
+    { "Command": "end", "Target": "", "Value": "" },
+
+    { "Command": "comment", "Target": "", "Value": "── Extract @handles from /@ links ──────────────────" },
+    { "Command": "executeScript_Sandbox", "Target": "const links=[...document.querySelectorAll('a[href*=\"/@\"]')];const handles=[];links.forEach(a=>{const href=a.getAttribute('href')||'';const m=href.match(/\\/@([A-Za-z0-9._]+)(?:\\?|$|\\/)/);if(m){const h=m[1].toLowerCase();if(h.length<2||h.length>30) return;handles.push(h);}});const dedup=[...new Set(handles)];return dedup.join(',');", "Value": "handlesCsv" },
+    { "Command": "echo", "Target": "Extracted handles: ${handlesCsv}", "Value": "" },
+
+    { "Command": "comment", "Target": "", "Value": "── POST to Apps Script ─────────────────────────────" },
+    { "Command": "executeScript_Sandbox", "Target": "const arr=(${handlesCsv}||'').split(',').filter(Boolean); return JSON.stringify({secret:${API_SECRET},action:'add_handles_to_queue',platform:'tiktok',handles:arr,source:${source}});", "Value": "postBody" },
+    { "Command": "XHTTP", "Target": "${APPS_SCRIPT_URL}", "Value": "POST | application/json | ${postBody}", "ResponseVar": "apiResponse" },
+    { "Command": "echo", "Target": "Apps Script response: ${apiResponse}", "Value": "" }
+  ]
+}

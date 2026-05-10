@@ -1,11 +1,16 @@
 // Vercel Edge middleware. Two responsibilities:
 //   1. Sliding-window rate-limit /api/* (per IP, 100 req/min).
-//   2. Real edge gate on /admin/* — verify Supabase JWT signature using
-//      SUPABASE_JWT_SECRET before serving the SPA shell. Replaces the older
-//      `dnj-auth=1` presence-cookie soft gate (F13). Real authorization
-//      (admin role, RLS scopes) still lives in AdminGate + Supabase RLS;
-//      this gate just confirms the caller is an authenticated user with a
-//      non-expired token.
+//   2. Real edge gate on /admin/* — F13. Tries two paths in order:
+//      a. HS256 verify with SUPABASE_JWT_SECRET if it's configured (cheap,
+//         no network call, ideal for production).
+//      b. Otherwise call Supabase's `/auth/v1/user` introspection endpoint
+//         with the user's bearer token. Adds ~50ms per /admin nav but
+//         needs no secret — works on Preview/staging without env config.
+//      Falls back to the legacy `dnj-auth=1` presence-cookie path only if
+//      neither secret nor SUPABASE_URL is reachable.
+//      Real authorization (admin role, RLS scopes) still lives in AdminGate
+//      + Supabase RLS; this gate just confirms the caller is an
+//      authenticated user with a non-expired token.
 
 const WINDOW_MS = 60_000   // 1 minute
 const MAX_REQS  = 100       // per IP per window
@@ -97,9 +102,41 @@ async function verifyJwt(
   return { ok: true, payload }
 }
 
-function getJwtSecret(): string | undefined {
-  const env = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env
-  return env?.SUPABASE_JWT_SECRET
+function getEnv(): Record<string, string | undefined> {
+  return (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env ?? {}
+}
+
+// Supabase URL is exposed at build time as VITE_SUPABASE_URL. The middleware
+// runs at the edge — it can't see Vite-prefixed envs unless they're also
+// surfaced as plain envs on the Vercel project. Try both names.
+function getSupabaseUrl(): string | undefined {
+  const env = getEnv()
+  return env.SUPABASE_URL ?? env.VITE_SUPABASE_URL
+}
+
+async function introspectToken(token: string, supabaseUrl: string): Promise<{ ok: true } | { ok: false; reason: string }> {
+  // Use the project anon key as apikey header. This isn't strictly required
+  // for /auth/v1/user (Supabase accepts the bearer alone) but matches the
+  // rest of the platform's request pattern. Token check is cheap because
+  // Supabase caches it.
+  try {
+    const env = getEnv()
+    const apiKey = env.SUPABASE_ANON_KEY ?? env.VITE_SUPABASE_ANON_KEY ?? ''
+    const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...(apiKey ? { apikey: apiKey } : {}),
+      },
+      // Vercel Edge fetch — keep aggressive timeout.
+      signal: AbortSignal.timeout(3000),
+    })
+    if (res.status === 200) return { ok: true }
+    if (res.status === 401 || res.status === 403) return { ok: false, reason: `introspect_${res.status}` }
+    return { ok: false, reason: `introspect_other_${res.status}` }
+  } catch (e) {
+    return { ok: false, reason: 'introspect_error' }
+  }
 }
 
 async function adminGate(req: Request, pathname: string): Promise<Response | undefined> {
@@ -111,29 +148,46 @@ async function adminGate(req: Request, pathname: string): Promise<Response | und
     },
   })
 
-  const secret = getJwtSecret()
+  const env = getEnv()
+  const secret = env.SUPABASE_JWT_SECRET
+  const supabaseUrl = getSupabaseUrl()
 
   const token = readCookie(req, 'sb-jwt')
   if (!token) {
-    // Backwards compat path: if the secret isn't configured (dev / preview
-    // without env), fall back to the legacy presence-cookie check so we
-    // don't lock everyone out of /admin during an env-config gap.
-    if (!secret) {
-      const legacy = /(?:^|;\s*)dnj-auth=1(?:;|$)/.test(req.headers.get('cookie') ?? '')
-      if (legacy) return undefined
-    }
+    // No JWT cookie at all — fall back to the legacy presence cookie. Drive-by
+    // visitors with no session at all still get a 302; users mid-rollout who
+    // have dnj-auth=1 but not sb-jwt yet get through to the SPA, where
+    // useSession will mirror the access_token to sb-jwt on next state change.
+    const legacy = /(?:^|;\s*)dnj-auth=1(?:;|$)/.test(req.headers.get('cookie') ?? '')
+    if (legacy) return undefined
     return redirect('no_jwt')
   }
 
-  if (!secret) {
-    // Token present but no secret to verify with — fall through to client-side
-    // AdminGate. Logged so an env-config gap doesn't go silently undetected.
-    console.warn('[middleware] SUPABASE_JWT_SECRET missing; bypassing edge JWT verification')
-    return undefined
+  // Path A — local HS256 verify if the secret is configured. Cheap, no
+  // network. Production should use this path.
+  if (secret) {
+    const result = await verifyJwt(token, secret)
+    if (result.ok) return undefined
+    // Don't 302 immediately on bad sig — fall through to introspection so
+    // a key rotation that hasn't propagated yet doesn't lock anyone out.
+    if (result.reason !== 'expired' && supabaseUrl) {
+      const intro = await introspectToken(token, supabaseUrl)
+      if (intro.ok) return undefined
+    }
+    return redirect(result.reason)
   }
 
-  const result = await verifyJwt(token, secret)
-  if (!result.ok) return redirect(result.reason)
+  // Path B — introspect against Supabase auth API. Slower but no secret
+  // needed; suitable for Preview deployments and emergency unblocks.
+  if (supabaseUrl) {
+    const intro = await introspectToken(token, supabaseUrl)
+    if (intro.ok) return undefined
+    return redirect(intro.reason)
+  }
+
+  // Neither secret nor URL — soft fall-through to client AdminGate so we
+  // don't lock everyone out during an env-config gap.
+  console.warn('[middleware] no SUPABASE_JWT_SECRET and no SUPABASE_URL; bypassing edge JWT verification')
   return undefined
 }
 

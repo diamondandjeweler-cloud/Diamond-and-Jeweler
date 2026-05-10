@@ -1,7 +1,15 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import LoadingSpinner from '../../../components/LoadingSpinner'
+import { formatError } from '../../../lib/errors'
 
+// F14 — switched from a direct PostgREST select on `audit_log` to a
+// SECURITY DEFINER RPC `get_admin_audit_log`. The audit_log RLS policies
+// (audit_log_select_admin / audit_log_select_own) both return 0 rows
+// when PostgREST treats the request as anon (auth-context drop observed
+// elsewhere — see F8 / 0104). The RPC bypasses RLS, gates on is_admin()
+// in the body, and supports the same filters the panel exposes.
+// See migrations/0105_admin_audit_log_rpc.sql.
 interface AuditRow {
   id: number
   created_at: string
@@ -13,6 +21,8 @@ interface AuditRow {
   resource_id: string | null
   metadata: Record<string, unknown>
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const PAGE_SIZE = 50
 
@@ -38,21 +48,35 @@ export default function AuditLogPanel() {
 
   async function reload() {
     setLoading(true); setErr(null)
-    let q = supabase
-      .from('audit_log')
-      .select('id, created_at, actor_id, actor_role, subject_id, action, resource_type, resource_id, metadata')
-      .order('created_at', { ascending: false })
-      .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1)
-    if (actionFilter) q = q.eq('action', actionFilter)
-    if (actorSearch.trim()) q = q.or(`actor_id.eq.${actorSearch.trim()},subject_id.eq.${actorSearch.trim()}`)
-    const { data, error } = await q
-    if (error) {
-      console.error('[AuditLogPanel] reload failed:', error)
-      setErr('Could not load audit log. Check the browser console for details.')
-    } else {
-      setRows((data ?? []) as AuditRow[])
+    const trimmed = actorSearch.trim()
+    // The RPC accepts uuid params — only forward a value when the input is
+    // a well-formed UUID; ignore otherwise so partial typing doesn't 400.
+    const uuidValue = trimmed && UUID_RE.test(trimmed) ? trimmed : null
+    try {
+      const { data, error } = await supabase.rpc('get_admin_audit_log', {
+        p_action:     actionFilter || null,
+        // The original UI did an OR on actor_id/subject_id with one input;
+        // RPC takes both — we pass the same UUID to both, then dedupe.
+        p_actor_id:   uuidValue,
+        p_subject_id: uuidValue,
+        p_page:       page,
+        p_page_size:  PAGE_SIZE,
+      })
+      if (error) throw error
+      // Dedupe by id (the OR filter could return the same row from both
+      // p_actor_id and p_subject_id branches if a user is both).
+      const seen = new Set<number>()
+      const rows = ((data ?? []) as AuditRow[]).filter((r) => {
+        if (seen.has(r.id)) return false
+        seen.add(r.id); return true
+      })
+      setRows(rows)
+    } catch (e) {
+      console.error('[AuditLogPanel] reload failed:', e)
+      setErr(formatError(e))
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   // reload also reads actorSearch but we only want to refire on filter/page changes;

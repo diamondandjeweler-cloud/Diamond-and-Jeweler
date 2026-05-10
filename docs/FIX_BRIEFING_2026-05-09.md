@@ -20,6 +20,82 @@ Single-shot deploy plan to unblock prelaunch testing.
 
 ---
 
+## Post-deploy retest (2026-05-10)
+
+Walked admin tabs as A01, then talent flow as T13. Net: most fixes hold; two issues remain.
+
+### ✅ Verified live
+
+| Scenario | Result |
+|----------|--------|
+| **S04** Users tab (admin) | 69 rows, T15–T19 testers visible. F8 effectively resolved. |
+| **S06** Approvals tab (F7) | Tab loads cleanly, **NO logout**. F7 patch holds (decryptDobs try/catch + reload() session-touch + AbortSignal.timeout). |
+| **S07** Audit log | Rows visible (cron `match_expired` events with full metadata). F14 resolved by 0098. |
+| **S15** Support tab | Loads "No tickets found" cleanly. **No relationship error**. F10 resolved by 0098 FK + schema reload. |
+| **S16** Data requests admin queue | Dharmendra's pending Access DSR still listed with action buttons. |
+| **S21** Forgot password | Submit fires `OPTIONS /auth/v1/recover` → 200, transitions to "Check your inbox / Email sent". F19 fixed by fresh deploy. |
+| Job moderation, Matches, Verification | All load without errors. |
+| Talent profile (T13) | After fixing seed key (`parsed_resume.summary` → `parsed_resume.ai_summary`), the "HOW THE SYSTEM DESCRIBES YOU" card renders the seeded summary correctly. |
+
+### ❌ F1 STILL BROKEN — `/admin` Overview (KpiPanel)
+
+KpiPanel runs ~14 PostgREST `HEAD select=*` count queries in parallel on `matches` (12 status filters) + `profiles` (3 filters). All 14 return **503**. `talents?...is_open_to_offers=eq.true` returns **403** separately. Reproducible after fresh page load.
+
+A01's role data is correct (`profiles.role='admin'`, `is_banned=false`, `raw_user_meta_data.role='admin'`), so `is_admin()` should return true and the admin allow-list policies should apply. The 503s suggest **RLS evaluation is materializing all four OR'd policies** on matches even when `is_admin()` short-circuits true. The non-admin policies (`matches_select_hm/hr/talent`) have nested `EXISTS (… FROM roles r …)` joins that may stall the planner under parallel head+count load.
+
+**Fix candidates:**
+- Rewrite `KpiPanel.load()` to call a single `get_admin_kpis()` SECURITY DEFINER RPC that runs all counts inside one DB call (mirrors the 0098 `is_admin()` consolidation pattern).
+- Or simplify the matches RLS policies — replace inline EXISTS with SECURITY DEFINER helpers (memory mentions Migration 0015 did this; check whether the live policies have regressed).
+
+### 🐛 F20 NEW — ConsentGate doesn't enforce re-consent on legal version bumps
+
+`apps/web/src/components/ConsentGate.tsx:21`:
+```ts
+if (profile.role !== 'restaurant_staff' && !profile.consent_version) return <Navigate to="/consent" replace />
+```
+
+The gate only redirects to `/consent` when `consent_version` is **falsy**. Once any version is recorded, the user bypasses the gate forever — even after `system_config.legal_version` is bumped.
+
+Live state: every test talent has `consent_version='v2.1'`, but `legal_version='3.2'`. T13 logs in and lands directly on `/talent`; navigating to `/consent` redirects back to `/talent`. The new §11 Refunds clause is shipped on `/terms` but **no user has been prompted to re-consent**. S20 fails.
+
+Note also a prefix-format inconsistency: profiles store `'v2.1'` (with `v` prefix) while `system_config.legal_version` is stored as `'3.2'` (no prefix). Whatever fix lands needs to normalise both sides.
+
+**Fix sketch:**
+```tsx
+const [serverVersion, setServerVersion] = useState<string | null>(null)
+useEffect(() => {
+  supabase.from('system_config').select('value').eq('key', 'legal_version').single()
+    .then(({ data }) => setServerVersion((data?.value as string) || null))
+}, [])
+
+const expected = serverVersion?.startsWith('v') ? serverVersion : `v${serverVersion}`
+if (
+  profile.role !== 'restaurant_staff' &&
+  (!profile.consent_version || (serverVersion && profile.consent_version !== expected))
+) {
+  return <Navigate to="/consent" replace />
+}
+```
+
+Plus the `/consent` page itself needs a re-consent UX ("Our terms updated — please review §11 Refunds & Chargebacks before continuing").
+
+### ⚠️ S08–S12 matching flow not tested live
+
+H02 HM login was blocked by Cloudflare Turnstile stuck in "Verifying" state across multiple retries (different sessions, fresh tab — same result). Without HM auth I can't trigger `match-generate` for the Risk Manager role, so the seeded T02/T13/T15 candidates aren't yet visible as live matches.
+
+The seed itself is correct (JSONB shape verified, ai_summary renders) and `parsed_resume` has all expected fields for the matching engine. Recommend either:
+- Manual HM login by a human (CF likely waives after one human-confirmed solve) and clicking "Generate matches" on the Risk Manager role, OR
+- Insert role IDs into `match_queue` directly via Management API to let the per-5-min cron `bole-process-match-queue-every-5min` pick them up under service-role context.
+
+### Net post-deploy state
+
+- **6 fixes confirmed live**: F7, F8, F9, F10, F12, F13, F14, F19
+- **1 fix still broken**: F1 (KpiPanel — needs RPC consolidation)
+- **1 new bug**: F20 (ConsentGate version mismatch)
+- **1 scenario blocked on auth**: S08–S12 matching (CF on H02 login)
+
+---
+
 ## Original briefing (preserved for reference)
 
 Five fixes; **four already exist in the working tree** uncommitted. Two genuinely new findings (F7 root cause + F19 forgot-pw).

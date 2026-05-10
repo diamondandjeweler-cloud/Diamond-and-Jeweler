@@ -117,10 +117,27 @@ export default function Layout() {
             <Logo small />
             <span>© 2026 DNJ · Curated recruitment for Malaysia</span>
           </div>
-          <div className="flex items-center gap-4">
-            <Link to="/privacy" className="hover:text-ink-900 transition-colors">Privacy</Link>
-            <Link to="/terms" className="hover:text-ink-900 transition-colors">Terms</Link>
-            <Link to="/data-requests" className="hover:text-ink-900 transition-colors">Data requests</Link>
+          {/* F20 — footer link tap targets bumped to 44×24 minimum (WCAG 2.2 AA).
+              Adds vertical padding without changing the visual line. */}
+          <div className="flex items-center gap-2 md:gap-4">
+            <Link
+              to="/privacy"
+              className="hover:text-ink-900 transition-colors inline-flex items-center min-h-[44px] px-2 -mx-2"
+            >
+              Privacy
+            </Link>
+            <Link
+              to="/terms"
+              className="hover:text-ink-900 transition-colors inline-flex items-center min-h-[44px] px-2 -mx-2"
+            >
+              Terms
+            </Link>
+            <Link
+              to="/data-requests"
+              className="hover:text-ink-900 transition-colors inline-flex items-center min-h-[44px] px-2 -mx-2"
+            >
+              Data requests
+            </Link>
           </div>
         </div>
       </footer>

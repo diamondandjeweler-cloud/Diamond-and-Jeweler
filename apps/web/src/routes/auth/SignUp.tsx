@@ -191,7 +191,7 @@ export default function SignUp() {
           <Input
             label={t('common.fullName')}
             value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
+            onChange={(e) => { setFullName(e.target.value); setErr(null) }}
             required
             minLength={2}
             autoComplete="name"
@@ -200,7 +200,7 @@ export default function SignUp() {
             label={t('common.email')}
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => { setEmail(e.target.value); setErr(null) }}
             required
             autoComplete="email"
           />
@@ -208,7 +208,7 @@ export default function SignUp() {
             label={t('common.password')}
             hint={!password || pwOk ? t('auth.passwordHint') : t('auth.passwordWeak')}
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => { setPassword(e.target.value); setErr(null) }}
             required
             minLength={12}
             autoComplete="new-password"

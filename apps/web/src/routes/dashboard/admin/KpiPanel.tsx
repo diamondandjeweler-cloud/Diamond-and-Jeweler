@@ -32,60 +32,16 @@ export default function KpiPanel() {
   async function load() {
     setLoading(true); setErr(null)
     try {
-      // Count helper — PostgREST's head+count is cheap.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const count = async (table: string, modify?: (q: any) => any): Promise<number> => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const base: any = supabase.from(table).select('*', { count: 'exact', head: true })
-        const q = modify ? modify(base) : base
-        const { count: c, error } = await q
-        if (error) throw error
-        return c ?? 0
-      }
-
-      const total_matches = await count('matches')
-      const by_status: Record<string, number> = {}
-      await Promise.all(TRACKED_STATUSES.map(async (s) => {
-        by_status[s] = await count('matches', (q) => q.eq('status', s))
-      }))
-
-      const total_users       = await count('profiles')
-      const banned_users      = await count('profiles', (q) => q.eq('is_banned', true))
-      const ghost_users       = await count('profiles', (q) => q.gte('ghost_score', 3))
-      const active_talents    = await count('talents',  (q) => q.eq('is_open_to_offers', true))
-      const active_roles      = await count('roles',    (q) => q.eq('status', 'active'))
-      const companies_verified = await count('companies', (q) => q.eq('verified', true))
-      const companies_pending  = await count('companies', (q) => q.eq('verified', false))
-      const waitlist_pending   = await count('waitlist',  (q) => q.eq('approved', false))
-
-      // Avg time-to-first-view (last 200 viewed matches, client-side avg).
-      const { data: viewedRows } = await supabase
-        .from('matches')
-        .select('created_at, viewed_at')
-        .not('viewed_at', 'is', null)
-        .order('viewed_at', { ascending: false })
-        .limit(200)
-      let avg_hours_to_first_view: number | null = null
-      if (viewedRows && viewedRows.length > 0) {
-        const ms = viewedRows.reduce((sum, r) => {
-          const c = new Date(r.created_at as string).getTime()
-          const v = new Date(r.viewed_at as string).getTime()
-          return sum + Math.max(0, v - c)
-        }, 0) / viewedRows.length
-        avg_hours_to_first_view = ms / 1000 / 60 / 60
-      }
-
-      // Interview hire rate = hired / (interview_completed + hired).
-      const hired = by_status['hired']
-      const completed = by_status['interview_completed']
-      const denom = hired + completed
-      const interview_hire_rate = denom > 0 ? hired / denom : null
-
-      setKpis({
-        total_matches, by_status, total_users, banned_users, ghost_users,
-        active_talents, active_roles, companies_verified, companies_pending,
-        waitlist_pending, avg_hours_to_first_view, interview_hire_rate,
-      })
+      // F1 fix — single SECURITY DEFINER RPC replaces 14 parallel head+count
+      // queries. The old pattern was returning 503 across all matches/profiles
+      // counts because PostgREST/Supabase shed parallel-HEAD load when the
+      // matches RLS policy chain materialised nested EXISTS joins on roles
+      // even for admin callers. The RPC bypasses RLS entirely and gates on
+      // is_admin() inside its body — see migrations/0100_admin_kpis_rpc.sql.
+      const { data, error } = await supabase.rpc('get_admin_kpis')
+      if (error) throw error
+      if (!data) throw new Error('get_admin_kpis returned no data')
+      setKpis(data as Kpis)
     } catch (e) {
       setErr(formatError(e))
     } finally {

@@ -273,6 +273,107 @@ FROM (VALUES
 JOIN public.profiles p ON p.email = d.t_email;
 
 -- ============================================================
+-- 6b) Phase B enrichment — parsed_resume + interview_answers + derived_tags
+-- for the finance trio that should match H02 Andrew's Risk Manager role.
+--
+-- Why these specific talents:
+--   T02 Wei Ming   — gold candidate (in-house bank risk, FRM+CFA, 12 yrs)
+--   T13 Dharmendra — strong-on-paper but correctly filtered out by the
+--                    same-industry non-compete in his base seed; demonstrates
+--                    that the engine's deal-breakers fire as designed
+--   T15 Rohan      — strong second (Big-4 strategy → corporate risk pivot)
+--
+-- Two structural fixes applied here:
+--   1. derived_tags shape: match-core casts to Record<string, number>
+--      (trait → 0..1 score per the LLM extraction schema). The base seed
+--      writes string arrays like ["risk","compliance"] which yield
+--      tag_compatibility=0 because every required-trait lookup misses.
+--   2. T02 has_noncompete is set to false because her seeded interview
+--      narrative is to step UP within finance — same-industry non-compete
+--      contradicts that. T13 keeps his to demonstrate the filter.
+-- ============================================================
+UPDATE public.talents t SET
+  extraction_status = 'complete',
+  derived_tags = jsonb_build_object(
+    'analytical', 0.92, 'integrity', 0.88, 'detail_oriented', 0.85,
+    'accountable', 0.82, 'leadership', 0.75, 'problem_solving', 0.85,
+    'results_orientation', 0.80, 'reliable', 0.85, 'professional_attitude', 0.85,
+    'self_starter', 0.75, 'communication_clarity', 0.80, 'growth_minded', 0.85
+  ),
+  has_noncompete = false,
+  noncompete_industry_scope = 'none',
+  parsed_resume = jsonb_build_object(
+    'job_areas',     to_jsonb(ARRAY['risk_management','finance','banking','compliance','regulatory','investment_management']),
+    'key_skills',    to_jsonb(ARRAY['FRM','CFA','enterprise risk frameworks','Basel III','ICAAP','VaR','stress testing','regulatory reporting','audit liaison','Bloomberg','Power BI']),
+    'years_experience', 12,
+    'career_goals',  'Step into a head-of-risk role at a mid-cap firm where I can build the function end-to-end rather than maintain someone else''s framework.',
+    'ai_summary',    'Senior finance professional, 12 years across Big-4 audit and in-house bank risk. FRM and CFA credentials. Strong on enterprise risk frameworks, regulatory reporting, and senior-stakeholder management. Looking to step up from director to head-of-risk at a growth firm.'
+  ),
+  interview_answers = jsonb_build_object('transcript', to_jsonb(ARRAY[
+    jsonb_build_object('role','assistant','content','Tell me about your current role and what you''re hoping to find next.'),
+    jsonb_build_object('role','user','content','I''m a Senior Director of Risk at a mid-cap bank. Twelve years in finance — Big-4 audit then in-house. FRM since 2017, CFA charter 2020. I own enterprise risk and regulatory reporting. Hit the ceiling here — want a head-of-risk seat where I build the function rather than maintain someone else''s.'),
+    jsonb_build_object('role','assistant','content','What kind of company would suit you?'),
+    jsonb_build_object('role','user','content','Mid-cap, growth-stage, ideally hybrid. Twelve to sixteen thousand salary. Hybrid work matters — wife also has demanding role.'),
+    jsonb_build_object('role','assistant','content','Any deal-breakers?'),
+    jsonb_build_object('role','user','content','Not interested in pure-process compliance shops. I want a seat at the table on strategic risk decisions, not just signing off on policies.')
+  ])),
+  updated_at = now()
+FROM public.profiles p
+WHERE t.profile_id = p.id AND p.email = 't02.weiming.finance@dnj-test.my';
+
+UPDATE public.talents t SET
+  extraction_status = 'complete',
+  derived_tags = jsonb_build_object(
+    'analytical', 0.85, 'integrity', 0.92, 'detail_oriented', 0.90,
+    'accountable', 0.85, 'professional_attitude', 0.90, 'reliable', 0.88,
+    'communication_clarity', 0.82, 'problem_solving', 0.78, 'self_starter', 0.70
+  ),
+  parsed_resume = jsonb_build_object(
+    'job_areas',     to_jsonb(ARRAY['legal','compliance','regulatory','contracts','data_privacy','corporate_governance','risk']),
+    'key_skills',    to_jsonb(ARRAY['compliance frameworks','contract negotiation','data privacy (PDPA)','regulatory liaison','M&A due diligence','policy drafting','audit support','board reporting']),
+    'years_experience', 14,
+    'career_goals',  'Broaden from pure in-house counsel into a hybrid risk-and-compliance leadership role at a regulated financial institution.',
+    'ai_summary',    'Senior in-house counsel, 14 years. Masters-qualified. Strong on financial-services regulatory work, complex contracts, and data-privacy compliance. Wants to widen scope into risk leadership rather than stay pure legal.'
+  ),
+  interview_answers = jsonb_build_object('transcript', to_jsonb(ARRAY[
+    jsonb_build_object('role','assistant','content','Tell me about your current role and what you''re hoping for next.'),
+    jsonb_build_object('role','user','content','In-house counsel for fourteen years, last six in financial services. Masters in commercial law. Cover regulatory, contracts, data privacy, board reporting. Salary stagnated and I want to broaden into risk and compliance leadership rather than pure legal.'),
+    jsonb_build_object('role','assistant','content','What attracts you about a risk role specifically?'),
+    jsonb_build_object('role','user','content','I''ve been adjacent to risk for years — drafting policy, advising on regulatory exposure, sitting on the audit committee. The natural next step is to own the framework end-to-end, not just review it.'),
+    jsonb_build_object('role','assistant','content','Compensation and arrangement?'),
+    jsonb_build_object('role','user','content','Eleven to fifteen thousand, hybrid. I have a non-compete in same-industry financial services for twelve months — would need to discuss carefully.')
+  ])),
+  updated_at = now()
+FROM public.profiles p
+WHERE t.profile_id = p.id AND p.email = 't13.dharmendra.legal@dnj-test.my';
+
+UPDATE public.talents t SET
+  extraction_status = 'complete',
+  derived_tags = jsonb_build_object(
+    'analytical', 0.90, 'integrity', 0.78, 'detail_oriented', 0.75,
+    'problem_solving', 0.88, 'results_orientation', 0.82, 'self_starter', 0.85,
+    'leadership', 0.72, 'communication_clarity', 0.85, 'growth_minded', 0.82
+  ),
+  parsed_resume = jsonb_build_object(
+    'job_areas',     to_jsonb(ARRAY['strategy','corporate_finance','M&A','financial_modelling','investment_analysis','risk']),
+    'key_skills',    to_jsonb(ARRAY['financial modelling','valuation','DCF','scenario analysis','M&A diligence','strategic planning','Excel','PowerPoint','board-pack writing']),
+    'years_experience', 9,
+    'career_goals',  'Pivot from Big-4 strategy into a corporate role with shorter cycle times and direct ownership of outcomes.',
+    'ai_summary',    'Big-4 strategy senior manager, 9 years. Masters in Finance. Strong analytical, financial modelling, and exec-stakeholder communication. Considering a pivot to in-house corporate finance or risk strategy where the cadence is faster than client-services.'
+  ),
+  interview_answers = jsonb_build_object('transcript', to_jsonb(ARRAY[
+    jsonb_build_object('role','assistant','content','What''s your background and what are you looking for?'),
+    jsonb_build_object('role','user','content','Senior manager at a Big-4 strategy practice, nine years. Masters in Finance. Run M&A diligence and strategic planning engagements for financial-services clients. Burnt out on the consulting cycle — want shorter cycle times and direct ownership.'),
+    jsonb_build_object('role','assistant','content','Risk function or strategy function?'),
+    jsonb_build_object('role','user','content','Either, honestly. The analytical and financial-modelling work transfers. I''d be a strong fit for an enterprise-risk or corporate-strategy seat at a regulated firm.'),
+    jsonb_build_object('role','assistant','content','Salary expectations?'),
+    jsonb_build_object('role','user','content','Twelve to seventeen thousand. Hybrid. Three months notice.')
+  ])),
+  updated_at = now()
+FROM public.profiles p
+WHERE t.profile_id = p.id AND p.email = 't15.rohan.consulting@dnj-test.my';
+
+-- ============================================================
 -- 7) Open job role per HM (H02..H10), pre-approved for matching
 -- ============================================================
 INSERT INTO public.roles (

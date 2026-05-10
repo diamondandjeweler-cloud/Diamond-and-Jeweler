@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useSession } from '../state/useSession'
 import { supabase } from '../lib/supabase'
 import { Alert, Badge, Button, Card, CardBody, EmptyState, PageHeader, Spinner, Stat } from '../components/ui'
+import { useSeo } from '../lib/useSeo'
 
 interface LedgerRow {
   id: string
@@ -20,6 +21,7 @@ interface Package {
 }
 
 export default function PointsWallet() {
+  useSeo({ title: 'Diamond Points', noindex: true })
   const { t } = useTranslation()
   const REASON_LABEL: Record<string, string> = {
     reject_with_reason:    t('points.ruleRejectMatch'),

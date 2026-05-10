@@ -13,7 +13,7 @@ export default function Consent({ checked, onChange, label, required }: Props) {
           type="checkbox"
           checked={checked}
           onChange={(e) => onChange(e.target.checked)}
-          className="peer appearance-none h-[18px] w-[18px] border border-ink-300 rounded bg-white
+          className="peer appearance-none h-[22px] w-[22px] border border-ink-300 rounded bg-white
                      checked:bg-ink-900 checked:border-ink-900
                      hover:border-ink-400 focus:ring-2 focus:ring-brand-500/40
                      transition cursor-pointer"

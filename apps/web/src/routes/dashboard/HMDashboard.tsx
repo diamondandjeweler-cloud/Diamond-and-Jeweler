@@ -74,6 +74,7 @@ export default function HMDashboard() {
   const { session, profile } = useSession()
   const [roleCount, setRoleCount] = useState<number>(0)
   const [candidates, setCandidates] = useState<CandidateRow[]>([])
+  const [oldestRoleOver24h, setOldestRoleOver24h] = useState(false)
   const [waiting, setWaiting] = useState<WaitingInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState<string | null>(null)
@@ -177,10 +178,19 @@ export default function HMDashboard() {
       if (!cancelled) setPointsBalance(pointsRow?.points ?? 0)
 
       const { data: roleRows } = await supabase.from('roles')
-        .select('id, title, status, extra_matches_used')
+        .select('id, title, status, extra_matches_used, created_at')
         .eq('hiring_manager_id', hm.id)
         .limit(200)
       hmRoleIds = (roleRows ?? []).map((r) => r.id)
+      if (!cancelled && roleRows) {
+        const activeCreatedAts = roleRows
+          .filter((r) => r.status === 'active' && r.created_at)
+          .map((r) => new Date(r.created_at).getTime())
+        if (activeCreatedAts.length > 0) {
+          const oldestMs = Math.min(...activeCreatedAts)
+          setOldestRoleOver24h(Date.now() - oldestMs > 24 * 60 * 60 * 1000)
+        }
+      }
 
       if (hmRoleIds.length > 0) {
         const { count: hiredCount } = await supabase.from('matches')
@@ -557,10 +567,12 @@ export default function HMDashboard() {
       {candidates.length === 0 ? (
         <Card>
           <EmptyState
-            title={roleCount === 0 ? 'Post your first role' : 'Curating candidates…'}
+            title={roleCount === 0 ? 'Post your first role' : oldestRoleOver24h ? 'No matches yet' : 'Curating candidates'}
             description={roleCount === 0
               ? 'Tell us about the role you want to fill and we\'ll surface up to three candidates.'
-              : 'Our engine reviews new talent every hour. You\'ll see up to 3 per role as they arrive. If 24h passes with nothing, try widening the salary range or removing one required trait.'}
+              : oldestRoleOver24h
+                ? 'Our engine hasn\'t found a strong fit yet. Try widening the salary range or removing one required trait — that often unlocks the match.'
+                : 'Our engine reviews new talent every hour. You\'ll see up to 3 candidates per role as they arrive.'}
             action={roleCount === 0 ? <Link to="/hm/post-role" className="btn-primary">Post a role</Link> : undefined}
           />
         </Card>

@@ -130,12 +130,12 @@ export default function Consent() {
   if (!v) return <div className="p-10 text-center"><Spinner /> {t('common.loading')}</div>
 
   return (
-    <div className="max-w-3xl mx-auto px-4 md:px-6 py-10">
+    <div className="max-w-3xl mx-auto px-4 md:px-6 py-6 md:py-10 pb-[max(env(safe-area-inset-bottom),1.5rem)]">
       <Card elevated>
-        <CardBody>
+        <CardBody className="!p-4 md:!p-6">
           <div className="eyebrow mb-1">PDPA</div>
-          <h1 className="font-display text-2xl md:text-3xl text-ink-900 mb-1">{t('consent.title')}</h1>
-          <p className="text-ink-500 mb-6">{t('consent.subtitle')}</p>
+          <h1 className="font-display text-xl md:text-3xl text-ink-900 mb-1">{t('consent.title')}</h1>
+          <p className="text-ink-500 text-sm md:text-base mb-4 md:mb-6">{t('consent.subtitle')}</p>
 
           {isReConsent && (
             <Alert tone="amber" title="Our terms have been updated">
@@ -153,21 +153,30 @@ export default function Consent() {
             </Alert>
           )}
 
+          {/* Body: shorter on mobile so the action area is always reachable
+              without hunting for it below the fold. Long-press / scroll inside
+              this box to read the full text. */}
           <div
-            className="prose prose-sm max-w-none mb-6 max-h-[50vh] overflow-y-auto border border-ink-200 rounded-lg p-4 bg-ink-50 mt-4"
+            className="prose prose-sm max-w-none mb-4 max-h-[38vh] sm:max-h-[50vh] overflow-y-auto border border-ink-200 rounded-lg p-4 bg-ink-50 mt-4"
             dangerouslySetInnerHTML={{ __html: simpleMarkdown(v.body_md) }}
           />
 
-          <label className="flex items-start gap-3 mb-4 cursor-pointer p-3 rounded-lg border border-ink-200 hover:bg-ink-50">
-            <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5" />
-            <span className="text-sm">{t('consent.agreeLabel')}</span>
-          </label>
+          {/* Action area — sticky to bottom of viewport on mobile so the
+              "I agree" button is always one tap away even when the body
+              scrolls. Desktop renders inline (sticky still pins inside the
+              card on tall screens, which is harmless). */}
+          <div className="sticky bottom-0 -mx-4 md:-mx-6 px-4 md:px-6 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 border-t border-ink-100 md:border-0 md:bg-transparent md:backdrop-blur-0">
+            <label className="flex items-start gap-3 mb-3 cursor-pointer p-3 rounded-lg border border-ink-200 hover:bg-ink-50">
+              <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5 h-5 w-5" />
+              <span className="text-sm">{t('consent.agreeLabel')}</span>
+            </label>
 
-          {error && <Alert tone="red">{error}</Alert>}
+            {error && <div className="mb-3"><Alert tone="red">{error}</Alert></div>}
 
-          <Button onClick={submit} loading={busy} variant="brand" className="w-full" disabled={!agree}>
-            {busy ? t('consent.saving') : t('consent.agreeButton')}
-          </Button>
+            <Button onClick={submit} loading={busy} variant="brand" className="w-full" disabled={!agree}>
+              {busy ? t('consent.saving') : t('consent.agreeButton')}
+            </Button>
+          </div>
         </CardBody>
       </Card>
 

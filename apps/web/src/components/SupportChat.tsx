@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useSession } from '../state/useSession'
 
@@ -18,6 +19,7 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
 
 export default function SupportChat() {
   const { session, profile } = useSession()
+  const location = useLocation()
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
@@ -208,6 +210,9 @@ export default function SupportChat() {
 
   // Don't render on public pages (no session)
   if (!session || !profile) return null
+  // Don't render on the consent / login flow — the floating button overlaps
+  // the full-width "I agree" submit button on mobile and confuses users.
+  if (location.pathname === '/consent' || location.pathname === '/login') return null
 
   return (
     <>

@@ -112,6 +112,7 @@ export const useSession = create<SessionState>((set) => ({
       console.error('[session] signOut failed or timed out', e)
     }
     clearAdminVerified()
+    saveCachedProfile(null)
     try {
       Object.keys(localStorage).forEach((k) => {
         if (k.startsWith('sb-') || k === 'supabase.auth.token') localStorage.removeItem(k)
@@ -124,6 +125,22 @@ export const useSession = create<SessionState>((set) => ({
     window.location.href = '/'
   },
 }))
+
+const PROFILE_CACHE_KEY = 'dnj.profile_cache'
+
+function loadCachedProfile(): Profile | null {
+  try {
+    const raw = localStorage.getItem(PROFILE_CACHE_KEY)
+    return raw ? (JSON.parse(raw) as Profile) : null
+  } catch { return null }
+}
+
+function saveCachedProfile(profile: Profile | null) {
+  try {
+    if (profile) localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile))
+    else localStorage.removeItem(PROFILE_CACHE_KEY)
+  } catch { /* tolerate */ }
+}
 
 let bootstrapped = false
 export function bootstrapSession() {
@@ -185,10 +202,12 @@ export function bootstrapSession() {
         return
       }
       // Set the session immediately so route guards see auth state, even
-      // before profile resolves. ConsentGate shows a spinner while profile
-      // is null + session truthy.
+      // before profile resolves. Serve stale profile from cache so
+      // ConsentGate/RoleHome pass through without a spinner while the
+      // fresh fetch runs in the background (stale-while-revalidate).
       setAuthHintCookie(session.access_token)
-      useSession.setState({ session, loading: false })
+      const cachedProfile = loadCachedProfile()
+      useSession.setState({ session, loading: false, ...(cachedProfile ? { profile: cachedProfile } : {}) })
       const [profile, isHM] = await Promise.all([
         fetchProfile(session.user.id).catch((e) => {
           console.error('[session] fetchProfile failed in onAuthStateChange', e)
@@ -200,6 +219,7 @@ export function bootstrapSession() {
       // (e.g. PKCE callback) and leaves the user stuck on "Check your email".
       // Onboarding/consent gates handle missing profiles gracefully.
       useSession.setState({ profile, isHM })
+      saveCachedProfile(profile)
     } catch (e) {
       console.error('[session] onAuthStateChange failed', e)
       useSession.setState({ loading: false })

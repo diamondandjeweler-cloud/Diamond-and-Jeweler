@@ -11,7 +11,7 @@
 // We compare on the major+minor portion only, normalised with a "v" prefix.
 //
 // CACHE: legal_version is fetched once per session and cached in
-// sessionStorage so we don't hit Supabase on every protected route render.
+// localStorage so we don't hit Supabase on every protected route render.
 
 import { supabase } from './supabase'
 
@@ -33,12 +33,12 @@ export function normaliseLegalVersion(raw: string | null | undefined): string | 
 
 /**
  * Fetch the platform's current legal_version from system_config. Cached in
- * sessionStorage for 5min. Returns the normalised "v<x.y>" string, or null
+ * localStorage for 5min. Returns the normalised "v<x.y>" string, or null
  * if the config row is missing.
  */
 export async function getCurrentLegalVersion(): Promise<string | null> {
   try {
-    const cached = sessionStorage.getItem(CACHE_KEY)
+    const cached = localStorage.getItem(CACHE_KEY)
     if (cached) {
       const parsed = JSON.parse(cached) as CacheEntry
       if (Date.now() - parsed.fetchedAt < CACHE_TTL_MS) return parsed.value
@@ -59,7 +59,7 @@ export async function getCurrentLegalVersion(): Promise<string | null> {
   if (!normalised) return null
 
   try {
-    sessionStorage.setItem(CACHE_KEY, JSON.stringify({ value: normalised, fetchedAt: Date.now() } satisfies CacheEntry))
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ value: normalised, fetchedAt: Date.now() } satisfies CacheEntry))
   } catch { /* tolerate quota errors */ }
   return normalised
 }
@@ -74,5 +74,5 @@ export function consentSatisfiesVersion(consentVersion: string | null | undefine
 
 /** Clear the cache (used after a successful re-consent). */
 export function clearLegalVersionCache(): void {
-  try { sessionStorage.removeItem(CACHE_KEY) } catch { /* tolerate */ }
+  try { localStorage.removeItem(CACHE_KEY) } catch { /* tolerate */ }
 }

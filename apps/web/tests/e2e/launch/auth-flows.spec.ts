@@ -4,15 +4,24 @@ import { test, expect } from '@playwright/test'
 //
 // Critical paths:
 //   1. Signup form gates on consent + captcha (already covered in smoke.spec)
-//   2. Login form rejects bad password
-//   3. Password reset form accepts an email and shows success state
+//   2. Login form rejects bad password           [skipped on prod — real captcha]
+//   3. Password reset form accepts an email      [skipped on prod — real captcha]
 //   4. /admin redirects unauthenticated users to /login
 //   5. /home redirects unauthenticated users to /login
 //   6. Logout clears the session
+//
+// On staging/preview the Cloudflare Turnstile test site-key auto-fills;
+// on prod it's a real challenge that requires a human. Captcha-dependent
+// tests skip when targeting prod to keep the suite green for CI.
 
 test.use({ locale: 'en-US' })
 
+// True when the harness targets the live diamondandjeweler.com domain.
+const isProd = (process.env.PLAYWRIGHT_BASE_URL ?? '').includes('diamondandjeweler.com')
+
 test('login rejects wrong password', async ({ page }) => {
+  test.skip(isProd, 'real captcha gates server-side automation on prod')
+
   await page.goto('/login')
   await page.getByRole('textbox', { name: /email/i }).fill('a01.admin@dnj-test.my')
   await page.locator('input[type="password"]').fill('NotTheRealPassword123!')
@@ -25,6 +34,8 @@ test('login rejects wrong password', async ({ page }) => {
 })
 
 test('password reset shows success on submit', async ({ page }) => {
+  test.skip(isProd, 'real captcha gates server-side automation on prod')
+
   await page.goto('/password-reset')
   await page.getByRole('textbox', { name: /email/i }).fill('does-not-exist@dnj-test.my')
   // Captcha if present

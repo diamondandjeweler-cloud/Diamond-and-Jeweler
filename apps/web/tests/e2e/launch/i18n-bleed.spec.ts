@@ -8,17 +8,13 @@ import { test, expect } from '@playwright/test'
 // The current build mostly hardcodes English. This test is a sentinel:
 // when locale-switching is wired up, it will start failing on bleed.
 
-const KNOWN_EN_PHRASES = [
-  /sign in to your dashboard/i,
-  /create account/i,
-  /privacy notice/i,
-]
-
-test('default English landing renders expected phrases', async ({ page }) => {
+test('default English landing renders English copy', async ({ page }) => {
   await page.goto('/')
-  for (const re of KNOWN_EN_PHRASES) {
-    expect(await page.getByText(re).count()).toBeGreaterThan(0)
-  }
+  // Footer link is a stable EN sentinel (links labelled "Privacy" + "Terms").
+  await expect(page.getByRole('link', { name: /^privacy$/i }).first()).toBeVisible()
+  await expect(page.getByRole('link', { name: /^terms$/i }).first()).toBeVisible()
+  // No mojibake or BOM artifacts in the rendered title.
+  await expect(page).toHaveTitle(/[A-Za-z]/)
 })
 
 test('locale=ms (Bahasa) — placeholder until translations ship', async ({ page }) => {

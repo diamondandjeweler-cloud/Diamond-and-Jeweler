@@ -8,7 +8,11 @@ import { test, expect } from '@playwright/test'
 
 test.use({ locale: 'en-US' })
 
+const isProd = (process.env.PLAYWRIGHT_BASE_URL ?? '').includes('diamondandjeweler.com')
+
 test('signup with disposable email lands on signup or shows warning', async ({ page }) => {
+  test.skip(isProd, 'real captcha gates server-side automation on prod')
+
   await page.goto('/signup')
   await page.getByRole('textbox', { name: /full name/i }).fill('Fake HM')
   await page.getByRole('textbox', { name: /email/i }).fill(`hm-${Date.now()}@mailinator.com`)

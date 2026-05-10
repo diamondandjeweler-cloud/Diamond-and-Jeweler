@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build && node scripts/inject-meta.mjs",
+    "build": "tsc --noEmit && vite build && node scripts/inject-meta.mjs && node scripts/strip-sourcemaps.mjs",
     "preview": "vite preview --port 3000",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx",

@@ -5,7 +5,18 @@ export default defineConfig({
   plugins: [react()],
   server: { port: 3000, host: true },
   build: {
-    sourcemap: true,
+    // Production source maps were publicly fetchable from /assets/*.js.map (HTTP
+    // 200 to anyone who guesses the bundle hash from the script tag), exposing
+    // unminified source to attackers/competitors. 'hidden' generates the maps
+    // (so they're available locally for Sentry CLI upload) but strips the
+    // //# sourceMappingURL= comment from the JS files so browsers/tools don't
+    // auto-discover them.
+    //
+    // We additionally delete the .map files from dist/ before Vercel deploy via
+    // a postbuild step (see package.json) so they never reach the public CDN.
+    // Sentry source-map upload should run BEFORE that strip step if/when it's
+    // wired into the build pipeline.
+    sourcemap: 'hidden',
     outDir: 'dist',
     target: 'es2020',
     cssCodeSplit: true,

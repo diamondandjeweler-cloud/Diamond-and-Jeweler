@@ -555,6 +555,88 @@ UPDATE public.talents t SET
 FROM public.profiles p WHERE t.profile_id = p.id AND p.email = 't10.sarah.design@dnj-test.my';
 
 -- ============================================================
+-- 6d) DOB + life_chart_character + wants_* enrichment
+--
+-- Without DOB, talents can't participate in BaZi-influenced scoring
+-- (life_chart_score stays null). Without wants_* keys merged into
+-- derived_tags, careerGoalFit and the pAccept estimate fall back to
+-- safe defaults. culture_fit_score itself has weight=0 in match-core
+-- ("qualitative only") so wants_* don't move the headline number, but
+-- they DO move the secondary signals the engine uses for ranking.
+--
+-- Characters computed per apps/web/src/lib/lifeChartCharacter.ts:
+--   slot = (chineseYear - 1950) % 9, then CYCLE[slot] = [male, female]
+-- Years and genders are taken from each talent's seeded narrative.
+-- ============================================================
+WITH dob_data(email, dob, character) AS (VALUES
+  ('t01.aiman.tech@dnj-test.my',           '1996-04-15'::text, 'W-'),
+  ('t02.weiming.finance@dnj-test.my',      '1988-04-20', 'W+'),
+  ('t03.priya.retail@dnj-test.my',         '1989-06-25', 'W-'),
+  ('t04.hafiz.fnb@dnj-test.my',            '1987-02-15', 'W-'),
+  ('t05.sueann.health@dnj-test.my',        '1986-09-08', 'W'),
+  ('t06.aisyah.edtech@dnj-test.my',        '1991-12-03', 'G+'),
+  ('t07.ravi.logistics@dnj-test.my',       '1988-03-18', 'W+'),
+  ('t08.hidayah.hospitality@dnj-test.my',  '1985-05-12', 'F'),
+  ('t09.kahleong.construction@dnj-test.my','1988-10-05', 'W+'),
+  ('t10.sarah.design@dnj-test.my',         '1991-07-22', 'G+'),
+  ('t11.faisal.manufacturing@dnj-test.my', '1990-08-10', 'W'),
+  ('t12.joanna.marketing@dnj-test.my',     '1990-03-25', 'E'),
+  ('t13.dharmendra.legal@dnj-test.my',     '1986-11-15', 'E'),
+  ('t14.suzanne.hr@dnj-test.my',           '1989-11-08', 'W-'),
+  ('t15.rohan.consulting@dnj-test.my',     '1991-08-10', 'F'),
+  ('t16.adlina.telecom@dnj-test.my',       '1992-05-30', 'G-'),
+  ('t17.razif.energy@dnj-test.my',         '1987-09-14', 'W-'),
+  ('t18.vinothini.pharma@dnj-test.my',     '1988-12-22', 'W+'),
+  ('t19.kokwei.automotive@dnj-test.my',    '1990-06-04', 'W'),
+  ('t20.nurin.sales@dnj-test.my',          '1992-10-19', 'G-')
+)
+UPDATE public.talents t
+SET date_of_birth_encrypted = public.encrypt_dob(d.dob),
+    life_chart_character    = d.character,
+    updated_at              = now()
+FROM dob_data d
+JOIN public.profiles p ON p.email = d.email
+WHERE t.profile_id = p.id;
+
+-- consents.dob = true on all 20 talent profiles (matches the AddHmDobModal flow)
+UPDATE public.profiles
+SET consents = COALESCE(consents,'{}'::jsonb)
+            || jsonb_build_object('dob', true, 'dob_consented_at', now())
+WHERE email LIKE 't%@dnj-test.my';
+
+-- wants_* keys merged INTO derived_tags for the 11 enriched talents.
+-- match-core's CULTURE_KEYS lookup reads tags['wants_growth'] etc., so the
+-- values must live alongside the personality traits, not in a separate column.
+WITH wants(email, w_wlb, w_fair, w_growth, w_stab, w_flex, w_recog, w_mission, w_team) AS (VALUES
+  ('t02.weiming.finance@dnj-test.my',      0.50,0.70,0.92,0.70,0.85,0.50,0.40,0.60),
+  ('t03.priya.retail@dnj-test.my',         0.60,0.85,0.90,0.70,0.50,0.60,0.50,0.70),
+  ('t04.hafiz.fnb@dnj-test.my',            0.70,0.60,0.70,0.85,0.50,0.50,0.50,0.92),
+  ('t05.sueann.health@dnj-test.my',        0.60,0.70,0.85,0.75,0.60,0.55,0.70,0.70),
+  ('t06.aisyah.edtech@dnj-test.my',        0.70,0.60,0.90,0.65,0.75,0.50,0.85,0.70),
+  ('t07.ravi.logistics@dnj-test.my',       0.65,0.75,0.65,0.92,0.50,0.55,0.50,0.70),
+  ('t08.hidayah.hospitality@dnj-test.my',  0.55,0.75,0.92,0.65,0.55,0.70,0.55,0.70),
+  ('t09.kahleong.construction@dnj-test.my',0.60,0.75,0.85,0.70,0.60,0.65,0.55,0.65),
+  ('t10.sarah.design@dnj-test.my',         0.85,0.65,0.80,0.75,0.85,0.55,0.70,0.85),
+  ('t13.dharmendra.legal@dnj-test.my',     0.60,0.85,0.85,0.65,0.70,0.60,0.50,0.70),
+  ('t15.rohan.consulting@dnj-test.my',     0.85,0.70,0.85,0.70,0.80,0.55,0.60,0.70)
+)
+UPDATE public.talents t
+SET derived_tags = COALESCE(t.derived_tags,'{}'::jsonb) || jsonb_build_object(
+      'wants_wlb',          w.w_wlb,
+      'wants_fair_pay',     w.w_fair,
+      'wants_growth',       w.w_growth,
+      'wants_stability',    w.w_stab,
+      'wants_flexibility',  w.w_flex,
+      'wants_recognition',  w.w_recog,
+      'wants_mission',      w.w_mission,
+      'wants_team_culture', w.w_team
+    ),
+    updated_at = now()
+FROM wants w
+JOIN public.profiles p ON p.email = w.email
+WHERE t.profile_id = p.id;
+
+-- ============================================================
 -- 7) Open job role per HM (H02..H10), pre-approved for matching
 -- ============================================================
 INSERT INTO public.roles (

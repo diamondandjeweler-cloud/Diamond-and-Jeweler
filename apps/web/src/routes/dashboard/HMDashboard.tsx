@@ -102,6 +102,7 @@ export default function HMDashboard() {
   const [schedulingFor, setSchedulingFor] = useState<string | null>(null)
   const [scheduleAt, setScheduleAt] = useState('')
   const [actionBusy, setActionBusy] = useState<string | null>(null)
+  const [respondMsg, setRespondMsg] = useState<{ tone: 'green' | 'red'; text: string } | null>(null)
 
   const loadRounds = useCallback(async (matchIds: string[]) => {
     if (matchIds.length === 0) return
@@ -342,6 +343,10 @@ export default function HMDashboard() {
       setErr('Company verification required before inviting candidates to interview.')
       return
     }
+    setErr(null)
+    setRespondMsg(null)
+    const actionLabel = next === 'invited_by_manager' ? 'invite' : 'decline'
+    setActionBusy(`${id}:${actionLabel}`)
     const prevStatus = candidates.find((c) => c.id === id)?.status
     setCandidates((cs) => cs.map((c) => (c.id === id ? { ...c, status: next } : c)))
     const { error } = await supabase.from('matches').update({
@@ -356,8 +361,17 @@ export default function HMDashboard() {
       if (prevStatus) {
         setCandidates((cs) => cs.map((c) => (c.id === id ? { ...c, status: prevStatus } : c)))
       }
+      setActionBusy(null)
       return
     }
+    setRespondMsg({
+      tone: 'green',
+      text: next === 'invited_by_manager'
+        ? 'Invitation sent — the candidate has been notified.'
+        : 'Candidate declined — they will not be contacted further for this role.',
+    })
+    setActionBusy(null)
+    window.setTimeout(() => setRespondMsg((m) => (m && m.tone === 'green' ? null : m)), 4500)
     const event_type = next === 'invited_by_manager' ? 'accept_interview' : 'reject_with_reason'
     try { await callFunction('award-points', { event_type, match_id: id }) } catch { /* tolerate */ }
   }
@@ -496,6 +510,7 @@ export default function HMDashboard() {
       )}
 
       {err && <div className="mb-6"><Alert tone="red">{err}</Alert></div>}
+      {respondMsg && <div className="mb-6"><Alert tone={respondMsg.tone}>{respondMsg.text}</Alert></div>}
 
       {hmHasDob === false && (
         <div className="mb-6">
@@ -840,8 +855,23 @@ function CandidateCard({
           {/* Stage 1: new candidates */}
           {['generated', 'viewed', 'accepted_by_talent'].includes(row.status) && (
             <div className="flex gap-2 flex-wrap">
-              <Button onClick={onInvite} size="sm">Invite to interview</Button>
-              <Button onClick={onDecline} size="sm" variant="secondary">Decline</Button>
+              <Button
+                onClick={onInvite}
+                size="sm"
+                loading={actionBusy === `${row.id}:invite`}
+                disabled={actionBusy !== null}
+              >
+                Invite to interview
+              </Button>
+              <Button
+                onClick={onDecline}
+                size="sm"
+                variant="secondary"
+                loading={actionBusy === `${row.id}:decline`}
+                disabled={actionBusy !== null}
+              >
+                Decline
+              </Button>
             </div>
           )}
 

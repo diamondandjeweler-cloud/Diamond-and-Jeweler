@@ -117,11 +117,19 @@ serve(async (req) => {
   const billplzBase = Deno.env.get('BILLPLZ_BASE_URL') ?? 'https://www.billplz.com'
   const webhookUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/payment-webhook`
 
+  // Safety guard: test accounts (@dnj-test.my) must never be routed to the
+  // production Billplz domain. If the project secrets still point at prod
+  // (billplz.com, not billplz-sandbox.com), force mock mode for testers so a
+  // QA click on "Buy" cannot charge a real bank account.
+  const isTestEmail = typeof auth.email === 'string' && auth.email.toLowerCase().endsWith('@dnj-test.my')
+  const isProdBillplz = /^https?:\/\/(www\.)?billplz\.com/i.test(billplzBase)
+  const forceMockForTester = isTestEmail && isProdBillplz
+
   let paymentUrl: string
   let billId: string
 
-  if (!apiKey || !collectionId) {
-    // Mock mode for dev/preview environments.
+  if (!apiKey || !collectionId || forceMockForTester) {
+    // Mock mode for dev/preview environments + safety guard for test accounts.
     billId = `MOCK-${purchase.id}`
     paymentUrl = `${site}/payment/mock?purchase=${purchase.id}`
   } else {

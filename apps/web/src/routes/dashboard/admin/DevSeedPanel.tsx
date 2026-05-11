@@ -158,7 +158,7 @@ export default function DevSeedPanel() {
         .update({
           parsed_resume: defaultParsedResume(t.full_name, industry),
           interview_answers: defaultInterviewAnswers(industry),
-          extraction_status: 'completed',
+          extraction_status: 'complete',
           updated_at: new Date().toISOString(),
         })
         .eq('id', t.talent_id)

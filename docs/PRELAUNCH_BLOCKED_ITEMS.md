@@ -48,16 +48,11 @@ Items from the 2026-05-04 pre-launch audit that need a human (legal review, vend
 
 ## Backend authz audit for /hr and /hm
 
-**Status:** route-level UI gating shipped (commit 3fb7c12), backend RLS audit pending.
+**Status:** ✅ completed 2026-05-11 — see [AUTHZ_AUDIT_2026-05-11.md](./AUTHZ_AUDIT_2026-05-11.md).
 
-**Scope:** every API route, RPC, and Edge Function reachable from `/hr/*` or `/hm/*` should check role server-side, not rely on RLS alone. Defense in depth.
+Net result: GREEN. Every HM/HR-callable Edge Function gates on `requiredRoles`; every RPC reached from HM/HR routes is SECURITY DEFINER with a role/ownership check; every RLS policy on `roles`, `matches`, `interviews_rounds`, `talents`, `companies` uses SECURITY DEFINER helpers and either references `profiles.role` or enforces ownership. No overly broad policy lets an HM read across companies/talents they don't own.
 
-**Suggested checklist:**
-- All Edge Functions in `supabase/functions/` that can be called by hiring users — confirm role check in the first 10 lines.
-- All RLS policies on `roles`, `matches`, `interviews`, `talents`, `companies` — confirm they reference `role` from `profiles`, not just `user_id` ownership.
-- All RPC functions called from `HMDashboard`, `PostRole`, `MyRoles`, `EditRole`, `InviteHM`, `HRDashboard` — confirm `security definer` functions check role.
-
-**Why not auto-done:** this is multi-hour and needs the engineer who owns the auth layer to walk it. Risk of false sense of security if rushed.
+Two low/very-low-severity follow-ups documented in the audit (company-level check in `moderate-role`, null-safety in `user_is_hm_of_role`); neither is a launch blocker.
 
 ---
 

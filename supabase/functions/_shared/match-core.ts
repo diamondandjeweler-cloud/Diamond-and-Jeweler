@@ -52,6 +52,8 @@ interface ScoredCandidate {
   cultureFit: number
   characterScore: number | null
   characterBucket: string | null
+  teamFitScore: number | null
+  teamFitBuckets: string[]
   ageScore: number | null
   locationScore: number | null
   backgroundScore: number
@@ -92,7 +94,7 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
   // ── Fetch role ────────────────────────────────────────────────────────────
   const { data: role, error: roleErr } = await db
     .from('roles')
-    .select('id, hiring_manager_id, required_traits, status, location_postcode, title, industry, accept_no_experience, employment_type, experience_level, vacancy_expires_at, salary_max, work_arrangement, requires_weekend, requires_driving_license, weight_preset, requires_travel, has_night_shifts, requires_own_car, requires_relocation, requires_overtime, is_commission_based')
+    .select('id, hiring_manager_id, required_traits, status, location_postcode, title, industry, accept_no_experience, employment_type, experience_level, vacancy_expires_at, salary_max, work_arrangement, requires_weekend, requires_driving_license, weight_preset, requires_travel, has_night_shifts, requires_own_car, requires_relocation, requires_overtime, is_commission_based, team_member_characters')
     .eq('id', roleId).single()
   if (roleErr || !role) throw new MatchError('Role not found', 404)
   if (role.status !== 'active') throw new MatchError(`Role status is ${role.status}`, 400)
@@ -150,7 +152,11 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
   const hmManagementStyle = inferHmManagementStyle()
 
   // ── Matching weights (overridable via system_config) ──────────────────────
-  const [wBehRow, wTagRow, wSalRow, wCultureRow, wEmpRow, wCharRow, wAgeRow, wLocRow, wBgRow, wFbRow, wPeakRow, wBoostRow, wExpRow, wEduRow, wCGRow, wJIRow, wMgmtRow, wUrgRow, wWARow] = await Promise.all([
+  const teamMemberCharacters: string[] = Array.isArray((role as unknown as { team_member_characters: string[] | null }).team_member_characters)
+    ? (role as unknown as { team_member_characters: string[] }).team_member_characters
+    : []
+
+  const [wBehRow, wTagRow, wSalRow, wCultureRow, wEmpRow, wCharRow, wAgeRow, wLocRow, wBgRow, wFbRow, wPeakRow, wBoostRow, wExpRow, wEduRow, wCGRow, wJIRow, wMgmtRow, wUrgRow, wWARow, wTeamRow] = await Promise.all([
     db.from('system_config').select('value').eq('key', 'weight_behavioral_fitness').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_tag_compatibility').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_salary_fit').maybeSingle(),
@@ -170,6 +176,7 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     db.from('system_config').select('value').eq('key', 'weight_management_style_fit').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_urgency_fit').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_work_arrangement_fit').maybeSingle(),
+    db.from('system_config').select('value').eq('key', 'weight_team_fit').maybeSingle(),
   ])
   let weightBehavioral = typeof wBehRow.data?.value     === 'number' ? wBehRow.data.value     : 0.20
   let weightTag        = typeof wTagRow.data?.value     === 'number' ? wTagRow.data.value     : 0.50
@@ -190,6 +197,7 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
   let weightMgmtStyle     = typeof wMgmtRow.data?.value === 'number' ? wMgmtRow.data.value    : 0.07
   let weightUrgency       = typeof wUrgRow.data?.value  === 'number' ? wUrgRow.data.value     : 0.06
   let weightWorkArrangement = typeof wWARow.data?.value === 'number' ? wWARow.data.value      : 0.08
+  const weightTeamFit         = typeof wTeamRow.data?.value === 'number' ? wTeamRow.data.value    : 0.10
 
   // Role-type weight presets
   const roleWeightPreset = ((role as { weight_preset?: string }).weight_preset ?? '').toLowerCase()
@@ -684,6 +692,34 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     // Character score
     const characterScore: number | null = characterBucket ? (BUCKET_SCORE[characterBucket] ?? null) : null
 
+    // Team-fit score — average bucket score between talent and each colleague.
+    // Bad-bucket colleagues drag the average down; priority/two_match lift it.
+    // Skipped if talent has no character or no colleagues provided.
+    let teamFitScore: number | null = null
+    const teamFitBuckets: string[] = []
+    if (talentCharacter && teamMemberCharacters.length > 0) {
+      const buckets = await Promise.all(
+        teamMemberCharacters.map(async (colleagueChar) => {
+          const { data: bRaw } = await db.rpc('get_life_chart_bucket', {
+            hm_char: colleagueChar, talent_char: talentCharacter,
+          })
+          return (bRaw as string | null) ?? null
+        }),
+      )
+      const numeric: number[] = []
+      for (const b of buckets) {
+        if (b) {
+          teamFitBuckets.push(b)
+          const s = BUCKET_SCORE[b]
+          if (typeof s === 'number') numeric.push(s)
+          else if (b === 'bad') numeric.push(0)
+        }
+      }
+      if (numeric.length > 0) {
+        teamFitScore = numeric.reduce((a, b) => a + b, 0) / numeric.length
+      }
+    }
+
     // Decrypt talent DOB (shared by age + peak-age-window)
     let talentDobText: string | null = null
     if (t.date_of_birth_encrypted) {
@@ -732,6 +768,7 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
       { name: 'culture_fit',          score: cultureFit,              weight: 0 },
       { name: 'employment_fit',       score: employmentFit ?? 60,     weight: weightEmployment * (employmentFit != null ? 1 : 0.5) },
       { name: 'character',            score: characterScore ?? 0,     weight: characterScore   != null ? weightCharacter  : 0 },
+      { name: 'team_fit',              score: teamFitScore ?? 0,        weight: teamFitScore     != null ? weightTeamFit     : 0 },
       { name: 'age',                  score: ageScore ?? 0,           weight: ageScore         != null ? weightAge        : 0 },
       { name: 'location',             score: locationScore ?? 0,      weight: locationScore    != null ? weightLocation   : 0 },
       { name: 'background',           score: backgroundScore,         weight: weightBackground },
@@ -787,7 +824,7 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
 
     return {
       talent_id: t.id, profile_id: t.profile_id, aiSummary,
-      tagComp, cultureFit, characterScore, characterBucket, ageScore, locationScore, backgroundScore,
+      tagComp, cultureFit, characterScore, characterBucket, teamFitScore, teamFitBuckets, ageScore, locationScore, backgroundScore,
       behavioralFitness, salaryFit, employmentFit, feedbackScore, experienceFit, educationFit,
       careerGoalFit, jobIntentionFit, talentShortestTenure,
       talentRedFlagsCount: talentRedFlags.length,
@@ -811,6 +848,8 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
         employment_fit: employmentFit != null ? Number(employmentFit.toFixed(2)) : null,
         feedback_score_raw: talentFeedbackRaw, culture_fit: Number(cultureFit.toFixed(2)),
         character_bucket: characterBucket, character_score: characterScore, age_score: ageScore,
+        team_fit_score: teamFitScore != null ? Number(teamFitScore.toFixed(2)) : null,
+        team_fit_buckets: teamFitBuckets, team_size: teamMemberCharacters.length,
         peak_age_window_score: peakAgeScore, monthly_boost_score: monthlyBoostScore,
         location_score: locationScore, location_matters: talentLocMatters,
         background_score: backgroundScore, background_note: backgroundNote,
@@ -827,7 +866,7 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
         talent_mgmt_style: talentMgmtStyle, hm_mgmt_style: hmManagementStyle, hm_hire_urgency: hmHireUrgency,
         talent_notice_period_days: talentNoticePeriod, talent_work_arrangement_pref: talentWorkPref,
         role_work_arrangement: roleWorkArrangement,
-        weights: { behavioral: weightBehavioral, tag: weightTag, salary: weightSalary, culture: weightCulture, employment: weightEmployment, character: weightCharacter, age: weightAge, location: weightLocation, background: weightBackground, feedback: weightFeedback, peak_age: weightPeakAge, monthly_boost: weightMonthlyBoost, experience: weightExperience, education: weightEducation, career_goal: weightCareerGoal, job_intention: weightJobIntention, mgmt_style: weightMgmtStyle, urgency: weightUrgency, work_arrangement: weightWorkArrangement },
+        weights: { behavioral: weightBehavioral, tag: weightTag, salary: weightSalary, culture: weightCulture, employment: weightEmployment, character: weightCharacter, age: weightAge, location: weightLocation, background: weightBackground, feedback: weightFeedback, peak_age: weightPeakAge, monthly_boost: weightMonthlyBoost, experience: weightExperience, education: weightEducation, career_goal: weightCareerGoal, job_intention: weightJobIntention, mgmt_style: weightMgmtStyle, urgency: weightUrgency, work_arrangement: weightWorkArrangement, team_fit: weightTeamFit },
         active_dimensions: activeDims, effective_weights: effectiveWeights,
         ghost_score: ghostScore, ghost_penalty: ghostPenalty, raw_score: Number(rawScore.toFixed(2)),
         phs: {

@@ -6,6 +6,9 @@ import { callFunction } from '../../lib/functions'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import { Button, Card, Alert, Input, Select, Textarea, PageHeader } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
+import { getLifeChartCharacter, type Gender } from '../../lib/lifeChartCharacter'
+
+type TeamMember = { dob: string; gender: '' | Gender }
 
 const TRAITS = [
   'self_starter', 'reliable', 'collaborator', 'growth_minded', 'clear_communicator',
@@ -19,9 +22,8 @@ export default function PostRole() {
 
   const [hmId, setHmId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [showTeamDynamic, setShowTeamDynamic] = useState(false)
   const [teamSize, setTeamSize] = useState<number | ''>('')
-  const [teamBirthYears, setTeamBirthYears] = useState<(number | '')[]>([])
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -90,16 +92,11 @@ export default function PostRole() {
   }, [session])
 
   useEffect(() => {
-    supabase.from('system_config').select('value').eq('key', 'lifechart_diversity_v2_enabled').maybeSingle()
-      .then(({ data }) => { setShowTeamDynamic(data?.value === true) })
-  }, [])
-
-  useEffect(() => {
     const n = typeof teamSize === 'number' ? Math.max(0, Math.min(50, teamSize)) : 0
-    setTeamBirthYears((prev) => {
+    setTeamMembers((prev) => {
       if (prev.length === n) return prev
       const next = prev.slice(0, n)
-      while (next.length < n) next.push('')
+      while (next.length < n) next.push({ dob: '', gender: '' })
       return next
     })
   }, [teamSize])
@@ -157,9 +154,12 @@ export default function PostRole() {
         requires_overtime: requiresOvertime,
         is_commission_based: isCommissionBased,
         weight_preset: weightPreset === 'default' ? null : weightPreset,
-        team_member_birth_years: showTeamDynamic
-          ? teamBirthYears.filter((y): y is number => typeof y === 'number' && y >= 1900 && y <= new Date().getFullYear())
-          : null,
+        team_member_characters: (() => {
+          const chars = teamMembers
+            .map((m) => (m.dob && m.gender ? getLifeChartCharacter(m.dob, m.gender) : null))
+            .filter((c): c is NonNullable<typeof c> => c !== null)
+          return chars.length > 0 ? chars : null
+        })(),
       }).select('id').single()
       const timeout = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('Network timeout — check your connection and try again.')), 45000),
@@ -383,46 +383,54 @@ export default function PostRole() {
             </div>
           </div>
 
-          {showTeamDynamic && (
-            <div className="space-y-3 pt-4 border-t border-ink-100">
-              <div>
-                <div className="field-label">Team-dynamic reference (optional)</div>
-                <div className="field-hint mb-2">
-                  Tell us how many existing colleagues this hire will work with directly, then enter their birth years.
-                  We use this to gauge team-dynamic compatibility — it stays private and is never shown to candidates.
-                </div>
+          <div className="space-y-3 pt-4 border-t border-ink-100">
+            <div>
+              <div className="field-label">Team-dynamic reference (optional)</div>
+              <div className="field-hint mb-2">
+                Tell us how many existing colleagues this hire will work with directly, then enter each colleague's
+                date of birth and gender. We use this to gauge team-dynamic compatibility — it stays private and is
+                never shown to candidates.
               </div>
-              <Input
-                label="How many existing colleagues will this hire work with directly?"
-                type="number"
-                min={0}
-                max={50}
-                value={teamSize === '' ? '' : teamSize}
-                onChange={(e) => setTeamSize(e.target.value === '' ? '' : Math.max(0, Math.min(50, parseInt(e.target.value, 10) || 0)))}
-                placeholder="e.g. 4"
-              />
-              {teamBirthYears.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {teamBirthYears.map((y, idx) => (
-                    <Input
-                      key={idx}
-                      label={`Colleague ${idx + 1} birth year`}
-                      type="number"
-                      min={1900}
-                      max={new Date().getFullYear()}
-                      value={y === '' ? '' : y}
-                      onChange={(e) => {
-                        const raw = e.target.value
-                        const parsed = raw === '' ? '' : parseInt(raw, 10)
-                        setTeamBirthYears((prev) => prev.map((p, i) => i === idx ? (typeof parsed === 'number' && !Number.isNaN(parsed) ? parsed : '') : p))
-                      }}
-                      placeholder="e.g. 1990"
-                    />
-                  ))}
-                </div>
-              )}
             </div>
-          )}
+            <Input
+              label="How many existing colleagues will this hire work with directly?"
+              type="number"
+              min={0}
+              max={50}
+              value={teamSize === '' ? '' : teamSize}
+              onChange={(e) => setTeamSize(e.target.value === '' ? '' : Math.max(0, Math.min(50, parseInt(e.target.value, 10) || 0)))}
+              placeholder="e.g. 4"
+            />
+            {teamMembers.length > 0 && (
+              <div className="space-y-3">
+                {teamMembers.map((m, idx) => (
+                  <div key={idx} className="grid grid-cols-1 md:grid-cols-2 gap-3 border border-ink-100 rounded-lg p-3">
+                    <Input
+                      label={`Colleague ${idx + 1} date of birth`}
+                      type="date"
+                      value={m.dob}
+                      onChange={(e) => {
+                        const v = e.target.value
+                        setTeamMembers((prev) => prev.map((p, i) => i === idx ? { ...p, dob: v } : p))
+                      }}
+                    />
+                    <Select
+                      label={`Colleague ${idx + 1} gender`}
+                      value={m.gender}
+                      onChange={(e) => {
+                        const v = e.target.value as '' | Gender
+                        setTeamMembers((prev) => prev.map((p, i) => i === idx ? { ...p, gender: v } : p))
+                      }}
+                    >
+                      <option value="">Select…</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                    </Select>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {err && <Alert tone="red">{err}</Alert>}
 

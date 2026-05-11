@@ -9,12 +9,13 @@ export default function RoleSilo() {
   const { slug } = useParams<{ slug: string }>()
   const role = slug ? ROLES[slug as RoleSlug] : undefined
 
-  if (!role) return <Navigate to="/careers" replace />
-
-  const canonicalPath = `/jobs/${role.slug}`
+  // Hooks must run unconditionally — call useSeo before any early return.
+  // When `role` is missing the values are empty placeholders for the one render
+  // before <Navigate> swaps the route.
+  const canonicalPath = role ? `/jobs/${role.slug}` : ''
   const url = ORIGIN + canonicalPath
 
-  const jsonLd: Record<string, unknown>[] = [
+  const jsonLd: Record<string, unknown>[] = role ? [
     {
       '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',
@@ -41,9 +42,9 @@ export default function RoleSilo() {
         occupationalCategory: role.occupationalCategory,
       },
     },
-  ]
+  ] : []
 
-  if (role.hasJobPosting) {
+  if (role?.hasJobPosting) {
     const jobPosting: Record<string, unknown> = {
       '@context': 'https://schema.org',
       '@type': 'JobPosting',
@@ -102,12 +103,14 @@ export default function RoleSilo() {
   }
 
   useSeo({
-    title: role.title,
-    description: role.description,
-    keywords: role.keywords,
+    title: role?.title ?? '',
+    description: role?.description ?? '',
+    keywords: role?.keywords,
     canonicalPath,
     jsonLd,
   })
+
+  if (!role) return <Navigate to="/careers" replace />
 
   return (
     <div className="min-h-screen bg-white text-[#0B1220] font-sans">

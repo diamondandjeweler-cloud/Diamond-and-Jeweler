@@ -12,12 +12,13 @@ export default function HireSilo() {
   const slug = pathname.replace(/^\/hire-/, '').replace(/\/$/, '') as HireSlug
   const hire = HIRES[slug]
 
-  if (!hire) return <Navigate to="/careers" replace />
-
-  const canonicalPath = `/hire-${hire.slug}`
+  // Hooks must run unconditionally — call useSeo before any early return.
+  // When `hire` is missing the values are empty placeholders for the one render
+  // before <Navigate> swaps the route.
+  const canonicalPath = hire ? `/hire-${hire.slug}` : ''
   const url = ORIGIN + canonicalPath
 
-  const jsonLd: Record<string, unknown>[] = [
+  const jsonLd: Record<string, unknown>[] = hire ? [
     {
       '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',
@@ -42,15 +43,17 @@ export default function HireSilo() {
       serviceType: 'AI-curated recruitment',
       audience: { '@type': 'BusinessAudience', name: 'Hiring managers and HR' },
     },
-  ]
+  ] : []
 
   useSeo({
-    title: hire.title,
-    description: hire.description,
-    keywords: hire.keywords,
+    title: hire?.title ?? '',
+    description: hire?.description ?? '',
+    keywords: hire?.keywords,
     canonicalPath,
     jsonLd,
   })
+
+  if (!hire) return <Navigate to="/careers" replace />
 
   return (
     <div className="min-h-screen bg-white text-[#0B1220] font-sans">

@@ -65,7 +65,7 @@ export default function SupportPanel() {
 
     const tickets = (data ?? []) as unknown as Omit<Ticket, 'profiles'>[]
     const userIds = [...new Set(tickets.map((t) => t.user_id).filter(Boolean))] as string[]
-    let profilesById: Record<string, { email: string; full_name: string }> = {}
+    const profilesById: Record<string, { email: string; full_name: string }> = {}
     if (userIds.length > 0) {
       const { data: profileData } = await supabase
         .from('profiles')

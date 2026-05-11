@@ -97,16 +97,12 @@ export async function signedResumeUrlForMatch(
   resumePath: string,
   expiresInSeconds = 60,
 ): Promise<string> {
-  try {
-    const { error: auditErr } = await supabase.rpc('log_cv_download', { p_match_id: matchId })
-    if (auditErr) {
-      // Don't expose internal error text to caller; surface as a generic deny.
-      throw new Error(auditErr.message || 'cv_download_audit_failed')
-    }
-  } catch (e) {
-    // Re-throw to caller — if the audit emit fails, the download must NOT
-    // proceed (PDPA defensibility: every download must have a log row).
-    throw e
+  // If the audit emit fails, the download must NOT proceed (PDPA defensibility:
+  // every download must have a log row). The thrown error propagates to the caller.
+  const { error: auditErr } = await supabase.rpc('log_cv_download', { p_match_id: matchId })
+  if (auditErr) {
+    // Don't expose internal error text to caller; surface as a generic deny.
+    throw new Error(auditErr.message || 'cv_download_audit_failed')
   }
   return signedUrl('resumes', resumePath, expiresInSeconds)
 }

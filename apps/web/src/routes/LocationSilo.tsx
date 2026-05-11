@@ -12,12 +12,13 @@ export default function LocationSilo() {
   const slug = pathname.replace(/^\/jobs-in-/, '').replace(/\/$/, '') as LocationSlug
   const loc = LOCATIONS[slug]
 
-  if (!loc) return <Navigate to="/careers" replace />
-
-  const canonicalPath = `/jobs-in-${loc.slug}`
+  // Hooks must run unconditionally — call useSeo before any early return.
+  // When `loc` is missing the values are empty placeholders for the one render
+  // before <Navigate> swaps the route.
+  const canonicalPath = loc ? `/jobs-in-${loc.slug}` : ''
   const url = ORIGIN + canonicalPath
 
-  const jsonLd: Record<string, unknown>[] = [
+  const jsonLd: Record<string, unknown>[] = loc ? [
     {
       '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',
@@ -66,15 +67,17 @@ export default function LocationSilo() {
         }
       }),
     },
-  ]
+  ] : []
 
   useSeo({
-    title: loc.title,
-    description: loc.description,
-    keywords: loc.keywords,
+    title: loc?.title ?? '',
+    description: loc?.description ?? '',
+    keywords: loc?.keywords,
     canonicalPath,
     jsonLd,
   })
+
+  if (!loc) return <Navigate to="/careers" replace />
 
   return (
     <div className="min-h-screen bg-white text-[#0B1220] font-sans">

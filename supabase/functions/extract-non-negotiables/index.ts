@@ -233,13 +233,16 @@ async function persistEmbeddings(
         free.push({ atomIndex: i, text: a.value.trim() })
       }
     })
+    console.log(`[persistEmbeddings] owner=${ownerType}:${ownerId} free_atoms=${free.length}`)
     if (free.length === 0) return
 
-    const vectors = await embedMany(free.map((f) => f.text))
+    const result = await embedMany(free.map((f) => f.text))
+    const okVectors = result.vectors.filter((v) => v != null).length
+    console.log(`[persistEmbeddings] provider=${result.provider} dim=${result.dim} ok=${okVectors}/${free.length}`)
 
     const rows: Array<Record<string, unknown>> = []
     free.forEach((f, i) => {
-      const v = vectors[i]
+      const v = result.vectors[i]
       if (v) {
         rows.push({
           owner_type: ownerType,
@@ -247,15 +250,18 @@ async function persistEmbeddings(
           atom_index: f.atomIndex,
           text:       f.text,
           embedding:  toPgVectorLiteral(v),
+          provider:   result.provider,
+          dim:        result.dim,
         })
       }
     })
-    if (rows.length === 0) return
+    if (rows.length === 0) { console.log('[persistEmbeddings] no rows to insert'); return }
 
     const { error } = await db.from('nn_atom_embeddings').insert(rows)
-    if (error) console.error('[extract-non-negotiables] embedding insert failed:', error.message)
+    if (error) console.error('[persistEmbeddings] insert failed:', error.message)
+    else console.log(`[persistEmbeddings] inserted ${rows.length} rows (${result.provider})`)
   } catch (e) {
-    console.error('[extract-non-negotiables] persistEmbeddings threw:', e)
+    console.error('[persistEmbeddings] threw:', e instanceof Error ? e.message : String(e))
   }
 }
 

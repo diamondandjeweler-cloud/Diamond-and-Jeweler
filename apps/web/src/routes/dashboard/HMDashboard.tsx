@@ -137,31 +137,53 @@ export default function HMDashboard() {
         setLoading(false)
       }, 12000)
       try {
-      const { data: hm } = await supabase.from('hiring_managers').select('id, company_id, reputation_score, feedback_volume, phs_offer_accept_rate, hm_quality_factor, hm_cancel_rate, date_of_birth_encrypted').eq('profile_id', session.user.id).maybeSingle()
+      // Phase 1 — hiring_managers + profiles.points fire in parallel.
+      // Both only depend on session.user.id.
+      const [{ data: hm }, { data: pointsRow }] = await Promise.all([
+        supabase.from('hiring_managers').select('id, company_id, reputation_score, feedback_volume, phs_offer_accept_rate, hm_quality_factor, hm_cancel_rate, date_of_birth_encrypted').eq('profile_id', session.user.id).maybeSingle(),
+        supabase.from('profiles').select('points').eq('id', session.user.id).maybeSingle(),
+      ])
       if (!hm) { setLoading(false); return }
       if (!cancelled) {
         setHmId((hm as unknown as { id: string }).id)
         setHmHasDob((hm as unknown as { date_of_birth_encrypted: string | null }).date_of_birth_encrypted != null)
+        setPointsBalance(pointsRow?.points ?? 0)
       }
-      if ((hm as unknown as { company_id: string | null }).company_id) {
-        const cid = (hm as unknown as { company_id: string }).company_id
-        if (!cancelled) setCompanyId(cid)
-        const { data: co } = await supabase.from('companies').select('verified').eq('id', cid).maybeSingle()
-        if (!cancelled) setCompanyVerified(co?.verified ?? false)
+
+      // Phase 2 — company-context lookup, active-role count, and role list
+      // all fire in parallel. They share hm.id and don't depend on each other.
+      const cid = (hm as unknown as { company_id: string | null }).company_id
+      const companyOrLinkPromise = cid
+        ? supabase.from('companies').select('verified').eq('id', cid).maybeSingle()
+            .then((res) => ({ kind: 'company' as const, data: res.data }))
+        : supabase.from('company_hm_link_requests')
+            .select('id, companies(name)')
+            .eq('hm_id', hm.id)
+            .eq('status', 'pending')
+            .maybeSingle()
+            .then((res) => ({ kind: 'linkReq' as const, data: res.data }))
+
+      const [companyOrLink, { count }, { data: roleRows }] = await Promise.all([
+        companyOrLinkPromise,
+        supabase.from('roles').select('*', { count: 'exact', head: true })
+          .eq('hiring_manager_id', hm.id).eq('status', 'active'),
+        supabase.from('roles')
+          .select('id, title, status, extra_matches_used, created_at')
+          .eq('hiring_manager_id', hm.id)
+          .limit(200),
+      ])
+
+      if (cid && !cancelled) setCompanyId(cid)
+      if (companyOrLink.kind === 'company') {
+        if (!cancelled) setCompanyVerified(companyOrLink.data?.verified ?? false)
       } else {
         if (!cancelled) setCompanyVerified(false)
-        // Check for a pending link request.
-        const { data: linkReq } = await supabase
-          .from('company_hm_link_requests')
-          .select('id, companies(name)')
-          .eq('hm_id', hm.id)
-          .eq('status', 'pending')
-          .maybeSingle()
-        if (!cancelled && linkReq) {
-          const co = linkReq.companies as unknown as { name: string } | null
-          setLinkRequest({ id: linkReq.id, companyName: co?.name ?? 'a company' })
+        if (!cancelled && companyOrLink.data) {
+          const co = companyOrLink.data.companies as unknown as { name: string } | null
+          setLinkRequest({ id: companyOrLink.data.id, companyName: co?.name ?? 'a company' })
         }
       }
+
       if (!cancelled) setHmReputation({
         reputation_score: (hm as unknown as { reputation_score: number | null }).reputation_score ?? null,
         feedback_volume: (hm as unknown as { feedback_volume: number }).feedback_volume ?? 0,
@@ -170,18 +192,8 @@ export default function HMDashboard() {
         hm_cancel_rate: (hm as unknown as { hm_cancel_rate: number | null }).hm_cancel_rate ?? null,
       })
 
-      const { count } = await supabase.from('roles').select('*', { count: 'exact', head: true })
-        .eq('hiring_manager_id', hm.id).eq('status', 'active')
       if (!cancelled) setRoleCount(count ?? 0)
 
-      const { data: pointsRow } = await supabase.from('profiles')
-        .select('points').eq('id', session.user.id).maybeSingle()
-      if (!cancelled) setPointsBalance(pointsRow?.points ?? 0)
-
-      const { data: roleRows } = await supabase.from('roles')
-        .select('id, title, status, extra_matches_used, created_at')
-        .eq('hiring_manager_id', hm.id)
-        .limit(200)
       hmRoleIds = (roleRows ?? []).map((r) => r.id)
       if (!cancelled && roleRows) {
         const activeCreatedAts = roleRows
@@ -193,22 +205,47 @@ export default function HMDashboard() {
         }
       }
 
-      if (hmRoleIds.length > 0) {
-        const { count: hiredCount } = await supabase.from('matches')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'hired')
-          .in('role_id', hmRoleIds)
-        if (!cancelled) setHiredAllTime(hiredCount ?? 0)
-      }
+      // Phase 3 — fire every role-keyed query in parallel: hired-all-time count,
+      // active candidates list, per-role active counts, cold-start queue. They
+      // were sequential before, costing ~4× the RTT.
+      const activeRows = ['generated','viewed','accepted_by_talent','invited_by_manager','hr_scheduling','interview_scheduled','interview_completed']
+      const activeRoleIds = (roleRows ?? []).filter((r) => r.status === 'active').map((r) => r.id)
 
-      const { data: matchData, error } = await supabase
-        .from('matches')
-        .select('id, compatibility_score, status, is_urgent, public_reasoning, application_summary, talents(id, privacy_mode, derived_tags, expected_salary_min, expected_salary_max), roles!inner(id, title, hiring_manager_id), match_feedback(rating, hired, notes)')
-        .eq('roles.hiring_manager_id', hm.id)
-        .in('status', ACTIVE)
-        .order('is_urgent', { ascending: false })
-        .order('compatibility_score', { ascending: false })
+      const hiredCountPromise = hmRoleIds.length > 0
+        ? supabase.from('matches')
+            .select('id', { count: 'exact', head: true })
+            .eq('status', 'hired')
+            .in('role_id', hmRoleIds)
+        : Promise.resolve({ count: 0 })
+
+      const activeCountsPromise = activeRoleIds.length > 0
+        ? supabase.from('matches')
+            .select('role_id')
+            .in('role_id', activeRoleIds)
+            .in('status', activeRows)
+        : Promise.resolve({ data: [] as Array<{ role_id: string }> })
+
+      const coldRowsPromise = hmRoleIds.length > 0
+        ? supabase.from('cold_start_queue').select('role_id')
+            .in('role_id', hmRoleIds).eq('status', 'pending')
+        : Promise.resolve({ data: [] as Array<{ role_id: string }> })
+
+      const [hiredRes, { data: matchData, error }, activeCountsRes, coldRowsRes] = await Promise.all([
+        hiredCountPromise,
+        supabase
+          .from('matches')
+          .select('id, compatibility_score, status, is_urgent, public_reasoning, application_summary, talents(id, privacy_mode, derived_tags, expected_salary_min, expected_salary_max), roles!inner(id, title, hiring_manager_id), match_feedback(rating, hired, notes)')
+          .eq('roles.hiring_manager_id', hm.id)
+          .in('status', ACTIVE)
+          .order('is_urgent', { ascending: false })
+          .order('compatibility_score', { ascending: false }),
+        activeCountsPromise,
+        coldRowsPromise,
+      ])
       if (cancelled) return
+
+      if (!cancelled) setHiredAllTime((hiredRes as { count: number | null }).count ?? 0)
+
       if (error) setErr(error.message)
       else {
         const rows = (matchData ?? []) as unknown as CandidateRow[]
@@ -220,15 +257,10 @@ export default function HMDashboard() {
         await loadRounds(interviewMatchIds)
       }
 
-      const activeRows = ['generated','viewed','accepted_by_talent','invited_by_manager','hr_scheduling','interview_scheduled','interview_completed']
-      const activeRoleIds = (roleRows ?? []).filter((r) => r.status === 'active').map((r) => r.id)
       if (activeRoleIds.length > 0) {
-        const { data: activeCounts } = await supabase.from('matches')
-          .select('role_id')
-          .in('role_id', activeRoleIds)
-          .in('status', activeRows)
+        const activeCounts = (activeCountsRes as { data: Array<{ role_id: string }> | null }).data ?? []
         const countByRole: Record<string, number> = {}
-        for (const m of activeCounts ?? []) {
+        for (const m of activeCounts) {
           countByRole[m.role_id] = (countByRole[m.role_id] ?? 0) + 1
         }
         const extras: RoleExtraInfo[] = (roleRows ?? [])
@@ -237,19 +269,16 @@ export default function HMDashboard() {
         if (!cancelled) setRoleExtras(extras)
       }
 
-      if (hmRoleIds.length > 0) {
-        const { data: coldRows } = await supabase.from('cold_start_queue').select('role_id')
-          .in('role_id', hmRoleIds).eq('status', 'pending')
-        if (!cancelled && coldRows && coldRows.length > 0) {
-          const [{ data: cfg }, { data: talentCountResp }] = await Promise.all([
-            supabase.from('system_config').select('value').eq('key', 'waiting_period_thresholds').maybeSingle(),
-            supabase.rpc('active_talent_count'),
-          ])
-          const thresholds = (cfg?.value as Array<{ min_talents: number; max_talents: number; days: number }> | undefined) ?? []
-          const n = typeof talentCountResp === 'number' ? talentCountResp : 0
-          const band = thresholds.find((t) => n >= t.min_talents && n < t.max_talents)
-          if (!cancelled) setWaiting({ roleCount: coldRows.length, estimatedDays: band?.days ?? 14 })
-        }
+      const coldRows = (coldRowsRes as { data: Array<{ role_id: string }> | null }).data ?? []
+      if (coldRows.length > 0) {
+        const [{ data: cfg }, { data: talentCountResp }] = await Promise.all([
+          supabase.from('system_config').select('value').eq('key', 'waiting_period_thresholds').maybeSingle(),
+          supabase.rpc('active_talent_count'),
+        ])
+        const thresholds = (cfg?.value as Array<{ min_talents: number; max_talents: number; days: number }> | undefined) ?? []
+        const n = typeof talentCountResp === 'number' ? talentCountResp : 0
+        const band = thresholds.find((t) => n >= t.min_talents && n < t.max_talents)
+        if (!cancelled) setWaiting({ roleCount: coldRows.length, estimatedDays: band?.days ?? 14 })
       }
       if (watchdog) { clearTimeout(watchdog); watchdog = null }
       setLoading(false)
@@ -383,21 +412,40 @@ export default function HMDashboard() {
     }
     setErr(null)
     setActionBusy(`${matchId}:${action}`)
+    // Optimistic UI — predict the next status so the click feels instant
+    // while the edge function (which may cold-start) is in flight.
+    const prev = candidates.find((c) => c.id === matchId) ?? null
+    const optimisticStatus: Record<string, string> = {
+      make_offer: 'offer_made',
+      mark_hired: 'hired',
+      cancel_match: 'cancelled',
+      complete_interviews: 'interview_completed',
+      schedule_round: 'interview_scheduled',
+    }
+    const nextStatus = optimisticStatus[action]
+    if (nextStatus) {
+      setCandidates((cs) => cs.map((c) => (c.id === matchId ? { ...c, status: nextStatus } : c)))
+    }
+    if (action === 'schedule_round') {
+      // Close the picker immediately — the function will confirm asynchronously.
+      setSchedulingFor(null)
+      setScheduleAt('')
+    }
     try {
       await callFunction('interview-action', { action, match_id: matchId, ...extra })
-      // Refresh match row and rounds
-      const { data: updated } = await supabase
+      // Reconcile the canonical row + rounds in the background. Don't block
+      // actionBusy clearing on these — realtime usually catches it first.
+      void supabase
         .from('matches')
         .select('id, compatibility_score, status, is_urgent, public_reasoning, application_summary, talents(id, privacy_mode, derived_tags, expected_salary_min, expected_salary_max), roles!inner(id, title, hiring_manager_id), match_feedback(rating, hired, notes)')
         .eq('id', matchId)
         .maybeSingle()
-      if (updated) setCandidates((cs) => cs.map((c) => (c.id === matchId ? (updated as unknown as CandidateRow) : c)))
-      await loadRounds([matchId])
-      if (action === 'schedule_round') {
-        setSchedulingFor(null)
-        setScheduleAt('')
-      }
+        .then(({ data: updated }) => {
+          if (updated) setCandidates((cs) => cs.map((c) => (c.id === matchId ? (updated as unknown as CandidateRow) : c)))
+        })
+      void loadRounds([matchId])
     } catch (e) {
+      if (prev) setCandidates((cs) => cs.map((c) => (c.id === matchId ? prev : c)))
       setErr(e instanceof Error ? e.message : `Action failed: ${action}`)
     } finally {
       setActionBusy(null)

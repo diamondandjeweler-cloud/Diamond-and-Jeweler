@@ -105,14 +105,27 @@ export default function TalentDashboard() {
     async function load() {
       if (!session) { setLoading(false); return }
       try {
-        const { data: talent } = await supabase.from('talents').select('id, extra_matches_used, profile_expires_at, reputation_score, feedback_volume, phs_show_rate, phs_accept_rate, current_employment_status, current_salary, notice_period_days, education_level, has_management_experience, work_authorization, preferred_management_style, expected_salary_min, expected_salary_max, employment_type_preferences, location_matters, career_goal_horizon, job_intention, has_noncompete, salary_structure_preference, role_scope_preference, reason_for_leaving_category, extraction_status').eq('profile_id', session.user.id).maybeSingle()
+        // Phase 1 — fire all session-only queries in parallel. Previously these
+        // ran sequentially, costing ~3× the network RTT on dashboard mount.
+        const [{ data: talent }, { data: pointsRow }, { data: lastUrgent }] = await Promise.all([
+          supabase.from('talents').select('id, extra_matches_used, profile_expires_at, reputation_score, feedback_volume, phs_show_rate, phs_accept_rate, current_employment_status, current_salary, notice_period_days, education_level, has_management_experience, work_authorization, preferred_management_style, expected_salary_min, expected_salary_max, employment_type_preferences, location_matters, career_goal_horizon, job_intention, has_noncompete, salary_structure_preference, role_scope_preference, reason_for_leaving_category, extraction_status').eq('profile_id', session.user.id).maybeSingle(),
+          supabase.from('profiles').select('points').eq('id', session.user.id).maybeSingle(),
+          supabase
+            .from('urgent_priority_requests')
+            .select('id, result_id, completed_at')
+            .eq('user_id', session.user.id)
+            .eq('request_type', 'find_job')
+            .eq('status', 'completed')
+            .gte('created_at', new Date(Date.now() - 24 * 3600 * 1000).toISOString())
+            .order('completed_at', { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+        ])
         if (cancelled) return
         if (!talent) return
         setExtractionStatus((talent as unknown as { extraction_status: string | null }).extraction_status ?? 'complete')
         talentId = talent.id
         setExtraUsed(talent.extra_matches_used ?? 0)
-        const { data: pointsRow } = await supabase.from('profiles')
-          .select('points').eq('id', session.user.id).maybeSingle()
         if (!cancelled) setPointsBalance(pointsRow?.points ?? 0)
         setProfileExpiresAt((talent as unknown as { profile_expires_at: string | null }).profile_expires_at ?? null)
         setTalentReputation({
@@ -138,36 +151,34 @@ export default function TalentDashboard() {
         if (t2.notice_period_days == null)                gaps.push('Notice period')
         if (!cancelled) setProfileGaps(gaps)
 
-        // Rehydrate the most recent successful urgent job result so it survives
+        // Phase 2 — matches (needs talent.id) and the urgent role (needs
+        // lastUrgent.result_id, conditional) fire in parallel.
+        // Rehydrates the most recent successful urgent job result so it survives
         // page reload (BUG 5 fix). Only for find_job requests, last 24h, with
         // a result_id that still points at an active role.
-        const { data: lastUrgent } = await supabase
-          .from('urgent_priority_requests')
-          .select('id, result_id, completed_at')
-          .eq('user_id', session.user.id)
-          .eq('request_type', 'find_job')
-          .eq('status', 'completed')
-          .gte('created_at', new Date(Date.now() - 24 * 3600 * 1000).toISOString())
-          .order('completed_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
-        if (!cancelled && lastUrgent?.result_id) {
-          const { data: urgentRole } = await supabase.from('roles')
-            .select('id, title, description, salary_min, salary_max, location, work_arrangement, status')
-            .eq('id', lastUrgent.result_id)
-            .maybeSingle()
-          if (urgentRole && urgentRole.status === 'active') {
-            setUrgentResult({ role: urgentRole as { id: string; title: string; description: string | null; salary_min: number | null; salary_max: number | null; location: string | null; work_arrangement: string | null } })
-          }
+        const urgentRolePromise = lastUrgent?.result_id
+          ? supabase.from('roles')
+              .select('id, title, description, salary_min, salary_max, location, work_arrangement, status')
+              .eq('id', lastUrgent.result_id)
+              .maybeSingle()
+          : Promise.resolve({ data: null })
+
+        const [{ data, error }, urgentRoleRes] = await Promise.all([
+          supabase
+            .from('matches')
+            .select('id, compatibility_score, status, expires_at, public_reasoning, application_summary, roles(id, title, description, salary_min, salary_max, location, work_arrangement, employment_type, hourly_rate, duration_days)')
+            .eq('talent_id', talent.id)
+            .in('status', ACTIVE)
+            .order('created_at', { ascending: false }),
+          urgentRolePromise,
+        ])
+        if (cancelled) return
+
+        const urgentRole = (urgentRoleRes as { data: { id: string; title: string; description: string | null; salary_min: number | null; salary_max: number | null; location: string | null; work_arrangement: string | null; status: string } | null }).data
+        if (urgentRole && urgentRole.status === 'active') {
+          setUrgentResult({ role: urgentRole })
         }
 
-        const { data, error } = await supabase
-          .from('matches')
-          .select('id, compatibility_score, status, expires_at, public_reasoning, application_summary, roles(id, title, description, salary_min, salary_max, location, work_arrangement, employment_type, hourly_rate, duration_days)')
-          .eq('talent_id', talent.id)
-          .in('status', ACTIVE)
-          .order('created_at', { ascending: false })
-        if (cancelled) return
         if (error) setErr(error.message)
         else {
           const rows = (data ?? []) as unknown as MatchRow[]
@@ -319,15 +330,32 @@ export default function TalentDashboard() {
   async function doAction(matchId: string, action: string) {
     setErr(null)
     setActionBusy(`${matchId}:${action}`)
+    // Optimistic UI — flip the status locally before the edge function returns,
+    // so the button feels instant even when the function cold-starts. On error
+    // we revert to the snapshot taken below.
+    const prev = matches.find((m) => m.id === matchId) ?? null
+    const optimisticStatus: Record<string, string> = {
+      accept_offer: 'hired',
+      decline_offer: 'cancelled',
+    }
+    const nextStatus = optimisticStatus[action]
+    if (nextStatus) {
+      setMatches((ms) => ms.map((m) => (m.id === matchId ? { ...m, status: nextStatus } : m)))
+    }
     try {
       await callFunction('interview-action', { action, match_id: matchId })
-      const { data: updated } = await supabase
+      // Reconcile in the background — realtime will pick this up too, the
+      // refetch just guarantees we land on the canonical row.
+      void supabase
         .from('matches')
         .select('id, compatibility_score, status, expires_at, public_reasoning, application_summary, roles(id, title, description, salary_min, salary_max, location, work_arrangement, employment_type, hourly_rate, duration_days)')
         .eq('id', matchId)
         .maybeSingle()
-      if (updated) setMatches((ms) => ms.map((m) => (m.id === matchId ? (updated as unknown as MatchRow) : m)))
+        .then(({ data: updated }) => {
+          if (updated) setMatches((ms) => ms.map((m) => (m.id === matchId ? (updated as unknown as MatchRow) : m)))
+        })
     } catch (e) {
+      if (prev) setMatches((ms) => ms.map((m) => (m.id === matchId ? prev : m)))
       setErr(e instanceof Error ? e.message : `Action failed: ${action}`)
     } finally {
       setActionBusy(null)

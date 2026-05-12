@@ -79,22 +79,41 @@ export default function HRDashboard() {
       if (!comp) { setLoading(false); return }
       setCompanyId(comp.id)
 
-      // §1 — All hiring managers in the company, with their profile names + role counts.
+      // §1 — All hiring managers in the company, with their profile names.
       const { data: hmRows } = await supabase
         .from('hiring_managers')
         .select('id, profile_id, job_title, profiles!inner(full_name)')
         .eq('company_id', comp.id)
       const hmIds = (hmRows ?? []).map((h) => h.id)
 
-      // Per-HM role counts (single query, group on the client).
-      let roleCountMap = new Map<string, number>()
-      if (hmIds.length > 0) {
-        const { data: roleSlim } = await supabase
-          .from('roles').select('id, hiring_manager_id').in('hiring_manager_id', hmIds)
-        roleCountMap = new Map<string, number>()
-        for (const r of (roleSlim ?? []) as Array<{ id: string; hiring_manager_id: string }>) {
-          roleCountMap.set(r.hiring_manager_id, (roleCountMap.get(r.hiring_manager_id) ?? 0) + 1)
-        }
+      if (hmIds.length === 0) {
+        const hmsMappedEmpty: HMRow[] = ((hmRows ?? []) as unknown as Array<{
+          id: string; profile_id: string; job_title: string; profiles: { full_name: string } | null
+        }>).map((h) => ({
+          id: h.id,
+          profile_id: h.profile_id,
+          full_name: h.profiles?.full_name ?? '(unknown)',
+          job_title: h.job_title,
+          role_count: 0,
+          is_self: h.profile_id === userId,
+        }))
+        if (!cancelled) setHms(hmsMappedEmpty)
+        if (!cancelled) setLoading(false)
+        return
+      }
+
+      // §2 — One query for roles (id, title, hm_id) covers BOTH per-HM role
+      // counts AND the open-roles list. Previously we ran two near-identical
+      // queries sequentially.
+      const { data: rolesData } = await supabase
+        .from('roles')
+        .select('id, title, hiring_manager_id')
+        .in('hiring_manager_id', hmIds)
+        .order('created_at', { ascending: false })
+
+      const roleCountMap = new Map<string, number>()
+      for (const r of (rolesData ?? []) as Array<{ id: string; hiring_manager_id: string }>) {
+        roleCountMap.set(r.hiring_manager_id, (roleCountMap.get(r.hiring_manager_id) ?? 0) + 1)
       }
 
       const hmsMapped: HMRow[] = ((hmRows ?? []) as unknown as Array<{
@@ -108,15 +127,6 @@ export default function HRDashboard() {
         is_self: h.profile_id === userId,
       }))
       if (!cancelled) setHms(hmsMapped)
-
-      if (hmIds.length === 0) { setLoading(false); return }
-
-      // §2 — Open roles posted by the company's HMs, with HM names.
-      const { data: rolesData } = await supabase
-        .from('roles')
-        .select('id, title, hiring_manager_id')
-        .in('hiring_manager_id', hmIds)
-        .order('created_at', { ascending: false })
       const hmNameMap = new Map(hmsMapped.map((h) => [h.id, h.full_name]))
       const openRolesMapped: OpenRoleRow[] = ((rolesData ?? []) as Array<{
         id: string; title: string; hiring_manager_id: string

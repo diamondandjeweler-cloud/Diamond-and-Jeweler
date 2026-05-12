@@ -29,14 +29,15 @@ create or replace function _warmup_schedule_edge_function(fn_name text) returns 
 language plpgsql security definer set search_path = public, pg_catalog
 as $$
 declare
-  job_name text := 'warmup-' || fn_name;
+  v_job_name text := 'warmup-' || fn_name;
 begin
   -- Drop any prior schedule under this name so re-applying is safe.
-  perform cron.unschedule(job_name)
-  from cron.job where jobname = job_name;
+  if exists (select 1 from cron.job where jobname = v_job_name) then
+    perform cron.unschedule(v_job_name);
+  end if;
 
   perform cron.schedule(
-    job_name,
+    v_job_name,
     '*/4 * * * *',
     format($cron$
       select net.http_get(

@@ -120,10 +120,11 @@ serve(async (req) => {
 
       // Transition match status to interview_scheduled if needed
       if (match.status !== 'interview_scheduled') {
-        await db
+        const { error: upErr } = await db
           .from('matches')
           .update({ status: 'interview_scheduled' })
           .eq('id', match_id)
+        if (upErr) return json({ error: upErr.message }, 500)
       }
 
       // Notify talent
@@ -163,10 +164,11 @@ serve(async (req) => {
         return json({ error: `Cannot complete interviews from status: ${match.status}` }, 422)
       }
 
-      await db
+      const { error: upErr } = await db
         .from('matches')
         .update({ status: 'interview_completed', interview_completed_at: new Date().toISOString() })
         .eq('id', match_id)
+      if (upErr) return json({ error: upErr.message }, 500)
 
       return json({ ok: true })
     }
@@ -178,10 +180,11 @@ serve(async (req) => {
         return json({ error: `Cannot make offer from status: ${match.status}` }, 422)
       }
 
-      await db
+      const { error: upErr } = await db
         .from('matches')
         .update({ status: 'offer_made', offer_made_at: new Date().toISOString() })
         .eq('id', match_id)
+      if (upErr) return json({ error: upErr.message }, 500)
 
       await callNotify(talentProfileId, 'offer_made_notify', {
         role_title: roleTitle,
@@ -198,10 +201,11 @@ serve(async (req) => {
         return json({ error: `Cannot mark hired from status: ${match.status}` }, 422)
       }
 
-      await db
+      const { error: upErr } = await db
         .from('matches')
         .update({ status: 'hired' })
         .eq('id', match_id)
+      if (upErr) return json({ error: upErr.message }, 500)
 
       return json({ ok: true })
     }
@@ -219,10 +223,11 @@ serve(async (req) => {
         return json({ error: `Cannot cancel from status: ${match.status}` }, 422)
       }
 
-      await db
+      const { error: upErr } = await db
         .from('matches')
         .update({ status: 'cancelled' })
         .eq('id', match_id)
+      if (upErr) return json({ error: upErr.message }, 500)
 
       // Notify the other party
       const notifyUserId = isHM ? talentProfileId : hmProfileId
@@ -258,10 +263,11 @@ serve(async (req) => {
         return json({ error: `No active offer to accept (status: ${match.status})` }, 422)
       }
 
-      await db
+      const { error: upErr } = await db
         .from('matches')
         .update({ status: 'hired' })
         .eq('id', match_id)
+      if (upErr) return json({ error: upErr.message }, 500)
 
       // Get talent's name for the notification
       const { data: talentProfile } = await db
@@ -285,10 +291,11 @@ serve(async (req) => {
         return json({ error: `No active offer to decline (status: ${match.status})` }, 422)
       }
 
-      await db
+      const { error: upErr } = await db
         .from('matches')
         .update({ status: 'cancelled' })
         .eq('id', match_id)
+      if (upErr) return json({ error: upErr.message }, 500)
 
       const { data: talentProfile } = await db
         .from('profiles')

@@ -12,8 +12,40 @@ const ORIGIN = 'https://diamondandjeweler.com'
 const HOMEPAGE_JSON_LD: Record<string, unknown>[] = [
   {
     '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'DNJ',
+    alternateName: ['DNJ Recruitment', 'DNJ Careers'],
+    url: ORIGIN,
+    description:
+      'DNJ is an AI-powered curated recruitment platform for Malaysia. A general recruitment platform serving every industry — sales, admin, finance, marketing, IT, software, HR, customer service, operations, retail, hospitality, engineering, education, healthcare, banking, manufacturing, logistics, F&B, aviation and luxury retail. Three curated matches at a time, zero noise.',
+    knowsAbout: [
+      'AI-powered recruitment',
+      'Curated talent matching',
+      'General recruitment Malaysia',
+      'Multi-industry hiring',
+      'Sales recruitment',
+      'Admin and finance recruitment',
+      'IT and software recruitment',
+      'Marketing recruitment',
+      'HR recruitment',
+      'Customer service recruitment',
+      'Operations recruitment',
+      'Retail and hospitality recruitment',
+      'Engineering recruitment',
+      'Healthcare and education recruitment',
+      'Banking and insurance recruitment',
+      'Manufacturing and logistics recruitment',
+      'Aviation recruitment',
+      'Luxury retail recruitment',
+    ],
+    areaServed: { '@type': 'Country', name: 'Malaysia' },
+  },
+  {
+    '@context': 'https://schema.org',
     '@type': 'ItemList',
-    name: 'Job categories on DNJ — Diamond & Jeweler Careers Malaysia',
+    name: 'Roles available on DNJ — AI-curated recruitment Malaysia',
+    description:
+      'Examples of roles DNJ recruits for. DNJ is a general recruitment platform — these are a sample of the many positions matched through our AI-curated compatibility engine, not the entire scope.',
     itemListOrder: 'https://schema.org/ItemListOrderDescending',
     numberOfItems: ROLE_SLUGS.length,
     itemListElement: ROLE_SLUGS.map((slug, i) => {
@@ -77,10 +109,18 @@ const HOMEPAGE_JSON_LD: Record<string, unknown>[] = [
     mainEntity: [
       {
         '@type': 'Question',
-        name: 'Is DNJ actively hiring in Malaysia?',
+        name: 'What is DNJ?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'Yes. DNJ runs active hiring across pilot, jeweler, diamond grader, gemologist, luxury retail, sales, admin, finance, software, marketing and customer service roles in Kuala Lumpur, PJ, Penang, Johor Bahru and Cyberjaya. Apply online and get AI-curated matches.',
+          text: 'DNJ is an AI-powered curated recruitment platform for Malaysia. It is a general recruitment platform serving every industry — including sales, admin, finance, marketing, IT and software, HR, customer service, operations, retail, hospitality, engineering, education, healthcare, banking, manufacturing, logistics, F&B, aviation and luxury retail. DNJ delivers up to three curated matches per role through a proprietary compatibility engine — quality over volume, zero noise.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Which industries does DNJ cover?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'DNJ is industry-agnostic and covers the full Malaysian job market — sales, administration, finance and accounting, marketing, IT and software, human resources, customer service, operations, retail, hospitality, engineering, healthcare, education, banking, insurance, e-commerce, manufacturing, logistics, F&B, aviation and luxury retail. We hire for fresh graduate, junior, mid-level, senior and trainee positions.',
         },
       },
       {
@@ -93,26 +133,18 @@ const HOMEPAGE_JSON_LD: Record<string, unknown>[] = [
       },
       {
         '@type': 'Question',
-        name: 'Do I need experience to apply?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'No experience needed for many roles. Fresh graduates, SPM leavers, diploma and degree holders welcome. The cadet pilot program, luxury retail trainee programme, and diamond grading trainee tracks accept candidates with 0 experience.',
-        },
-      },
-      {
-        '@type': 'Question',
         name: 'Is DNJ a recruitment agency?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'DNJ is an AI-curated recruitment platform, not a traditional agency. We match talent directly with hiring companies — passive talent included — without the CV pile or noise. Three matches at a time.',
+          text: 'No. DNJ is an AI-curated recruitment platform, not a traditional agency. We match talent directly with hiring companies — passive talent included — without the CV pile or noise. Three matches at a time.',
         },
       },
       {
         '@type': 'Question',
-        name: 'Where can I find the latest job vacancy near me?',
+        name: 'Do I need experience to apply?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'Browse DNJ Careers at https://diamondandjeweler.com/careers or explore by city: /jobs-in-kuala-lumpur, /jobs-in-petaling-jaya, /jobs-in-penang, /jobs-in-johor-bahru. Or browse by role: /jobs/pilot, /jobs/jeweler, /jobs/diamond-grader, /jobs/gemologist, /jobs/luxury-retail.',
+          text: 'No experience needed for many roles. Fresh graduates, SPM leavers, diploma and degree holders are welcome for entry-level, junior and trainee positions across every industry we serve.',
         },
       },
       {
@@ -125,7 +157,7 @@ const HOMEPAGE_JSON_LD: Record<string, unknown>[] = [
       },
       {
         '@type': 'Question',
-        name: 'Can I apply for jobs without resume on DNJ?',
+        name: 'Can I apply for jobs without a resume on DNJ?',
         acceptedAnswer: {
           '@type': 'Answer',
           text: 'Yes. DNJ\'s career profile goes far beyond a résumé — multi-dimensional career analysis captures skills, culture preferences, trajectory and goals. Your profile works passively to attract matches without sending applications.',
@@ -143,32 +175,17 @@ const HOMEPAGE_JSON_LD: Record<string, unknown>[] = [
   },
   {
     '@context': 'https://schema.org',
-    '@type': 'EducationalOccupationalProgram',
-    name: 'Cadet Pilot Program Malaysia',
-    description: 'Structured trainee programme for fresh graduates, SPM leavers, diploma and degree holders to become commercial airline pilots in Malaysia. No flight experience required.',
-    url: `${ORIGIN}/jobs/cadet-pilot`,
-    occupationalCategory: '53-2011 Airline Pilots, Copilots, and Flight Engineers',
-    programType: 'Cadet pilot program',
-    educationalCredentialAwarded: 'Commercial Pilot Licence (CPL) progression',
-    provider: {
-      '@type': 'Organization',
-      name: 'DNJ — Airline partner network',
-      url: ORIGIN,
-    },
-  },
-  {
-    '@context': 'https://schema.org',
     '@type': 'Service',
-    name: 'AI-curated recruitment Malaysia',
-    description: 'Three matches at a time, zero noise. AI-powered compatibility engine for talent and hiring managers across Malaysia.',
+    name: 'AI-Curated Recruitment Platform Malaysia',
+    description: 'DNJ is a general recruitment platform powered by AI, serving every industry in Malaysia. Three curated matches at a time, zero noise. For both talent and hiring managers across all sectors.',
     serviceType: 'Recruitment platform',
     areaServed: { '@type': 'Country', name: 'Malaysia' },
     provider: {
       '@type': 'Organization',
-      name: 'DNJ — Diamond & Jeweler',
+      name: 'DNJ',
       url: ORIGIN,
     },
-    audience: { '@type': 'Audience', audienceType: 'Job seekers and hiring managers' },
+    audience: { '@type': 'Audience', audienceType: 'Job seekers and hiring managers across all industries' },
   },
 ]
 
@@ -176,9 +193,9 @@ export default function Landing() {
   const { t } = useTranslation()
   const { session, profile, loading } = useSession()
   useSeo({
-    title: 'AI-Curated Job Vacancy Malaysia — Pilot, Diamond & Jeweler Hiring Now',
-    description: 'Precision recruitment powered by AI. DNJ matches the right talent with the right company in Malaysia — three curated matches at a time, zero noise. Pilot, diamond & jeweler, sales, admin, finance, fresh graduate roles in KL, PJ, Penang. PDPA-compliant, end-to-end encrypted. Apply online.',
-    keywords: 'jobs near me, job vacancy near me, urgent hiring near me, walk in interview, hiring immediately, apply job online, latest job vacancy, part time job near me, full time job, fresh graduate job, no experience job, immediate hiring, hiring now, pilot job vacancy, jeweler job vacancy, diamond expert job vacancy, luxury retail job vacancy, job vacancy in Kuala Lumpur, job vacancy in PJ, job vacancy in Penang, job vacancy in Malaysia, work from home Kuala Lumpur, remote job Malaysia, fresh graduate job vacancy, cadet pilot program, aviation job vacancy, gemologist job, jewellery shop hiring, career opportunity, career growth job, account assistant job vacancy, admin executive job vacancy, software developer job vacancy, sales executive job vacancy, graphic designer job vacancy, marketing executive job vacancy, customer service job vacancy, hr assistant job vacancy, finance job vacancy, operation job vacancy',
+    title: 'DNJ — AI-Curated Recruitment Platform Malaysia | Jobs Across Every Industry',
+    description: 'DNJ is an AI-powered curated recruitment platform for Malaysia. We match talent with hiring companies across every industry — sales, admin, finance, marketing, IT and software, HR, customer service, operations, retail, hospitality, engineering, education, healthcare, banking, manufacturing, logistics, F&B, aviation and more. Three curated matches at a time, zero noise. PDPA-compliant, end-to-end encrypted.',
+    keywords: 'AI recruitment Malaysia, curated recruitment, recruitment platform Malaysia, AI job matching, job platform Malaysia, jobs in Malaysia, hiring now Malaysia, apply job online, fresh graduate jobs, no experience jobs, internship Malaysia, graduate trainee, sales executive job vacancy, admin executive job vacancy, finance job vacancy, marketing executive job vacancy, software developer job vacancy, IT job vacancy, customer service job vacancy, HR assistant job vacancy, operation job vacancy, retail job vacancy, hospitality job vacancy, engineering job vacancy, healthcare job vacancy, education job vacancy, banking job vacancy, logistics job vacancy, manufacturing job vacancy, jobs in Kuala Lumpur, jobs in PJ, jobs in Penang, jobs in Johor Bahru, jobs in Cyberjaya, work from home Kuala Lumpur, remote job Malaysia, hybrid job, walk in interview, immediate hiring, career opportunity, talent matching, hiring manager Malaysia, pilot job vacancy, aviation job vacancy, jeweler job vacancy, luxury retail job',
     jsonLd: HOMEPAGE_JSON_LD,
   })
   if (!loading && session && profile) return <Navigate to="/home" replace />
@@ -227,8 +244,8 @@ export default function Landing() {
             <span className="h-px w-8 bg-gradient-to-l from-transparent to-[#a6b6ff]" />
           </div>
           <p className="text-gray-600 text-[14px] md:text-[15px] leading-snug">
-            <span className="block">AI matches the right talent with the right company.</span>
-            <span className="block">You focus on what matters.</span>
+            <span className="block">AI-curated recruitment for every industry in Malaysia.</span>
+            <span className="block">Three matches, zero noise.</span>
           </p>
         </div>
 

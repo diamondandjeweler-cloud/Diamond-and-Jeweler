@@ -1,9 +1,9 @@
 import { useEffect } from 'react'
 
 const SUFFIX = ' · DNJ'
-const DEFAULT_TITLE = 'AI-Curated Job Vacancy Malaysia | DNJ Careers — Pilot, Diamond & Jeweler Hiring Now'
-const DEFAULT_DESC = 'Precision recruitment powered by AI. DNJ matches the right talent with the right company in Malaysia — three curated matches at a time, zero noise. Pilot, diamond & jeweler, sales, admin, finance, fresh graduate roles in Kuala Lumpur, PJ and Penang. Apply online.'
-const DEFAULT_KEYWORDS = 'jobs near me, job vacancy near me, urgent hiring near me, walk in interview, hiring immediately, apply job online, latest job vacancy, part time job near me, full time job, fresh graduate job, no experience job, immediate hiring, hiring now, pilot job vacancy, jeweler job vacancy, diamond expert job vacancy, luxury retail job vacancy, job vacancy in Kuala Lumpur, job vacancy in Malaysia, work from home Kuala Lumpur, remote job Malaysia, fresh graduate job vacancy, cadet pilot program, aviation job vacancy, gemologist job, jewellery shop hiring, career opportunity, career growth job'
+const DEFAULT_TITLE = 'DNJ — AI-Curated Recruitment Platform Malaysia | Jobs Across Every Industry'
+const DEFAULT_DESC = 'DNJ is an AI-powered curated recruitment platform for Malaysia. We match talent with hiring companies across every industry — sales, admin, finance, marketing, IT and software, HR, customer service, operations, retail, hospitality, engineering, healthcare, banking, manufacturing, logistics, F&B, aviation and more. Three curated matches at a time, zero noise.'
+const DEFAULT_KEYWORDS = 'AI recruitment Malaysia, curated recruitment, recruitment platform Malaysia, AI job matching, jobs in Malaysia, hiring now Malaysia, apply job online, fresh graduate jobs, no experience jobs, internship Malaysia, graduate trainee, sales executive job vacancy, admin executive job vacancy, finance job vacancy, marketing executive job vacancy, software developer job vacancy, IT job vacancy, customer service job vacancy, HR assistant job vacancy, operation job vacancy, retail job vacancy, hospitality job vacancy, engineering job vacancy, healthcare job vacancy, education job vacancy, banking job vacancy, logistics job vacancy, manufacturing job vacancy, jobs in Kuala Lumpur, jobs in PJ, jobs in Penang, work from home Kuala Lumpur, remote job Malaysia, career opportunity, talent matching, hiring manager Malaysia, pilot job vacancy, aviation job vacancy, jeweler job vacancy, luxury retail job'
 const ORIGIN = 'https://diamondandjeweler.com'
 const JSONLD_DATA_ID = 'data-dnj-jsonld'
 

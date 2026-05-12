@@ -1,7 +1,7 @@
 {
-  "name": "DNJ — Three matches, zero noise",
+  "name": "DNJ — AI-Curated Recruitment Platform Malaysia",
   "short_name": "DNJ",
-  "description": "Curated recruitment for Malaysia. Three matches, zero noise.",
+  "description": "AI-powered curated recruitment platform for Malaysia, matching talent with hiring companies across every industry. Three curated matches, zero noise.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

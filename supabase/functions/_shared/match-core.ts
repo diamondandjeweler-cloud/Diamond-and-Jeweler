@@ -94,7 +94,7 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
   // ── Fetch role ────────────────────────────────────────────────────────────
   const { data: role, error: roleErr } = await db
     .from('roles')
-    .select('id, hiring_manager_id, required_traits, status, location_postcode, title, industry, accept_no_experience, employment_type, experience_level, vacancy_expires_at, salary_max, work_arrangement, requires_weekend, requires_driving_license, weight_preset, requires_travel, has_night_shifts, requires_own_car, requires_relocation, requires_overtime, is_commission_based, team_member_characters')
+    .select('id, hiring_manager_id, required_traits, status, location_postcode, title, industry, accept_no_experience, employment_type, experience_level, vacancy_expires_at, salary_max, salary_min, work_arrangement, requires_weekend, requires_driving_license, weight_preset, requires_travel, has_night_shifts, requires_own_car, requires_relocation, requires_overtime, is_commission_based, team_member_characters, min_education_level, min_education_class, required_skills, preferred_skills, languages_required, environment_flags, open_to, probation_months, schedule_start_time, schedule_end_time, days_per_week, off_day_pattern, shift_type, eligibility_work_auth, non_negotiables_atoms')
     .eq('id', roleId).single()
   if (roleErr || !role) throw new MatchError('Role not found', 404)
   if (role.status !== 'active') throw new MatchError(`Role status is ${role.status}`, 400)
@@ -105,8 +105,11 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
 
   // ── Fetch HM data ─────────────────────────────────────────────────────────
   const { data: hm } = await db.from('hiring_managers')
-    .select('date_of_birth_encrypted, culture_offers, life_chart_character, must_haves, culture_data_source, hm_quality_factor, hm_cancel_rate, required_work_authorization, career_growth_potential, leadership_tags, hire_urgency')
+    .select('date_of_birth_encrypted, culture_offers, life_chart_character, must_haves, culture_data_source, hm_quality_factor, hm_cancel_rate, required_work_authorization, career_growth_potential, leadership_tags, hire_urgency, company_id, companies(size)')
     .eq('id', role.hiring_manager_id).maybeSingle()
+
+  const hmCompanySize: string | null =
+    (hm as unknown as { companies?: { size: string | null } | null } | null)?.companies?.size ?? null
 
   // Hard gate: matching requires HM DOB on file. Without it, our scoring is
   // missing core signal — the role is parked rather than producing low-quality
@@ -156,7 +159,8 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     ? (role as unknown as { team_member_characters: string[] }).team_member_characters
     : []
 
-  const [wBehRow, wTagRow, wSalRow, wCultureRow, wEmpRow, wCharRow, wAgeRow, wLocRow, wBgRow, wFbRow, wPeakRow, wBoostRow, wExpRow, wEduRow, wCGRow, wJIRow, wMgmtRow, wUrgRow, wWARow, wTeamRow] = await Promise.all([
+  const [wBehRow, wTagRow, wSalRow, wCultureRow, wEmpRow, wCharRow, wAgeRow, wLocRow, wBgRow, wFbRow, wPeakRow, wBoostRow, wExpRow, wEduRow, wCGRow, wJIRow, wMgmtRow, wUrgRow, wWARow, wTeamRow,
+    wSkillRow, wLangRow, wEnvRow, wOpenToRow, wSchedRow, wProbRow, wConcernsRow] = await Promise.all([
     db.from('system_config').select('value').eq('key', 'weight_behavioral_fitness').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_tag_compatibility').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_salary_fit').maybeSingle(),
@@ -177,6 +181,13 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     db.from('system_config').select('value').eq('key', 'weight_urgency_fit').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_work_arrangement_fit').maybeSingle(),
     db.from('system_config').select('value').eq('key', 'weight_team_fit').maybeSingle(),
+    db.from('system_config').select('value').eq('key', 'weight_skill_match').maybeSingle(),
+    db.from('system_config').select('value').eq('key', 'weight_language_match').maybeSingle(),
+    db.from('system_config').select('value').eq('key', 'weight_environment_match').maybeSingle(),
+    db.from('system_config').select('value').eq('key', 'weight_open_to_match').maybeSingle(),
+    db.from('system_config').select('value').eq('key', 'weight_schedule_match').maybeSingle(),
+    db.from('system_config').select('value').eq('key', 'weight_probation_comfort').maybeSingle(),
+    db.from('system_config').select('value').eq('key', 'weight_concerns_alignment').maybeSingle(),
   ])
   let weightBehavioral = typeof wBehRow.data?.value     === 'number' ? wBehRow.data.value     : 0.20
   let weightTag        = typeof wTagRow.data?.value     === 'number' ? wTagRow.data.value     : 0.50
@@ -198,6 +209,14 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
   let weightUrgency       = typeof wUrgRow.data?.value  === 'number' ? wUrgRow.data.value     : 0.06
   let weightWorkArrangement = typeof wWARow.data?.value === 'number' ? wWARow.data.value      : 0.08
   const weightTeamFit         = typeof wTeamRow.data?.value === 'number' ? wTeamRow.data.value    : 0.10
+  // v2: structured matching dimensions
+  const weightSkillMatch     = typeof wSkillRow.data?.value    === 'number' ? wSkillRow.data.value    : 0.10
+  const weightLanguageMatch  = typeof wLangRow.data?.value     === 'number' ? wLangRow.data.value     : 0.06
+  const weightEnvMatch       = typeof wEnvRow.data?.value      === 'number' ? wEnvRow.data.value      : 0.03
+  const weightOpenToMatch    = typeof wOpenToRow.data?.value   === 'number' ? wOpenToRow.data.value   : 0.03
+  const weightScheduleMatch  = typeof wSchedRow.data?.value    === 'number' ? wSchedRow.data.value    : 0.04
+  const weightProbationComf  = typeof wProbRow.data?.value     === 'number' ? wProbRow.data.value     : 0.02
+  const weightConcernsAlign  = typeof wConcernsRow.data?.value === 'number' ? wConcernsRow.data.value : 0.05
 
   // Role-type weight presets
   const roleWeightPreset = ((role as { weight_preset?: string }).weight_preset ?? '').toLowerCase()
@@ -296,6 +315,29 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
   const roleIsCommissionBased  = (role as { is_commission_based?: boolean }).is_commission_based === true
   const roleWorkArrangement    = ((role as { work_arrangement?: string | null }).work_arrangement ?? null)
 
+  // v2: structured role fields
+  const roleRequiredSkills: string[]     = Array.isArray((role as { required_skills?: string[] | null }).required_skills)
+    ? ((role as { required_skills: string[] }).required_skills) : []
+  const rolePreferredSkills: string[]    = Array.isArray((role as { preferred_skills?: string[] | null }).preferred_skills)
+    ? ((role as { preferred_skills: string[] }).preferred_skills) : []
+  const roleLanguagesRequired: Array<{ code: string; level: string }> =
+    Array.isArray((role as { languages_required?: unknown }).languages_required)
+      ? ((role as { languages_required: Array<{ code: string; level: string }> }).languages_required) : []
+  const roleEnvFlags: string[] = Array.isArray((role as { environment_flags?: string[] | null }).environment_flags)
+    ? ((role as { environment_flags: string[] }).environment_flags) : []
+  const roleOpenTo: string[] = Array.isArray((role as { open_to?: string[] | null }).open_to)
+    ? ((role as { open_to: string[] }).open_to) : []
+  const roleMinEducation: string | null = (role as { min_education_level?: string | null }).min_education_level ?? null
+  const roleProbationMonths: number | null = (role as { probation_months?: number | null }).probation_months ?? null
+  const roleShiftType: string | null = (role as { shift_type?: string | null }).shift_type ?? null
+  const roleDaysPerWeek: number | null = (role as { days_per_week?: number | null }).days_per_week ?? null
+  const roleOffDayPattern: string | null = (role as { off_day_pattern?: string | null }).off_day_pattern ?? null
+  const roleEligibilityWorkAuth: string[] = Array.isArray((role as { eligibility_work_auth?: string[] | null }).eligibility_work_auth)
+    ? ((role as { eligibility_work_auth: string[] }).eligibility_work_auth) : []
+  const roleNNAtoms: Array<{ type: string; value: unknown; class?: string }> =
+    Array.isArray((role as { non_negotiables_atoms?: unknown }).non_negotiables_atoms)
+      ? ((role as { non_negotiables_atoms: Array<{ type: string; value: unknown; class?: string }> }).non_negotiables_atoms) : []
+
   // ── Candidate pool ─────────────────────────────────────────────────────────
   // Hard filters (availability, employment, salary, deal-breakers, work-auth,
   // commission) run inside the DB via get_match_candidates RPC. Life-chart
@@ -328,6 +370,13 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     p_required_work_auth:  hmRequiredWorkAuth.length > 0 ? hmRequiredWorkAuth : null,
     p_excluded_ids:        excludedIds.length > 0 ? excludedIds : null,
     p_limit:               500,
+    p_required_skills:     roleRequiredSkills.length > 0 ? roleRequiredSkills : null,
+    p_languages_required:  roleLanguagesRequired.length > 0 ? roleLanguagesRequired : null,
+    p_min_education:       roleMinEducation,
+    p_role_eligibility:    roleEligibilityWorkAuth.length > 0 ? roleEligibilityWorkAuth : null,
+    p_role_atoms:          roleNNAtoms.length > 0 ? roleNNAtoms : null,
+    p_hm_company_size:     hmCompanySize,
+    p_role_industry:       (((role.industry as string | null) || '') || null),
   })
   if (candidateErr) throw new MatchError(`Candidate filter failed: ${candidateErr.message}`, 500)
 
@@ -350,7 +399,7 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
 
   // Fetch full profiles only for the filtered candidates (not the whole table)
   const { data: talents } = await db.from('talents')
-    .select('id, profile_id, derived_tags, privacy_mode, whitelist_companies, date_of_birth_encrypted, life_chart_character, uses_lunar_calendar, location_matters, location_postcode, open_to_new_field, parsed_resume, deal_breakers, expected_salary_min, expected_salary_max, employment_type_preferences, feedback_score, education_level, has_noncompete, noncompete_industry_scope, salary_structure_preference, career_goal_horizon, job_intention, shortest_tenure_months, red_flags, phs_show_rate, phs_accept_rate, phs_pass_probation_rate, phs_stay_6m_rate, preferred_management_style, notice_period_days, work_arrangement_preference, role_scope_preference, profiles!inner(ghost_score, is_banned)')
+    .select('id, profile_id, derived_tags, privacy_mode, whitelist_companies, date_of_birth_encrypted, life_chart_character, uses_lunar_calendar, location_matters, location_postcode, open_to_new_field, parsed_resume, deal_breakers, expected_salary_min, expected_salary_max, employment_type_preferences, feedback_score, education_level, has_noncompete, noncompete_industry_scope, salary_structure_preference, career_goal_horizon, job_intention, shortest_tenure_months, red_flags, phs_show_rate, phs_accept_rate, phs_pass_probation_rate, phs_stay_6m_rate, preferred_management_style, notice_period_days, work_arrangement_preference, role_scope_preference, skills, languages_proficiency, available_shifts, available_days_per_week, environment_preferences, candidate_types, priority_concerns_atoms, profiles!inner(ghost_score, is_banned)')
     .in('id', candidateIds)
 
   const pool = talents ?? []
@@ -544,10 +593,21 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     }
     const talentEduLevel = (t as unknown as { education_level: string | null }).education_level ?? null
     let educationFit: number | null = null
-    if (talentEduLevel && experienceLevel && EDU_MIN[experienceLevel]) {
-      const talentRank = EDU_ORDER[talentEduLevel] ?? 0
-      const minRank    = EDU_ORDER[EDU_MIN[experienceLevel]] ?? 0
-      educationFit = talentRank >= minRank ? 100 : Math.max(20, 100 - (minRank - talentRank) * 30)
+    // Prefer role-driven minimum; fall back to EDU_MIN by experience_level.
+    // If HM ticked accept_no_experience, education becomes a soft signal only
+    // (we set educationFit to 100 to avoid penalising; matcher still uses
+    // experience_fit + tag_compatibility to gauge actual fit).
+    const effectiveMinEdu = roleMinEducation && roleMinEducation !== 'none'
+      ? roleMinEducation
+      : (experienceLevel && EDU_MIN[experienceLevel]) || null
+    if (talentEduLevel && effectiveMinEdu) {
+      if (acceptNoExperience) {
+        educationFit = 100
+      } else {
+        const talentRank = EDU_ORDER[talentEduLevel] ?? 0
+        const minRank    = EDU_ORDER[effectiveMinEdu] ?? 0
+        educationFit = talentRank >= minRank ? 100 : Math.max(20, 100 - (minRank - talentRank) * 30)
+      }
     }
 
     // Non-compete check (needs background overlap result)
@@ -760,6 +820,149 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
       else locationScore = 0
     }
 
+    // ── v2: skill match ────────────────────────────────────────────────────
+    // Required skills are hard-filtered in SQL — by the time we reach here
+    // the talent has ALL of them. Score = required overlap (always 100 if any
+    // required) + bonus from preferred-skill overlap, capped at 100.
+    const talentSkills: string[] = Array.isArray((t as unknown as { skills: string[] | null }).skills)
+      ? (t as unknown as { skills: string[] }).skills : []
+    let skillMatch: number | null = null
+    if (roleRequiredSkills.length > 0 || rolePreferredSkills.length > 0) {
+      const reqHits = roleRequiredSkills.filter((s) => talentSkills.includes(s)).length
+      const prefHits = rolePreferredSkills.filter((s) => talentSkills.includes(s)).length
+      const reqScore  = roleRequiredSkills.length > 0 ? (reqHits / roleRequiredSkills.length) * 100 : 100
+      const prefBonus = rolePreferredSkills.length > 0 ? (prefHits / rolePreferredSkills.length) * 30 : 0
+      skillMatch = Math.min(100, reqScore + prefBonus)
+    }
+
+    // ── v2: language match (code already hard-filtered; level is soft) ────
+    const LEVEL_RANK: Record<string, number> = { basic: 1, conversational: 2, fluent: 3, native: 4 }
+    const talentLangProf: Array<{ code: string; level: string }> =
+      Array.isArray((t as unknown as { languages_proficiency: unknown }).languages_proficiency)
+        ? (t as unknown as { languages_proficiency: Array<{ code: string; level: string }> }).languages_proficiency
+        : []
+    let languageMatch: number | null = null
+    if (roleLanguagesRequired.length > 0) {
+      const perLang = roleLanguagesRequired.map((req) => {
+        const tp = talentLangProf.find((p) => p.code === req.code)
+        if (!tp) return 50 // talent has the code (legacy text[]) but no level set
+        const need = LEVEL_RANK[req.level] ?? 2
+        const got  = LEVEL_RANK[tp.level]  ?? 2
+        if (got >= need) return 100
+        const gap = need - got
+        return Math.max(20, 100 - gap * 30)
+      })
+      languageMatch = perLang.length > 0
+        ? perLang.reduce((a, b) => a + b, 0) / perLang.length
+        : null
+    }
+
+    // ── v2: environment match ─────────────────────────────────────────────
+    const talentEnvPref: string[] = Array.isArray((t as unknown as { environment_preferences: string[] | null }).environment_preferences)
+      ? (t as unknown as { environment_preferences: string[] }).environment_preferences : []
+    let environmentMatch: number | null = null
+    if (roleEnvFlags.length > 0) {
+      if (talentEnvPref.length === 0) {
+        environmentMatch = 70 // talent unstated — neutral
+      } else {
+        const overlap = roleEnvFlags.filter((f) => talentEnvPref.includes(f)).length
+        environmentMatch = (overlap / roleEnvFlags.length) * 100
+      }
+    }
+
+    // ── v2: open-to match ─────────────────────────────────────────────────
+    const talentCandidateTypes: string[] = Array.isArray((t as unknown as { candidate_types: string[] | null }).candidate_types)
+      ? (t as unknown as { candidate_types: string[] }).candidate_types : []
+    let openToMatch: number | null = null
+    if (roleOpenTo.length > 0) {
+      if (talentCandidateTypes.length === 0) {
+        openToMatch = 60 // talent unstated — slight penalty (we can't verify fit)
+      } else {
+        openToMatch = roleOpenTo.some((t2) => talentCandidateTypes.includes(t2)) ? 100 : 30
+      }
+    }
+
+    // ── v2: schedule match ────────────────────────────────────────────────
+    const talentShifts: string[] = Array.isArray((t as unknown as { available_shifts: string[] | null }).available_shifts)
+      ? (t as unknown as { available_shifts: string[] }).available_shifts : []
+    const talentDaysAvail: number | null = (t as unknown as { available_days_per_week: number | null }).available_days_per_week ?? null
+    let scheduleMatch: number | null = null
+    if (roleShiftType || roleDaysPerWeek || roleOffDayPattern) {
+      const parts: number[] = []
+      // Shift compatibility
+      if (roleShiftType) {
+        if (talentShifts.length === 0) parts.push(60)
+        else if (talentShifts.includes('flexible') || talentShifts.includes(roleShiftType)) parts.push(100)
+        else if (roleShiftType === 'rotating' && talentShifts.includes('day')) parts.push(60)
+        else if (roleShiftType === 'night' && !talentShifts.includes('night')) parts.push(20)
+        else parts.push(50)
+      }
+      // Days/week
+      if (roleDaysPerWeek != null) {
+        if (talentDaysAvail == null) parts.push(70)
+        else parts.push(Math.min(100, (talentDaysAvail / roleDaysPerWeek) * 100))
+      }
+      // Off-day pattern — light scoring
+      if (roleOffDayPattern) parts.push(roleOffDayPattern === 'irregular' ? 60 : 80)
+      scheduleMatch = parts.length > 0 ? parts.reduce((a, b) => a + b, 0) / parts.length : null
+    }
+
+    // ── v2: probation comfort ─────────────────────────────────────────────
+    // Talent's deal_breakers.no_probation (if set true) reduces score when
+    // role has any probation. Standard 3 months is widely accepted; longer
+    // periods penalised slightly.
+    let probationComfort: number | null = null
+    if (roleProbationMonths != null) {
+      const noProb = ((dealBreakers as Record<string, unknown>)?.no_probation) === true
+      if (roleProbationMonths === 0) probationComfort = 100
+      else if (noProb) probationComfort = 20
+      else if (roleProbationMonths <= 3) probationComfort = 100
+      else if (roleProbationMonths <= 6) probationComfort = 80
+      else probationComfort = 60
+    }
+
+    // ── v2: concerns alignment (NN atoms cross-check) ────────────────────
+    // Hard-violation atoms already filtered in SQL. Here we score how well
+    // the surviving talent's atoms align with the role spec (and vice versa).
+    const talentNNAtoms: Array<{ type: string; value: unknown; class?: string }> =
+      Array.isArray((t as unknown as { priority_concerns_atoms: unknown }).priority_concerns_atoms)
+        ? (t as unknown as { priority_concerns_atoms: Array<{ type: string; value: unknown; class?: string }> }).priority_concerns_atoms
+        : []
+    let concernsAlignment: number | null = null
+    const concernsSatisfied: string[] = []
+    const concernsUnverified: string[] = []
+    if (roleNNAtoms.length > 0 || talentNNAtoms.length > 0) {
+      const totalAtoms = roleNNAtoms.length + talentNNAtoms.length
+      let satisfied = 0
+      for (const atom of roleNNAtoms) {
+        if (atom.type === 'min_qualification' && talentEduLevel) {
+          satisfied++; concernsSatisfied.push(`role.min_qualification(${String(atom.value)}) — talent edu=${talentEduLevel}`)
+        } else if (atom.type === 'salary_floor') {
+          satisfied++; concernsSatisfied.push(`role.salary_floor(${String(atom.value)})`)
+        } else if (atom.type === 'required_certification' && talentSkills.includes(String(atom.value))) {
+          satisfied++; concernsSatisfied.push(`role.required_cert(${String(atom.value)})`)
+        } else if (atom.type === 'free_text') {
+          concernsUnverified.push(`role: ${String(atom.value).slice(0, 60)}`)
+        } else {
+          satisfied++ // hard-filtered atoms past SQL → satisfied by definition
+        }
+      }
+      for (const atom of talentNNAtoms) {
+        if (atom.type === 'salary_floor' && roleSalaryMax != null && (atom.value as number) <= roleSalaryMax) {
+          satisfied++; concernsSatisfied.push(`talent.salary_floor met (${String(atom.value)} ≤ ${roleSalaryMax})`)
+        } else if (atom.type === 'company_size' && hmCompanySize && Array.isArray(atom.value) && (atom.value as string[]).includes(hmCompanySize)) {
+          satisfied++; concernsSatisfied.push(`talent.company_size met (${hmCompanySize})`)
+        } else if (atom.type === 'industry_only' && roleIndustry && Array.isArray(atom.value) && (atom.value as string[]).includes(roleIndustry)) {
+          satisfied++; concernsSatisfied.push(`talent.industry_only met (${roleIndustry})`)
+        } else if (atom.type === 'free_text') {
+          concernsUnverified.push(`talent: ${String(atom.value).slice(0, 60)}`)
+        } else {
+          satisfied++ // hard-filtered → satisfied
+        }
+      }
+      concernsAlignment = totalAtoms > 0 ? (satisfied / totalAtoms) * 100 : null
+    }
+
     // Dynamic weight normalisation
     const dims: Array<{ name: string; score: number; weight: number }> = [
       { name: 'behavioral_fitness',   score: behavioralFitness ?? 50, weight: weightBehavioral * (behavioralFitness != null ? 1 : 0.5) },
@@ -782,6 +985,14 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
       { name: 'management_style_fit', score: managementStyleFit ?? 0, weight: managementStyleFit != null ? weightMgmtStyle : 0 },
       { name: 'urgency_fit',          score: urgencyFit ?? 0,          weight: urgencyFit         != null ? weightUrgency    : 0 },
       { name: 'work_arrangement_fit', score: workArrangementFit ?? 0,  weight: workArrangementFit != null ? weightWorkArrangement : 0 },
+      // v2 dimensions
+      { name: 'skill_match',           score: skillMatch ?? 0,         weight: skillMatch       != null ? weightSkillMatch    : 0 },
+      { name: 'language_match',        score: languageMatch ?? 0,      weight: languageMatch    != null ? weightLanguageMatch : 0 },
+      { name: 'environment_match',     score: environmentMatch ?? 0,   weight: environmentMatch != null ? weightEnvMatch      : 0 },
+      { name: 'open_to_match',         score: openToMatch ?? 0,        weight: openToMatch      != null ? weightOpenToMatch   : 0 },
+      { name: 'schedule_match',        score: scheduleMatch ?? 0,      weight: scheduleMatch    != null ? weightScheduleMatch : 0 },
+      { name: 'probation_comfort',     score: probationComfort ?? 0,   weight: probationComfort != null ? weightProbationComf : 0 },
+      { name: 'concerns_alignment',    score: concernsAlignment ?? 0,  weight: concernsAlignment!= null ? weightConcernsAlign : 0 },
     ]
     const totalW = dims.reduce((acc, d) => acc + d.weight, 0)
     const rawScore = totalW > 0 ? dims.reduce((acc, d) => acc + d.score * d.weight, 0) / totalW : tagComp
@@ -866,6 +1077,17 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
         talent_mgmt_style: talentMgmtStyle, hm_mgmt_style: hmManagementStyle, hm_hire_urgency: hmHireUrgency,
         talent_notice_period_days: talentNoticePeriod, talent_work_arrangement_pref: talentWorkPref,
         role_work_arrangement: roleWorkArrangement,
+        // v2
+        skill_match: skillMatch != null ? Number(skillMatch.toFixed(2)) : null,
+        language_match: languageMatch != null ? Number(languageMatch.toFixed(2)) : null,
+        environment_match: environmentMatch != null ? Number(environmentMatch.toFixed(2)) : null,
+        open_to_match: openToMatch != null ? Number(openToMatch.toFixed(2)) : null,
+        schedule_match: scheduleMatch != null ? Number(scheduleMatch.toFixed(2)) : null,
+        probation_comfort: probationComfort != null ? Number(probationComfort.toFixed(2)) : null,
+        concerns_alignment: concernsAlignment != null ? Number(concernsAlignment.toFixed(2)) : null,
+        concerns_satisfied: concernsSatisfied,
+        concerns_unverified: concernsUnverified,
+        role_min_education: roleMinEducation, role_required_skills_count: roleRequiredSkills.length,
         weights: { behavioral: weightBehavioral, tag: weightTag, salary: weightSalary, culture: weightCulture, employment: weightEmployment, character: weightCharacter, age: weightAge, location: weightLocation, background: weightBackground, feedback: weightFeedback, peak_age: weightPeakAge, monthly_boost: weightMonthlyBoost, experience: weightExperience, education: weightEducation, career_goal: weightCareerGoal, job_intention: weightJobIntention, mgmt_style: weightMgmtStyle, urgency: weightUrgency, work_arrangement: weightWorkArrangement, team_fit: weightTeamFit },
         active_dimensions: activeDims, effective_weights: effectiveWeights,
         ghost_score: ghostScore, ghost_penalty: ghostPenalty, raw_score: Number(rawScore.toFixed(2)),

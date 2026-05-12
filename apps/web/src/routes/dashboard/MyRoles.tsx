@@ -20,6 +20,12 @@ interface RoleRow {
   salary_min: number | null
   salary_max: number | null
   required_traits: string[]
+  required_skills: string[] | null
+  headcount: number | null
+  min_education_level: string | null
+  start_urgency: string | null
+  open_to: string[] | null
+  languages_required: Array<{ code: string; level: string }> | null
   status: RoleStatus
   created_at: string
   vacancy_expires_at: string | null
@@ -69,7 +75,7 @@ export default function MyRoles() {
 
     const { data: roles, error } = await supabase
       .from('roles')
-      .select('id, title, department, location, work_arrangement, experience_level, salary_min, salary_max, required_traits, status, created_at, vacancy_expires_at, moderation_status, moderation_reason, moderation_appealed_at, moderation_reviewed_at')
+      .select('id, title, department, location, work_arrangement, experience_level, salary_min, salary_max, required_traits, required_skills, headcount, min_education_level, start_urgency, open_to, languages_required, status, created_at, vacancy_expires_at, moderation_status, moderation_reason, moderation_appealed_at, moderation_reviewed_at')
       .eq('hiring_manager_id', hm.id)
       .order('created_at', { ascending: false })
     if (error) { setErr(error.message); setLoading(false); return }
@@ -214,6 +220,7 @@ export default function MyRoles() {
                       ))}
                     </div>
                   )}
+                  <RoleStructuredSummary role={r} />
                   <VacancyExpiry expiresAt={r.vacancy_expires_at} status={r.status} />
                 </div>
                 <div className="flex gap-1.5 whitespace-nowrap">
@@ -238,6 +245,25 @@ export default function MyRoles() {
         </div>
       )}
     </div>
+  )
+}
+
+function RoleStructuredSummary({ role }: { role: RoleRow }) {
+  const bits: string[] = []
+  if (role.headcount && role.headcount > 1) bits.push(`Headcount ${role.headcount}`)
+  if (role.min_education_level) bits.push(`Min: ${role.min_education_level}`)
+  if (role.start_urgency) bits.push(role.start_urgency.replace(/_/g, ' '))
+  const langs = Array.isArray(role.languages_required) ? role.languages_required : []
+  if (langs.length > 0) bits.push(`Langs: ${langs.map((l) => l.code).join(', ')}`)
+  const skills = Array.isArray(role.required_skills) ? role.required_skills : []
+  if (skills.length > 0) bits.push(`${skills.length} skill${skills.length === 1 ? '' : 's'}`)
+  const openTo = Array.isArray(role.open_to) ? role.open_to : []
+  if (openTo.length > 0) bits.push(`Open to: ${openTo.map((s) => s.replace(/_/g, ' ')).join(', ')}`)
+  if (bits.length === 0) return null
+  return (
+    <p className="text-xs text-ink-500 mt-2">
+      {bits.join(' · ')}
+    </p>
   )
 }
 

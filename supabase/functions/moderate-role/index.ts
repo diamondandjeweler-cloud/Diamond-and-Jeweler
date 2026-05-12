@@ -405,6 +405,9 @@ serve(async (req) => {
       id, hiring_manager_id, title, description, industry, department, location,
       employment_type, salary_min, salary_max, hourly_rate, is_commission_based,
       moderation_status, moderation_attempts,
+      experience_level, accept_no_experience,
+      required_skills, languages_required, environment_flags, open_to,
+      min_education_level, non_negotiables_atoms,
       hiring_managers!inner(company_id, profile_id, companies(name))
     `)
     .eq('id', roleId)
@@ -466,6 +469,41 @@ serve(async (req) => {
   const corpus = [snapshot.title, snapshot.description ?? '', snapshot.industry ?? '', snapshot.department ?? '']
     .join('\n')
     .toLowerCase()
+
+  // ---------- Stage 0: structured-field quality check (soft warnings) ----------
+  // Non-blocking — these collect into structured_warnings and surface in the
+  // moderation_reason without changing decision logic. Useful signal for the
+  // admin queue when reviewing flagged roles.
+  const structuredWarnings: string[] = []
+  const reqSkills: string[] = Array.isArray(role.required_skills) ? role.required_skills : []
+  const expLevel = String(role.experience_level ?? '').toLowerCase()
+  const acceptNoExp = role.accept_no_experience === true
+  const langsReq = Array.isArray(role.languages_required) ? role.languages_required : []
+  const envFlags = Array.isArray(role.environment_flags) ? role.environment_flags : []
+  const openTo: string[] = Array.isArray(role.open_to) ? role.open_to : []
+
+  if ((expLevel === 'senior' || expLevel === 'lead') && reqSkills.length === 0 && !acceptNoExp) {
+    structuredWarnings.push(`Senior / lead role with no required_skills tagged — matcher will rely on traits + tags only.`)
+  }
+  if (reqSkills.length > 10) {
+    structuredWarnings.push(`${reqSkills.length} required skills tagged — likely over-specified, may starve the candidate pool.`)
+  }
+  if (openTo.includes('fresh_grad') && (expLevel === 'senior' || expLevel === 'lead')) {
+    structuredWarnings.push(`Role open to fresh graduates but experience_level=${expLevel} — these signals contradict each other.`)
+  }
+  for (const l of langsReq) {
+    if (!l || typeof l !== 'object' || !(l as { code?: string }).code) {
+      structuredWarnings.push(`Malformed languages_required entry detected.`)
+      break
+    }
+  }
+  // Environment flag allow-list (defensive)
+  const ENV_ALLOW = new Set(['standing_long_hours','heavy_lifting','outdoor','aircon_office','noisy','food_hygiene','hazardous','customer_facing'])
+  for (const f of envFlags) {
+    if (!ENV_ALLOW.has(String(f))) {
+      structuredWarnings.push(`Unknown environment_flag: ${String(f)}.`)
+    }
+  }
 
   // ---------- Stage 1: keyword prefilter ----------
   const hit = keywordPrefilter(corpus)
@@ -532,11 +570,16 @@ serve(async (req) => {
   const newStatus = decideStatus(result)
   const checkedAt = new Date().toISOString()
 
+  // Append structured warnings to reasoning so they surface in admin review.
+  const finalReasoning = structuredWarnings.length > 0
+    ? `${result.reasoning} | Quality warnings: ${structuredWarnings.join(' ')}`
+    : result.reasoning
+
   const { error: upErr } = await db.from('roles').update({
     moderation_status: newStatus,
     moderation_score: result.score,
     moderation_category: result.category,
-    moderation_reason: result.reasoning,
+    moderation_reason: finalReasoning,
     moderation_provider: result.provider,
     moderation_checked_at: checkedAt,
     moderation_attempts: (role.moderation_attempts ?? 0) + 1,

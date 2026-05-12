@@ -24,8 +24,13 @@ import ChatShell, { ChatMessage } from '../../components/ChatShell'
 import { Button, Alert } from '../../components/ui'
 import DobConfirmModal from '../../components/DobConfirmModal'
 import Consent from '../../components/Consent'
+import {
+  SkillChipInput, LanguageRequirement, EnvironmentFlags, OpenToSelect,
+  AvailableShifts, NonNegotiablesInput,
+  type LanguageReq, type NNAtom,
+} from '../../components/role-form'
 
-type Phase = 'basics' | 'chat' | 'dob' | 'dealbreakers' | 'docs' | 'review' | 'submit' | 'done' | 'resume'
+type Phase = 'basics' | 'chat' | 'dob' | 'dealbreakers' | 'extras' | 'docs' | 'review' | 'submit' | 'done' | 'resume'
 
 interface ApiMessage { role: 'user' | 'assistant'; content: string }
 
@@ -70,6 +75,15 @@ export default function TalentOnboarding() {
   const [noOvertime, setNoOvertime] = useState(false)
   const [noCommissionOnly, setNoCommissionOnly] = useState(false)
   const [dobConsent, setDobConsent] = useState(false)
+  // 0112: structured matching extras
+  const [skills, setSkills] = useState<string[]>([])
+  const [languagesProficiency, setLanguagesProficiency] = useState<LanguageReq[]>([])
+  const [availableShifts, setAvailableShifts] = useState<string[]>([])
+  const [availableDaysPerWeek, setAvailableDaysPerWeek] = useState<number | ''>('')
+  const [environmentPreferences, setEnvironmentPreferences] = useState<string[]>([])
+  const [candidateTypes, setCandidateTypes] = useState<string[]>([])
+  const [priorityConcernsText, setPriorityConcernsText] = useState('')
+  const [priorityConcernsAtoms, setPriorityConcernsAtoms] = useState<NNAtom[]>([])
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
@@ -368,6 +382,17 @@ export default function TalentOnboarding() {
           no_overtime: noOvertime,
           no_commission_only: noCommissionOnly,
         },
+        // ── 0112 structured matching extras ───────────────────────────────
+        skills,
+        languages_proficiency: languagesProficiency.length > 0
+          ? languagesProficiency
+          : languages.map((code) => ({ code, level: 'conversational' as const })),
+        available_shifts: availableShifts,
+        available_days_per_week: availableDaysPerWeek === '' ? null : availableDaysPerWeek,
+        environment_preferences: environmentPreferences,
+        candidate_types: candidateTypes,
+        priority_concerns_text: priorityConcernsText.trim() || null,
+        priority_concerns_atoms: priorityConcernsAtoms,
       }).select('id').single()
       if (insErr) throw insErr
       // Mark as inserted before any further work — protects against retry / refresh
@@ -394,6 +419,16 @@ export default function TalentOnboarding() {
       if (profErr) throw profErr
 
       await markOnboardingComplete(userId)
+
+      // 5a. If the talent typed non-negotiables but didn't preview, run extraction
+      //     now and persist atoms. Best-effort; matcher works without atoms too.
+      if (priorityConcernsText.trim() && priorityConcernsAtoms.length === 0) {
+        void callFunction('extract-non-negotiables', {
+          side: 'talent',
+          text: priorityConcernsText.trim(),
+          talent_id: talentId,
+        }).catch(() => { /* best effort */ })
+      }
 
       // 5. Kick the async extraction. Fire-and-forget — keepalive ensures it
       //    survives the navigation away from this page.
@@ -792,7 +827,7 @@ export default function TalentOnboarding() {
             if (db.no_commission_only) setNoCommissionOnly(true)
           } catch { /* best effort — manual toggles still apply */ }
         }
-        setPhase('docs')
+        setPhase('extras')
       }
       return (
         <div className="space-y-4">
@@ -920,6 +955,85 @@ export default function TalentOnboarding() {
             size="lg"
           >
             {hasAnyDealBreaker ? 'Continue' : "Skip — I'm flexible"}
+          </Button>
+        </div>
+      )
+    }
+
+    if (phase === 'extras') {
+      return (
+        <div className="space-y-6">
+          <p className="text-sm text-ink-600 leading-relaxed">
+            A few more details so we can surface the right roles. All optional — skip anything that doesn&apos;t apply.
+          </p>
+
+          <SkillChipInput
+            label="Your skills"
+            hint="Tag the skills you've actually used at work. Up to 20."
+            value={skills}
+            onChange={setSkills}
+            max={20}
+          />
+
+          <LanguageRequirement
+            label="Languages you speak"
+            hint="Pick a level so we don't match you to roles that need a level you don't have."
+            value={languagesProficiency.length > 0 ? languagesProficiency : languages.map((code) => ({ code, level: 'conversational' as const }))}
+            onChange={setLanguagesProficiency}
+            side="talent"
+          />
+
+          <OpenToSelect
+            label="I identify as"
+            hint="Tick any that apply — helps employers find you for roles open to your stage."
+            value={candidateTypes}
+            onChange={setCandidateTypes}
+            side="talent"
+          />
+
+          <div className="space-y-2">
+            <div className="field-label">Days per week I&apos;m available</div>
+            <input
+              type="number"
+              min={1}
+              max={7}
+              value={availableDaysPerWeek === '' ? '' : availableDaysPerWeek}
+              onChange={(e) => {
+                const n = parseInt(e.target.value, 10)
+                setAvailableDaysPerWeek(Number.isFinite(n) ? Math.max(1, Math.min(7, n)) : '')
+              }}
+              placeholder="e.g. 5"
+              className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            />
+          </div>
+
+          <AvailableShifts value={availableShifts} onChange={setAvailableShifts} />
+
+          <EnvironmentFlags
+            label="Environments I&apos;m OK with"
+            hint="Tick what you can tolerate. Leave blank if you have no strong preferences."
+            value={environmentPreferences}
+            onChange={setEnvironmentPreferences}
+          />
+
+          <div className="pt-4 border-t border-ink-100">
+            <NonNegotiablesInput
+              text={priorityConcernsText}
+              atoms={priorityConcernsAtoms}
+              onChange={({ text, atoms }) => {
+                setPriorityConcernsText(text)
+                setPriorityConcernsAtoms(atoms)
+              }}
+              side="talent"
+            />
+          </div>
+
+          <Button
+            onClick={() => setPhase('docs')}
+            className="w-full"
+            size="lg"
+          >
+            Continue
           </Button>
         </div>
       )
@@ -1064,6 +1178,7 @@ export default function TalentOnboarding() {
     phase === 'chat'         ? 'Chat with DNJ' :
     phase === 'dob'          ? 'About you' :
     phase === 'dealbreakers' ? 'Your non-negotiables' :
+    phase === 'extras'       ? 'A bit more about you' :
     phase === 'docs'         ? 'Your documents' :
     phase === 'review'       ? 'Review your profile' :
     phase === 'submit' || phase === 'done' ? 'Finishing up…' : ''
@@ -1073,7 +1188,8 @@ export default function TalentOnboarding() {
     phase === 'basics'       ? 5 :
     phase === 'chat'         ? 30 :
     phase === 'dob'          ? 65 :
-    phase === 'dealbreakers' ? 80 :
+    phase === 'dealbreakers' ? 75 :
+    phase === 'extras'       ? 85 :
     phase === 'docs'         ? 90 :
     phase === 'review'       ? 95 :
     phase === 'submit'       ? 97 : 100

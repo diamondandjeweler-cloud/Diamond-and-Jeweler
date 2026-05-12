@@ -90,35 +90,46 @@ export default function TalentProfile() {
     }
   }
 
+  // Key the fetch on user.id so a routine TOKEN_REFRESHED event (which mints a
+  // new session object every hour) does not cancel the in-flight load mid-way
+  // and leave the page stuck on the spinner. Without this, the cleanup function
+  // sets cancelled=true before the fetch resolves, so setLoading(false) is
+  // skipped — that is the "page stuck on Sedang memuat… after navigating" bug.
+  const userId = session?.user.id
   useEffect(() => {
-    if (!session) return
+    if (!userId) return
     let cancelled = false
     void (async () => {
-      const { data, error } = await supabase
-        .from('talents')
-        .select('id, expected_salary_min, expected_salary_max, is_open_to_offers, privacy_mode, whitelist_companies, preference_ratings, parsed_resume, extraction_status, extraction_error, extraction_started_at')
-        .eq('profile_id', session.user.id)
-        .maybeSingle()
-      if (cancelled) return
-      if (error) setErr(error.message)
-      else if (data) {
-        const row = data as TalentRow
-        setTalent(row)
-        setSalaryMin(row.expected_salary_min ?? 0)
-        setSalaryMax(row.expected_salary_max ?? 0)
-        setOpenToOffers(row.is_open_to_offers)
-        setPrivacy(row.privacy_mode)
-        setWhitelistCompanies(row.whitelist_companies ?? [])
-        setRatings(row.preference_ratings ?? {})
-        setAiSummary((row.parsed_resume?.ai_summary as string | null) ?? null)
-        setExtractionStatus(row.extraction_status ?? null)
-        setExtractionError(row.extraction_error ?? null)
-        setExtractionStartedAt(row.extraction_started_at ?? null)
+      try {
+        const { data, error } = await supabase
+          .from('talents')
+          .select('id, expected_salary_min, expected_salary_max, is_open_to_offers, privacy_mode, whitelist_companies, preference_ratings, parsed_resume, extraction_status, extraction_error, extraction_started_at')
+          .eq('profile_id', userId)
+          .maybeSingle()
+        if (cancelled) return
+        if (error) setErr(error.message)
+        else if (data) {
+          const row = data as TalentRow
+          setTalent(row)
+          setSalaryMin(row.expected_salary_min ?? 0)
+          setSalaryMax(row.expected_salary_max ?? 0)
+          setOpenToOffers(row.is_open_to_offers)
+          setPrivacy(row.privacy_mode)
+          setWhitelistCompanies(row.whitelist_companies ?? [])
+          setRatings(row.preference_ratings ?? {})
+          setAiSummary((row.parsed_resume?.ai_summary as string | null) ?? null)
+          setExtractionStatus(row.extraction_status ?? null)
+          setExtractionError(row.extraction_error ?? null)
+          setExtractionStartedAt(row.extraction_started_at ?? null)
+        }
+      } catch (e) {
+        if (!cancelled) setErr((e as Error).message)
+      } finally {
+        if (!cancelled) setLoading(false)
       }
-      setLoading(false)
     })()
     return () => { cancelled = true }
-  }, [session])
+  }, [userId])
 
   async function retryExtraction() {
     if (!session || !talent) return

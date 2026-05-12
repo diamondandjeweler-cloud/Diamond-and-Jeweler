@@ -40,25 +40,31 @@ export default function PointsWallet() {
   const [buyErr, setBuyErr]     = useState<string | null>(null)
   const [buyingId, setBuyingId] = useState<string | null>(null)
 
+  // Key on user.id so hourly TOKEN_REFRESHED events don't cancel the fetch
+  // and trap the page on the loading spinner.
+  const userId = session?.user.id
   useEffect(() => {
-    if (!session) return
+    if (!userId) return
     let cancelled = false
     void (async () => {
-      const [ledgerR, pkgR] = await Promise.all([
-        supabase.from('point_transactions')
-          .select('id, delta, reason, created_at')
-          .eq('user_id', session.user.id)
-          .order('created_at', { ascending: false })
-          .limit(50),
-        supabase.from('system_config').select('value').eq('key', 'points_packages').maybeSingle(),
-      ])
-      if (cancelled) return
-      setLedger((ledgerR.data as LedgerRow[] | null) ?? [])
-      if (Array.isArray(pkgR.data?.value)) setPackages(pkgR.data!.value as Package[])
-      setLoading(false)
+      try {
+        const [ledgerR, pkgR] = await Promise.all([
+          supabase.from('point_transactions')
+            .select('id, delta, reason, created_at')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(50),
+          supabase.from('system_config').select('value').eq('key', 'points_packages').maybeSingle(),
+        ])
+        if (cancelled) return
+        setLedger((ledgerR.data as LedgerRow[] | null) ?? [])
+        if (Array.isArray(pkgR.data?.value)) setPackages(pkgR.data!.value as Package[])
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     })()
     return () => { cancelled = true }
-  }, [session])
+  }, [userId])
 
   async function buyPackage(pkg: Package) {
     if (!session) return

@@ -41,44 +41,52 @@ export default function Referrals() {
   const isTalent = profile?.role === 'talent'
   const isHM = profile?.role === 'hiring_manager'
 
+  // Key on user.id (not the session object) so hourly TOKEN_REFRESHED events
+  // don't cancel the load and trap the page on the loading spinner.
+  const userId = session?.user.id
   useEffect(() => {
-    if (!session) return
+    if (!userId) return
     let cancelled = false
     void (async () => {
-      const [refsR, cfgPerRef, cfgPerWelcome, cfgPerExtra] = await Promise.all([
-        supabase.from('referrals').select('*').eq('referrer_id', session.user.id).order('created_at', { ascending: false }),
-        supabase.from('system_config').select('value').eq('key', 'points_per_referral').maybeSingle(),
-        supabase.from('system_config').select('value').eq('key', 'points_referee_welcome').maybeSingle(),
-        supabase.from('system_config').select('value').eq('key', 'points_per_extra_match').maybeSingle(),
-      ])
-      if (cancelled) return
-      setList((refsR.data as Referral[] | null) ?? [])
-      setPointsCfg({
-        perReferral: typeof cfgPerRef.data?.value === 'number' ? cfgPerRef.data.value : 19,
-        perWelcome:  typeof cfgPerWelcome.data?.value === 'number' ? cfgPerWelcome.data.value : 5,
-        perExtra:    typeof cfgPerExtra.data?.value === 'number' ? cfgPerExtra.data.value : 21,
-      })
+      try {
+        const [refsR, cfgPerRef, cfgPerWelcome, cfgPerExtra] = await Promise.all([
+          supabase.from('referrals').select('*').eq('referrer_id', userId).order('created_at', { ascending: false }),
+          supabase.from('system_config').select('value').eq('key', 'points_per_referral').maybeSingle(),
+          supabase.from('system_config').select('value').eq('key', 'points_referee_welcome').maybeSingle(),
+          supabase.from('system_config').select('value').eq('key', 'points_per_extra_match').maybeSingle(),
+        ])
+        if (cancelled) return
+        setList((refsR.data as Referral[] | null) ?? [])
+        setPointsCfg({
+          perReferral: typeof cfgPerRef.data?.value === 'number' ? cfgPerRef.data.value : 19,
+          perWelcome:  typeof cfgPerWelcome.data?.value === 'number' ? cfgPerWelcome.data.value : 5,
+          perExtra:    typeof cfgPerExtra.data?.value === 'number' ? cfgPerExtra.data.value : 21,
+        })
 
-      // For HMs, fetch their active roles so the redeem picker can be a dropdown.
-      if (profile?.role === 'hiring_manager') {
-        const { data: hm } = await supabase.from('hiring_managers')
-          .select('id').eq('profile_id', session.user.id).maybeSingle()
-        if (hm?.id) {
-          const { data: roleRows } = await supabase.from('roles')
-            .select('id, title, status, extra_matches_used')
-            .eq('hiring_manager_id', hm.id)
-            .order('created_at', { ascending: false })
-          if (!cancelled && roleRows) {
-            setRoles(roleRows as RoleOption[])
-            const firstActive = (roleRows as RoleOption[]).find((r) => r.status === 'active' && (r.extra_matches_used ?? 0) < 3)
-            if (firstActive) setPickedRoleId(firstActive.id)
+        // For HMs, fetch their active roles so the redeem picker can be a dropdown.
+        if (profile?.role === 'hiring_manager') {
+          const { data: hm } = await supabase.from('hiring_managers')
+            .select('id').eq('profile_id', userId).maybeSingle()
+          if (hm?.id) {
+            const { data: roleRows } = await supabase.from('roles')
+              .select('id, title, status, extra_matches_used')
+              .eq('hiring_manager_id', hm.id)
+              .order('created_at', { ascending: false })
+            if (!cancelled && roleRows) {
+              setRoles(roleRows as RoleOption[])
+              const firstActive = (roleRows as RoleOption[]).find((r) => r.status === 'active' && (r.extra_matches_used ?? 0) < 3)
+              if (firstActive) setPickedRoleId(firstActive.id)
+            }
           }
         }
+      } catch (e) {
+        if (!cancelled) setErr((e as Error).message)
+      } finally {
+        if (!cancelled) setLoading(false)
       }
-      setLoading(false)
     })()
     return () => { cancelled = true }
-  }, [session, profile?.role])
+  }, [userId, profile?.role])
 
   const shareUrl = useMemo(() => {
     if (!profile?.referral_code) return ''

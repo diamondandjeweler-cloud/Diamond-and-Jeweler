@@ -127,22 +127,28 @@ export default function TalentDashboard() {
     setProposalsByMatch((prev) => ({ ...prev, ...grouped }))
   }, [])
 
+  // Key on user.id, not the session object. supabase-js mints a fresh session
+  // object on every TOKEN_REFRESHED event (~hourly), and the old [session] dep
+  // tore down the in-flight load each time — cancelled=true short-circuited
+  // setLoading(false) and trapped the page on "Sedang memuat…" after routine
+  // SPA navigations.
+  const userId = session?.user.id
   useEffect(() => {
     let cancelled = false
     let talentId: string | null = null
 
     async function load() {
-      if (!session) { setLoading(false); return }
+      if (!userId) { setLoading(false); return }
       try {
         // Phase 1 — fire all session-only queries in parallel. Previously these
         // ran sequentially, costing ~3× the network RTT on dashboard mount.
         const [{ data: talent }, { data: pointsRow }, { data: lastUrgent }] = await Promise.all([
-          supabase.from('talents').select('id, extra_matches_used, profile_expires_at, reputation_score, feedback_volume, phs_show_rate, phs_accept_rate, current_employment_status, current_salary, notice_period_days, education_level, has_management_experience, work_authorization, preferred_management_style, expected_salary_min, expected_salary_max, employment_type_preferences, location_matters, career_goal_horizon, job_intention, has_noncompete, salary_structure_preference, role_scope_preference, reason_for_leaving_category, extraction_status').eq('profile_id', session.user.id).maybeSingle(),
-          supabase.from('profiles').select('points').eq('id', session.user.id).maybeSingle(),
+          supabase.from('talents').select('id, extra_matches_used, profile_expires_at, reputation_score, feedback_volume, phs_show_rate, phs_accept_rate, current_employment_status, current_salary, notice_period_days, education_level, has_management_experience, work_authorization, preferred_management_style, expected_salary_min, expected_salary_max, employment_type_preferences, location_matters, career_goal_horizon, job_intention, has_noncompete, salary_structure_preference, role_scope_preference, reason_for_leaving_category, extraction_status').eq('profile_id', userId).maybeSingle(),
+          supabase.from('profiles').select('points').eq('id', userId).maybeSingle(),
           supabase
             .from('urgent_priority_requests')
             .select('id, result_id, completed_at')
-            .eq('user_id', session.user.id)
+            .eq('user_id', userId)
             .eq('request_type', 'find_job')
             .eq('status', 'completed')
             .gte('created_at', new Date(Date.now() - 24 * 3600 * 1000).toISOString())
@@ -229,7 +235,7 @@ export default function TalentDashboard() {
     void load()
 
     const channel = supabase
-      .channel(`talent-matches-${session?.user.id ?? 'anon'}`)
+      .channel(`talent-matches-${userId ?? 'anon'}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'matches', filter: talentId ? `talent_id=eq.${talentId}` : undefined }, (payload) => {
         if (!talentId) return
         const next = payload.new as MatchRow & { talent_id?: string } | null
@@ -255,19 +261,19 @@ export default function TalentDashboard() {
       .subscribe()
 
     return () => { cancelled = true; void supabase.removeChannel(channel) }
-  }, [session, loadRounds, loadProposals])
+  }, [userId, loadRounds, loadProposals])
 
   // Poll the talents row while extraction is in flight so the banner clears
   // and matches start flowing once the worker finishes. Stops on terminal state.
   useEffect(() => {
-    if (!session) return
+    if (!userId) return
     if (extractionStatus !== 'pending' && extractionStatus !== 'processing') return
     let cancelled = false
     const tick = async () => {
       const { data } = await supabase
         .from('talents')
         .select('extraction_status')
-        .eq('profile_id', session.user.id)
+        .eq('profile_id', userId)
         .maybeSingle()
       if (cancelled) return
       const next = (data as { extraction_status: string | null } | null)?.extraction_status ?? null
@@ -275,7 +281,7 @@ export default function TalentDashboard() {
     }
     const id = window.setInterval(() => { void tick() }, 10_000)
     return () => { cancelled = true; window.clearInterval(id) }
-  }, [session, extractionStatus])
+  }, [userId, extractionStatus])
 
   // Drop the one-shot navigation state so a refresh won't re-show the modal.
   useEffect(() => {

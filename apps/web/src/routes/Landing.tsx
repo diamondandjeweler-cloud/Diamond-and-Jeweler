@@ -2,7 +2,6 @@ import { Link, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../state/useSession'
 import { useSeo } from '../lib/useSeo'
-import LanguageSwitcher from '../components/LanguageSwitcher'
 import { ROLES, LOCATIONS, ROLE_SLUGS, LOCATION_SLUGS } from '../data/silo-data'
 
 const ORIGIN = 'https://diamondandjeweler.com'
@@ -291,8 +290,6 @@ export default function Landing() {
           <Link to="/terms" className="hover:text-[#0B1220]">{t('footer.terms')}</Link>
           <span>·</span>
           <span>© 2026 DNJ</span>
-          <span>·</span>
-          <LanguageSwitcher />
         </div>
         <PopularSearches />
       </footer>

@@ -15,7 +15,7 @@ export default function CompanyRegister() {
   const [name, setName] = useState('')
   const [regNo, setRegNo] = useState('')
   const [website, setWebsite] = useState('')
-  const [size, setSize] = useState<'1-10' | '11-50' | '51-200' | '201-500' | '500+'>('1-10')
+  const [size, setSize] = useState<'' | 'startup' | 'sme' | 'mnc' | 'enterprise' | 'govt' | 'ngo'>('')
   const [industry, setIndustry] = useState('')
   const [licenseFile, setLicenseFile] = useState<File | null>(null)
 
@@ -206,18 +206,20 @@ export default function CompanyRegister() {
           <Text label="Website" value={website} onChange={setWebsite} />
 
           <div>
-            <label htmlFor="company-size" className="block text-sm mb-1">Company size</label>
+            <label htmlFor="company-size" className="block text-sm mb-1">Company type</label>
             <select
               id="company-size"
               value={size}
               onChange={(e) => setSize(e.target.value as typeof size)}
               className="w-full border rounded px-3 py-2"
             >
-              <option value="1-10">1 – 10</option>
-              <option value="11-50">11 – 50</option>
-              <option value="51-200">51 – 200</option>
-              <option value="201-500">201 – 500</option>
-              <option value="500+">500+</option>
+              <option value="">Prefer not to say</option>
+              <option value="startup">Startup</option>
+              <option value="sme">SME (Small / Medium Enterprise)</option>
+              <option value="mnc">MNC (Multinational)</option>
+              <option value="enterprise">Large Enterprise</option>
+              <option value="govt">Government / GLC</option>
+              <option value="ngo">NGO / Non-profit</option>
             </select>
           </div>
 

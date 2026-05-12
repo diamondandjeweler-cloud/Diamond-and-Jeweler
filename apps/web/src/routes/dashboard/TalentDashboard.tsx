@@ -31,6 +31,18 @@ interface InterviewRound {
   status: 'scheduled' | 'completed' | 'cancelled' | 'no_show'
 }
 
+interface InterviewProposal {
+  id: string
+  match_id: string
+  round_number: number
+  slot_1_at: string
+  slot_2_at: string
+  slot_3_at: string
+  status: 'pending' | 'accepted' | 'declined' | 'expired' | 'cancelled'
+  picked_slot: number | null
+  created_at: string
+}
+
 const ACTIVE = [
   'generated', 'viewed', 'accepted_by_talent',
   'invited_by_manager', 'hr_scheduling',
@@ -80,6 +92,7 @@ export default function TalentDashboard() {
 
   // Interview flow state
   const [roundsByMatch, setRoundsByMatch] = useState<Record<string, InterviewRound[]>>({})
+  const [proposalsByMatch, setProposalsByMatch] = useState<Record<string, InterviewProposal[]>>({})
   const [actionBusy, setActionBusy] = useState<string | null>(null)
 
   const loadRounds = useCallback(async (matchIds: string[]) => {
@@ -96,6 +109,22 @@ export default function TalentDashboard() {
       grouped[r.match_id].push(r as InterviewRound)
     }
     setRoundsByMatch((prev) => ({ ...prev, ...grouped }))
+  }, [])
+
+  const loadProposals = useCallback(async (matchIds: string[]) => {
+    if (matchIds.length === 0) return
+    const { data } = await supabase
+      .from('interview_proposals')
+      .select('id, match_id, round_number, slot_1_at, slot_2_at, slot_3_at, status, picked_slot, created_at')
+      .in('match_id', matchIds)
+      .order('created_at', { ascending: false })
+    if (!data) return
+    const grouped: Record<string, InterviewProposal[]> = {}
+    for (const p of data) {
+      if (!grouped[p.match_id]) grouped[p.match_id] = []
+      grouped[p.match_id].push(p as InterviewProposal)
+    }
+    setProposalsByMatch((prev) => ({ ...prev, ...grouped }))
   }, [])
 
   useEffect(() => {
@@ -186,7 +215,10 @@ export default function TalentDashboard() {
           const interviewMatchIds = rows
             .filter((r) => ['invited_by_manager', 'interview_scheduled', 'interview_completed', 'offer_made'].includes(r.status))
             .map((r) => r.id)
-          await loadRounds(interviewMatchIds)
+          await Promise.all([
+            loadRounds(interviewMatchIds),
+            loadProposals(interviewMatchIds),
+          ])
         }
       } catch (e) {
         if (!cancelled) setErr(e instanceof Error ? e.message : 'Failed to load offers')
@@ -223,7 +255,7 @@ export default function TalentDashboard() {
       .subscribe()
 
     return () => { cancelled = true; void supabase.removeChannel(channel) }
-  }, [session, loadRounds])
+  }, [session, loadRounds, loadProposals])
 
   // Poll the talents row while extraction is in flight so the banner clears
   // and matches start flowing once the worker finishes. Stops on terminal state.
@@ -362,6 +394,42 @@ export default function TalentDashboard() {
     }
   }
 
+  async function pickInterviewSlot(matchId: string, proposalId: string, slot: 1 | 2 | 3) {
+    setErr(null)
+    setActionBusy(`${matchId}:accept_interview_slot:${slot}`)
+    try {
+      await callFunction('interview-action', {
+        action: 'accept_interview_slot',
+        match_id: matchId,
+        proposal_id: proposalId,
+        picked_slot: slot,
+      })
+      await Promise.all([loadRounds([matchId]), loadProposals([matchId])])
+      setMatches((ms) => ms.map((m) => (m.id === matchId ? { ...m, status: 'interview_scheduled' } : m)))
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Could not confirm the interview slot')
+    } finally {
+      setActionBusy(null)
+    }
+  }
+
+  async function declineInterviewProposal(matchId: string, proposalId: string) {
+    setErr(null)
+    setActionBusy(`${matchId}:decline_interview_proposal`)
+    try {
+      await callFunction('interview-action', {
+        action: 'decline_interview_proposal',
+        match_id: matchId,
+        proposal_id: proposalId,
+      })
+      await loadProposals([matchId])
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Could not decline the proposal')
+    } finally {
+      setActionBusy(null)
+    }
+  }
+
   async function submitTalentFeedback(matchId: string) {
     const fb = talentFeedbackState[matchId]
     if (!fb || fb.rating === 0) return
@@ -477,20 +545,27 @@ export default function TalentDashboard() {
         </Card>
       ) : (
         <div className="grid md:grid-cols-2 gap-4">
-          {matches.map((m) => (
-            <OfferCard
-              key={m.id}
-              m={m}
-              rounds={roundsByMatch[m.id] ?? []}
-              actionBusy={actionBusy}
-              respond={respond}
-              onAcceptOffer={() => void doAction(m.id, 'accept_offer')}
-              onDeclineOffer={() => void doAction(m.id, 'decline_offer')}
-              feedbackEntry={talentFeedbackState[m.id] ?? { rating: 0, outcome: '', freeText: '', saving: false, saved: false }}
-              onFeedbackChange={(patch) => setTalentFeedbackState((s) => ({ ...s, [m.id]: { ...(s[m.id] ?? { rating: 0, outcome: '', freeText: '', saving: false, saved: false }), ...patch } }))}
-              onFeedbackSubmit={() => void submitTalentFeedback(m.id)}
-            />
-          ))}
+          {matches.map((m) => {
+            const proposals = proposalsByMatch[m.id] ?? []
+            const pendingProposal = proposals.find((p) => p.status === 'pending') ?? null
+            return (
+              <OfferCard
+                key={m.id}
+                m={m}
+                rounds={roundsByMatch[m.id] ?? []}
+                pendingProposal={pendingProposal}
+                actionBusy={actionBusy}
+                respond={respond}
+                onAcceptOffer={() => void doAction(m.id, 'accept_offer')}
+                onDeclineOffer={() => void doAction(m.id, 'decline_offer')}
+                onPickSlot={(slot) => pendingProposal && void pickInterviewSlot(m.id, pendingProposal.id, slot)}
+                onDeclineProposal={() => pendingProposal && void declineInterviewProposal(m.id, pendingProposal.id)}
+                feedbackEntry={talentFeedbackState[m.id] ?? { rating: 0, outcome: '', freeText: '', saving: false, saved: false }}
+                onFeedbackChange={(patch) => setTalentFeedbackState((s) => ({ ...s, [m.id]: { ...(s[m.id] ?? { rating: 0, outcome: '', freeText: '', saving: false, saved: false }), ...patch } }))}
+                onFeedbackSubmit={() => void submitTalentFeedback(m.id)}
+              />
+            )
+          })}
         </div>
       )}
 
@@ -585,16 +660,20 @@ export default function TalentDashboard() {
 }
 
 function OfferCard({
-  m, rounds, actionBusy,
+  m, rounds, pendingProposal, actionBusy,
   respond, onAcceptOffer, onDeclineOffer,
+  onPickSlot, onDeclineProposal,
   feedbackEntry, onFeedbackChange, onFeedbackSubmit,
 }: {
   m: MatchRow
   rounds: InterviewRound[]
+  pendingProposal: InterviewProposal | null
   actionBusy: string | null
   respond: (id: string, next: 'accepted_by_talent' | 'declined_by_talent') => void
   onAcceptOffer: () => void
   onDeclineOffer: () => void
+  onPickSlot: (slot: 1 | 2 | 3) => void
+  onDeclineProposal: () => void
   feedbackEntry: { rating: number; outcome: string; freeText: string; saving: boolean; saved: boolean; pointsAwarded?: number }
   onFeedbackChange: (patch: Partial<{ rating: number; outcome: string; freeText: string }>) => void
   onFeedbackSubmit: () => void
@@ -645,6 +724,46 @@ function OfferCard({
         )}
 
         <MatchExplain reasoning={m.public_reasoning} />
+
+        {/* Pending interview proposal — pick one of 3 slots */}
+        {pendingProposal && (
+          <div className="mt-4 border-2 border-brand-300 rounded-lg overflow-hidden bg-brand-50/60">
+            <div className="bg-brand-100 px-3 py-2 text-xs font-semibold text-brand-900 uppercase tracking-wide">
+              The hiring manager proposed 3 times — pick one
+            </div>
+            <div className="p-3 space-y-2">
+              {([1, 2, 3] as const).map((slot) => {
+                const at = slot === 1 ? pendingProposal.slot_1_at : slot === 2 ? pendingProposal.slot_2_at : pendingProposal.slot_3_at
+                const busy = actionBusy === `${m.id}:accept_interview_slot:${slot}`
+                return (
+                  <div key={slot} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-brand-100 bg-white px-3 py-2">
+                    <div className="text-sm text-ink-900">
+                      <span className="text-xs text-ink-400 mr-2">Slot {slot}</span>
+                      {new Date(at).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur', dateStyle: 'medium', timeStyle: 'short' })} MYT
+                    </div>
+                    <Button
+                      size="sm"
+                      loading={busy}
+                      disabled={actionBusy !== null}
+                      onClick={() => onPickSlot(slot)}
+                    >
+                      Pick this time
+                    </Button>
+                  </div>
+                )
+              })}
+              <Button
+                size="sm"
+                variant="secondary"
+                loading={actionBusy === `${m.id}:decline_interview_proposal`}
+                disabled={actionBusy !== null}
+                onClick={onDeclineProposal}
+              >
+                None of these work — ask for new times
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Interview rounds panel — visible once scheduling begins */}
         {rounds.length > 0 && (

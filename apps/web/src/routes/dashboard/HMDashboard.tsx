@@ -52,6 +52,25 @@ interface InterviewRound {
   hm_notes: string | null
 }
 
+interface InterviewProposal {
+  id: string
+  match_id: string
+  round_number: number
+  slot_1_at: string
+  slot_2_at: string
+  slot_3_at: string
+  status: 'pending' | 'accepted' | 'declined' | 'expired' | 'cancelled'
+  picked_slot: number | null
+  decline_reason: string | null
+  created_at: string
+}
+
+interface ProfilePreview {
+  display_name: string | null
+  photo_url: string | null
+  privacy_mode: string | null
+}
+
 interface ContactInfo {
   full_name: string
   email: string
@@ -98,9 +117,11 @@ export default function HMDashboard() {
 
   // Interview flow state
   const [roundsByMatch, setRoundsByMatch] = useState<Record<string, InterviewRound[]>>({})
+  const [proposalsByMatch, setProposalsByMatch] = useState<Record<string, InterviewProposal[]>>({})
+  const [previewByMatch, setPreviewByMatch] = useState<Record<string, ProfilePreview>>({})
   const [contactByMatch, setContactByMatch] = useState<Record<string, ContactInfo | null>>({})
   const [schedulingFor, setSchedulingFor] = useState<string | null>(null)
-  const [scheduleAt, setScheduleAt] = useState('')
+  const [scheduleSlots, setScheduleSlots] = useState<[string, string, string]>(['', '', ''])
   const [actionBusy, setActionBusy] = useState<string | null>(null)
   const [respondMsg, setRespondMsg] = useState<{ tone: 'green' | 'red'; text: string } | null>(null)
 
@@ -118,6 +139,36 @@ export default function HMDashboard() {
       grouped[r.match_id].push(r as InterviewRound)
     }
     setRoundsByMatch((prev) => ({ ...prev, ...grouped }))
+  }, [])
+
+  const loadProposals = useCallback(async (matchIds: string[]) => {
+    if (matchIds.length === 0) return
+    const { data } = await supabase
+      .from('interview_proposals')
+      .select('id, match_id, round_number, slot_1_at, slot_2_at, slot_3_at, status, picked_slot, decline_reason, created_at')
+      .in('match_id', matchIds)
+      .order('created_at', { ascending: false })
+    if (!data) return
+    const grouped: Record<string, InterviewProposal[]> = {}
+    for (const p of data) {
+      if (!grouped[p.match_id]) grouped[p.match_id] = []
+      grouped[p.match_id].push(p as InterviewProposal)
+    }
+    setProposalsByMatch((prev) => ({ ...prev, ...grouped }))
+  }, [])
+
+  const loadPreviews = useCallback(async (matchIds: string[]) => {
+    if (matchIds.length === 0) return
+    const results = await Promise.all(matchIds.map(async (id) => {
+      const { data } = await supabase.rpc('get_match_profile_preview', { p_match_id: id })
+      const row = Array.isArray(data) ? data[0] : data
+      return [id, (row ?? { display_name: null, photo_url: null, privacy_mode: null }) as ProfilePreview] as const
+    }))
+    setPreviewByMatch((prev) => {
+      const next = { ...prev }
+      for (const [id, p] of results) next[id] = p
+      return next
+    })
   }, [])
 
   useEffect(() => {
@@ -250,11 +301,19 @@ export default function HMDashboard() {
       else {
         const rows = (matchData ?? []) as unknown as CandidateRow[]
         setCandidates(rows)
-        // Load rounds for interview-stage matches
+        // Load rounds + pending proposals for interview-stage matches.
         const interviewMatchIds = rows
           .filter((r) => ['invited_by_manager', 'interview_scheduled', 'interview_completed', 'offer_made'].includes(r.status))
           .map((r) => r.id)
-        await loadRounds(interviewMatchIds)
+        // Profile previews are loaded for *every* surfaced candidate so the
+        // HM can see the real name + photo on public-mode talents from the
+        // moment a card appears, not just at the interview stage.
+        const previewMatchIds = rows.map((r) => r.id)
+        await Promise.all([
+          loadRounds(interviewMatchIds),
+          loadProposals(interviewMatchIds),
+          loadPreviews(previewMatchIds),
+        ])
       }
 
       if (activeRoleIds.length > 0) {
@@ -310,7 +369,7 @@ export default function HMDashboard() {
       if (watchdog) clearTimeout(watchdog)
       void supabase.removeChannel(channel)
     }
-  }, [session, loadRounds])
+  }, [session, loadRounds, loadProposals, loadPreviews])
 
   async function handleUrgentSearch(roleId: string) {
     setUrgentMsg(null); setErr(null)
@@ -420,7 +479,9 @@ export default function HMDashboard() {
       mark_hired: 'hired',
       cancel_match: 'cancelled',
       complete_interviews: 'interview_completed',
-      schedule_round: 'interview_scheduled',
+      // schedule_round now creates a *proposal* (not a round) and leaves match
+      // status at invited_by_manager until the talent picks a slot. The proposal
+      // panel is what flips the UI, so no optimistic status change here.
     }
     const nextStatus = optimisticStatus[action]
     if (nextStatus) {
@@ -429,7 +490,7 @@ export default function HMDashboard() {
     if (action === 'schedule_round') {
       // Close the picker immediately — the function will confirm asynchronously.
       setSchedulingFor(null)
-      setScheduleAt('')
+      setScheduleSlots(['', '', ''])
     }
     try {
       await callFunction('interview-action', { action, match_id: matchId, ...extra })
@@ -444,6 +505,7 @@ export default function HMDashboard() {
           if (updated) setCandidates((cs) => cs.map((c) => (c.id === matchId ? (updated as unknown as CandidateRow) : c)))
         })
       void loadRounds([matchId])
+      void loadProposals([matchId])
     } catch (e) {
       if (prev) setCandidates((cs) => cs.map((c) => (c.id === matchId ? prev : c)))
       setErr(e instanceof Error ? e.message : `Action failed: ${action}`)
@@ -599,30 +661,48 @@ export default function HMDashboard() {
         </div>
       )}
 
-      {/* Schedule round modal */}
+      {/* Schedule round modal — HM proposes 3 slots, talent picks one */}
       {schedulingFor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
-            <h2 className="text-lg font-bold mb-4">Schedule interview round</h2>
-            <label htmlFor="hm-schedule-at" className="block text-sm mb-1 text-ink-700">Date & time (MYT)</label>
-            <input
-              id="hm-schedule-at"
-              type="datetime-local"
-              value={scheduleAt}
-              onChange={(e) => setScheduleAt(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-brand-500"
-            />
-            <div className="flex gap-3">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <h2 className="text-lg font-bold mb-1">Propose interview times</h2>
+            <p className="text-xs text-ink-500 mb-4">
+              Offer the candidate three time slots (MYT). They&apos;ll pick one to confirm.
+            </p>
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="mb-3">
+                <label htmlFor={`hm-slot-${i + 1}`} className="block text-xs mb-1 text-ink-700 font-medium">
+                  Slot {i + 1}
+                </label>
+                <input
+                  id={`hm-slot-${i + 1}`}
+                  type="datetime-local"
+                  value={scheduleSlots[i]}
+                  onChange={(e) => setScheduleSlots((s) => {
+                    const next: [string, string, string] = [...s] as [string, string, string]
+                    next[i] = e.target.value
+                    return next
+                  })}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                />
+              </div>
+            ))}
+            <div className="flex gap-3 mt-4">
               <Button
-                disabled={!scheduleAt || actionBusy !== null}
+                disabled={scheduleSlots.some((s) => !s) || actionBusy !== null}
                 loading={actionBusy === `${schedulingFor}:schedule_round`}
-                onClick={() => void doAction(schedulingFor, 'schedule_round', {
-                  scheduled_at: new Date(scheduleAt).toISOString(),
-                })}
+                onClick={() => {
+                  const [s1, s2, s3] = scheduleSlots
+                  void doAction(schedulingFor, 'schedule_round', {
+                    slot_1_at: new Date(s1).toISOString(),
+                    slot_2_at: new Date(s2).toISOString(),
+                    slot_3_at: new Date(s3).toISOString(),
+                  })
+                }}
               >
-                Confirm
+                Send to candidate
               </Button>
-              <Button variant="secondary" onClick={() => { setSchedulingFor(null); setScheduleAt('') }}>
+              <Button variant="secondary" onClick={() => { setSchedulingFor(null); setScheduleSlots(['', '', '']) }}>
                 Cancel
               </Button>
             </div>
@@ -644,27 +724,34 @@ export default function HMDashboard() {
         </Card>
       ) : (
         <div className="grid md:grid-cols-2 gap-4">
-          {candidates.map((c) => (
-            <CandidateCard
-              key={c.id}
-              row={c}
-              rounds={roundsByMatch[c.id] ?? []}
-              contact={contactByMatch[c.id]}
-              actionBusy={actionBusy}
-              schedulingFor={schedulingFor}
-              onInvite={() => void respond(c.id, 'invited_by_manager')}
-              onDecline={() => void respond(c.id, 'declined_by_manager')}
-              onScheduleRound={() => setSchedulingFor(c.id)}
-              onCompleteInterviews={() => void doAction(c.id, 'complete_interviews')}
-              onMakeOffer={() => void doAction(c.id, 'make_offer')}
-              onMarkHired={() => void doAction(c.id, 'mark_hired')}
-              onCancel={() => void doAction(c.id, 'cancel_match')}
-              onRevealContact={() => void revealContact(c.id)}
-              feedbackEntry={feedbackState[c.id] ?? { rating: c.match_feedback?.[0]?.rating ?? 0, hired: c.match_feedback?.[0]?.hired ?? false, notes: c.match_feedback?.[0]?.notes ?? '', outcome: '', freeText: '', saving: false, saved: !!c.match_feedback?.[0] }}
-              onFeedbackChange={(patch) => setFeedbackState((s) => ({ ...s, [c.id]: { ...(s[c.id] ?? { rating: 0, hired: false, notes: '', outcome: '', freeText: '', saving: false, saved: false }), ...patch } }))}
-              onFeedbackSubmit={() => void submitFeedback(c.id)}
-            />
-          ))}
+          {candidates.map((c) => {
+            const proposals = proposalsByMatch[c.id] ?? []
+            const pendingProposal = proposals.find((p) => p.status === 'pending') ?? null
+            return (
+              <CandidateCard
+                key={c.id}
+                row={c}
+                rounds={roundsByMatch[c.id] ?? []}
+                pendingProposal={pendingProposal}
+                preview={previewByMatch[c.id] ?? null}
+                contact={contactByMatch[c.id]}
+                actionBusy={actionBusy}
+                schedulingFor={schedulingFor}
+                onInvite={() => void respond(c.id, 'invited_by_manager')}
+                onDecline={() => void respond(c.id, 'declined_by_manager')}
+                onScheduleRound={() => setSchedulingFor(c.id)}
+                onCancelProposal={(proposalId) => void doAction(c.id, 'cancel_interview_proposal', { proposal_id: proposalId })}
+                onCompleteInterviews={() => void doAction(c.id, 'complete_interviews')}
+                onMakeOffer={() => void doAction(c.id, 'make_offer')}
+                onMarkHired={() => void doAction(c.id, 'mark_hired')}
+                onCancel={() => void doAction(c.id, 'cancel_match')}
+                onRevealContact={() => void revealContact(c.id)}
+                feedbackEntry={feedbackState[c.id] ?? { rating: c.match_feedback?.[0]?.rating ?? 0, hired: c.match_feedback?.[0]?.hired ?? false, notes: c.match_feedback?.[0]?.notes ?? '', outcome: '', freeText: '', saving: false, saved: !!c.match_feedback?.[0] }}
+                onFeedbackChange={(patch) => setFeedbackState((s) => ({ ...s, [c.id]: { ...(s[c.id] ?? { rating: 0, hired: false, notes: '', outcome: '', freeText: '', saving: false, saved: false }), ...patch } }))}
+                onFeedbackSubmit={() => void submitFeedback(c.id)}
+              />
+            )
+          })}
         </div>
       )}
 
@@ -755,19 +842,22 @@ export default function HMDashboard() {
 }
 
 function CandidateCard({
-  row, rounds, contact, actionBusy, schedulingFor,
+  row, rounds, pendingProposal, preview, contact, actionBusy, schedulingFor,
   onInvite, onDecline,
-  onScheduleRound, onCompleteInterviews, onMakeOffer, onMarkHired, onCancel, onRevealContact,
+  onScheduleRound, onCancelProposal, onCompleteInterviews, onMakeOffer, onMarkHired, onCancel, onRevealContact,
   feedbackEntry, onFeedbackChange, onFeedbackSubmit,
 }: {
   row: CandidateRow
   rounds: InterviewRound[]
+  pendingProposal: InterviewProposal | null
+  preview: ProfilePreview | null
   contact: ContactInfo | null | undefined
   actionBusy: string | null
   schedulingFor: string | null
   onInvite: () => void
   onDecline: () => void
   onScheduleRound: () => void
+  onCancelProposal: (proposalId: string) => void
   onCompleteInterviews: () => void
   onMakeOffer: () => void
   onMarkHired: () => void
@@ -777,9 +867,14 @@ function CandidateCard({
   onFeedbackChange: (patch: Partial<{ rating: number; hired: boolean; notes: string; outcome: string; freeText: string }>) => void
   onFeedbackSubmit: () => void
 }) {
-  const displayName = row.talents?.privacy_mode === 'anonymous'
-    ? 'Anonymous candidate'
-    : `Candidate #${row.talents?.id.slice(0, 6).toUpperCase()}`
+  // Real name + photo when the talent has opted into public (or whitelist-matched) visibility;
+  // otherwise fall back to the anonymized handle. The preview RPC enforces the policy server-side.
+  const realName = preview?.display_name ?? null
+  const photoUrl = preview?.photo_url ?? null
+  const displayName = realName
+    ?? (row.talents?.privacy_mode === 'anonymous'
+      ? 'Anonymous candidate'
+      : `Candidate #${row.talents?.id.slice(0, 6).toUpperCase()}`)
 
   const topTags = Object.entries(row.talents?.derived_tags ?? {})
     .filter(([tag, score]) => !/^\d+$/.test(tag) && typeof score === 'number' && !isNaN(score) && score > 0)
@@ -801,9 +896,22 @@ function CandidateCard({
           </div>
         )}
         <div className="flex items-start justify-between gap-3 mb-3">
-          <div>
-            <h3 className="font-display text-lg text-ink-900 mb-0.5">{displayName}</h3>
-            <p className="text-sm text-ink-500">for {row.roles?.title ?? 'role'}</p>
+          <div className="flex items-start gap-3 min-w-0">
+            {photoUrl ? (
+              <img
+                src={photoUrl}
+                alt={displayName}
+                className="w-14 h-14 rounded-full object-cover border border-ink-100 shrink-0"
+              />
+            ) : (
+              <div className="w-14 h-14 rounded-full bg-ink-100 text-ink-400 flex items-center justify-center text-base font-medium shrink-0">
+                {(realName ?? '?').slice(0, 1).toUpperCase()}
+              </div>
+            )}
+            <div className="min-w-0">
+              <h3 className="font-display text-lg text-ink-900 mb-0.5 truncate">{displayName}</h3>
+              <p className="text-sm text-ink-500">for {row.roles?.title ?? 'role'}</p>
+            </div>
           </div>
           <Badge tone={tone}>
             <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><circle cx="5" cy="5" r="4" /></svg>
@@ -848,6 +956,32 @@ function CandidateCard({
           salaryMin={row.talents?.expected_salary_min ?? null}
           salaryMax={row.talents?.expected_salary_max ?? null}
         />
+
+        {/* Pending interview proposal — awaiting talent to pick a slot */}
+        {pendingProposal && (
+          <div className="mt-4 border border-amber-200 rounded-lg overflow-hidden bg-amber-50/40">
+            <div className="bg-amber-100 px-3 py-2 text-xs font-semibold text-amber-900 uppercase tracking-wide flex items-center justify-between gap-2">
+              <span>Awaiting candidate confirmation — Round {pendingProposal.round_number}</span>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={actionBusy !== null}
+                loading={actionBusy === `${row.id}:cancel_interview_proposal`}
+                onClick={() => onCancelProposal(pendingProposal.id)}
+              >
+                Withdraw
+              </Button>
+            </div>
+            <ul className="px-3 py-2 text-xs text-ink-700 space-y-1">
+              {[pendingProposal.slot_1_at, pendingProposal.slot_2_at, pendingProposal.slot_3_at].map((at, i) => (
+                <li key={i}>
+                  <span className="text-ink-400 mr-2">Slot {i + 1}</span>
+                  {new Date(at).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur', dateStyle: 'medium', timeStyle: 'short' })} MYT
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Interview rounds panel */}
         {rounds.length > 0 && (
@@ -929,9 +1063,10 @@ function CandidateCard({
               <Button
                 size="sm"
                 onClick={onScheduleRound}
-                disabled={schedulingFor === row.id || actionBusy !== null}
+                disabled={schedulingFor === row.id || actionBusy !== null || !!pendingProposal}
+                title={pendingProposal ? 'Withdraw the pending proposal first to send new times.' : undefined}
               >
-                {rounds.length === 0 ? 'Schedule interview' : 'Add next round'}
+                {rounds.length === 0 ? 'Propose interview times' : 'Propose times for next round'}
               </Button>
               {row.status === 'interview_scheduled' && (
                 <Button

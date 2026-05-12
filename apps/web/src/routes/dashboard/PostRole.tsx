@@ -155,8 +155,17 @@ export default function PostRole() {
         is_commission_based: isCommissionBased,
         weight_preset: weightPreset === 'default' ? null : weightPreset,
         team_member_characters: (() => {
+          // `m.dob` is now a 4-digit birth year (we only collect year for
+          // colleagues, not full DOB). Pass mid-year (July 1) to the lookup so
+          // the solar-year February boundary is never ambiguous — the function
+          // returns the calendar year unchanged for any month > Feb.
           const chars = teamMembers
-            .map((m) => (m.dob && m.gender ? getLifeChartCharacter(m.dob, m.gender) : null))
+            .map((m) => {
+              if (!m.dob || !m.gender) return null
+              const year = parseInt(m.dob, 10)
+              if (!Number.isFinite(year) || year < 1950 || year > 2100) return null
+              return getLifeChartCharacter(`${year}-07-01`, m.gender)
+            })
             .filter((c): c is NonNullable<typeof c> => c !== null)
           return chars.length > 0 ? chars : null
         })(),
@@ -388,7 +397,7 @@ export default function PostRole() {
               <div className="field-label">Team-dynamic reference (optional)</div>
               <div className="field-hint mb-2">
                 Tell us how many existing colleagues this hire will work with directly, then enter each colleague's
-                date of birth and gender. We use this to gauge team-dynamic compatibility — it stays private and is
+                year of birth and gender. We use this to gauge team-dynamic compatibility — it stays private and is
                 never shown to candidates.
               </div>
             </div>
@@ -406,11 +415,15 @@ export default function PostRole() {
                 {teamMembers.map((m, idx) => (
                   <div key={idx} className="grid grid-cols-1 md:grid-cols-2 gap-3 border border-ink-100 rounded-lg p-3">
                     <Input
-                      label={`Colleague ${idx + 1} date of birth`}
-                      type="date"
+                      label={`Colleague ${idx + 1} year of birth`}
+                      type="number"
+                      inputMode="numeric"
+                      min={1950}
+                      max={new Date().getFullYear()}
+                      placeholder="e.g. 1985"
                       value={m.dob}
                       onChange={(e) => {
-                        const v = e.target.value
+                        const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 4)
                         setTeamMembers((prev) => prev.map((p, i) => i === idx ? { ...p, dob: v } : p))
                       }}
                     />

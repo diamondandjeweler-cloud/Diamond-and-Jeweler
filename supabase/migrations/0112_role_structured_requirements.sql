@@ -124,13 +124,18 @@ alter table public.companies
     not valid;
 
 -- ── BACKFILL: talents.languages_proficiency from legacy talents.languages ──
+-- talents.languages is jsonb (added in 0044) — array of language code strings.
 update public.talents
    set languages_proficiency = (
-     select coalesce(jsonb_agg(jsonb_build_object('code', code, 'level', 'conversational')), '[]'::jsonb)
-     from unnest(coalesce(languages, '{}'::text[])) as code
+     select coalesce(
+       jsonb_agg(jsonb_build_object('code', code, 'level', 'conversational')),
+       '[]'::jsonb
+     )
+     from jsonb_array_elements_text(coalesce(languages, '[]'::jsonb)) as code
    )
  where languages_proficiency = '[]'::jsonb
-   and coalesce(array_length(languages, 1), 0) > 0;
+   and jsonb_typeof(coalesce(languages, '[]'::jsonb)) = 'array'
+   and jsonb_array_length(coalesce(languages, '[]'::jsonb)) > 0;
 
 -- ── SKILL TAXONOMY ──────────────────────────────────────────────────────────
 create table if not exists public.skill_taxonomy (
@@ -150,11 +155,13 @@ create index if not exists idx_skill_taxonomy_aliases_gin on public.skill_taxono
 
 alter table public.skill_taxonomy enable row level security;
 
-create policy if not exists skill_taxonomy_read on public.skill_taxonomy
+drop policy if exists skill_taxonomy_read on public.skill_taxonomy;
+create policy skill_taxonomy_read on public.skill_taxonomy
   for select using (true);
 
 -- Only service_role can mutate (seed migrations + admin tools only)
-create policy if not exists skill_taxonomy_admin_write on public.skill_taxonomy
+drop policy if exists skill_taxonomy_admin_write on public.skill_taxonomy;
+create policy skill_taxonomy_admin_write on public.skill_taxonomy
   for all using (auth.role() = 'service_role') with check (auth.role() = 'service_role');
 
 -- ── INDEXES ─────────────────────────────────────────────────────────────────

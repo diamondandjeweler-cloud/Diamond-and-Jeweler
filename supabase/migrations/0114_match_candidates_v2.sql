@@ -15,6 +15,14 @@
 --   skill overlap %, language level gap, environment Jaccard, open_to overlap,
 --   schedule fit, free_text atoms (display-only until embedding phase).
 
+-- Drop the old 15-param signature so the new 22-param overload doesn't
+-- collide with it at call sites (Postgres can't pick between overloads with
+-- the same name and overlapping defaults).
+DROP FUNCTION IF EXISTS public.get_match_candidates(
+  text, integer, text, boolean, boolean, boolean, boolean, boolean,
+  boolean, boolean, boolean, text, text[], uuid[], integer
+);
+
 CREATE OR REPLACE FUNCTION public.get_match_candidates(
   p_employment_type     text        DEFAULT NULL,
   p_salary_max          integer     DEFAULT NULL,
@@ -147,7 +155,7 @@ AS $$
 
     -- ── 12. v2: required language codes (level handled in TS scorer) ────
     -- Each required language code must appear in talent.languages_proficiency.
-    -- Backwards-compat: legacy talents.languages (text[]) also counted.
+    -- Backwards-compat: legacy talents.languages (jsonb array of codes) counts too.
     AND (
       p_languages_required IS NULL
       OR jsonb_array_length(p_languages_required) = 0
@@ -158,7 +166,10 @@ AS $$
             SELECT 1 FROM jsonb_array_elements(t.languages_proficiency) lp
             WHERE lp->>'code' = req->>'code'
           )
-          OR (req->>'code') = ANY(coalesce(t.languages, '{}'::text[]))
+          OR (
+            jsonb_typeof(coalesce(t.languages, '[]'::jsonb)) = 'array'
+            AND coalesce(t.languages, '[]'::jsonb) ? (req->>'code')
+          )
         )
       )
     )

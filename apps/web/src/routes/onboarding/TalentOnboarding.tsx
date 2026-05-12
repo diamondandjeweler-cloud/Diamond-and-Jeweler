@@ -86,6 +86,7 @@ export default function TalentOnboarding() {
   const [priorityConcernsAtoms, setPriorityConcernsAtoms] = useState<NNAtom[]>([])
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const [dobAttempted, setDobAttempted] = useState(false)
 
   // Refocus chat input after each streaming response completes
   useEffect(() => {
@@ -621,6 +622,34 @@ export default function TalentOnboarding() {
     }
 
     if (phase === 'dob') {
+      const dobValid = !!dob
+      const genderValid = !!gender
+      const raceValid = !!race
+      const religionValid = !!religion
+      const languagesValid = languages.length > 0
+      const locationMattersValid = locationMatters !== null
+      const postcodeValid = locationMatters !== true || locationPostcode.length === 5
+      const dobConsentValid = dobConsent
+
+      const showErr = (valid: boolean) => dobAttempted && !valid
+
+      const missingFields: string[] = []
+      if (!dobValid) missingFields.push('Date of birth')
+      if (!genderValid) missingFields.push('Gender')
+      if (!raceValid) missingFields.push('Race / ethnicity')
+      if (!religionValid) missingFields.push('Religion')
+      if (!languagesValid) missingFields.push('At least one language')
+      if (!locationMattersValid) missingFields.push('Whether commute distance matters')
+      if (locationMatters === true && !postcodeValid) missingFields.push('5-digit postcode')
+      if (!dobConsentValid) missingFields.push('Consent to share date of birth')
+
+      const allValid = missingFields.length === 0
+
+      const inputErrCls = (valid: boolean) =>
+        showErr(valid) ? 'border-red-400 bg-red-50' : 'border-ink-200'
+      const ringWrap = (valid: boolean) =>
+        showErr(valid) ? 'rounded-lg ring-2 ring-red-300 p-1.5' : ''
+
       return (
         <div className="space-y-3">
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900">
@@ -637,11 +666,14 @@ export default function TalentOnboarding() {
             value={dob}
             onChange={(e) => setDob(e.target.value)}
             max={new Date(Date.now() - 18 * 365.25 * 86400000).toISOString().slice(0, 10)}
-            className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            data-dob-invalid={showErr(dobValid) ? 'true' : undefined}
+            className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 ${inputErrCls(dobValid)}`}
           />
-          <div className="space-y-1">
-            <p className="text-sm text-ink-600">Gender:</p>
-            <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1" data-dob-invalid={showErr(genderValid) ? 'true' : undefined}>
+            <p className={`text-sm ${showErr(genderValid) ? 'text-red-600 font-medium' : 'text-ink-600'}`}>
+              Gender:{showErr(genderValid) && <span className="ml-1 text-xs">(required)</span>}
+            </p>
+            <div className={`grid grid-cols-2 gap-2 ${ringWrap(genderValid)}`}>
               <button
                 type="button"
                 onClick={() => setGender('male')}
@@ -658,9 +690,11 @@ export default function TalentOnboarding() {
               </button>
             </div>
           </div>
-          <div className="space-y-1">
-            <p className="text-sm text-ink-600">Race / ethnicity:</p>
-            <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1" data-dob-invalid={showErr(raceValid) ? 'true' : undefined}>
+            <p className={`text-sm ${showErr(raceValid) ? 'text-red-600 font-medium' : 'text-ink-600'}`}>
+              Race / ethnicity:{showErr(raceValid) && <span className="ml-1 text-xs">(required)</span>}
+            </p>
+            <div className={`grid grid-cols-2 gap-2 ${ringWrap(raceValid)}`}>
               {(['Malay', 'Chinese', 'Indian', 'Others'] as const).map((r) => (
                 <button
                   key={r}
@@ -673,12 +707,14 @@ export default function TalentOnboarding() {
               ))}
             </div>
           </div>
-          <div className="space-y-1">
-            <p className="text-sm text-ink-600">Religion:</p>
+          <div className="space-y-1" data-dob-invalid={showErr(religionValid) ? 'true' : undefined}>
+            <p className={`text-sm ${showErr(religionValid) ? 'text-red-600 font-medium' : 'text-ink-600'}`}>
+              Religion:{showErr(religionValid) && <span className="ml-1 text-xs">(required)</span>}
+            </p>
             <select
               value={religion}
               onChange={(e) => setReligion(e.target.value)}
-              className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+              className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white ${inputErrCls(religionValid)}`}
             >
               <option value="">Select...</option>
               <option value="islam">Islam</option>
@@ -691,9 +727,12 @@ export default function TalentOnboarding() {
               <option value="others">Others</option>
             </select>
           </div>
-          <div className="space-y-1">
-            <p className="text-sm text-ink-600">Languages you can speak (select all that apply):</p>
-            <div className="flex flex-wrap gap-2">
+          <div className="space-y-1" data-dob-invalid={showErr(languagesValid) ? 'true' : undefined}>
+            <p className={`text-sm ${showErr(languagesValid) ? 'text-red-600 font-medium' : 'text-ink-600'}`}>
+              Languages you can speak (select all that apply):
+              {showErr(languagesValid) && <span className="ml-1 text-xs">(pick at least one)</span>}
+            </p>
+            <div className={`flex flex-wrap gap-2 ${ringWrap(languagesValid)}`}>
               {[
                 { value: 'english', label: 'English' },
                 { value: 'bahasa_malaysia', label: 'Bahasa Malaysia' },
@@ -719,9 +758,15 @@ export default function TalentOnboarding() {
               })}
             </div>
           </div>
-          <div className="space-y-1">
-            <p className="text-sm text-ink-600">Does commute distance matter to you?</p>
-            <div className="grid grid-cols-2 gap-2">
+          <div
+            className="space-y-1"
+            data-dob-invalid={showErr(locationMattersValid) || (locationMatters === true && showErr(postcodeValid)) ? 'true' : undefined}
+          >
+            <p className={`text-sm ${showErr(locationMattersValid) ? 'text-red-600 font-medium' : 'text-ink-600'}`}>
+              Does commute distance matter to you?
+              {showErr(locationMattersValid) && <span className="ml-1 text-xs">(required)</span>}
+            </p>
+            <div className={`grid grid-cols-2 gap-2 ${ringWrap(locationMattersValid)}`}>
               <button
                 type="button"
                 onClick={() => setLocationMatters(true)}
@@ -746,8 +791,11 @@ export default function TalentOnboarding() {
                 value={locationPostcode}
                 onChange={(e) => setLocationPostcode(e.target.value.replace(/[^0-9]/g, ''))}
                 placeholder="Your 5-digit postcode (e.g. 50450)"
-                className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm mt-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className={`w-full border rounded-lg px-3 py-2 text-sm mt-2 focus:outline-none focus:ring-2 focus:ring-brand-500 ${inputErrCls(postcodeValid)}`}
               />
+            )}
+            {locationMatters === true && showErr(postcodeValid) && (
+              <p className="text-xs text-red-600 mt-1">Please enter your 5-digit postcode.</p>
             )}
           </div>
           <label htmlFor="talent-onboard-open-new-field" className="flex items-start gap-2 text-sm cursor-pointer">
@@ -765,14 +813,38 @@ export default function TalentOnboarding() {
               </span>
             </span>
           </label>
-          <Consent
-            checked={dobConsent}
-            onChange={setDobConsent}
-            label="I agree to share my date of birth with DNJ to help find roles where I'll thrive. Encrypted and never shown to employers."
-            required
-          />
+          <div
+            className={ringWrap(dobConsentValid)}
+            data-dob-invalid={showErr(dobConsentValid) ? 'true' : undefined}
+          >
+            <Consent
+              checked={dobConsent}
+              onChange={setDobConsent}
+              label="I agree to share my date of birth with DNJ to help find roles where I'll thrive. Encrypted and never shown to employers."
+              required
+            />
+            {showErr(dobConsentValid) && (
+              <p className="text-xs text-red-600 mt-1">Please tick the box to continue.</p>
+            )}
+          </div>
+          {dobAttempted && !allValid && (
+            <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2.5 text-xs text-red-900">
+              <p className="font-semibold mb-1">Please fill in the following to continue:</p>
+              <ul className="list-disc list-inside space-y-0.5">
+                {missingFields.map((m) => <li key={m}>{m}</li>)}
+              </ul>
+            </div>
+          )}
           <Button
             onClick={() => {
+              if (!allValid) {
+                setDobAttempted(true)
+                setTimeout(() => {
+                  const el = document.querySelector('[data-dob-invalid="true"]') as HTMLElement | null
+                  el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                }, 0)
+                return
+              }
               // Server-side belt: also enforce 18+ here in case max attribute is bypassed.
               if (dob) {
                 const dobMs = new Date(dob).getTime()
@@ -785,12 +857,6 @@ export default function TalentOnboarding() {
               setErr(null)
               setDobConfirmOpen(true)
             }}
-            disabled={
-              !dob || !gender || locationMatters === null
-              || (locationMatters === true && locationPostcode.length !== 5)
-              || !race || !religion || languages.length === 0
-              || !dobConsent
-            }
             className="w-full"
             size="lg"
           >

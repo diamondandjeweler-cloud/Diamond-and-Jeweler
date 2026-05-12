@@ -170,7 +170,7 @@ export default function TalentProfile() {
       expected_salary_max: salaryMax || null,
       is_open_to_offers: openToOffers,
       privacy_mode: privacy,
-      whitelist_companies: privacy === 'whitelist' && whitelistCompanies.length > 0 ? whitelistCompanies : null,
+      whitelist_companies: privacy === 'whitelist' ? whitelistCompanies : [],
       preference_ratings: ratings,
     }
     const { data: updated, error } = await supabase.from('talents').update(payload)

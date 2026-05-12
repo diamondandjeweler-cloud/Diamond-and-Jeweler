@@ -16,6 +16,7 @@ import NotificationLogPanel from './admin/NotificationLogPanel'
 import SystemConfigPanel from './admin/SystemConfigPanel'
 import PricingPanel from './admin/PricingPanel'
 import SupportPanel from './admin/SupportPanel'
+import AIChatPanel from './admin/AIChatPanel'
 import AuditLogPanel from './admin/AuditLogPanel'
 import DevSeedPanel from './admin/DevSeedPanel'
 import { PageHeader } from '../../components/ui'
@@ -25,7 +26,7 @@ import { useSession } from '../../state/useSession'
 type AdminTab =
   | 'kpi' | 'companies' | 'waitlist' | 'coldstart' | 'users' | 'approvals' | 'moderation' | 'matches'
   | 'monthly_boost' | 'tags' | 'dsr' | 'market' | 'notifications' | 'pricing' | 'config'
-  | 'support' | 'audit' | 'dev_seed'
+  | 'support' | 'ai_chats' | 'audit' | 'dev_seed'
 
 const TABS: Array<{ key: AdminTab; label: string; render: () => JSX.Element; testOnly?: boolean }> = [
   { key: 'kpi',           label: 'Overview',      render: () => <KpiPanel /> },
@@ -45,6 +46,7 @@ const TABS: Array<{ key: AdminTab; label: string; render: () => JSX.Element; tes
   { key: 'pricing',       label: 'Pricing',       render: () => <PricingPanel /> },
   { key: 'config',        label: 'Config (raw)',  render: () => <SystemConfigPanel /> },
   { key: 'support',       label: 'Support',       render: () => <SupportPanel /> },
+  { key: 'ai_chats',      label: 'AI chats',      render: () => <AIChatPanel /> },
   { key: 'dev_seed',      label: 'Dev seed',      render: () => <DevSeedPanel />, testOnly: true },
 ]
 

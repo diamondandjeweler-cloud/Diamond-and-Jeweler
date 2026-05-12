@@ -68,11 +68,16 @@ export default function TalentProfile() {
 
   async function saveWhatsApp() {
     if (!session) return
-    setWaBusy(true); setWaSaved(false)
+    const trimmed = whatsappNumber.trim()
+    if (trimmed && !/^\+?[0-9\s\-()]{7,20}$/.test(trimmed)) {
+      setErr('Phone number contains invalid characters. Use digits, spaces, + or hyphens only (e.g. +60 12 345 6789).')
+      return
+    }
+    setWaBusy(true); setWaSaved(false); setErr(null)
     try {
       const { error } = await supabase.from('profiles').update({
-        whatsapp_number: whatsappNumber.trim() || null,
-        whatsapp_opt_in: whatsappOptIn && !!whatsappNumber.trim(),
+        whatsapp_number: trimmed || null,
+        whatsapp_opt_in: whatsappOptIn && !!trimmed,
       }).eq('id', session.user.id)
       if (error) throw error
       await refresh()
@@ -149,19 +154,45 @@ export default function TalentProfile() {
     e.preventDefault()
     if (!talent) return
     setErr(null); setWaSaved(false); setBusy(true)
-    if (salaryMin > salaryMax) { setErr('Min salary must be ≤ max.'); setBusy(false); return }
 
-    const { error } = await supabase.from('talents').update({
+    if (salaryMin < 0 || salaryMax < 0) {
+      setErr('Salary cannot be negative.'); setBusy(false); return
+    }
+    if (salaryMax > 500_000) {
+      setErr('Maximum salary cannot exceed RM 500,000 / month.'); setBusy(false); return
+    }
+    if (salaryMin > salaryMax && salaryMax > 0) {
+      setErr('Minimum salary must be ≤ maximum.'); setBusy(false); return
+    }
+
+    const payload = {
       expected_salary_min: salaryMin || null,
       expected_salary_max: salaryMax || null,
       is_open_to_offers: openToOffers,
       privacy_mode: privacy,
       whitelist_companies: privacy === 'whitelist' && whitelistCompanies.length > 0 ? whitelistCompanies : null,
       preference_ratings: ratings,
-    }).eq('id', talent.id)
+    }
+    const { data: updated, error } = await supabase.from('talents').update(payload)
+      .eq('id', talent.id)
+      .select('expected_salary_min, expected_salary_max, privacy_mode')
+      .single()
     setBusy(false)
-    if (error) setErr(error.message)
-    else navigate('/talent')
+    if (error) { setErr(error.message); return }
+
+    // Detect silent server-side reversion (e.g. trigger enforcing range/mode rules).
+    if (updated) {
+      const issues: string[] = []
+      if (payload.expected_salary_min !== null && updated.expected_salary_min !== payload.expected_salary_min)
+        issues.push(`Minimum salary was adjusted by the server (saved as RM ${updated.expected_salary_min?.toLocaleString()}).`)
+      if (payload.expected_salary_max !== null && updated.expected_salary_max !== payload.expected_salary_max)
+        issues.push(`Maximum salary was adjusted by the server (saved as RM ${updated.expected_salary_max?.toLocaleString()}).`)
+      if (updated.privacy_mode !== payload.privacy_mode)
+        issues.push(`Privacy mode could not be changed to "${payload.privacy_mode}" — saved as "${updated.privacy_mode}". Contact support if you believe this is an error.`)
+      if (issues.length > 0) { setErr(issues.join(' ')); return }
+    }
+
+    navigate('/talent')
   }
 
   if (loading) return <LoadingSpinner />

@@ -67,6 +67,11 @@ serve(async (req) => {
     .single()
   if (insErr || !purchase) return json({ error: insErr?.message ?? 'Insert failed' }, 500)
 
+  // Resolve full_name for the Billplz bill customer field.
+  const { data: profileRow } = await db.from('profiles').select('full_name')
+    .eq('id', auth.userId).maybeSingle()
+  const customerName = profileRow?.full_name?.trim() || auth.email
+
   const apiKey = Deno.env.get('BILLPLZ_API_KEY')
   const collectionId = Deno.env.get('BILLPLZ_COLLECTION_ID')
   const site = Deno.env.get('SITE_URL') ?? 'https://diamondandjeweler.com'
@@ -100,7 +105,7 @@ serve(async (req) => {
         collection_id: collectionId,
         description: `DNJ Diamond Points — ${pkg.name} (${pkg.points} pts)`,
         email: auth.email,
-        name: auth.email,
+        name: customerName,
         amount: Math.round(pkg.price_rm * 100), // Billplz expects cents
         callback_url: webhookUrl,
         redirect_url: `${site}/payment/return?purchase=${purchase.id}&kind=points`,

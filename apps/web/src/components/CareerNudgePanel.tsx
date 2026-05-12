@@ -13,7 +13,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useSession } from '../state/useSession'
 import { Card } from './ui'
-import { getCareerNudge, type CareerNudge } from '../lib/yearLuck'
+import type { CareerNudge } from '../lib/yearLuck'
 
 interface Props {
   side: 'talent' | 'hm'
@@ -27,19 +27,14 @@ export default function CareerNudgePanel({ side }: Props) {
   useEffect(() => {
     if (!session) return
     let cancelled = false
-    const table = side === 'talent' ? 'talents' : 'hiring_managers'
-    void supabase.from(table)
-      .select('life_chart_character')
-      .eq('profile_id', session.user.id)
-      .maybeSingle()
+    void supabase.rpc('get_career_nudge', { p_year: new Date().getFullYear() })
       .then(({ data }) => {
         if (cancelled) return
-        const character = (data as { life_chart_character: string | null } | null)?.life_chart_character ?? null
-        setNudge(getCareerNudge(character, new Date().getFullYear()))
+        setNudge((data as CareerNudge) ?? null)
         setLoaded(true)
       })
     return () => { cancelled = true }
-  }, [session, side])
+  }, [session])
 
   if (!loaded || !nudge) return null
 

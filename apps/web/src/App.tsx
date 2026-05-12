@@ -53,6 +53,7 @@ const PointsWallet     = lazy(() => import('./routes/PointsWallet'))
 const Consult          = lazy(() => import('./routes/Consult'))
 const PaymentReturn    = lazy(() => import('./routes/PaymentReturn'))
 const NotFound         = lazy(() => import('./routes/NotFound'))
+const MatchPreview     = lazy(() => import('./routes/dev/MatchPreview'))
 
 // Restaurant OS — own chunk per page; heavy and rarely all visited together.
 // Hard-disabled in production by default. Set VITE_ENABLE_RESTAURANT=true to surface.
@@ -120,6 +121,8 @@ export default function App() {
         <Route path="/terms"   element={<Terms />} />
         <Route path="/mfa/challenge" element={<MfaChallenge />} />
         <Route path="/mfa/enroll"    element={<MfaEnroll />} />
+
+        {import.meta.env.DEV && <Route path="/dev/match-preview" element={<MatchPreview />} />}
 
         {/* Public customer order tracker — anonymous, RLS-allowed read */}
         {RESTAURANT_ENABLED && (

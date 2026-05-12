@@ -155,10 +155,10 @@ export default function PostRole() {
         is_commission_based: isCommissionBased,
         weight_preset: weightPreset === 'default' ? null : weightPreset,
         team_member_characters: (() => {
-          // `m.dob` is now a 4-digit birth year (we only collect year for
-          // colleagues, not full DOB). Pass mid-year (July 1) to the lookup so
-          // the solar-year February boundary is never ambiguous — the function
-          // returns the calendar year unchanged for any month > Feb.
+          // `m.dob` is a 4-digit birth year — we collect year only because
+          // colleagues' full DOB is hard for an HM to gather. Synthesise a
+          // mid-year date (July 1) so the solar-year February boundary is
+          // never ambiguous.
           const chars = teamMembers
             .map((m) => {
               if (!m.dob || !m.gender) return null

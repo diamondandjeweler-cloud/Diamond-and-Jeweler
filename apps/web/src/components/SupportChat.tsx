@@ -112,7 +112,10 @@ export default function SupportChat() {
     const ac = new AbortController()
     abortRef.current = ac
     let timedOut = false
-    const timeout = setTimeout(() => { timedOut = true; ac.abort() }, 45_000)
+    // 30s matches the worst-case server-side cascade (Groq×5 + Anthropic +
+    // Gemini + OpenAI at 8s each ≈ 25s) plus a small buffer. Keeping it tight
+    // means a hung provider surfaces as a retry prompt instead of silent dots.
+    const timeout = setTimeout(() => { timedOut = true; ac.abort() }, 30_000)
 
     try {
       const { data: { session: s } } = await supabase.auth.getSession()

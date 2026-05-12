@@ -21,6 +21,7 @@ import { adminClient } from '../_shared/supabase.ts'
 import {
   buildExtractionPrompt, validateAtoms, deriveLegacyPatches, type Atom,
 } from '../_shared/non-negotiables.ts'
+import { embedMany, toPgVectorLiteral } from '../_shared/embeddings.ts'
 
 interface Body {
   side?: 'hm' | 'talent'
@@ -77,6 +78,9 @@ serve(async (req) => {
     }).eq('id', body.role_id)
     if (error) return json({ error: error.message }, 500)
 
+    // Embed free_text atoms and upsert into nn_atom_embeddings.
+    await persistEmbeddings(db, 'role', body.role_id, atoms)
+
     // Side-effect: also push min_qualification atom into hiring_managers.must_haves
     // for backwards compat with the existing display logic in match-core.
     const patches = deriveLegacyPatches(atoms, 'hm')
@@ -109,6 +113,9 @@ serve(async (req) => {
         priority_concerns_atoms: atoms,
       }).eq('id', talentId)
       if (error) return json({ error: error.message }, 500)
+
+      // Embed free_text atoms and upsert into nn_atom_embeddings.
+      await persistEmbeddings(db, 'talent', talentId, atoms)
 
       // Side-effect: merge derived deal_breakers (salary_floor → min_salary_hard, etc.)
       const patches = deriveLegacyPatches(atoms, 'talent')
@@ -194,6 +201,62 @@ function parseJSONArray(raw: string): unknown[] {
     }
     return []
   } catch { return [] }
+}
+
+/**
+ * Embed every free_text atom in `atoms` and replace the row's entries in
+ * nn_atom_embeddings. Best-effort: failures don't break the parent write.
+ *
+ * Schema: (owner_type, owner_id) is the row's natural key. atom_index is the
+ * original position of the free_text atom in the saved atoms array — used by
+ * the matcher to correlate "concerns_satisfied" hits back to specific atoms.
+ *
+ * Strategy: delete old rows for this owner, generate embeddings for new
+ * free_text atoms in one batch API call, insert. Idempotent.
+ */
+async function persistEmbeddings(
+  db: ReturnType<typeof adminClient>,
+  ownerType: 'role' | 'talent',
+  ownerId: string,
+  atoms: Atom[],
+): Promise<void> {
+  try {
+    // Clear any previous embeddings for this owner.
+    await db.from('nn_atom_embeddings')
+      .delete()
+      .eq('owner_type', ownerType)
+      .eq('owner_id', ownerId)
+
+    const free: Array<{ atomIndex: number; text: string }> = []
+    atoms.forEach((a, i) => {
+      if (a.type === 'free_text' && typeof a.value === 'string' && a.value.trim()) {
+        free.push({ atomIndex: i, text: a.value.trim() })
+      }
+    })
+    if (free.length === 0) return
+
+    const vectors = await embedMany(free.map((f) => f.text))
+
+    const rows: Array<Record<string, unknown>> = []
+    free.forEach((f, i) => {
+      const v = vectors[i]
+      if (v) {
+        rows.push({
+          owner_type: ownerType,
+          owner_id:   ownerId,
+          atom_index: f.atomIndex,
+          text:       f.text,
+          embedding:  toPgVectorLiteral(v),
+        })
+      }
+    })
+    if (rows.length === 0) return
+
+    const { error } = await db.from('nn_atom_embeddings').insert(rows)
+    if (error) console.error('[extract-non-negotiables] embedding insert failed:', error.message)
+  } catch (e) {
+    console.error('[extract-non-negotiables] persistEmbeddings threw:', e)
+  }
 }
 
 // Avoid unused import warning when Atom not referenced in body (kept for export consistency).

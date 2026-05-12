@@ -924,6 +924,10 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     // ── v2: concerns alignment (NN atoms cross-check) ────────────────────
     // Hard-violation atoms already filtered in SQL. Here we score how well
     // the surviving talent's atoms align with the role spec (and vice versa).
+    //
+    // Free_text atoms get an extra pass via compare_nn_concerns(): pgvector
+    // cosine similarity against the OTHER side's free_text embeddings.
+    // cosine_distance <= 0.25 (~similarity >= 0.75) counts as satisfied.
     const talentNNAtoms: Array<{ type: string; value: unknown; class?: string }> =
       Array.isArray((t as unknown as { priority_concerns_atoms: unknown }).priority_concerns_atoms)
         ? (t as unknown as { priority_concerns_atoms: Array<{ type: string; value: unknown; class?: string }> }).priority_concerns_atoms
@@ -934,7 +938,27 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     if (roleNNAtoms.length > 0 || talentNNAtoms.length > 0) {
       const totalAtoms = roleNNAtoms.length + talentNNAtoms.length
       let satisfied = 0
-      for (const atom of roleNNAtoms) {
+
+      // Pre-compute free_text alignment for this (role, talent) pair.
+      // Map keyed by `${side}:${atom_index}` → { match_text, cosine_distance }.
+      // pgvector returns NULL when the other side has no embeddings.
+      type FtHit = { match_text: string | null; cosine_distance: number | null }
+      const ftHits = new Map<string, FtHit>()
+      const SEMANTIC_THRESHOLD = 0.25 // cosine distance; ~similarity >= 0.75
+      try {
+        const { data: ftRows } = await db.rpc('compare_nn_concerns', {
+          p_role_id: roleId,
+          p_talent_id: t.id,
+        })
+        for (const row of (ftRows ?? []) as Array<{ side: string; atom_index: number; atom_text: string; match_text: string | null; cosine_distance: number | null }>) {
+          ftHits.set(`${row.side}:${row.atom_index}`, {
+            match_text: row.match_text,
+            cosine_distance: row.cosine_distance,
+          })
+        }
+      } catch { /* embeddings missing — treat all free_text as unverified */ }
+
+      roleNNAtoms.forEach((atom, idx) => {
         if (atom.type === 'min_qualification' && talentEduLevel) {
           satisfied++; concernsSatisfied.push(`role.min_qualification(${String(atom.value)}) — talent edu=${talentEduLevel}`)
         } else if (atom.type === 'salary_floor') {
@@ -942,12 +966,19 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
         } else if (atom.type === 'required_certification' && talentSkills.includes(String(atom.value))) {
           satisfied++; concernsSatisfied.push(`role.required_cert(${String(atom.value)})`)
         } else if (atom.type === 'free_text') {
-          concernsUnverified.push(`role: ${String(atom.value).slice(0, 60)}`)
+          const hit = ftHits.get(`role:${idx}`)
+          if (hit && hit.cosine_distance != null && hit.cosine_distance <= SEMANTIC_THRESHOLD) {
+            satisfied++
+            concernsSatisfied.push(`role.free_text("${String(atom.value).slice(0, 40)}…") ≈ talent("${(hit.match_text ?? '').slice(0, 40)}…", d=${hit.cosine_distance.toFixed(2)})`)
+          } else {
+            concernsUnverified.push(`role: ${String(atom.value).slice(0, 60)}`)
+          }
         } else {
           satisfied++ // hard-filtered atoms past SQL → satisfied by definition
         }
-      }
-      for (const atom of talentNNAtoms) {
+      })
+
+      talentNNAtoms.forEach((atom, idx) => {
         if (atom.type === 'salary_floor' && roleSalaryMax != null && (atom.value as number) <= roleSalaryMax) {
           satisfied++; concernsSatisfied.push(`talent.salary_floor met (${String(atom.value)} ≤ ${roleSalaryMax})`)
         } else if (atom.type === 'company_size' && hmCompanySize && Array.isArray(atom.value) && (atom.value as string[]).includes(hmCompanySize)) {
@@ -955,11 +986,18 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
         } else if (atom.type === 'industry_only' && roleIndustry && Array.isArray(atom.value) && (atom.value as string[]).includes(roleIndustry)) {
           satisfied++; concernsSatisfied.push(`talent.industry_only met (${roleIndustry})`)
         } else if (atom.type === 'free_text') {
-          concernsUnverified.push(`talent: ${String(atom.value).slice(0, 60)}`)
+          const hit = ftHits.get(`talent:${idx}`)
+          if (hit && hit.cosine_distance != null && hit.cosine_distance <= SEMANTIC_THRESHOLD) {
+            satisfied++
+            concernsSatisfied.push(`talent.free_text("${String(atom.value).slice(0, 40)}…") ≈ role("${(hit.match_text ?? '').slice(0, 40)}…", d=${hit.cosine_distance.toFixed(2)})`)
+          } else {
+            concernsUnverified.push(`talent: ${String(atom.value).slice(0, 60)}`)
+          }
         } else {
           satisfied++ // hard-filtered → satisfied
         }
-      }
+      })
+
       concernsAlignment = totalAtoms > 0 ? (satisfied / totalAtoms) * 100 : null
     }
 

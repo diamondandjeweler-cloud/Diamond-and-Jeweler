@@ -159,8 +159,15 @@ export default function PostRole() {
     if (salaryMin > salaryMax) { setErr('Salary min must be less than or equal to max.'); return }
 
     setBusy(true)
+    // Use a client-generated ID so we can verify whether the INSERT committed
+    // even if the network response arrives after our timeout.
+    const roleId = crypto.randomUUID()
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 30000)
+
     try {
-      const insertPromise = supabase.from('roles').insert({
+      const { data: inserted, error: insErr } = await supabase.from('roles').insert({
+        id: roleId,
         hiring_manager_id: hmId, title,
         description: description || null, department: department || null,
         location: location || null,
@@ -216,11 +223,9 @@ export default function PostRole() {
             .filter((c): c is NonNullable<typeof c> => c !== null)
           return chars.length > 0 ? chars : null
         })(),
-      }).select('id').single()
-      const timeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Network timeout — check your connection and try again.')), 45000),
-      )
-      const { data: inserted, error: insErr } = await Promise.race([insertPromise, timeout]) as Awaited<typeof insertPromise>
+      }).select('id').abortSignal(controller.signal).single()
+      clearTimeout(timeoutId)
+
       if (insErr) throw insErr
 
       // If user typed non-negotiables but didn't click "Parse", run extraction now
@@ -235,6 +240,22 @@ export default function PostRole() {
       void callFunction('match-generate', { role_id: inserted.id }).catch(() => {})
       navigate('/hm', { replace: true })
     } catch (e) {
+      clearTimeout(timeoutId)
+      // AbortError means our 30s timeout fired. Check whether the INSERT was
+      // actually committed server-side (can happen when the response arrives
+      // just after the abort). If so, proceed as success.
+      if (e instanceof Error && e.name === 'AbortError') {
+        const { data: committed } = await supabase
+          .from('roles').select('id').eq('id', roleId).maybeSingle()
+        if (committed) {
+          void callFunction('moderate-role', { role_id: roleId }).catch(() => {})
+          void callFunction('match-generate', { role_id: roleId }).catch(() => {})
+          navigate('/hm', { replace: true })
+          return
+        }
+        setErr('Request timed out — check your connection and try again.')
+        return
+      }
       setErr(e instanceof Error ? e.message : String(e))
     } finally { setBusy(false) }
   }

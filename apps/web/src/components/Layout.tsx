@@ -1,7 +1,7 @@
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useSession } from '../state/useSession'
 import NotificationBell from './NotificationBell'
-import SupportChat from './SupportChat'
+import SupportForm from './SupportForm'
 
 export default function Layout() {
   const { profile, signOut, isHM } = useSession()
@@ -109,7 +109,7 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      <SupportChat />
+      <SupportForm />
 
       <footer className="border-t border-ink-200 bg-white/60 backdrop-blur py-6 mt-8" role="contentinfo">
         <div className="max-w-7xl mx-auto px-4 md:px-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-ink-500">

@@ -196,6 +196,28 @@ export default function SignUp() {
           </div>
         )}
 
+        {/* Google button — primary CTA at the top */}
+        <button
+          type="button"
+          onClick={handleGoogleButtonClick}
+          disabled={busy}
+          className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{
+            borderColor: 'rgba(0,0,0,0.12)',
+            backgroundColor: '#fff',
+            color: '#1a1a2e',
+          }}
+        >
+          <GoogleIcon />
+          {t('auth.continueWithGoogle')}
+        </button>
+
+        <div className="relative flex items-center gap-3">
+          <div className="flex-1 border-t border-ink-200" />
+          <span className="text-xs text-ink-400">{t('auth.orSignUpEmail')}</span>
+          <div className="flex-1 border-t border-ink-200" />
+        </div>
+
         <form onSubmit={handleSubmit} method="post" className="space-y-4">
           <Input
             label={t('common.fullName')}
@@ -310,28 +332,6 @@ export default function SignUp() {
                   : t('auth.createAccount')}
           </Button>
         </form>
-
-        <div className="relative flex items-center gap-3 pt-2">
-          <div className="flex-1 border-t border-ink-200" />
-          <span className="text-xs text-ink-400">{t('auth.orSignUpEmail')}</span>
-          <div className="flex-1 border-t border-ink-200" />
-        </div>
-
-        {/* Google button — opens consent modal if required consents not yet ticked */}
-        <button
-          type="button"
-          onClick={handleGoogleButtonClick}
-          disabled={busy}
-          className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{
-            borderColor: 'rgba(0,0,0,0.12)',
-            backgroundColor: '#fff',
-            color: '#1a1a2e',
-          }}
-        >
-          <GoogleIcon />
-          {t('auth.continueWithGoogle')}
-        </button>
       </div>
 
       {/* Consent gate modal — shown when user clicks Google without ticking required consents */}

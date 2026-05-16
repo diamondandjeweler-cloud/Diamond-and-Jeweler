@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
@@ -85,6 +85,10 @@ export default function PostRole() {
   const [err, setErr] = useState<string | null>(null)
   const [drafting, setDrafting] = useState(false)
   const [draftErr, setDraftErr] = useState<string | null>(null)
+  const [hasDraft, setHasDraft] = useState(false)
+  const [draftSaved, setDraftSaved] = useState(false)
+  const didMount = useRef(false)
+  const DRAFT_KEY = 'hm_role_draft'
 
   async function generateDraft() {
     setDraftErr(null)
@@ -146,6 +150,96 @@ export default function PostRole() {
       })
     return () => { cancelled = true }
   }, [title, location, experience, salaryMin, salaryMax])
+
+  // Draft restore — run once on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY)
+      if (!raw) return
+      const d = JSON.parse(raw) as Record<string, unknown>
+      if (typeof d.title === 'string') setTitle(d.title)
+      if (typeof d.description === 'string') setDescription(d.description)
+      if (typeof d.department === 'string') setDepartment(d.department)
+      if (typeof d.location === 'string') setLocation(d.location)
+      if (typeof d.locationPostcode === 'string') setLocationPostcode(d.locationPostcode)
+      if (typeof d.industry === 'string') setIndustry(d.industry)
+      if (typeof d.acceptNoExperience === 'boolean') setAcceptNoExperience(d.acceptNoExperience)
+      if (typeof d.workArr === 'string') setWorkArr(d.workArr as typeof workArr)
+      if (typeof d.experience === 'string') setExperience(d.experience as typeof experience)
+      if (typeof d.salaryMin === 'number') setSalaryMin(d.salaryMin)
+      if (typeof d.salaryMax === 'number') setSalaryMax(d.salaryMax)
+      if (Array.isArray(d.requiredTraits)) setRequiredTraits(d.requiredTraits as string[])
+      if (typeof d.employmentType === 'string') setEmploymentType(d.employmentType as typeof employmentType)
+      if (typeof d.hourlyRate === 'number') setHourlyRate(d.hourlyRate)
+      if (d.durationDays !== undefined) setDurationDays(d.durationDays as number | '')
+      if (typeof d.startDate === 'string') setStartDate(d.startDate)
+      if (typeof d.requiresWeekend === 'boolean') setRequiresWeekend(d.requiresWeekend)
+      if (typeof d.requiresDrivingLicense === 'boolean') setRequiresDrivingLicense(d.requiresDrivingLicense)
+      if (typeof d.requiresTravel === 'boolean') setRequiresTravel(d.requiresTravel)
+      if (typeof d.hasNightShifts === 'boolean') setHasNightShifts(d.hasNightShifts)
+      if (typeof d.requiresOwnCar === 'boolean') setRequiresOwnCar(d.requiresOwnCar)
+      if (typeof d.requiresRelocation === 'boolean') setRequiresRelocation(d.requiresRelocation)
+      if (typeof d.requiresOvertime === 'boolean') setRequiresOvertime(d.requiresOvertime)
+      if (typeof d.isCommissionBased === 'boolean') setIsCommissionBased(d.isCommissionBased)
+      if (typeof d.weightPreset === 'string') setWeightPreset(d.weightPreset as typeof weightPreset)
+      if (d.schedule && typeof d.schedule === 'object') setSchedule(d.schedule as ScheduleValue)
+      if (typeof d.minEducationLevel === 'string') setMinEducationLevel(d.minEducationLevel)
+      if (typeof d.minEducationClass === 'string') setMinEducationClass(d.minEducationClass)
+      if (Array.isArray(d.requiredSkills)) setRequiredSkills(d.requiredSkills as string[])
+      if (Array.isArray(d.preferredSkills)) setPreferredSkills(d.preferredSkills as string[])
+      if (Array.isArray(d.languagesRequired)) setLanguagesRequired(d.languagesRequired as LanguageReq[])
+      if (Array.isArray(d.environmentFlags)) setEnvironmentFlags(d.environmentFlags as string[])
+      if (Array.isArray(d.openTo)) setOpenTo(d.openTo as string[])
+      if (typeof d.headcount === 'number') setHeadcount(d.headcount)
+      if (typeof d.reportsToTitle === 'string') setReportsToTitle(d.reportsToTitle)
+      if (d.directTeamSize !== undefined) setDirectTeamSize(d.directTeamSize as number | '')
+      if (d.probationMonths !== undefined) setProbationMonths(d.probationMonths as number | '')
+      if (typeof d.interviewProcess === 'string') setInterviewProcess(d.interviewProcess)
+      if (typeof d.startUrgency === 'string') setStartUrgency(d.startUrgency)
+      if (Array.isArray(d.eligibilityWorkAuth)) setEligibilityWorkAuth(d.eligibilityWorkAuth as string[])
+      if (typeof d.nnText === 'string') setNnText(d.nnText)
+      if (Array.isArray(d.nnAtoms)) setNnAtoms(d.nnAtoms as NNAtom[])
+      if (typeof d.teamSize === 'number' || d.teamSize === '') setTeamSize(d.teamSize as number | '')
+      if (Array.isArray(d.teamMembers)) setTeamMembers(d.teamMembers as TeamMember[])
+      setHasDraft(true)
+    } catch {
+      localStorage.removeItem(DRAFT_KEY)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Draft autosave — debounced 600 ms, skips first mount
+  useEffect(() => {
+    if (!didMount.current) { didMount.current = true; return }
+    const json = JSON.stringify({
+      title, description, department, location, locationPostcode, industry,
+      acceptNoExperience, workArr, experience, salaryMin, salaryMax,
+      requiredTraits, employmentType, hourlyRate, durationDays, startDate,
+      requiresWeekend, requiresDrivingLicense, requiresTravel, hasNightShifts,
+      requiresOwnCar, requiresRelocation, requiresOvertime, isCommissionBased,
+      weightPreset, schedule, minEducationLevel, minEducationClass,
+      requiredSkills, preferredSkills, languagesRequired, environmentFlags,
+      openTo, headcount, reportsToTitle, directTeamSize, probationMonths,
+      interviewProcess, startUrgency, eligibilityWorkAuth, nnText, nnAtoms,
+      teamSize, teamMembers,
+    })
+    const timer = setTimeout(() => {
+      localStorage.setItem(DRAFT_KEY, json)
+      setDraftSaved(true)
+      setTimeout(() => setDraftSaved(false), 2000)
+    }, 600)
+    return () => clearTimeout(timer)
+  }, [ // eslint-disable-line react-hooks/exhaustive-deps
+    title, description, department, location, locationPostcode, industry,
+    acceptNoExperience, workArr, experience, salaryMin, salaryMax,
+    requiredTraits, employmentType, hourlyRate, durationDays, startDate,
+    requiresWeekend, requiresDrivingLicense, requiresTravel, hasNightShifts,
+    requiresOwnCar, requiresRelocation, requiresOvertime, isCommissionBased,
+    weightPreset, schedule, minEducationLevel, minEducationClass,
+    requiredSkills, preferredSkills, languagesRequired, environmentFlags,
+    openTo, headcount, reportsToTitle, directTeamSize, probationMonths,
+    interviewProcess, startUrgency, eligibilityWorkAuth, nnText, nnAtoms,
+    teamSize, teamMembers,
+  ])
 
   function toggleTrait(t: string) {
     setRequiredTraits((xs) => xs.includes(t) ? xs.filter((x) => x !== t) : [...xs, t])
@@ -238,6 +332,7 @@ export default function PostRole() {
 
       void callFunction('moderate-role', { role_id: inserted.id }).catch(() => {})
       void callFunction('match-generate', { role_id: inserted.id }).catch(() => {})
+      localStorage.removeItem(DRAFT_KEY)
       navigate('/hm', { replace: true })
     } catch (e) {
       clearTimeout(timeoutId)
@@ -250,6 +345,7 @@ export default function PostRole() {
         if (committed) {
           void callFunction('moderate-role', { role_id: roleId }).catch(() => {})
           void callFunction('match-generate', { role_id: roleId }).catch(() => {})
+          localStorage.removeItem(DRAFT_KEY)
           navigate('/hm', { replace: true })
           return
         }
@@ -278,6 +374,19 @@ export default function PostRole() {
         title="Post a role"
         description="Up to three candidates will be curated for this role as talents become eligible. Pilot estimate: ~14 days."
       />
+
+      {hasDraft && (
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between gap-3 text-sm">
+          <span className="text-amber-800">Draft restored from your last session.</span>
+          <button
+            type="button"
+            onClick={() => { localStorage.removeItem(DRAFT_KEY); window.location.reload() }}
+            className="text-xs text-amber-700 underline hover:text-amber-900 shrink-0"
+          >
+            Discard draft
+          </button>
+        </div>
+      )}
 
       <Card>
         <form onSubmit={submit} className="p-4 md:p-6 space-y-4">
@@ -690,9 +799,12 @@ export default function PostRole() {
 
           <div className="flex gap-2 justify-between pt-4 border-t border-ink-100">
             <Button type="button" variant="secondary" onClick={() => navigate('/hm')} disabled={busy}>Cancel</Button>
-            <Button type="submit" loading={busy} disabled={!title || requiredTraits.length === 0}>
-              {busy ? 'Posting…' : 'Post role & start matching'}
-            </Button>
+            <div className="flex items-center gap-3">
+              {draftSaved && <span className="text-xs text-ink-400">Draft saved</span>}
+              <Button type="submit" loading={busy} disabled={!title || requiredTraits.length === 0}>
+                {busy ? 'Posting…' : 'Post role & start matching'}
+              </Button>
+            </div>
           </div>
         </form>
       </Card>

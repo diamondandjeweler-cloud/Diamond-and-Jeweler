@@ -547,6 +547,7 @@ export default function HMDashboard() {
         ...s,
         [matchId]: { ...s[matchId], saving: false, saved: true, pointsAwarded: result?.points_awarded ?? 0 },
       }))
+      if ((result?.points_awarded ?? 0) > 0) setPointsBalance((prev) => (prev ?? 0) + result.points_awarded)
     } catch (e) {
       setFeedbackState((s) => ({ ...s, [matchId]: { ...s[matchId], saving: false } }))
       setErr(e instanceof Error ? e.message : 'Failed to save feedback')

@@ -5,15 +5,20 @@
  * and extracts behavioural signal tags the same way extract-talent-profile does
  * for interview transcripts — but at comment scale.
  *
- * Auth: talent or hiring_manager (or admin).
- * Input:  { free_text: string, stage: string, from_party: 'hm'|'talent' }
+ * Auth: talent or hiring_manager (or admin) or service-role.
+ * Input:  { free_text: string, stage: string, from_party: 'hm'|'talent', match_id?: string }
  * Output: { feedback_tags: Record<string,number>, theme: string }
+ *
+ * When match_id is provided (service-role inter-function call from submit-feedback),
+ * the result is written back to match_feedback_events so the caller doesn't need
+ * to await this function.
  */
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { corsHeaders, handleOptions } from '../_shared/cors.ts'
 import { authenticate } from '../_shared/auth.ts'
+import { adminClient } from '../_shared/supabase.ts'
 
-interface Body { free_text?: string; stage?: string; from_party?: string }
+interface Body { free_text?: string; stage?: string; from_party?: string; match_id?: string }
 
 const buildPrompt = (text: string, fromParty: string, stage: string) => `
 You are extracting behavioural signals from a short hiring feedback comment.
@@ -71,6 +76,18 @@ serve(async (req) => {
 
   const result = await callExtractionAI(buildPrompt(text, body.from_party ?? 'hm', body.stage ?? 'interview'))
   if (result instanceof Response) return result
+
+  // Write back to match_feedback_events when called as a background task from submit-feedback
+  if (body.match_id && body.stage && body.from_party && result.feedback_tags) {
+    try {
+      const db = adminClient()
+      await db.from('match_feedback_events')
+        .update({ feedback_tags: result.feedback_tags })
+        .eq('match_id', body.match_id)
+        .eq('stage', body.stage)
+        .eq('from_party', body.from_party)
+    } catch { /* best-effort */ }
+  }
 
   return new Response(JSON.stringify(result), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },

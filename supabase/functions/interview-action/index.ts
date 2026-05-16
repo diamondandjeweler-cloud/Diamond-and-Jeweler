@@ -155,7 +155,7 @@ serve(async (req) => {
 
       if (pErr) return json({ error: pErr.message }, 500)
 
-      await callNotify(talentProfileId, 'interview_proposed', {
+      void callNotify(talentProfileId, 'interview_proposed', {
         round_number: roundNumber,
         slot_1_at: parsed[0].toISOString(),
         slot_2_at: parsed[1].toISOString(),
@@ -228,7 +228,7 @@ serve(async (req) => {
         if (upErr) return json({ error: upErr.message }, 500)
       }
 
-      await callNotify(hmProfileId, 'interview_proposal_accepted', {
+      void callNotify(hmProfileId, 'interview_proposal_accepted', {
         round_number: proposal.round_number,
         scheduled_at: chosenAt,
         interview_url: meetUrl,
@@ -261,7 +261,7 @@ serve(async (req) => {
         .eq('id', proposal.id)
       if (upErr) return json({ error: upErr.message }, 500)
 
-      await callNotify(hmProfileId, 'interview_proposal_declined', {
+      void callNotify(hmProfileId, 'interview_proposal_declined', {
         round_number: proposal.round_number,
         decline_reason: body.decline_reason ?? null,
         role_title: roleTitle,
@@ -343,7 +343,7 @@ serve(async (req) => {
         .eq('id', match_id)
       if (upErr) return json({ error: upErr.message }, 500)
 
-      await callNotify(talentProfileId, 'offer_made_notify', {
+      void callNotify(talentProfileId, 'offer_made_notify', {
         role_title: roleTitle,
         company_name: companyName,
       })
@@ -388,7 +388,7 @@ serve(async (req) => {
 
       // Notify the other party
       const notifyUserId = isHM ? talentProfileId : hmProfileId
-      await callNotify(notifyUserId, 'interview_cancelled', {
+      void callNotify(notifyUserId, 'interview_cancelled', {
         role_title: roleTitle,
         company_name: companyName,
       })
@@ -433,7 +433,7 @@ serve(async (req) => {
         .eq('id', talentProfileId)
         .maybeSingle()
 
-      await callNotify(hmProfileId, 'offer_accepted', {
+      void callNotify(hmProfileId, 'offer_accepted', {
         talent_name: talentProfile?.full_name ?? 'The candidate',
         role_title: roleTitle,
       })
@@ -460,7 +460,7 @@ serve(async (req) => {
         .eq('id', talentProfileId)
         .maybeSingle()
 
-      await callNotify(hmProfileId, 'offer_declined', {
+      void callNotify(hmProfileId, 'offer_declined', {
         talent_name: talentProfile?.full_name ?? 'The candidate',
         role_title: roleTitle,
       })

@@ -122,28 +122,22 @@ serve(async (req) => {
     }, { onConflict: 'match_id' })
   }
 
-  // ── Extract tags from free_text (async, best-effort) ─────────────────────
-  let feedbackTags: Record<string, number> | null = null
-  let theme: string | null = null
+  // ── Extract tags from free_text (true fire-and-forget — never block the user) ──
+  const feedbackTags: Record<string, number> | null = null
+  const theme: string | null = null
   if (body.free_text && body.free_text.trim().length >= 10) {
     const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const fnUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/extract-feedback-tags`
-    try {
-      const res = await fetch(fnUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${svcKey}` },
-        body: JSON.stringify({ free_text: body.free_text, stage: body.stage, from_party: body.from_party }),
-      })
-      if (res.ok) {
-        const ext = await res.json() as { feedback_tags?: Record<string, number>; theme?: string }
-        feedbackTags = ext.feedback_tags ?? null
-        theme = ext.theme ?? null
-        if (feedbackTags) {
-          await db.from('match_feedback_events').update({ feedback_tags: feedbackTags })
-            .eq('match_id', body.match_id).eq('stage', body.stage).eq('from_party', body.from_party)
-        }
-      }
-    } catch { /* best-effort */ }
+    const matchId = body.match_id
+    const stage = body.stage
+    const fromParty = body.from_party
+    // Fire without awaiting — tags are written back to match_feedback_events
+    // by the extract-feedback-tags function itself when it completes.
+    fetch(fnUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${svcKey}` },
+      body: JSON.stringify({ free_text: body.free_text, stage, from_party: fromParty, match_id: matchId }),
+    }).catch(() => { /* best-effort */ })
   }
 
   // ── Recompute reputation for the reviewed party ───────────────────────────

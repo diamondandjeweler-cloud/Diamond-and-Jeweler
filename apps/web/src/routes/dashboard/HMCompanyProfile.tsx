@@ -37,7 +37,8 @@ export default function HMCompanyProfile() {
       if (error) { setErr(error.message); return }
       if (data) {
         setJobTitle(data.job_title ?? '')
-        setCompany((data.companies as CompanyRow | null) ?? null)
+        const co = Array.isArray(data.companies) ? (data.companies[0] as CompanyRow ?? null) : (data.companies as unknown as CompanyRow | null)
+        setCompany(co)
       }
     }
     void load()

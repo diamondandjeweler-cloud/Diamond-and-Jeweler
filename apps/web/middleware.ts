@@ -51,11 +51,11 @@ function readCookie(req: Request, name: string): string | null {
 // with HS256 by default; the secret is exposed to server-side callers as
 // SUPABASE_JWT_SECRET. We verify signature + check `exp` only — role/admin
 // checks stay in AdminGate (client) and RLS (server).
-function base64UrlToBytes(input: string): Uint8Array {
+function base64UrlToBytes(input: string): Uint8Array<ArrayBuffer> {
   const pad = '='.repeat((4 - (input.length % 4)) % 4)
   const b64 = (input + pad).replace(/-/g, '+').replace(/_/g, '/')
   const bin = atob(b64)
-  const bytes = new Uint8Array(bin.length)
+  const bytes = new Uint8Array(new ArrayBuffer(bin.length))
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
   return bytes
 }

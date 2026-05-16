@@ -283,6 +283,8 @@ export default function Landing() {
 
       <footer className="relative z-10 pt-1 pb-2 text-center text-[10px] text-gray-500 flex-shrink-0 flex flex-col items-center gap-1">
         <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+          <Link to="/about" className="hover:text-[#0B1220]">About</Link>
+          <span>·</span>
           <Link to="/careers" className="hover:text-[#0B1220]">Careers</Link>
           <span>·</span>
           <Link to="/privacy" className="hover:text-[#0B1220]">{t('footer.privacy')}</Link>

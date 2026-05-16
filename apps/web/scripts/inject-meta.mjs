@@ -62,6 +62,19 @@ const ROUTES = {
     title: 'Reset your password · DNJ',
     description: 'Request a secure password reset link for your DNJ account.',
   },
+  '/about': {
+    title: 'About DNJ — Bole, the AI That Recognises Your Brilliance',
+    description:
+      "DNJ is an AI-curated recruitment platform for Malaysia. Meet Bole — our advanced AI talent scout that recognises your potential and matches you with the leader who brings out your brilliance. You're already a diamond; let the world see it.",
+    bullets: [
+      "You're already a diamond — most job boards just can't see it",
+      'Bole is DNJ’s advanced AI talent scout — it recognises potential, it doesn’t manufacture it',
+      'Named after the legendary Bole (伯樂), who could spot an extraordinary talent in any crowd',
+      'Bole reads six facets: skills, career trajectory, character, working style, growth potential and culture fit',
+      'You receive three curated matches — quality over volume, zero noise',
+      'The right leader doesn’t create talent — they reveal the brilliance you already carry',
+    ],
+  },
 
   // ----- Careers hub + blog -----
   '/careers': {

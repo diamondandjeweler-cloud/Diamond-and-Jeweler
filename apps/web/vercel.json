@@ -107,6 +107,10 @@
       "dest": "/password-reset.html"
     },
     {
+      "src": "^/about/?$",
+      "dest": "/about.html"
+    },
+    {
       "src": "^/careers/urgent-hiring-malaysia-2026/?$",
       "dest": "/careers/urgent-hiring-malaysia-2026.html"
     },
@@ -147,7 +151,7 @@
       "dest": "/hire-$1.html"
     },
     {
-      "src": "^/(?:home|login|signup|signout|password-reset|consent|start(?:/[^/]+)?|auth/callback|mfa/(?:challenge|enroll)|onboarding/(?:talent|hm|company(?:/verify)?)|talent(?:/profile)?|hm(?:/post-role|/roles(?:/[^/]+/edit)?)?|hr(?:/invite)?|admin|referrals|points|consult(?:/return)?|feedback/[^/]+|data-requests|privacy|terms|waitlist/confirm|payment/(?:return|mock)|restaurant(?:/.*)?|menu/[^/]+|careers(?:/[^/]+)?|jobs/[^/]+|jobs-in-[^/]+|hire-[^/]+)$",
+      "src": "^/(?:home|login|signup|signout|password-reset|consent|about|start(?:/[^/]+)?|auth/callback|mfa/(?:challenge|enroll)|onboarding/(?:talent|hm|company(?:/verify)?)|talent(?:/profile)?|hm(?:/post-role|/roles(?:/[^/]+/edit)?)?|hr(?:/invite)?|admin|referrals|points|consult(?:/return)?|feedback/[^/]+|data-requests|privacy|terms|waitlist/confirm|payment/(?:return|mock)|restaurant(?:/.*)?|menu/[^/]+|careers(?:/[^/]+)?|jobs/[^/]+|jobs-in-[^/]+|hire-[^/]+)$",
       "dest": "/index.html"
     },
     { "src": "^/$", "dest": "/index.html" },

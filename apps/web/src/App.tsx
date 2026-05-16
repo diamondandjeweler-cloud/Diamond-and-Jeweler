@@ -15,6 +15,7 @@ import Login from './routes/auth/Login'
 import { LOCATION_SLUGS, HIRE_SLUGS } from './data/silo-data'
 
 const Start            = lazy(() => import('./routes/Start'))
+const About            = lazy(() => import('./routes/About'))
 const Careers          = lazy(() => import('./routes/Careers'))
 const UrgentHiringPost = lazy(() => import('./routes/UrgentHiringPost'))
 const RoleSilo         = lazy(() => import('./routes/RoleSilo'))
@@ -97,6 +98,7 @@ export default function App() {
       <Routes>
         {/* Public */}
         <Route path="/" element={<Landing />} />
+        <Route path="/about" element={<About />} />
         <Route path="/careers" element={<Careers />} />
         {/* F19 — /job-vacancy was a duplicate URL of /careers (SEO cannibalisation
             risk). Canonicalise to /careers via a client-side redirect. */}

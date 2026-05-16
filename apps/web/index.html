@@ -8,6 +8,9 @@
     <link rel="preconnect" href="https://sfnrpbsdscikpmbhrzub.supabase.co" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Fonts: preload the stylesheet so text is unblocked on the critical path. -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:wght@400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:wght@400;500;600;700&display=swap" />
     <!-- Non-critical (auth-only / analytics): just dns-prefetch to avoid the preconnect handshake cost. -->
     <link rel="dns-prefetch" href="https://challenges.cloudflare.com" />
     <link rel="dns-prefetch" href="https://plausible.io" />

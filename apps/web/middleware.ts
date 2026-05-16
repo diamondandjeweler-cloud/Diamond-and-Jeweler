@@ -191,8 +191,102 @@ async function adminGate(req: Request, pathname: string): Promise<Response | und
   return undefined
 }
 
+// ── F-07: Bot OG injection ────────────────────────────────────────────────────
+const ORIGIN = 'https://diamondandjeweler.com'
+const OG_IMAGE = `${ORIGIN}/og-image.png`
+const DEFAULT_TITLE = 'DNJ — AI-Curated Recruitment Platform Malaysia | Jobs Across Every Industry'
+const DEFAULT_DESC = 'AI-powered curated recruitment for every industry in Malaysia. Three matches, zero noise. PDPA-compliant, end-to-end encrypted.'
+
+const BOT_UA = /Twitterbot|facebookexternalhit|LinkedInBot|Slackbot|Googlebot|bingbot|DuckDuckBot|WhatsApp|Discordbot|TelegramBot|PinterestBot|Slack-ImgProxy|Applebot|redditbot/i
+
+const STATIC_PREFIX = /^\/(assets|_next|favicon|og-image|manifest|sitemap|robots|\.well-known)\b/
+
+function resolveOg(pathname: string): { title: string; description: string } {
+  const slug = (s: string) => s.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+
+  if (pathname === '/careers') return {
+    title: 'Job Vacancies in Malaysia | DNJ',
+    description: 'Browse AI-curated job vacancies across every industry in Malaysia — sales, finance, IT, hospitality, aviation and more. Three matches, zero noise.',
+  }
+  if (pathname === '/login') return {
+    title: 'Sign In | DNJ',
+    description: 'Sign in to your DNJ account to view curated job matches, manage your profile, or post new roles.',
+  }
+  if (pathname === '/signup') return {
+    title: 'Create Your Account | DNJ',
+    description: 'Join DNJ as a talent or hiring manager. AI-curated recruitment across every industry in Malaysia.',
+  }
+  if (pathname === '/start/talent') return {
+    title: 'Find Your Next Role | DNJ',
+    description: 'Set up your talent profile and receive AI-curated job matches across every industry in Malaysia. Three curated offers, zero noise.',
+  }
+  if (pathname === '/start/hiring') return {
+    title: 'Hire the Right Talent | DNJ',
+    description: 'Post a role and receive up to three AI-curated candidate profiles. No CV pile, no noise. PDPA-compliant.',
+  }
+  if (pathname === '/privacy') return {
+    title: 'Privacy Policy | DNJ',
+    description: 'Learn how DNJ collects, stores, and protects your personal data in accordance with the Malaysian PDPA.',
+  }
+  if (pathname === '/terms') return {
+    title: 'Terms of Service | DNJ',
+    description: 'The legal agreement governing use of the DNJ AI-curated recruitment platform.',
+  }
+
+  const jobMatch = pathname.match(/^\/jobs\/([^/]+)\/?$/)
+  if (jobMatch) {
+    const role = slug(jobMatch[1])
+    return {
+      title: `${role} Jobs in Malaysia | DNJ`,
+      description: `Find AI-curated ${role} job vacancies in Malaysia on DNJ. Three matches, zero noise — for fresh graduates and experienced professionals alike.`,
+    }
+  }
+
+  const locationMatch = pathname.match(/^\/jobs-in-([^/]+)\/?$/)
+  if (locationMatch) {
+    const loc = slug(locationMatch[1])
+    return {
+      title: `Jobs in ${loc} | DNJ`,
+      description: `Browse AI-curated job vacancies in ${loc} across every industry. DNJ matches talent with the right employer — three curated offers, zero noise.`,
+    }
+  }
+
+  const hireMatch = pathname.match(/^\/hire-([^/]+)\/?$/)
+  if (hireMatch) {
+    const role = slug(hireMatch[1])
+    return {
+      title: `Hire ${role} in Malaysia | DNJ`,
+      description: `Find the right ${role} for your team. DNJ delivers up to three AI-curated candidate profiles — no CV pile, no noise.`,
+    }
+  }
+
+  if (pathname.startsWith('/careers/')) return {
+    title: 'Career Guides for Malaysia | DNJ',
+    description: 'Expert career guides and industry insights for job seekers and hiring managers in Malaysia.',
+  }
+
+  return { title: DEFAULT_TITLE, description: DEFAULT_DESC }
+}
+
+function botOgResponse(pathname: string): Response {
+  const { title, description } = resolveOg(pathname)
+  const url = `${ORIGIN}${pathname}`
+  const html = `<!doctype html><html lang="en"><head><meta charset="UTF-8"/><title>${title}</title><meta name="description" content="${description}"/><meta property="og:type" content="website"/><meta property="og:site_name" content="DNJ"/><meta property="og:title" content="${title}"/><meta property="og:description" content="${description}"/><meta property="og:url" content="${url}"/><meta property="og:image" content="${OG_IMAGE}"/><meta property="og:image:alt" content="DNJ — AI-curated recruitment platform Malaysia"/><meta name="twitter:card" content="summary_large_image"/><meta name="twitter:title" content="${title}"/><meta name="twitter:description" content="${description}"/><meta name="twitter:image" content="${OG_IMAGE}"/><link rel="canonical" href="${url}"/></head><body><p>${title}</p><p>${description}</p></body></html>`
+  return new Response(html, {
+    status: 200,
+    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=300, s-maxage=300' },
+  })
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default async function middleware(req: Request) {
   const { pathname } = new URL(req.url)
+
+  // Serve OG-injected HTML to social crawlers on any non-static path.
+  if (!STATIC_PREFIX.test(pathname)) {
+    const ua = req.headers.get('user-agent') ?? ''
+    if (BOT_UA.test(ua)) return botOgResponse(pathname)
+  }
 
   // /admin gate — real JWT verification.
   if (pathname === '/admin' || pathname.startsWith('/admin/')) {
@@ -200,6 +294,9 @@ export default async function middleware(req: Request) {
     if (blocked) return blocked
     return
   }
+
+  // /api/health — health-check; bypass rate limiter.
+  if (pathname === '/api/health') return
 
   // /api/* — rate limit only.
   if (!pathname.startsWith('/api/')) return
@@ -230,5 +327,6 @@ export default async function middleware(req: Request) {
 }
 
 export const config = {
-  matcher: ['/api/:path*', '/admin', '/admin/:path*'],
+  // Run on all paths so the bot OG gate fires before React loads.
+  matcher: ['/((?!_next/static|_next/image).*)'],
 }

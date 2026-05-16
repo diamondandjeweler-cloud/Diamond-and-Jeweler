@@ -31,6 +31,33 @@ export default function Login() {
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+
+  // Brute-force protection: track consecutive failures in sessionStorage.
+  const LOCKOUT_KEY = 'dnj.login_fails'
+  const LOCKOUT_MAX = 5
+  const LOCKOUT_MS = 15 * 60 * 1000
+
+  function getLockout(): { count: number; since: number } {
+    try { return JSON.parse(sessionStorage.getItem(LOCKOUT_KEY) ?? '{}') } catch { return { count: 0, since: 0 } }
+  }
+  function isLockedOut(): boolean {
+    const { count, since } = getLockout()
+    if (count < LOCKOUT_MAX) return false
+    return Date.now() - since < LOCKOUT_MS
+  }
+  function recordFailure() {
+    const { count, since } = getLockout()
+    const fresh = Date.now() - since > LOCKOUT_MS
+    const next = fresh ? 1 : count + 1
+    try { sessionStorage.setItem(LOCKOUT_KEY, JSON.stringify({ count: next, since: fresh ? Date.now() : since })) } catch { /* tolerate */ }
+  }
+  function clearFailures() {
+    try { sessionStorage.removeItem(LOCKOUT_KEY) } catch { /* tolerate */ }
+  }
+  function lockoutMinutesLeft(): number {
+    const { since } = getLockout()
+    return Math.ceil((LOCKOUT_MS - (Date.now() - since)) / 60000)
+  }
   // Queue a submit when the user clicks before the Turnstile token has
   // arrived. Without this, the click was either (a) suppressed by the
   // disabled-button race or (b) early-returned with a confusing "complete the
@@ -74,11 +101,13 @@ export default function Login() {
     ])
     setBusy(false)
     if (error) {
+      recordFailure()
       setErr(error.message)
       setCaptchaToken(null)
       logAuthFailure(email, error.message)
       return
     }
+    clearFailures()
     markAdminVerified()
     navigate(redirectTo, { replace: true })
   }
@@ -86,6 +115,10 @@ export default function Login() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setErr(null)
+    if (isLockedOut()) {
+      setErr(`Too many failed attempts. Please try again in ${lockoutMinutesLeft()} minute${lockoutMinutesLeft() === 1 ? '' : 's'}.`)
+      return
+    }
     if (!email || !password) { setErr('Please enter your email and password.'); return }
     if (!captchaToken) {
       // Token not in yet — queue submit instead of bouncing the user.

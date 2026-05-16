@@ -160,6 +160,9 @@ function navForRole(role: string | undefined, pathname: string, opts: { isHM?: b
     linkFor('/hm', 'Candidates'),
     linkFor('/hm/roles', 'My roles'),
     linkFor('/hm/post-role', 'Post role'),
+    linkFor('/hm/company', 'Company'),
+    linkFor('/hm/settings', 'Settings'),
+    linkFor('/hm/account', 'Account'),
   ]
   if (role === 'hr_admin') {
     const base = [

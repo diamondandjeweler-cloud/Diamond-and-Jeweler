@@ -55,7 +55,9 @@ export default function AuthCallback() {
         new Promise<void>((resolve) => setTimeout(resolve, 5000)),
       ])
       void processStoredReferral(session.user.id)
-      window.location.replace('/home')
+      const savedRedirect = sessionStorage.getItem('dnj.auth_redirect') ?? '/home'
+      try { sessionStorage.removeItem('dnj.auth_redirect') } catch { /* tolerate */ }
+      window.location.replace(savedRedirect)
     })()
   }, [session, type])
 

@@ -81,6 +81,9 @@ export default function Login() {
     if (isHRAdmin || isHiringManager) {
       try { localStorage.setItem('dnj.signup_role', isHRAdmin ? 'hr_admin' : 'hiring_manager') } catch { /* tolerate */ }
     }
+    if (redirectTo && redirectTo !== '/home') {
+      try { sessionStorage.setItem('dnj.auth_redirect', redirectTo) } catch { /* tolerate */ }
+    }
     const roleQuery = isHRAdmin ? '?role=hr_admin' : isHiringManager ? '?role=hiring_manager' : ''
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',

@@ -9,13 +9,8 @@ export default function ProtectedRoute({ children }: { children: ReactNode }) {
 
   if (loading) return <LoadingSpinner full />
   if (!session) {
-    return (
-      <Navigate
-        to="/login"
-        state={{ from: location.pathname }}
-        replace
-      />
-    )
+    const next = encodeURIComponent(location.pathname + location.search)
+    return <Navigate to={`/login?next=${next}`} replace />
   }
   return <>{children}</>
 }

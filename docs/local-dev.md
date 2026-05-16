@@ -167,6 +167,49 @@ supabase stop --no-backup # stops and drops data
 
 ---
 
+## Email verification testing
+
+### Local (Inbucket — zero config)
+
+`supabase start` spins up [Inbucket](http://localhost:54324) automatically.
+Every email the local Auth service sends (sign-up confirmation, password reset,
+HM invite magic link) lands there — no real inbox needed.
+
+```
+http://localhost:54324   ← Inbucket web UI
+```
+
+Confirmation flow:
+1. Sign up at `/signup` with any fake address (e.g. `alice@test.local`).
+2. Open Inbucket → find the email → click the confirmation link.
+3. You land at `/auth/callback` and are routed to onboarding.
+
+### Staging / cloud project (manual confirm)
+
+If you're testing against the real Supabase project and don't want to wait for
+a live inbox:
+
+1. **Supabase Dashboard → Authentication → Users** — find the user row.
+2. Click the three-dot menu → **"Send magic link"** (or confirm directly if
+   your project plan shows a "Confirm email" button).
+
+Alternatively, enable **"Auto Confirm"** on a dedicated staging Supabase
+project (free tier). Set `VITE_SUPABASE_URL` to the staging project URL in
+`.env.local` and email confirmation is skipped entirely during development.
+
+### CI / Playwright
+
+The e2e smoke suite at `tests/e2e/smoke.spec.ts` avoids auth flows that need a
+real inbox by design. For full auth-flow coverage locally, run against the
+Inbucket stack:
+
+```bash
+supabase start
+cd apps/web && npx playwright test tests/e2e/auth-flows.spec.ts
+```
+
+---
+
 ## What *doesn't* work locally
 
 - **`pg_cron` schedules don't tick**: you can still invoke the functions

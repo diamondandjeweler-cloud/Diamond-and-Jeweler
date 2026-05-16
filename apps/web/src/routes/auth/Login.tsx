@@ -24,7 +24,7 @@ export default function Login() {
   const isHiringManager = roleParam === 'hiring_manager'
   const isHiring = isHRAdmin || isHiringManager
   const isReauth = params.get('reauth') === '1'
-  const redirectTo = (location.state as { from?: string } | null)?.from ?? '/home'
+  const redirectTo = params.get('next') ?? params.get('from') ?? (location.state as { from?: string } | null)?.from ?? '/home'
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -32,13 +32,16 @@ export default function Login() {
   const [busy, setBusy] = useState(false)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
 
-  // Brute-force protection: track consecutive failures in sessionStorage.
+  // Brute-force protection: track consecutive failures in localStorage so
+  // the lockout persists across tabs and windows, not just the current session.
+  // Server-side: enable Supabase Auth → Rate Limits in the dashboard for a
+  // durable per-email limit that survives client storage clears.
   const LOCKOUT_KEY = 'dnj.login_fails'
-  const LOCKOUT_MAX = 5
+  const LOCKOUT_MAX = 3
   const LOCKOUT_MS = 15 * 60 * 1000
 
   function getLockout(): { count: number; since: number } {
-    try { return JSON.parse(sessionStorage.getItem(LOCKOUT_KEY) ?? '{}') } catch { return { count: 0, since: 0 } }
+    try { return JSON.parse(localStorage.getItem(LOCKOUT_KEY) ?? '{}') } catch { return { count: 0, since: 0 } }
   }
   function isLockedOut(): boolean {
     const { count, since } = getLockout()
@@ -49,10 +52,10 @@ export default function Login() {
     const { count, since } = getLockout()
     const fresh = Date.now() - since > LOCKOUT_MS
     const next = fresh ? 1 : count + 1
-    try { sessionStorage.setItem(LOCKOUT_KEY, JSON.stringify({ count: next, since: fresh ? Date.now() : since })) } catch { /* tolerate */ }
+    try { localStorage.setItem(LOCKOUT_KEY, JSON.stringify({ count: next, since: fresh ? Date.now() : since })) } catch { /* tolerate */ }
   }
   function clearFailures() {
-    try { sessionStorage.removeItem(LOCKOUT_KEY) } catch { /* tolerate */ }
+    try { localStorage.removeItem(LOCKOUT_KEY) } catch { /* tolerate */ }
   }
   function lockoutMinutesLeft(): number {
     const { since } = getLockout()

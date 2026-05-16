@@ -55,7 +55,7 @@ export default function Layout() {
           </div>
 
           <div className="flex items-center gap-3" aria-label="User navigation">
-{profile?.points != null && (
+{profile?.role === 'talent' && profile?.points != null && (
               <Link to="/points" className="hidden sm:inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-accent-500/10 text-accent-600 ring-1 ring-accent-500/20 hover:bg-accent-500/15">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.5L12 16.9 5.8 21.4l2.4-7.5L2 9.4h7.6L12 2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>
                 {profile.points} Diamond Points

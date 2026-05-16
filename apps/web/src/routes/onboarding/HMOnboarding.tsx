@@ -20,6 +20,7 @@ import { useNavigate } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { encryptDob, markOnboardingComplete } from '../../lib/api'
+import { callFunction } from '../../lib/functions'
 import { getLifeChartCharacter, type Gender } from '../../lib/lifeChartCharacter'
 import Consent from '../../components/Consent'
 import ChatShell, { ChatMessage } from '../../components/ChatShell'
@@ -37,6 +38,8 @@ export default function HMOnboarding() {
   const navigate = useNavigate()
 
   const [phase, setPhase] = useState<Phase>('basics')
+  const [switching, setSwitching] = useState(false)
+  const [switchErr, setSwitchErr] = useState<string | null>(null)
   const [fullName, setFullName] = useState('')
   const [jobTitle, setJobTitle] = useState('')
   const [log, setLog] = useState<ChatMessage[]>([])
@@ -369,6 +372,19 @@ export default function HMOnboarding() {
     }
   }
 
+  async function handleSwitchToTalent() {
+    setSwitching(true)
+    setSwitchErr(null)
+    try {
+      await callFunction('switch-account-type', { new_role: 'talent' })
+      await refresh()
+      navigate('/onboarding/talent')
+    } catch (e) {
+      setSwitchErr(e instanceof Error ? e.message : 'Switch failed. Please try again.')
+      setSwitching(false)
+    }
+  }
+
   // ── composer per phase ────────────────────────────────────────────────────────
 
   const composer = (() => {
@@ -405,6 +421,17 @@ export default function HMOnboarding() {
           <Button type="submit" disabled={!fullName.trim() || !jobTitle.trim()} className="w-full" size="lg">
             Continue to chat with DNJ
           </Button>
+          <div className="text-center pt-1">
+            <button
+              type="button"
+              onClick={() => void handleSwitchToTalent()}
+              disabled={switching}
+              className="text-xs text-ink-400 hover:text-ink-600 underline"
+            >
+              {switching ? 'Switching…' : 'Looking for work instead? Switch to a talent account'}
+            </button>
+            {switchErr && <p className="text-xs text-red-600 mt-1">{switchErr}</p>}
+          </div>
         </form>
       )
     }

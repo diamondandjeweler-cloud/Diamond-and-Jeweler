@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
+import { callFunction } from '../../../lib/functions'
 import LoadingSpinner from '../../../components/LoadingSpinner'
 
 interface UserRow {
@@ -13,12 +14,26 @@ interface UserRow {
   created_at: string
 }
 
+interface ChangeRoleModal { userId: string; currentRole: string; name: string }
+
+const ROLE_OPTIONS = [
+  { value: 'talent',          label: 'Talent (job seeker)' },
+  { value: 'hiring_manager',  label: 'Hiring Manager' },
+  { value: 'hr_admin',        label: 'HR Admin' },
+]
+
 export default function UserPanel() {
   const [rows, setRows] = useState<UserRow[]>([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'banned' | 'ghosts'>('all')
   const [q, setQ] = useState('')
+
+  const [changeRoleModal, setChangeRoleModal] = useState<ChangeRoleModal | null>(null)
+  const [newRole, setNewRole] = useState('')
+  const [roleReason, setRoleReason] = useState('')
+  const [roleChanging, setRoleChanging] = useState(false)
+  const [roleErr, setRoleErr] = useState<string | null>(null)
 
   async function reload() {
     setLoading(true)
@@ -43,6 +58,36 @@ export default function UserPanel() {
     setRows((xs) => xs.map((r) => (r.id === id ? { ...r, is_banned } : r)))
     const { error } = await supabase.from('profiles').update({ is_banned }).eq('id', id)
     if (error) setErr(error.message)
+  }
+
+  function openChangeRole(u: UserRow) {
+    setChangeRoleModal({ userId: u.id, currentRole: u.role, name: u.full_name || u.email })
+    setNewRole(u.role)
+    setRoleReason('')
+    setRoleErr(null)
+  }
+
+  async function doChangeRole() {
+    if (!changeRoleModal) return
+    setRoleChanging(true)
+    setRoleErr(null)
+    try {
+      await callFunction('admin-change-role', {
+        user_id: changeRoleModal.userId,
+        new_role: newRole,
+        reason: roleReason,
+      })
+      setRows((xs) => xs.map((r) =>
+        r.id === changeRoleModal.userId
+          ? { ...r, role: newRole, onboarding_complete: false }
+          : r
+      ))
+      setChangeRoleModal(null)
+    } catch (e) {
+      setRoleErr(e instanceof Error ? e.message : 'Role change failed')
+    } finally {
+      setRoleChanging(false)
+    }
   }
 
   return (
@@ -101,7 +146,13 @@ export default function UserPanel() {
                   <td className="text-gray-500 text-xs">
                     {new Date(u.created_at).toLocaleDateString()}
                   </td>
-                  <td className="text-right whitespace-nowrap">
+                  <td className="text-right whitespace-nowrap space-x-3">
+                    <button
+                      onClick={() => openChangeRole(u)}
+                      className="text-xs text-ink-500 hover:underline"
+                    >
+                      Change role
+                    </button>
                     {u.is_banned ? (
                       <button
                         onClick={() => void setBan(u.id, false)}
@@ -123,6 +174,57 @@ export default function UserPanel() {
             </tbody>
           </table>
         )
+      )}
+
+      {changeRoleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm space-y-4">
+            <h3 className="font-semibold text-base">Change role — {changeRoleModal.name}</h3>
+            <p className="text-xs text-ink-500">
+              Current: <span className="capitalize font-medium">{changeRoleModal.currentRole.replace('_', ' ')}</span>.
+              Onboarding will be reset so the user goes through the correct flow.
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-ink-700 mb-1">New role</label>
+              <select
+                value={newRole}
+                onChange={(e) => setNewRole(e.target.value)}
+                className="w-full border rounded-lg px-3 py-2 text-sm"
+              >
+                {ROLE_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-ink-700 mb-1">Reason (required)</label>
+              <input
+                type="text"
+                value={roleReason}
+                onChange={(e) => setRoleReason(e.target.value)}
+                placeholder="e.g. Registered as talent by mistake"
+                className="w-full border rounded-lg px-3 py-2 text-sm"
+              />
+            </div>
+            {roleErr && <p className="text-xs text-red-600">{roleErr}</p>}
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setChangeRoleModal(null)}
+                disabled={roleChanging}
+                className="px-4 py-2 text-sm rounded-lg border hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => void doChangeRole()}
+                disabled={roleChanging || newRole === changeRoleModal.currentRole || roleReason.trim().length < 8}
+                className="px-4 py-2 text-sm rounded-lg bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-50"
+              >
+                {roleChanging ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

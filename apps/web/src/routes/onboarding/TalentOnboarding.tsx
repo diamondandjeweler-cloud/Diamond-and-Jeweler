@@ -42,6 +42,8 @@ export default function TalentOnboarding() {
   const navigate = useNavigate()
 
   const [phase, setPhase] = useState<Phase>('basics')
+  const [switching, setSwitching] = useState(false)
+  const [switchErr, setSwitchErr] = useState<string | null>(null)
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
   const [log, setLog] = useState<ChatMessage[]>([])
@@ -181,6 +183,19 @@ export default function TalentOnboarding() {
     setLog([{ id: nextId(), from: 'system', content: BO_GREETING }])
     setApiMessages([{ role: 'assistant', content: BO_GREETING }])
   }, [phase])
+
+  async function handleSwitchToHiring() {
+    setSwitching(true)
+    setSwitchErr(null)
+    try {
+      await callFunction('switch-account-type', { new_role: 'hiring_manager' })
+      await refresh()
+      navigate('/onboarding/hm')
+    } catch (e) {
+      setSwitchErr(e instanceof Error ? e.message : 'Switch failed. Please try again.')
+      setSwitching(false)
+    }
+  }
 
   function computeUsesLunarCalendar(r: string, rel: string, langs: string[]): boolean {
     if (r !== 'chinese') return false
@@ -567,6 +582,17 @@ export default function TalentOnboarding() {
           >
             Continue to chat with DNJ
           </Button>
+          <div className="text-center pt-1">
+            <button
+              type="button"
+              onClick={() => void handleSwitchToHiring()}
+              disabled={switching}
+              className="text-xs text-ink-400 hover:text-ink-600 underline"
+            >
+              {switching ? 'Switching…' : 'Hiring instead? Switch to a hiring account'}
+            </button>
+            {switchErr && <p className="text-xs text-red-600 mt-1">{switchErr}</p>}
+          </div>
         </form>
       )
     }

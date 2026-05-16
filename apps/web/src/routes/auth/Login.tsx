@@ -98,6 +98,17 @@ export default function Login() {
   async function doSubmit(token: string) {
     setBusy(true)
     setWaitingForCaptcha(false)
+
+    // Server-side rate limit check — authoritative, survives localStorage clears / incognito
+    const { data: rl } = await supabase.rpc('check_login_rate_limit', { p_email: email })
+    const rlData = rl as { locked: boolean; retry_after_seconds?: number } | null
+    if (rlData?.locked) {
+      setBusy(false)
+      const mins = Math.ceil((rlData.retry_after_seconds ?? 900) / 60)
+      setErr(`Too many failed attempts. Please try again in ${mins} minute${mins === 1 ? '' : 's'}.`)
+      return
+    }
+
     const timeout = new Promise<{ error: { message: string } }>(resolve =>
       setTimeout(() => resolve({ error: { message: t('auth.signInTimeout') } }), 15000)
     )
@@ -105,6 +116,10 @@ export default function Login() {
       supabase.auth.signInWithPassword({ email, password, options: { captchaToken: token } }),
       timeout,
     ])
+
+    // Record outcome server-side — fire and forget
+    void supabase.rpc('record_login_attempt', { p_email: email, p_succeeded: !error })
+
     setBusy(false)
     if (error) {
       recordFailure()

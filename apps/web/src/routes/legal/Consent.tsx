@@ -165,7 +165,7 @@ export default function Consent() {
               "I agree" button is always one tap away even when the body
               scrolls. Desktop renders inline (sticky still pins inside the
               card on tall screens, which is harmless). */}
-          <div className="sticky bottom-0 -mx-4 md:-mx-6 px-4 md:px-6 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 border-t border-ink-100 md:border-0 md:bg-transparent md:backdrop-blur-0">
+          <div className="mt-3 pt-3 border-t border-ink-100">
             <label className="flex items-start gap-3 mb-3 cursor-pointer p-3 rounded-lg border border-ink-200 hover:bg-ink-50">
               <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5 h-5 w-5" />
               <span className="text-sm">{t('consent.agreeLabel')}</span>

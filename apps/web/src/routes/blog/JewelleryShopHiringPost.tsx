@@ -135,8 +135,10 @@ export default function JewelleryShopHiringPost() {
           <p className="text-gray-700 leading-relaxed mb-3">
             Jewellery shop work is steady, skilled and surprisingly future-proof. Sales associates can grow into
             clienteling, appraisal and management. Bench jewelers and setters hold a craft that stays in demand
-            for decades. It is one of Malaysia's quieter career-growth paths — and DNJ matches talent with
-            jewellery shops, ateliers and luxury houses through curated, AI-powered matching.
+            for decades. It is one of Malaysia's quieter career-growth paths. DNJ is a general recruitment
+            platform covering every industry in Malaysia — and that includes matching talent with jewellery
+            shops, ateliers and luxury houses, alongside roles in sales, finance, IT, engineering, healthcare,
+            hospitality and more.
           </p>
 
           <div className="rounded-2xl bg-[#0B1742] text-white p-6 text-center mt-6">

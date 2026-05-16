@@ -135,7 +135,7 @@
       "dest": "/careers.html"
     },
     {
-      "src": "^/jobs/(pilot|cadet-pilot|jeweler|diamond-grader|gemologist|jewelry-designer|luxury-retail|sales-executive|admin-executive|account-assistant|software-developer|graphic-designer|marketing-executive|customer-service|hr-assistant|finance)/?$",
+      "src": "^/jobs/(pilot|cadet-pilot|jeweler|diamond-grader|gemologist|jewelry-designer|luxury-retail|sales-executive|admin-executive|account-assistant|software-developer|graphic-designer|marketing-executive|customer-service|hr-assistant|finance|banking|engineering|healthcare|education|hospitality|construction|logistics|manufacturing|f-and-b)/?$",
       "dest": "/jobs/$1.html"
     },
     {

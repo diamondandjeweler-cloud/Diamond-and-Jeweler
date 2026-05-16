@@ -2,10 +2,31 @@
  * Silo data — drives the keyword-rich SEO pages without bloating route files.
  * Each entry is a self-contained config rendered by RoleSilo / LocationSilo / HireSilo.
  *
- * Only roles + locations DNJ actually recruits for. No fake industries.
+ * DNJ is a general recruitment platform for Malaysia (like JobStreet / LinkedIn) —
+ * these silos cover the major job categories and industries across the country.
  */
 
 export type RoleSlug =
+  // General categories
+  | 'sales-executive'
+  | 'admin-executive'
+  | 'account-assistant'
+  | 'finance'
+  | 'banking'
+  | 'software-developer'
+  | 'graphic-designer'
+  | 'marketing-executive'
+  | 'customer-service'
+  | 'hr-assistant'
+  | 'engineering'
+  | 'healthcare'
+  | 'education'
+  | 'hospitality'
+  | 'construction'
+  | 'logistics'
+  | 'manufacturing'
+  | 'f-and-b'
+  // Specialist verticals
   | 'pilot'
   | 'cadet-pilot'
   | 'jeweler'
@@ -13,15 +34,6 @@ export type RoleSlug =
   | 'gemologist'
   | 'jewelry-designer'
   | 'luxury-retail'
-  | 'sales-executive'
-  | 'admin-executive'
-  | 'account-assistant'
-  | 'software-developer'
-  | 'graphic-designer'
-  | 'marketing-executive'
-  | 'customer-service'
-  | 'hr-assistant'
-  | 'finance'
 
 export type LocationSlug =
   | 'kuala-lumpur'
@@ -534,8 +546,251 @@ export const ROLES: Record<RoleSlug, RoleConfig> = {
     hookCopy:
       'Finance careers in Malaysia offer some of the most predictable salary progressions — accountant, senior, manager, controller, CFO. DNJ matches you with finance teams that match your trajectory.',
     hasJobPosting: false,
-    relatedRoles: ['account-assistant', 'admin-executive', 'hr-assistant'],
+    relatedRoles: ['account-assistant', 'banking', 'admin-executive'],
     relatedLocations: ['kuala-lumpur', 'petaling-jaya'],
+  },
+
+  banking: {
+    slug: 'banking',
+    name: 'Banking',
+    title: 'Banking Jobs Malaysia — Bank Officer & Relationship Manager | DNJ',
+    description:
+      'Banking jobs in Malaysia. Bank officer, relationship manager, credit, operations and branch roles. Fresh graduate to senior. AI-curated matching — apply online via DNJ.',
+    keywords:
+      'banking jobs Malaysia, bank officer job, relationship manager job, bank job Kuala Lumpur, credit officer job, banking career Malaysia, finance and banking jobs, bank operations job',
+    industry: 'Banking & Financial Services',
+    occupationalCategory: '13-2072 Loan Officers',
+    jobTypes: ['FULL_TIME'],
+    locations: ['kuala-lumpur', 'petaling-jaya', 'penang'],
+    qualifications: 'Diploma/degree in finance, business or related. Fresh graduate welcome for officer roles.',
+    bullets: [
+      'Bank officer, relationship manager, credit and operations tracks',
+      'Branch, corporate and digital banking roles',
+      'Structured career path with strong benefits',
+      'Fresh graduate management trainee schemes',
+      'Career growth to branch manager and regional roles',
+    ],
+    hookCopy:
+      'Banking remains one of Malaysia\'s most structured career paths — clear progression, strong benefits and broad exposure. DNJ matches talent with banks and financial-services employers across the country.',
+    hasJobPosting: false,
+    relatedRoles: ['finance', 'account-assistant', 'sales-executive'],
+    relatedLocations: ['kuala-lumpur', 'petaling-jaya', 'penang'],
+  },
+
+  engineering: {
+    slug: 'engineering',
+    name: 'Engineering',
+    title: 'Engineering Jobs Malaysia — Mechanical, Electrical & Civil | DNJ',
+    description:
+      'Engineering jobs in Malaysia. Mechanical, electrical, civil, chemical and process engineer roles. Fresh graduate to senior. AI-curated matching — apply online via DNJ.',
+    keywords:
+      'engineering jobs Malaysia, mechanical engineer job, electrical engineer job, civil engineer job, process engineer job, engineer job Kuala Lumpur, fresh graduate engineer, engineering career Malaysia',
+    industry: 'Engineering',
+    occupationalCategory: '17-2199 Engineers, All Other',
+    jobTypes: ['FULL_TIME', 'CONTRACTOR'],
+    locations: ['kuala-lumpur', 'petaling-jaya', 'shah-alam', 'penang', 'johor-bahru'],
+    qualifications: 'Degree or diploma in an engineering discipline. Fresh graduate to senior welcome.',
+    bullets: [
+      'Mechanical, electrical, civil, chemical and process tracks',
+      'Site, plant, design and project engineering roles',
+      'Fresh graduate and graduate-trainee positions',
+      'Career path to senior engineer, lead and engineering manager',
+      'BEM / IEM professional pathway support at many employers',
+    ],
+    hookCopy:
+      'Engineering is one of the largest and most resilient job categories in Malaysia, spanning manufacturing, construction, oil and gas, electronics and infrastructure. DNJ matches engineers with employers across every discipline.',
+    hasJobPosting: false,
+    relatedRoles: ['manufacturing', 'construction', 'software-developer'],
+    relatedLocations: ['kuala-lumpur', 'shah-alam', 'penang'],
+  },
+
+  healthcare: {
+    slug: 'healthcare',
+    name: 'Healthcare',
+    title: 'Healthcare Jobs Malaysia — Nurse, Medical & Clinic Roles | DNJ',
+    description:
+      'Healthcare jobs in Malaysia. Nurse, medical assistant, pharmacy, clinic and allied-health roles. Fresh graduate to senior. AI-curated matching — apply online via DNJ.',
+    keywords:
+      'healthcare jobs Malaysia, nurse job Malaysia, medical assistant job, pharmacy job, clinic job Kuala Lumpur, healthcare career Malaysia, allied health jobs, hospital jobs Malaysia',
+    industry: 'Healthcare',
+    occupationalCategory: '29-1141 Registered Nurses',
+    jobTypes: ['FULL_TIME', 'PART_TIME', 'CONTRACTOR'],
+    locations: ['kuala-lumpur', 'petaling-jaya', 'penang', 'johor-bahru'],
+    qualifications: 'Relevant healthcare qualification and registration where applicable (e.g. nursing, pharmacy). Fresh graduate welcome.',
+    bullets: [
+      'Nursing, medical assistant, pharmacy and allied-health roles',
+      'Hospital, clinic and specialist-centre settings',
+      'Fresh graduate and experienced practitioner tracks',
+      'Shift and full time options',
+      'Stable, in-demand careers with clear progression',
+    ],
+    hookCopy:
+      'Healthcare is one of Malaysia\'s most in-demand and recession-resilient sectors. DNJ matches nurses, medical assistants, pharmacy staff and allied-health professionals with hospitals and clinics nationwide.',
+    hasJobPosting: false,
+    relatedRoles: ['customer-service', 'hr-assistant', 'admin-executive'],
+    relatedLocations: ['kuala-lumpur', 'petaling-jaya', 'penang'],
+  },
+
+  education: {
+    slug: 'education',
+    name: 'Education',
+    title: 'Education Jobs Malaysia — Teacher, Tutor & Lecturer Roles | DNJ',
+    description:
+      'Education jobs in Malaysia. Teacher, tutor, lecturer, training and academic-support roles. Fresh graduate to senior. AI-curated matching — apply online via DNJ.',
+    keywords:
+      'education jobs Malaysia, teacher job Malaysia, tutor job, lecturer job, teaching job Kuala Lumpur, education career Malaysia, academic jobs, training jobs Malaysia',
+    industry: 'Education',
+    occupationalCategory: '25-2031 Secondary School Teachers',
+    jobTypes: ['FULL_TIME', 'PART_TIME', 'CONTRACTOR'],
+    locations: ['kuala-lumpur', 'petaling-jaya', 'penang', 'subang-jaya'],
+    qualifications: 'Degree or diploma in education or a subject specialism. Teaching qualification preferred for school roles.',
+    bullets: [
+      'Teacher, tutor, lecturer and academic-support roles',
+      'Schools, colleges, universities and training providers',
+      'Full time, part time and contract options',
+      'Fresh graduate and experienced educator tracks',
+      'Career path to senior teacher, head of department and principal',
+    ],
+    hookCopy:
+      'Education is a steady, meaningful career across Malaysia — international schools, colleges, universities and the booming private-tuition and edtech sectors. DNJ matches educators with the right institutions.',
+    hasJobPosting: false,
+    relatedRoles: ['hr-assistant', 'customer-service', 'marketing-executive'],
+    relatedLocations: ['kuala-lumpur', 'petaling-jaya', 'subang-jaya'],
+  },
+
+  hospitality: {
+    slug: 'hospitality',
+    name: 'Hospitality',
+    title: 'Hospitality Jobs Malaysia — Hotel & Tourism Careers | DNJ',
+    description:
+      'Hospitality jobs in Malaysia. Hotel, front office, housekeeping, events and tourism roles. Fresh graduate to senior. AI-curated matching — apply online via DNJ.',
+    keywords:
+      'hospitality jobs Malaysia, hotel job Malaysia, front office job, housekeeping job, tourism job, hospitality career Malaysia, events job, hotel job Kuala Lumpur',
+    industry: 'Hospitality & Tourism',
+    occupationalCategory: '11-9081 Lodging Managers',
+    jobTypes: ['FULL_TIME', 'PART_TIME', 'SHIFT_WORK'],
+    locations: ['kuala-lumpur', 'penang', 'johor-bahru', 'subang-jaya'],
+    qualifications: 'SPM, diploma or degree in hospitality, tourism or related. Fresh graduate welcome.',
+    bullets: [
+      'Front office, housekeeping, events, F&B and guest-services roles',
+      'Hotels, resorts, serviced apartments and tourism operators',
+      'Shift, full time and part time options',
+      'Fresh graduate and management-trainee tracks',
+      'Career path to supervisor, department head and hotel management',
+    ],
+    hookCopy:
+      'Hospitality powers Malaysia\'s tourism economy — from city hotels in KL to island resorts in Penang. DNJ matches hospitality talent with hotels, resorts and tourism employers.',
+    hasJobPosting: false,
+    relatedRoles: ['customer-service', 'f-and-b', 'luxury-retail'],
+    relatedLocations: ['kuala-lumpur', 'penang', 'johor-bahru'],
+  },
+
+  construction: {
+    slug: 'construction',
+    name: 'Construction',
+    title: 'Construction Jobs Malaysia — Site, QS & Project Roles | DNJ',
+    description:
+      'Construction jobs in Malaysia. Site supervisor, quantity surveyor, project and safety roles. Fresh graduate to senior. AI-curated matching — apply online via DNJ.',
+    keywords:
+      'construction jobs Malaysia, site supervisor job, quantity surveyor job, project engineer construction, safety officer job, construction career Malaysia, building jobs',
+    industry: 'Construction & Property',
+    occupationalCategory: '47-1011 First-Line Supervisors of Construction Trades',
+    jobTypes: ['FULL_TIME', 'CONTRACTOR'],
+    locations: ['kuala-lumpur', 'shah-alam', 'johor-bahru', 'petaling-jaya'],
+    qualifications: 'Diploma/degree in civil, construction management, QS or related. Trade experience valued.',
+    bullets: [
+      'Site supervisor, quantity surveyor, project and safety roles',
+      'Residential, commercial and infrastructure projects',
+      'Fresh graduate and experienced tracks',
+      'CIDB and safety certification support at many employers',
+      'Career path to project manager and construction director',
+    ],
+    hookCopy:
+      'Construction drives Malaysia\'s property and infrastructure growth. DNJ matches site, QS, project and safety professionals with developers and contractors nationwide.',
+    hasJobPosting: false,
+    relatedRoles: ['engineering', 'manufacturing', 'logistics'],
+    relatedLocations: ['kuala-lumpur', 'shah-alam', 'johor-bahru'],
+  },
+
+  logistics: {
+    slug: 'logistics',
+    name: 'Logistics & Supply Chain',
+    title: 'Logistics & Supply Chain Jobs Malaysia | DNJ',
+    description:
+      'Logistics and supply chain jobs in Malaysia. Warehouse, procurement, shipping, fleet and supply-chain roles. Fresh graduate to senior. AI-curated matching via DNJ.',
+    keywords:
+      'logistics jobs Malaysia, supply chain job, warehouse job, procurement job, shipping job, logistics career Malaysia, supply chain executive, fleet job Malaysia',
+    industry: 'Logistics & Supply Chain',
+    occupationalCategory: '13-1081 Logisticians',
+    jobTypes: ['FULL_TIME', 'CONTRACTOR'],
+    locations: ['kuala-lumpur', 'shah-alam', 'petaling-jaya', 'johor-bahru', 'penang'],
+    qualifications: 'SPM, diploma or degree. Fresh graduate welcome for executive and warehouse roles.',
+    bullets: [
+      'Warehouse, procurement, shipping, fleet and planning roles',
+      'Third-party logistics, e-commerce and manufacturing employers',
+      'Fresh graduate and experienced supply-chain tracks',
+      'Career path to logistics executive, manager and head of supply chain',
+      'Growing demand from e-commerce and regional distribution hubs',
+    ],
+    hookCopy:
+      'Logistics and supply chain is one of Malaysia\'s fastest-growing job categories, fuelled by e-commerce and the country\'s role as a regional distribution hub. DNJ matches supply-chain talent with employers across the network.',
+    hasJobPosting: false,
+    relatedRoles: ['manufacturing', 'admin-executive', 'construction'],
+    relatedLocations: ['kuala-lumpur', 'shah-alam', 'johor-bahru'],
+  },
+
+  manufacturing: {
+    slug: 'manufacturing',
+    name: 'Manufacturing & Production',
+    title: 'Manufacturing & Production Jobs Malaysia | DNJ',
+    description:
+      'Manufacturing and production jobs in Malaysia. Production, QA/QC, planning, supervisor and plant roles. Fresh graduate to senior. AI-curated matching via DNJ.',
+    keywords:
+      'manufacturing jobs Malaysia, production job, QA QC job, production supervisor job, plant job, manufacturing career Malaysia, factory jobs Malaysia, production planner job',
+    industry: 'Manufacturing',
+    occupationalCategory: '51-1011 First-Line Supervisors of Production and Operating Workers',
+    jobTypes: ['FULL_TIME', 'SHIFT_WORK', 'CONTRACTOR'],
+    locations: ['penang', 'shah-alam', 'johor-bahru', 'petaling-jaya'],
+    qualifications: 'SPM, diploma or degree depending on role. Fresh graduate welcome for executive and QA/QC roles.',
+    bullets: [
+      'Production, QA/QC, planning and supervisor roles',
+      'Electronics, semiconductor, FMCG and industrial sectors',
+      'Shift and full time options',
+      'Fresh graduate and experienced tracks',
+      'Career path to production manager and plant management',
+    ],
+    hookCopy:
+      'Manufacturing anchors Malaysia\'s economy — especially electronics and semiconductors in Penang and the industrial belts of Selangor and Johor. DNJ matches production and QA talent with manufacturers.',
+    hasJobPosting: false,
+    relatedRoles: ['engineering', 'logistics', 'construction'],
+    relatedLocations: ['penang', 'shah-alam', 'johor-bahru'],
+  },
+
+  'f-and-b': {
+    slug: 'f-and-b',
+    name: 'Food & Beverage',
+    title: 'F&B Jobs Malaysia — Restaurant, Chef & Service Careers | DNJ',
+    description:
+      'F&B jobs in Malaysia. Chef, kitchen, barista, restaurant service and outlet-management roles. Fresh graduate to senior. AI-curated matching — apply online via DNJ.',
+    keywords:
+      'f&b jobs Malaysia, restaurant job Malaysia, chef job, barista job, kitchen job, f&b service job, restaurant career Malaysia, outlet manager job, cafe job Kuala Lumpur',
+    industry: 'Food & Beverage',
+    occupationalCategory: '35-1012 First-Line Supervisors of Food Preparation and Serving Workers',
+    jobTypes: ['FULL_TIME', 'PART_TIME', 'SHIFT_WORK'],
+    locations: ['kuala-lumpur', 'petaling-jaya', 'penang', 'subang-jaya'],
+    qualifications: 'SPM and above; culinary qualification valued for kitchen roles. Fresh graduate welcome.',
+    bullets: [
+      'Chef, kitchen crew, barista, service and outlet-management roles',
+      'Restaurants, cafes, hotels and F&B chains',
+      'Shift, full time and part time options',
+      'Fresh graduate and experienced tracks',
+      'Career path to head chef, outlet manager and operations',
+    ],
+    hookCopy:
+      'F&B is one of Malaysia\'s most vibrant and accessible job sectors — from independent cafes to national restaurant chains. DNJ matches kitchen, service and management talent with F&B employers.',
+    hasJobPosting: false,
+    relatedRoles: ['hospitality', 'customer-service', 'sales-executive'],
+    relatedLocations: ['kuala-lumpur', 'petaling-jaya', 'penang'],
   },
 }
 
@@ -547,22 +802,22 @@ export const LOCATIONS: Record<LocationSlug, LocationConfig> = {
     name: 'Kuala Lumpur',
     shortName: 'KL',
     state: 'Federal Territory of Kuala Lumpur',
-    title: 'Jobs in Kuala Lumpur — Latest Hiring | DNJ Careers',
+    title: 'Jobs in Kuala Lumpur — Latest Hiring, All Industries | DNJ Careers',
     description:
-      'Latest job vacancy in Kuala Lumpur. AI-curated matches for pilot, jeweler, diamond grader, gemologist, sales, admin, finance, software developer roles. Apply online via DNJ.',
+      'Latest job vacancy in Kuala Lumpur across every industry — sales, IT and software, finance and banking, engineering, marketing, admin, HR, healthcare, customer service and more. AI-curated matching, apply online via DNJ.',
     keywords:
       'jobs in Kuala Lumpur, job vacancy Kuala Lumpur, hiring in Kuala Lumpur, Kuala Lumpur jobs, jobs near KL, jobs near me KL, KL job vacancy, KLCC jobs, Bukit Bintang jobs, Mont Kiara jobs, fresh graduate Kuala Lumpur',
     intro:
-      'Kuala Lumpur is Malaysia\'s biggest hiring market — and the easiest place to land a job near you. From luxury retail in Bukit Bintang and KLCC to corporate finance in KL Sentral and tech in Bangsar South, hiring across DNJ\'s vertical spans every level — fresh graduate, junior, mid-level and senior.',
+      'Kuala Lumpur is Malaysia\'s biggest hiring market — and the easiest place to land a job near you. From corporate finance and banking in KL Sentral to tech in Bangsar South, professional services citywide and retail in Bukit Bintang, DNJ matches talent across every industry and level — fresh graduate, junior, mid-level and senior.',
     highlights: [
-      'Largest job market in Malaysia',
-      'Strongest concentration of luxury retail and aviation',
+      'Largest and most diverse job market in Malaysia',
+      'Every major industry — finance, banking, tech, professional services, retail',
       'Structured interview process for all shortlisted candidates',
       'Hybrid and remote roles available',
       'Fresh graduate friendly across most categories',
       'Public transport (LRT/MRT/Monorail) coverage',
     ],
-    topRoles: ['pilot', 'jeweler', 'diamond-grader', 'gemologist', 'luxury-retail', 'sales-executive', 'software-developer', 'finance'],
+    topRoles: ['sales-executive', 'software-developer', 'finance', 'banking', 'engineering', 'marketing-executive', 'customer-service', 'healthcare'],
     geo: { lat: 3.139003, lng: 101.686855 },
   },
 
@@ -571,22 +826,22 @@ export const LOCATIONS: Record<LocationSlug, LocationConfig> = {
     name: 'Petaling Jaya',
     shortName: 'PJ',
     state: 'Selangor',
-    title: 'Jobs in Petaling Jaya (PJ) — Latest Hiring | DNJ Careers',
+    title: 'Jobs in Petaling Jaya (PJ) — Latest Hiring, All Industries | DNJ Careers',
     description:
-      'Job vacancy in Petaling Jaya (PJ) and Selangor. AI-curated matches for jeweler, sales, admin, finance, marketing, software developer roles. Apply online via DNJ.',
+      'Job vacancy in Petaling Jaya (PJ) and Selangor across every industry — IT and software, finance, sales, admin, marketing, HR, engineering and customer service. AI-curated matching, apply online via DNJ.',
     keywords:
       'jobs in PJ, job vacancy in PJ, hiring in Petaling Jaya, PJ jobs, jobs in Petaling Jaya, jobs in Selangor, fresh graduate PJ, PJ job vacancy',
     intro:
-      'Petaling Jaya is the operational and tech heart of Selangor — and one of the most balanced hiring markets in Malaysia. Strong on jeweler, finance, software, marketing and admin roles with reasonable rents and great LRT access.',
+      'Petaling Jaya is the operational and tech heart of Selangor — and one of the most balanced hiring markets in Malaysia. Strong on tech, finance, marketing, admin and professional-services roles, with reasonable rents and great LRT access.',
     highlights: [
-      'Strong tech and finance hiring',
+      'Strong tech, finance and professional-services hiring',
       'Hybrid-friendly companies',
       'LRT (Kelana Jaya line) coverage',
       'Cheaper cost of living than KL',
-      'Active luxury retail in 1 Utama and Sunway',
+      'Major retail and corporate hubs in 1 Utama and Sunway',
       'Structured AI-curated matching process',
     ],
-    topRoles: ['jeweler', 'diamond-grader', 'sales-executive', 'admin-executive', 'account-assistant', 'software-developer', 'marketing-executive', 'finance'],
+    topRoles: ['software-developer', 'sales-executive', 'finance', 'marketing-executive', 'admin-executive', 'hr-assistant', 'account-assistant', 'customer-service'],
     geo: { lat: 3.10726, lng: 101.60671 },
   },
 
@@ -595,21 +850,21 @@ export const LOCATIONS: Record<LocationSlug, LocationConfig> = {
     name: 'Penang',
     shortName: 'Penang',
     state: 'Penang',
-    title: 'Jobs in Penang — Latest Hiring | DNJ Careers',
+    title: 'Jobs in Penang — Latest Hiring, All Industries | DNJ Careers',
     description:
-      'Job vacancy in Penang (George Town and Bayan Lepas). AI-curated matches for jeweler, luxury retail, sales, customer service, admin roles. Apply online via DNJ.',
+      'Job vacancy in Penang (George Town and Bayan Lepas) across every industry — manufacturing, engineering, IT, sales, customer service, admin and healthcare. AI-curated matching, apply online via DNJ.',
     keywords:
       'jobs in Penang, job vacancy in Penang, hiring in Penang, Penang jobs, fresh graduate Penang, George Town jobs, Bayan Lepas jobs, Penang job vacancy',
     intro:
-      'Penang is a hidden hiring gem — strong tech and manufacturing in Bayan Lepas, growing luxury retail in George Town, and a high quality of life. DNJ surfaces curated matches across pilot, jeweler, luxury retail, sales and customer service tracks.',
+      'Penang is a hidden hiring gem — a powerhouse of electronics manufacturing and engineering in Bayan Lepas, a growing tech scene, and a high quality of life. DNJ surfaces curated matches across manufacturing, engineering, IT, sales, customer service and professional roles.',
     highlights: [
-      'Tech hub in Bayan Lepas',
-      'Luxury retail growing in Gurney and George Town',
+      'Electronics and semiconductor manufacturing hub',
+      'Growing tech and shared-services sector',
       'Lower cost of living than KL',
       'Structured interview process for shortlisted candidates',
       'Fresh graduate friendly',
     ],
-    topRoles: ['pilot', 'jeweler', 'luxury-retail', 'sales-executive', 'customer-service', 'admin-executive'],
+    topRoles: ['manufacturing', 'engineering', 'software-developer', 'sales-executive', 'customer-service', 'admin-executive'],
     geo: { lat: 5.41123, lng: 100.33543 },
   },
 
@@ -618,20 +873,20 @@ export const LOCATIONS: Record<LocationSlug, LocationConfig> = {
     name: 'Johor Bahru',
     shortName: 'JB',
     state: 'Johor',
-    title: 'Jobs in Johor Bahru (JB) — Latest Hiring | DNJ Careers',
+    title: 'Jobs in Johor Bahru (JB) — Latest Hiring, All Industries | DNJ Careers',
     description:
-      'Job vacancy in Johor Bahru. Aviation, luxury retail and sales hiring. AI-curated matching, fresh graduate friendly, apply online via DNJ.',
+      'Job vacancy in Johor Bahru across every industry — manufacturing, logistics, engineering, sales, construction and customer service. AI-curated matching, apply online via DNJ.',
     keywords:
       'jobs in Johor, jobs in Johor Bahru, JB jobs, job vacancy Johor, hiring in Johor, fresh graduate Johor Bahru',
     intro:
-      'Johor Bahru\'s job market is growing fast on the back of Iskandar development. Strong aviation, manufacturing and cross-border luxury retail hiring.',
+      'Johor Bahru\'s job market is growing fast on the back of Iskandar development. Strong manufacturing, logistics, engineering and construction hiring, plus cross-border opportunities for Singapore commuters.',
     highlights: [
-      'Growing aviation hub at Senai',
+      'Manufacturing and logistics growth across Iskandar',
       'Cross-border (Singapore commute) opportunities',
-      'Luxury retail at Mid Valley Southkey and KSL',
+      'Major retail and commercial hubs at Mid Valley Southkey and KSL',
       'Structured AI-curated matching process',
     ],
-    topRoles: ['pilot', 'sales-executive', 'luxury-retail', 'customer-service'],
+    topRoles: ['manufacturing', 'logistics', 'engineering', 'sales-executive', 'construction', 'customer-service'],
     geo: { lat: 1.49273, lng: 103.74142 },
   },
 

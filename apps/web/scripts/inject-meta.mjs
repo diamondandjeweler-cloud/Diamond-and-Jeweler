@@ -65,13 +65,13 @@ const ROUTES = {
 
   // ----- Careers hub + blog -----
   '/careers': {
-    title: 'AI-Curated Careers Malaysia — Pilot, Diamond & Jeweler Job Vacancy | DNJ',
+    title: 'Careers — Job Vacancy Malaysia, All Industries | AI-Curated Recruitment | DNJ',
     description:
-      'Precision recruitment powered by AI. Three matches at a time, zero noise. Apply online for pilot, diamond grader, jeweler, gemologist, sales executive, admin executive, software developer, graphic designer, marketing, finance, customer service and fresh graduate roles. PDPA-compliant, end-to-end encrypted.',
+      'Precision recruitment powered by AI. Three matches at a time, zero noise. Job vacancy across every industry in Malaysia — sales, admin, finance, banking, IT and software, engineering, marketing, HR, customer service, healthcare, education, hospitality, construction, logistics, manufacturing, F&B and more. PDPA-compliant, end-to-end encrypted.',
     bullets: [
-      'Pilot, jeweler, diamond grader, gemologist, luxury retail, sales, admin, finance, software, marketing and customer service roles',
+      'A general recruitment platform — sales, admin, finance, banking, IT, engineering, marketing, HR, customer service, healthcare, education, hospitality, construction, logistics, manufacturing, F&B, retail and more',
       'AI-curated matching — up to three vetted candidates or roles per match cycle',
-      'Active hiring in Kuala Lumpur, Petaling Jaya, Penang, Johor Bahru and Cyberjaya',
+      'Active hiring in Kuala Lumpur, Petaling Jaya, Penang, Johor Bahru, Cyberjaya and nationwide',
       'Fresh graduate, junior, mid-level and senior tracks available',
       'PDPA-compliant, end-to-end encrypted — your data stays private',
       'Apply online — no walk-in required',
@@ -357,6 +357,123 @@ const ROUTES = {
       'Work with Big 4, GLCs, MNCs and listed companies',
       'Corporate finance, audit, tax and treasury tracks',
       'AI-curated matching with companies in KL and PJ',
+    ],
+  },
+  '/jobs/banking': {
+    title: 'Banking Jobs Malaysia — Bank Officer & Relationship Manager | DNJ',
+    description:
+      'Banking jobs in Malaysia. Bank officer, relationship manager, credit, operations and branch roles. Fresh graduate to senior. AI-curated matching — apply online via DNJ.',
+    bullets: [
+      'Bank officer, relationship manager, credit and operations tracks',
+      'Branch, corporate and digital banking roles',
+      'Structured career path with strong benefits',
+      'Fresh graduate management-trainee schemes',
+      'Career growth to branch manager and regional roles',
+      'AI-curated matching with banks across Malaysia',
+    ],
+  },
+  '/jobs/engineering': {
+    title: 'Engineering Jobs Malaysia — Mechanical, Electrical & Civil | DNJ',
+    description:
+      'Engineering jobs in Malaysia. Mechanical, electrical, civil, chemical and process engineer roles. Fresh graduate to senior. AI-curated matching — apply online via DNJ.',
+    bullets: [
+      'Mechanical, electrical, civil, chemical and process tracks',
+      'Site, plant, design and project engineering roles',
+      'Fresh graduate and graduate-trainee positions',
+      'Career path to senior engineer, lead and engineering manager',
+      'BEM / IEM professional pathway support at many employers',
+      'AI-curated matching across manufacturing, construction and oil and gas',
+    ],
+  },
+  '/jobs/healthcare': {
+    title: 'Healthcare Jobs Malaysia — Nurse, Medical & Clinic Roles | DNJ',
+    description:
+      'Healthcare jobs in Malaysia. Nurse, medical assistant, pharmacy, clinic and allied-health roles. Fresh graduate to senior. AI-curated matching — apply online via DNJ.',
+    bullets: [
+      'Nursing, medical assistant, pharmacy and allied-health roles',
+      'Hospital, clinic and specialist-centre settings',
+      'Fresh graduate and experienced practitioner tracks',
+      'Shift and full time options',
+      'Stable, in-demand careers with clear progression',
+      'AI-curated matching with hospitals and clinics nationwide',
+    ],
+  },
+  '/jobs/education': {
+    title: 'Education Jobs Malaysia — Teacher, Tutor & Lecturer Roles | DNJ',
+    description:
+      'Education jobs in Malaysia. Teacher, tutor, lecturer, training and academic-support roles. Fresh graduate to senior. AI-curated matching — apply online via DNJ.',
+    bullets: [
+      'Teacher, tutor, lecturer and academic-support roles',
+      'Schools, colleges, universities and training providers',
+      'Full time, part time and contract options',
+      'Fresh graduate and experienced educator tracks',
+      'Career path to senior teacher, head of department and principal',
+      'AI-curated matching with education institutions',
+    ],
+  },
+  '/jobs/hospitality': {
+    title: 'Hospitality Jobs Malaysia — Hotel & Tourism Careers | DNJ',
+    description:
+      'Hospitality jobs in Malaysia. Hotel, front office, housekeeping, events and tourism roles. Fresh graduate to senior. AI-curated matching — apply online via DNJ.',
+    bullets: [
+      'Front office, housekeeping, events, F&B and guest-services roles',
+      'Hotels, resorts, serviced apartments and tourism operators',
+      'Shift, full time and part time options',
+      'Fresh graduate and management-trainee tracks',
+      'Career path to supervisor, department head and hotel management',
+      'AI-curated matching with hotels and tourism employers',
+    ],
+  },
+  '/jobs/construction': {
+    title: 'Construction Jobs Malaysia — Site, QS & Project Roles | DNJ',
+    description:
+      'Construction jobs in Malaysia. Site supervisor, quantity surveyor, project and safety roles. Fresh graduate to senior. AI-curated matching — apply online via DNJ.',
+    bullets: [
+      'Site supervisor, quantity surveyor, project and safety roles',
+      'Residential, commercial and infrastructure projects',
+      'Fresh graduate and experienced tracks',
+      'CIDB and safety certification support at many employers',
+      'Career path to project manager and construction director',
+      'AI-curated matching with developers and contractors',
+    ],
+  },
+  '/jobs/logistics': {
+    title: 'Logistics & Supply Chain Jobs Malaysia | DNJ',
+    description:
+      'Logistics and supply chain jobs in Malaysia. Warehouse, procurement, shipping, fleet and supply-chain roles. Fresh graduate to senior. AI-curated matching via DNJ.',
+    bullets: [
+      'Warehouse, procurement, shipping, fleet and planning roles',
+      'Third-party logistics, e-commerce and manufacturing employers',
+      'Fresh graduate and experienced supply-chain tracks',
+      'Career path to logistics executive, manager and head of supply chain',
+      'Growing demand from e-commerce and regional distribution hubs',
+      'AI-curated matching across the logistics network',
+    ],
+  },
+  '/jobs/manufacturing': {
+    title: 'Manufacturing & Production Jobs Malaysia | DNJ',
+    description:
+      'Manufacturing and production jobs in Malaysia. Production, QA/QC, planning, supervisor and plant roles. Fresh graduate to senior. AI-curated matching via DNJ.',
+    bullets: [
+      'Production, QA/QC, planning and supervisor roles',
+      'Electronics, semiconductor, FMCG and industrial sectors',
+      'Shift and full time options',
+      'Fresh graduate and experienced tracks',
+      'Career path to production manager and plant management',
+      'AI-curated matching with manufacturers in Penang, Selangor and Johor',
+    ],
+  },
+  '/jobs/f-and-b': {
+    title: 'F&B Jobs Malaysia — Restaurant, Chef & Service Careers | DNJ',
+    description:
+      'F&B jobs in Malaysia. Chef, kitchen, barista, restaurant service and outlet-management roles. Fresh graduate to senior. AI-curated matching — apply online via DNJ.',
+    bullets: [
+      'Chef, kitchen crew, barista, service and outlet-management roles',
+      'Restaurants, cafes, hotels and F&B chains',
+      'Shift, full time and part time options',
+      'Fresh graduate and experienced tracks',
+      'Career path to head chef, outlet manager and operations',
+      'AI-curated matching with F&B employers',
     ],
   },
 

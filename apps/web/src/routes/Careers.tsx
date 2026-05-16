@@ -7,80 +7,48 @@ import { useSeo } from '../lib/useSeo'
 // matching is ~14-day pilot), and listing them in keywords misleads
 // search intent and creates Consumer Protection Act 1999 §10 exposure.
 const CAREERS_KEYWORDS =
-  'jobs near me, job vacancy near me, apply job online, latest job vacancy, part time job near me, full time job, fresh graduate job, vacancy near me, job opening near me, apply now, send resume, job seeking, job search, account assistant job vacancy, admin executive job vacancy, software developer job vacancy, sales executive job vacancy, graphic designer job vacancy, marketing executive job vacancy, customer service job vacancy, hr assistant job vacancy, finance job vacancy, operation job vacancy, pilot job vacancy, jeweler job vacancy, diamond expert job vacancy, luxury retail job vacancy, job vacancy in Kuala Lumpur, job vacancy in PJ, job vacancy in Penang, job vacancy in Malaysia, jobs near KL, hiring in Kuala Lumpur, hiring in Malaysia, work from home Kuala Lumpur, remote job Malaysia, part time Kuala Lumpur, full time Kuala Lumpur, fresh graduate Kuala Lumpur, freshers welcome, with or without experience, graduate trainee, entry level, junior level, career opportunity, looking for job, better career, career growth job, stable job, career advancement, job with promotion, good salary job, near my location, best company to work for, job satisfaction, career change, new job opportunity, job vacancy, job hiring, job opening, employment, recruitment, career, vacancy, hiring, job posting, apply online, submit resume, full time job vacancy, part time job vacancy, contract job, temporary job, internship, freelance job, remote job, hybrid job, shift job, permanent job, fresh graduate job vacancy, internship for students, entry level job Kuala Lumpur, junior executive, trainee program, graduate trainee program, spm leaver job, diploma holder job, degree holder job, diamond company hiring, jeweler career Malaysia, luxury brand job, pilot job Malaysia, aviation job vacancy, diamond grader job, jewelry designer job, sales associate luxury, retail job diamond, pilot fresh graduate, cadet pilot program, airline job Malaysia, gemologist job, jewellery shop hiring, ai curated matching, ai recruitment Malaysia, curated matching, three matches per role'
+  'jobs near me, job vacancy near me, apply job online, latest job vacancy, part time job near me, full time job, fresh graduate job, vacancy near me, job opening near me, apply now, send resume, job seeking, job search, jobs in Malaysia, recruitment Malaysia, job portal Malaysia, sales job vacancy, admin executive job vacancy, account assistant job vacancy, finance job vacancy, banking job vacancy, software developer job vacancy, IT job vacancy, engineering job vacancy, marketing executive job vacancy, graphic designer job vacancy, customer service job vacancy, hr job vacancy, healthcare job vacancy, nursing job vacancy, education job vacancy, teaching job vacancy, hospitality job vacancy, hotel job vacancy, construction job vacancy, logistics job vacancy, supply chain job, manufacturing job vacancy, production job vacancy, f&b job vacancy, restaurant job vacancy, job vacancy in Kuala Lumpur, job vacancy in PJ, job vacancy in Penang, job vacancy in Johor Bahru, job vacancy in Malaysia, jobs near KL, hiring in Kuala Lumpur, hiring in Malaysia, work from home Kuala Lumpur, remote job Malaysia, fresh graduate Kuala Lumpur, graduate trainee, entry level, junior level, career opportunity, career growth job, stable job, career advancement, new job opportunity, job vacancy, job hiring, job opening, employment, recruitment, career, vacancy, hiring, job posting, apply online, submit resume, contract job, temporary job, internship, freelance job, remote job, hybrid job, shift job, permanent job, internship for students, spm leaver job, diploma holder job, degree holder job, luxury retail job, pilot job Malaysia, cadet pilot program, jeweler job vacancy, gemologist job, ai curated matching, ai recruitment Malaysia, curated matching, three matches per role'
 
 const ROLES: Array<{ title: string; type: string; location: string; level: string; blurb: string }> = [
   {
-    title: 'Pilot — Cadet Pilot Program',
-    type: 'Full time · Trainee program',
-    location: 'Kuala Lumpur, Malaysia',
-    level: 'Fresh graduate · No experience needed',
-    blurb:
-      'Cadet pilot program for fresh graduates and SPM leavers. Aviation career opportunity with structured trainee programme, career growth and promotion path. Apply via AI-curated matching — get matched to aviation partners actively hiring.',
-  },
-  {
-    title: 'Airline Pilot — Experienced',
-    type: 'Full time',
-    location: 'Kuala Lumpur, Malaysia',
-    level: 'Mid-level / Senior',
-    blurb:
-      'Pilot job vacancy for experienced first officers and captains. Stable job with good salary, hybrid roster options. Submit your profile and receive curated matches from airlines seeking your experience level.',
-  },
-  {
-    title: 'Jeweler / Diamond Grader',
-    type: 'Full time · Permanent',
-    location: 'Kuala Lumpur, PJ',
-    level: 'Diploma holder · Degree holder',
-    blurb:
-      'Diamond grader and jeweler career in Malaysia. Luxury retail environment, with or without experience considered. Career advancement to gemologist and senior bench jeweler.',
-  },
-  {
-    title: 'Gemologist',
-    type: 'Full time',
-    location: 'Kuala Lumpur',
-    level: 'Junior to senior',
-    blurb:
-      'Gemologist job for graduate trainees and certified professionals. Career growth job with stable salary and benefits. AI-curated matches connect you directly with companies seeking your certification level.',
-  },
-  {
-    title: 'Luxury Retail Sales Associate',
-    type: 'Full time · Part time · Shift job',
-    location: 'Kuala Lumpur, PJ, Penang',
-    level: 'Entry level · No experience welcome',
-    blurb:
-      'Luxury retail job vacancy in Malaysia. Sales associate luxury, customer service and clienteling. Freshers welcome — create your profile and receive curated matches from luxury brands hiring in your area.',
-  },
-  {
-    title: 'Jewelry Designer',
-    type: 'Full time · Hybrid',
-    location: 'Kuala Lumpur',
-    level: 'Diploma · Degree',
-    blurb:
-      'Jewelry designer job for creative talents. Hybrid job with portfolio review interview. Send resume and design portfolio to apply online.',
-  },
-  {
     title: 'Sales Executive',
     type: 'Full time',
-    location: 'Kuala Lumpur, PJ',
-    level: 'Junior · Mid-level',
+    location: 'Kuala Lumpur, PJ, nationwide',
+    level: 'Fresh graduate · Junior · Mid-level',
     blurb:
-      'Sales executive job vacancy with attractive commission and good salary. Career with promotion and clear growth path. Get matched directly with companies actively recruiting sales professionals.',
-  },
-  {
-    title: 'Account Assistant',
-    type: 'Full time · Permanent',
-    location: 'Kuala Lumpur',
-    level: 'SPM · Diploma · Fresh graduate',
-    blurb:
-      'Account assistant job vacancy for fresh graduate and SPM leaver. Stable job near you with finance career growth.',
+      'Sales executive roles with commission and a clear growth path. Get matched directly with companies recruiting sales professionals across every industry.',
   },
   {
     title: 'Admin Executive',
     type: 'Full time · Hybrid',
-    location: 'Kuala Lumpur, Penang',
-    level: 'Junior · Mid-level',
+    location: 'Kuala Lumpur, PJ, nationwide',
+    level: 'Fresh graduate · Junior · Mid-level',
     blurb:
-      'Admin executive job vacancy with hybrid work options. Apply online — your profile is matched to companies hiring admin professionals across Kuala Lumpur and Penang.',
+      'Admin and office executive roles with hybrid options. Your profile is matched to companies hiring administrative professionals.',
+  },
+  {
+    title: 'Account Assistant',
+    type: 'Full time · Permanent',
+    location: 'Kuala Lumpur, PJ',
+    level: 'SPM · Diploma · Fresh graduate',
+    blurb:
+      'Account assistant roles for fresh graduates and SPM leavers — a stable entry point into a finance career.',
+  },
+  {
+    title: 'Finance & Accounting',
+    type: 'Full time',
+    location: 'Kuala Lumpur, PJ',
+    level: 'Junior · Mid · Senior',
+    blurb:
+      'Accountant, financial analyst and finance manager roles. ACCA / CIMA-friendly employers, predictable salary progression.',
+  },
+  {
+    title: 'Banking',
+    type: 'Full time',
+    location: 'Kuala Lumpur, PJ, Penang',
+    level: 'Fresh graduate · Junior · Mid-level',
+    blurb:
+      'Bank officer, relationship manager, credit and operations roles. Structured career paths with strong benefits and management-trainee schemes.',
   },
   {
     title: 'Software Developer',
@@ -88,66 +56,150 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
     location: 'Malaysia (remote-friendly)',
     level: 'Junior · Mid · Senior',
     blurb:
-      'Software developer job vacancy. Work from home Kuala Lumpur option. Remote job Malaysia for the right candidate. Apply now and send resume.',
+      'Frontend, backend and full-stack roles with remote and hybrid options. Matched by stack, culture and career goals.',
   },
   {
-    title: 'Graphic Designer',
-    type: 'Full time · Freelance',
-    location: 'Kuala Lumpur',
-    level: 'Junior · Mid-level',
+    title: 'Engineering',
+    type: 'Full time · Contract',
+    location: 'KL, Shah Alam, Penang, JB',
+    level: 'Fresh graduate · Junior · Senior',
     blurb:
-      'Graphic designer job vacancy with full time and freelance options. Career change friendly — show portfolio, submit resume online.',
+      'Mechanical, electrical, civil, chemical and process engineering roles across manufacturing, construction, oil and gas and electronics.',
   },
   {
     title: 'Marketing Executive',
     type: 'Full time',
-    location: 'Kuala Lumpur',
+    location: 'Kuala Lumpur, PJ',
+    level: 'Fresh graduate · Junior · Mid-level',
+    blurb:
+      'Digital, brand, content and social marketing roles. Matched with teams that fit your strengths and trajectory.',
+  },
+  {
+    title: 'Graphic Designer',
+    type: 'Full time · Freelance',
+    location: 'Kuala Lumpur, PJ',
     level: 'Junior · Mid-level',
     blurb:
-      'Marketing executive job vacancy for diploma and degree holders. Career growth job with promotion path and new job opportunity in luxury brand marketing.',
+      'Brand, packaging, digital and print design roles — full time and freelance. Portfolio-first matching.',
   },
   {
     title: 'Customer Service',
-    type: 'Full time · Shift job',
-    location: 'Kuala Lumpur',
-    level: 'Entry level',
+    type: 'Full time · Shift',
+    location: 'Kuala Lumpur, PJ, Penang',
+    level: 'Fresh graduate · Entry level',
     blurb:
-      'Customer service job vacancy with no experience job opportunity. Entry-level friendly — AI matching connects you with companies seeking your communication skills and availability.',
+      'Customer service and support roles, shift and full time. Matched on communication skills and availability.',
   },
   {
     title: 'HR Assistant',
     type: 'Full time',
-    location: 'Kuala Lumpur',
+    location: 'Kuala Lumpur, PJ',
     level: 'Junior · Mid-level',
     blurb:
-      'HR assistant job vacancy. Career opportunity in human resources with mentorship and recruitment exposure.',
+      'HR assistant and executive roles with recruitment, payroll and HR-ops exposure. Career path to HR manager.',
   },
   {
-    title: 'Finance / Operation',
-    type: 'Full time',
-    location: 'Kuala Lumpur',
-    level: 'Junior · Mid · Senior',
+    title: 'Healthcare & Nursing',
+    type: 'Full time · Part time · Shift',
+    location: 'KL, PJ, Penang, JB',
+    level: 'Fresh graduate · Experienced',
     blurb:
-      'Finance job vacancy and operation job vacancy. Stable job with good salary, career advancement and job satisfaction.',
+      'Nurse, medical assistant, pharmacy and allied-health roles in hospitals, clinics and specialist centres.',
+  },
+  {
+    title: 'Education & Teaching',
+    type: 'Full time · Part time · Contract',
+    location: 'KL, PJ, Penang, Subang',
+    level: 'Fresh graduate · Experienced',
+    blurb:
+      'Teacher, tutor and lecturer roles across schools, colleges, universities and the private-tuition and edtech sectors.',
+  },
+  {
+    title: 'Hospitality & Hotel',
+    type: 'Full time · Part time · Shift',
+    location: 'KL, Penang, JB, Subang',
+    level: 'Fresh graduate · Experienced',
+    blurb:
+      'Front office, housekeeping, events and guest-services roles in hotels, resorts and tourism operators.',
+  },
+  {
+    title: 'Construction',
+    type: 'Full time · Contract',
+    location: 'KL, Shah Alam, JB, PJ',
+    level: 'Fresh graduate · Experienced',
+    blurb:
+      'Site supervisor, quantity surveyor, project and safety roles across residential, commercial and infrastructure projects.',
+  },
+  {
+    title: 'Logistics & Supply Chain',
+    type: 'Full time · Contract',
+    location: 'KL, Shah Alam, JB, Penang',
+    level: 'Fresh graduate · Experienced',
+    blurb:
+      'Warehouse, procurement, shipping, fleet and planning roles — a fast-growing category fuelled by e-commerce.',
+  },
+  {
+    title: 'Manufacturing & Production',
+    type: 'Full time · Shift · Contract',
+    location: 'Penang, Shah Alam, JB',
+    level: 'Fresh graduate · Experienced',
+    blurb:
+      'Production, QA/QC, planning and supervisor roles across electronics, semiconductor, FMCG and industrial sectors.',
+  },
+  {
+    title: 'Food & Beverage (F&B)',
+    type: 'Full time · Part time · Shift',
+    location: 'KL, PJ, Penang, Subang',
+    level: 'Fresh graduate · Experienced',
+    blurb:
+      'Chef, kitchen, barista, service and outlet-management roles across restaurants, cafes, hotels and F&B chains.',
+  },
+  {
+    title: 'Luxury Retail',
+    type: 'Full time · Part time · Shift',
+    location: 'Kuala Lumpur, PJ, Penang',
+    level: 'Entry level · Experienced',
+    blurb:
+      'Sales associate, clienteling and boutique-management roles in jewelry, watches and luxury fashion.',
+  },
+  {
+    title: 'Jeweler / Diamond Grader / Gemologist',
+    type: 'Full time · Permanent',
+    location: 'Kuala Lumpur, PJ',
+    level: 'Diploma · Degree · Trade-certified',
+    blurb:
+      'Specialist jewelry-trade roles — bench jeweler, diamond grader, gemologist and jewelry designer — with GIA / HRD pathway support.',
+  },
+  {
+    title: 'Pilot / Cadet Pilot',
+    type: 'Full time · Trainee program',
+    location: 'Kuala Lumpur, Penang, JB',
+    level: 'Fresh graduate · Experienced',
+    blurb:
+      'Cadet pilot program for fresh graduates plus direct-entry roles for experienced first officers and captains.',
   },
   {
     title: 'Internship — Students',
     type: 'Internship · Part time',
-    location: 'Kuala Lumpur',
+    location: 'Nationwide',
     level: 'Internship for students',
     blurb:
-      'Internship for students across pilot, jewelry, design, marketing and tech tracks. Stipend provided. New job opportunity converts to full time for top performers.',
+      'Internships across business, tech, design, engineering and more. Many convert to full time for strong performers.',
   },
 ]
 
 const FAQS: Array<{ q: string; a: string }> = [
   {
     q: 'How does DNJ hiring work in Malaysia?',
-    a: 'DNJ is a curated matching platform — not a job board and not a walk-in service. Complete your profile and our AI engine reviews new talent every hour. You receive up to 3 curated matches across pilot, diamond and jeweler, sales executive, admin executive, account assistant, finance, marketing, customer service and graphic designer roles in Kuala Lumpur, PJ and Penang as companies aligned to your profile are identified. Typical pilot timeline: ~14 days from profile completion.',
+    a: 'DNJ is an AI-curated recruitment platform — not a job board and not a walk-in service. It is a general recruitment platform serving every industry, including sales, admin, finance, banking, IT and software, engineering, marketing, HR, customer service, healthcare, education, hospitality, construction, logistics, manufacturing, F&B, retail and more. Complete your profile and our AI engine reviews new talent regularly. You receive up to 3 curated matches as companies aligned to your profile are identified. Typical pilot timeline: ~14 days from profile completion.',
+  },
+  {
+    q: 'Which industries does DNJ cover?',
+    a: 'DNJ is industry-agnostic and covers the full Malaysian job market — sales, administration, finance and accounting, banking, IT and software, engineering, marketing, human resources, customer service, operations, healthcare, education, hospitality, construction, logistics and supply chain, manufacturing, F&B, retail, aviation and more. We hire for fresh graduate, junior, mid-level, senior and trainee positions.',
   },
   {
     q: 'Do I need experience to apply?',
-    a: 'No experience needed for many roles. We welcome fresh graduates, SPM leavers, diploma holders and degree holders. Cadet pilot program and luxury retail trainee programme accept candidates with 0 experience.',
+    a: 'No experience needed for many roles. We welcome fresh graduates, SPM leavers, diploma holders and degree holders for entry-level, junior and trainee positions across every industry we serve.',
   },
   {
     q: 'Where can I find job vacancy near me?',
@@ -165,9 +217,9 @@ const FAQS: Array<{ q: string; a: string }> = [
 
 export default function Careers() {
   useSeo({
-    title: 'Careers — Job Vacancy Malaysia | Pilot, Diamond & Jeweler Hiring Now',
+    title: 'Careers — Job Vacancy Malaysia, All Industries | AI-Curated Recruitment | DNJ',
     description:
-      'Latest job vacancy near me in Malaysia. Apply online for pilot, diamond grader, jeweler, gemologist, sales executive, admin executive, software developer, graphic designer, marketing, finance, customer service and fresh graduate roles. AI-curated matching — three picks per role, no cold CV pile. Typical pilot timeline: 14 days from profile completion.',
+      'Latest job vacancy in Malaysia across every industry — sales, admin, finance, banking, IT and software, engineering, marketing, HR, customer service, healthcare, education, hospitality, construction, logistics, manufacturing, F&B and more. AI-curated matching — three picks per role, no cold CV pile.',
     keywords: CAREERS_KEYWORDS,
     canonicalPath: '/careers',
     jsonLd: [
@@ -185,7 +237,7 @@ export default function Careers() {
         name: 'DNJ Careers — Job Vacancy Malaysia',
         url: 'https://diamondandjeweler.com/careers',
         inLanguage: 'en-MY',
-        about: 'Urgent hiring in Kuala Lumpur, PJ, Penang and across Malaysia',
+        about: 'Job vacancies across every industry in Kuala Lumpur, PJ, Penang, Johor Bahru and across Malaysia',
       },
       {
         '@context': 'https://schema.org',
@@ -238,14 +290,15 @@ export default function Careers() {
             CURATED MATCHING · MALAYSIA
           </p>
           <h1 className="text-3xl md:text-5xl font-bold tracking-tight mb-3">
-            Job Vacancy Malaysia — AI-curated matches for Pilot, Diamond &amp; Jeweler careers
+            Job Vacancy Malaysia — AI-Curated Matches Across Every Industry
           </h1>
           <p className="text-gray-600 max-w-3xl leading-relaxed">
-            Looking for a job near you? DNJ Careers lists the latest job vacancy in Kuala Lumpur,
-            Petaling Jaya, Penang and across Malaysia. Complete your profile online and our AI engine
-            matches you with hiring companies — three curated picks, zero noise, no cold applications.
-            Fresh graduates, SPM leavers, diploma and degree holders welcome — no experience needed
-            for selected positions including the cadet pilot program and luxury retail trainee programme.
+            Looking for a job near you? DNJ is a general recruitment platform for Malaysia, listing
+            the latest job vacancy in Kuala Lumpur, Petaling Jaya, Penang, Johor Bahru and nationwide —
+            across sales, finance, banking, IT, engineering, marketing, HR, healthcare, education,
+            hospitality, construction, logistics, manufacturing, F&amp;B and more. Complete your profile
+            once and our AI engine matches you with hiring companies — three curated picks, zero noise,
+            no cold applications. Fresh graduates, SPM leavers, diploma and degree holders all welcome.
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">

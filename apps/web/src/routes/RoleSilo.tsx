@@ -1,7 +1,7 @@
 import { Link, useParams, Navigate } from 'react-router-dom'
 import { useSeo } from '../lib/useSeo'
 import RelatedLinks from '../components/RelatedLinks'
-import { ROLES, LOCATIONS, type RoleSlug } from '../data/silo-data'
+import { ROLES, LOCATIONS, HIRES, type RoleSlug } from '../data/silo-data'
 
 const ORIGIN = 'https://diamondandjeweler.com'
 
@@ -152,10 +152,10 @@ export default function RoleSilo() {
               Apply now — get matched
             </Link>
             <Link
-              to={`/hire-${role.slug}`}
+              to="/start/hiring"
               className="inline-flex items-center px-5 py-2.5 rounded-xl border border-gray-300 text-sm font-semibold hover:border-[#0B1742]"
             >
-              I'm hiring {role.name.toLowerCase()}s
+              I'm hiring — find talent
             </Link>
           </div>
         </section>
@@ -221,9 +221,11 @@ export default function RoleSilo() {
         <RelatedLinks
           roles={role.relatedRoles}
           locations={role.relatedLocations}
-          hires={[
-            { slug: role.slug, label: `Hire ${role.name.toLowerCase()}` },
-          ]}
+          hires={
+            (role.slug as string) in HIRES
+              ? [{ slug: role.slug, label: `Hire ${role.name.toLowerCase()}` }]
+              : []
+          }
         />
 
         <section className="mt-12">

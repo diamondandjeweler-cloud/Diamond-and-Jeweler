@@ -119,6 +119,18 @@
       "dest": "/careers/diamond-grader-vs-gemologist.html"
     },
     {
+      "src": "^/careers/luxury-retail-jobs-malaysia/?$",
+      "dest": "/careers/luxury-retail-jobs-malaysia.html"
+    },
+    {
+      "src": "^/careers/ai-recruitment-explained/?$",
+      "dest": "/careers/ai-recruitment-explained.html"
+    },
+    {
+      "src": "^/careers/jewellery-shop-hiring-malaysia/?$",
+      "dest": "/careers/jewellery-shop-hiring-malaysia.html"
+    },
+    {
       "src": "^/careers/?$",
       "dest": "/careers.html"
     },

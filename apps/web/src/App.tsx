@@ -22,6 +22,9 @@ const LocationSilo     = lazy(() => import('./routes/LocationSilo'))
 const HireSilo         = lazy(() => import('./routes/HireSilo'))
 const CadetPilotGuide  = lazy(() => import('./routes/blog/CadetPilotGuide'))
 const DiamondVsGemPost = lazy(() => import('./routes/blog/DiamondGraderVsGemologist'))
+const LuxuryRetailPost = lazy(() => import('./routes/blog/LuxuryRetailJobsPost'))
+const AiRecruitmentPost = lazy(() => import('./routes/blog/AiRecruitmentPost'))
+const JewelleryShopPost = lazy(() => import('./routes/blog/JewelleryShopHiringPost'))
 const WaitlistConfirm  = lazy(() => import('./routes/WaitlistConfirm'))
 const PasswordReset    = lazy(() => import('./routes/auth/PasswordReset'))
 const AuthCallback     = lazy(() => import('./routes/auth/AuthCallback'))
@@ -98,6 +101,9 @@ export default function App() {
         <Route path="/careers/urgent-hiring-malaysia-2026" element={<UrgentHiringPost />} />
         <Route path="/careers/cadet-pilot-program-malaysia-guide" element={<CadetPilotGuide />} />
         <Route path="/careers/diamond-grader-vs-gemologist" element={<DiamondVsGemPost />} />
+        <Route path="/careers/luxury-retail-jobs-malaysia" element={<LuxuryRetailPost />} />
+        <Route path="/careers/ai-recruitment-explained" element={<AiRecruitmentPost />} />
+        <Route path="/careers/jewellery-shop-hiring-malaysia" element={<JewelleryShopPost />} />
         <Route path="/jobs/:slug" element={<RoleSilo />} />
         {/* React Router v6 cannot match a `:slug` parameter after a hyphen in literal path text,
             so /jobs-in-:slug and /hire-:slug fall through to NotFound. Enumerate explicitly. */}

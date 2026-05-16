@@ -114,6 +114,43 @@ const ROUTES = {
     ],
   },
 
+  '/careers/luxury-retail-jobs-malaysia': {
+    title: 'Luxury Retail Jobs in Kuala Lumpur — Hiring Guide 2026 | DNJ',
+    description:
+      'Guide to luxury retail jobs in Kuala Lumpur — sales associate, clienteling, boutique manager roles in jewelry, watches and fashion. Salary ranges, what brands look for, and the career ladder.',
+    bullets: [
+      'Sales associate, clienteling specialist, boutique supervisor and manager roles',
+      'Indicative KL salary ranges from RM 2,800 base to RM 18,000+ for managers with commission',
+      'Brands hire for language range, composure, service instinct — prior luxury experience optional',
+      'Career ladder: associate to senior to clienteling to boutique manager to retail operations',
+      'Concentrated in Suria KLCC, Pavilion KL, The Exchange TRX, Starhill and Mid Valley',
+    ],
+  },
+  '/careers/ai-recruitment-explained': {
+    title: 'How AI Recruitment Works — Three Matches Beat Hundreds | DNJ',
+    description:
+      'How AI-curated recruitment works, and why three well-matched roles beat a hundred cold applications. A plain-English explanation of compatibility matching for talent and hiring managers.',
+    bullets: [
+      'AI handles matching and shortlisting — interviews and hiring decisions stay fully human',
+      'A compatibility engine scores skills, trajectory, culture fit and compensation alignment',
+      'Three genuinely-aligned matches beat three hundred listings — quality of attention wins',
+      'Personal data is end-to-end encrypted and PDPA-compliant; employers see only what you share',
+      'Employers receive vetted, compatibility-scored profiles including passive talent',
+    ],
+  },
+  '/careers/jewellery-shop-hiring-malaysia': {
+    title: 'Jewellery Shop Hiring Malaysia — What Companies Look For | DNJ',
+    description:
+      'What jewellery shops in Malaysia look for when hiring — roles, traits, training, and the trust factor. A practical guide for job seekers and a hiring checklist for shop owners.',
+    bullets: [
+      'Roles: sales associate, bench jeweler, stone setter, appraiser/grader, shop manager',
+      'Jewellery employers weigh trustworthiness and attention to detail alongside skill',
+      'Prior jewellery experience optional for sales — attitude and polish trained in-house',
+      'Bench and setting roles favour trade certificates and demonstrable hand skill',
+      'A steady, skilled, future-proof career path across KL, PJ and Penang',
+    ],
+  },
+
   // ----- Role silo pages -----
   '/jobs/pilot': {
     title: 'Pilot Job Vacancy Malaysia — Cadet & Airline Pilot Hiring | DNJ',

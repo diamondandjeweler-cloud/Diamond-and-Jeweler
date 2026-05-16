@@ -29,6 +29,7 @@ export default function SignUp() {
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [showGoogleModal, setShowGoogleModal] = useState(false)
 
   // Password policy: minimum 12 chars, must include uppercase, lowercase, digit, and symbol.
   function passwordValid(pw: string): boolean {
@@ -81,6 +82,14 @@ export default function SignUp() {
       // OAuth never started — drop the pending referral code so a later
       // unrelated signup on this tab can't accidentally claim it.
       try { sessionStorage.removeItem('bole.referral_code') } catch { /* tolerate */ }
+    }
+  }
+
+  function handleGoogleButtonClick() {
+    if (consents.dob && consents.tos) {
+      handleGoogleSignUp()
+    } else {
+      setShowGoogleModal(true)
     }
   }
 
@@ -308,12 +317,11 @@ export default function SignUp() {
           <div className="flex-1 border-t border-ink-200" />
         </div>
 
-        {/* Google button — gated on the same required consents as email signup
-            so that PDPA explicit-consent applies to OAuth flow too. */}
+        {/* Google button — opens consent modal if required consents not yet ticked */}
         <button
           type="button"
-          onClick={handleGoogleSignUp}
-          disabled={busy || !consents.dob || !consents.tos}
+          onClick={handleGoogleButtonClick}
+          disabled={busy}
           className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           style={{
             borderColor: 'rgba(0,0,0,0.12)',
@@ -324,12 +332,67 @@ export default function SignUp() {
           <GoogleIcon />
           {t('auth.continueWithGoogle')}
         </button>
-        {(!consents.dob || !consents.tos) && (
-          <p className="text-center text-[11px] text-ink-400 leading-relaxed -mt-1">
-            Please tick the required consents above before continuing with Google.
-          </p>
-        )}
       </div>
+
+      {/* Consent gate modal — shown when user clicks Google without ticking required consents */}
+      {showGoogleModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setShowGoogleModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div>
+              <h2 className="text-base font-semibold text-ink-900">Before continuing with Google</h2>
+              <p className="text-xs text-ink-400 mt-1">Please review and accept the required consents to proceed.</p>
+            </div>
+
+            <div className="space-y-3">
+              {isHRAdmin ? (
+                <>
+                  <Consent checked={consents.dob} onChange={(v) => setConsents((c) => ({ ...c, dob: v }))} label="I consent to DNJ collecting my company and professional data to power AI-driven talent matching. All data is fully encrypted and never disclosed to third parties." required />
+                  <Consent checked={consents.market} onChange={(v) => setConsents((c) => ({ ...c, market: v }))} label="I consent to anonymised comparison of our compensation benchmarks against market salary data." />
+                  <Consent checked={consents.tos} onChange={(v) => setConsents((c) => ({ ...c, tos: v }))} label="I have read and agree to the Terms of Service and Privacy Notice." required />
+                </>
+              ) : role === 'hiring_manager' ? (
+                <>
+                  <Consent checked={consents.dob} onChange={(v) => setConsents((c) => ({ ...c, dob: v }))} label="I consent to DNJ collecting my professional data to power AI-driven talent matching. All data is fully encrypted and never disclosed to third parties." required />
+                  <Consent checked={consents.market} onChange={(v) => setConsents((c) => ({ ...c, market: v }))} label="I consent to anonymised comparison of compensation benchmarks against market salary data." />
+                  <Consent checked={consents.tos} onChange={(v) => setConsents((c) => ({ ...c, tos: v }))} label="I have read and agree to the Terms of Service and Privacy Notice." required />
+                </>
+              ) : (
+                <>
+                  <Consent checked={consents.dob} onChange={(v) => setConsents((c) => ({ ...c, dob: v }))} label="I consent to DNJ collecting my personal data to power advanced AI-driven compatibility analysis. My data is encrypted at rest and is never disclosed to employers without my explicit consent at the offer stage." required />
+                  <Consent checked={consents.market} onChange={(v) => setConsents((c) => ({ ...c, market: v }))} label="I consent to anonymised comparison of my salary expectations against market data." />
+                  <Consent checked={consents.tos} onChange={(v) => setConsents((c) => ({ ...c, tos: v }))} label="I have read and agree to the Terms of Service and Privacy Notice." required />
+                </>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => { setShowGoogleModal(false); handleGoogleSignUp() }}
+                disabled={!consents.dob || !consents.tos || busy}
+                className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ borderColor: 'rgba(0,0,0,0.12)', backgroundColor: '#fff', color: '#1a1a2e' }}
+              >
+                <GoogleIcon />
+                {t('auth.continueWithGoogle')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowGoogleModal(false)}
+                className="text-sm text-ink-400 hover:text-ink-600 text-center py-1 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AuthShell>
   )
 }

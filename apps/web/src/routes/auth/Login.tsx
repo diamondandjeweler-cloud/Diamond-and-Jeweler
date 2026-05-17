@@ -31,6 +31,7 @@ export default function Login() {
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [turnstileBlocked, setTurnstileBlocked] = useState(false)
 
   // Brute-force protection: track consecutive failures in localStorage so
   // the lockout persists across tabs and windows, not just the current session.
@@ -204,12 +205,18 @@ export default function Login() {
         <form onSubmit={handleSubmit} method="post" className="space-y-4">
           <Input label={t('common.email')} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
           <PasswordInput label={t('common.password')} value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
-          <Turnstile onToken={setCaptchaToken} />
+          <Turnstile
+            onToken={(t) => { setCaptchaToken(t); if (t) setTurnstileBlocked(false) }}
+            onError={() => setTurnstileBlocked(true)}
+          />
           {err && <Alert tone="red">{err}</Alert>}
-          {waitingForCaptcha && !err && (
+          {turnstileBlocked && !err && (
+            <Alert tone="red">Security check failed. If you&apos;ve had multiple failed login attempts, please wait 15 minutes and try again.</Alert>
+          )}
+          {waitingForCaptcha && !err && !turnstileBlocked && (
             <Alert tone="amber">{t('auth.verifyingHuman')}</Alert>
           )}
-          <Button type="submit" loading={busy || waitingForCaptcha} className="w-full" size="lg">
+          <Button type="submit" loading={busy || waitingForCaptcha} disabled={turnstileBlocked} className="w-full" size="lg">
             {busy ? t('auth.signingIn') : waitingForCaptcha ? t('auth.verifyingHuman') : t('common.signIn')}
           </Button>
           <div className="text-center text-sm">

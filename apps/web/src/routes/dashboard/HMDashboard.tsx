@@ -438,10 +438,10 @@ export default function HMDashboard() {
     const prevStatus = candidates.find((c) => c.id === id)?.status
     setCandidates((cs) => cs.map((c) => (c.id === id ? { ...c, status: next } : c)))
 
-    // State machine requires generated → viewed before viewed → invited_by_manager.
-    // If the HM is inviting a candidate still in 'generated' state, advance through
-    // 'viewed' first so the transition is legal — from the HM's perspective it's one action.
-    if (next === 'invited_by_manager' && prevStatus === 'generated') {
+    // State machine requires generated → viewed before viewed → invited_by_manager or
+    // viewed → declined_by_manager. Advance through 'viewed' first so both actions are
+    // legal from the HM's perspective regardless of which they pick first.
+    if (prevStatus === 'generated') {
       const { error: viewErr } = await supabase.from('matches').update({ status: 'viewed' }).eq('id', id)
       if (viewErr) {
         setErr(viewErr.message)

@@ -26,14 +26,17 @@ const TEST_SITE_KEY = '1x00000000000000000000AA' // Cloudflare always-pass dev k
 
 interface Props {
   onToken: (token: string | null) => void
+  onError?: () => void
   theme?: 'auto' | 'light' | 'dark'
 }
 
-export default function Turnstile({ onToken, theme = 'light' }: Props) {
+export default function Turnstile({ onToken, onError, theme = 'light' }: Props) {
   const elRef = useRef<HTMLDivElement | null>(null)
   const widgetIdRef = useRef<string | null>(null)
   const onTokenRef = useRef(onToken)
   onTokenRef.current = onToken
+  const onErrorRef = useRef(onError)
+  onErrorRef.current = onError
 
   // Lazily load the Turnstile script the first time this component mounts.
   // Previously loaded globally in index.html; moved here so unauthenticated
@@ -67,8 +70,8 @@ export default function Turnstile({ onToken, theme = 'light' }: Props) {
         size: 'flexible',
         callback: (token) => onTokenRef.current(token),
         'expired-callback': () => onTokenRef.current(null),
-        'error-callback': () => onTokenRef.current(null),
-        'timeout-callback': () => onTokenRef.current(null),
+        'error-callback': () => { onTokenRef.current(null); onErrorRef.current?.() },
+        'timeout-callback': () => { onTokenRef.current(null); onErrorRef.current?.() },
       })
     }
     tryRender()

@@ -338,14 +338,18 @@ export default function SignUp() {
       {showGoogleModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={() => setShowGoogleModal(false)}
+          role="presentation"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowGoogleModal(false); }}
+          onKeyDown={(e) => e.key === 'Escape' && setShowGoogleModal(false)}
         >
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="google-modal-title"
             className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4"
-            onClick={(e) => e.stopPropagation()}
           >
             <div>
-              <h2 className="text-base font-semibold text-ink-900">Before continuing with Google</h2>
+              <h2 id="google-modal-title" className="text-base font-semibold text-ink-900">Before continuing with Google</h2>
               <p className="text-xs text-ink-400 mt-1">Please review and accept the required consents to proceed.</p>
             </div>
 

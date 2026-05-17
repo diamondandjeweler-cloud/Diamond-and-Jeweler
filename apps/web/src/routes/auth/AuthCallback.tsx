@@ -23,12 +23,33 @@ export default function AuthCallback() {
   const { session } = useSession()
   const [newPw, setNewPw] = useState('')
   const [busy, setBusy] = useState(false)
-  const [err, setErr] = useState<string | null>(null)
+  // Expired / already-used magic links arrive with the failure in the URL HASH
+  // (#error=...&error_code=...). useSearchParams() only sees the query string,
+  // so without this the user silently falls through to the "Check your email"
+  // waiting screen — a dead end. Read the hash up front, route straight to the
+  // error screen.
+  const hashErr = readHashAuthError()
+  const [err, setErr] = useState<string | null>(
+    hashErr
+      ? (/expired|invalid/i.test(`${hashErr.code} ${hashErr.description}`)
+          ? 'This confirmation link has expired or has already been used.'
+          : hashErr.description || 'This link could not be used.')
+      : null
+  )
   const [resent, setResent] = useState(false)
   const navigated = useRef(false)
   const [mode, setMode] = useState<'loading' | 'waiting' | 'recover' | 'done' | 'error'>(
-    hasCode ? 'loading' : 'waiting'
+    hashErr ? 'error' : hasCode ? 'loading' : 'waiting'
   )
+
+  // Strip the error hash so a refresh doesn't replay it and the URL bar is
+  // clean. Only runs for error hashes — a success hash (#access_token=...) is
+  // left intact for supabase-js detectSessionInUrl to consume.
+  useEffect(() => {
+    if (typeof window !== 'undefined' && readHashAuthError()) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search)
+    }
+  }, [])
 
   useEffect(() => {
     if (!session) return
@@ -195,24 +216,39 @@ export default function AuthCallback() {
   }
 
   if (mode === 'error') {
+    // Two ways into error mode: a failed PKCE OAuth exchange, or an expired /
+    // already-used magic link surfaced from the URL hash. Tailor copy + action.
+    const isLinkExpiry = !!err && /expired|already been used/i.test(err)
     const retryHref = roleParam === 'hr_admin' ? '/login?role=hr_admin'
       : roleParam === 'hiring_manager' ? '/login?role=hiring_manager'
       : '/login'
+    const signupHref = roleParam === 'hr_admin' ? '/signup?role=hr_admin'
+      : roleParam === 'hiring_manager' ? '/signup?role=hiring_manager'
+      : '/signup'
     return (
       <CenteredBox>
-        <h1 className="text-xl font-semibold mb-2">Sign-in didn't go through</h1>
+        <h1 className="text-xl font-semibold mb-2">
+          {isLinkExpiry ? 'This link has expired' : "Sign-in didn't go through"}
+        </h1>
         <p className="text-gray-600 text-sm mb-5">
           {err ?? 'We couldn\'t complete sign-in. Please try again.'}
+          {isLinkExpiry && ' Sign up again with the same email and we\'ll send a fresh confirmation link.'}
         </p>
         <Link
-          to={retryHref}
+          to={isLinkExpiry ? signupHref : retryHref}
           className="inline-block w-full py-2 rounded bg-brand-600 text-white text-sm font-medium hover:bg-brand-700"
         >
-          Try sign-in again
+          {isLinkExpiry ? 'Get a new confirmation link' : 'Try sign-in again'}
         </Link>
-        <p className="text-gray-400 text-xs mt-4">
-          If this keeps happening, clear your browser cache for this site and retry.
-        </p>
+        {isLinkExpiry ? (
+          <p className="text-gray-500 text-xs mt-4">
+            Already confirmed? <Link to={retryHref} className="text-brand-600 underline">Sign in instead</Link>.
+          </p>
+        ) : (
+          <p className="text-gray-400 text-xs mt-4">
+            If this keeps happening, clear your browser cache for this site and retry.
+          </p>
+        )}
       </CenteredBox>
     )
   }
@@ -244,6 +280,20 @@ export default function AuthCallback() {
       <Link to={loginHref} className="text-brand-600 underline text-sm">Back to sign in</Link>
     </CenteredBox>
   )
+}
+
+/**
+ * Reads an auth error returned in the URL hash. Supabase delivers expired or
+ * already-used magic-link failures as `#error=...&error_code=...` — the query
+ * string is empty in that case, so useSearchParams() never catches them.
+ * Returns null for success hashes (#access_token=...) and no-hash URLs.
+ */
+function readHashAuthError(): { code: string; description: string } | null {
+  if (typeof window === 'undefined' || !window.location.hash) return null
+  const p = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+  const code = p.get('error_code') ?? p.get('error')
+  if (!code) return null
+  return { code, description: (p.get('error_description') ?? '').replace(/\+/g, ' ') }
 }
 
 async function applyStoredRole(userId: string) {

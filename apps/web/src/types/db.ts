@@ -110,7 +110,7 @@ export interface CultureComparison {
 }
 
 export interface PublicReasoning {
-  score_band: 'strong' | 'good' | 'cautious'
+  score_band?: 'strong' | 'good' | 'cautious'
   strengths: string[]
   watchouts: string[]
   matched_traits: string[]

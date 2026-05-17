@@ -437,15 +437,26 @@ export default function HMDashboard() {
     setActionBusy(`${id}:${actionLabel}`)
     const prevStatus = candidates.find((c) => c.id === id)?.status
     setCandidates((cs) => cs.map((c) => (c.id === id ? { ...c, status: next } : c)))
+
+    // State machine requires generated → viewed before viewed → invited_by_manager.
+    // If the HM is inviting a candidate still in 'generated' state, advance through
+    // 'viewed' first so the transition is legal — from the HM's perspective it's one action.
+    if (next === 'invited_by_manager' && prevStatus === 'generated') {
+      const { error: viewErr } = await supabase.from('matches').update({ status: 'viewed' }).eq('id', id)
+      if (viewErr) {
+        setErr(viewErr.message)
+        if (prevStatus) setCandidates((cs) => cs.map((c) => (c.id === id ? { ...c, status: prevStatus } : c)))
+        setActionBusy(null)
+        return
+      }
+    }
+
     const { error } = await supabase.from('matches').update({
       status: next,
       invited_at: next === 'invited_by_manager' ? new Date().toISOString() : null,
     }).eq('id', id)
     if (error) {
-      const msg = error.message.includes('Illegal match status transition')
-        ? 'This candidate is still being reviewed by our team. Please try again in a moment — you\'ll be notified when they\'re ready to invite.'
-        : error.message
-      setErr(msg)
+      setErr(error.message)
       if (prevStatus) {
         setCandidates((cs) => cs.map((c) => (c.id === id ? { ...c, status: prevStatus } : c)))
       }

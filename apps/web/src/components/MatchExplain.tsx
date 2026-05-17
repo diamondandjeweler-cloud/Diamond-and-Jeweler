@@ -38,7 +38,8 @@ export default function MatchExplain({ reasoning }: { reasoning: PublicReasoning
     (w) => !(w.includes('Platform signals') && w.includes('evaluation dimensions')),
   )
 
-  const tone = reasoning.score_band === 'strong' ? 'green' : reasoning.score_band === 'good' ? 'brand' : 'amber'
+  const scoreBand = reasoning.score_band
+  const tone = scoreBand === 'strong' ? 'green' : scoreBand === 'good' ? 'brand' : 'amber'
 
   const behavioralPairs = Object.entries(reasoning.behavioral_tags ?? {})
     .filter(([k, v]) => v != null && BEHAVIORAL_LABELS[k])
@@ -52,7 +53,7 @@ export default function MatchExplain({ reasoning }: { reasoning: PublicReasoning
         aria-expanded={open}
       >
         <span className="flex items-center gap-2">
-          <Badge tone={tone}>{t(`match.scoreBand.${reasoning.score_band}`)}</Badge>
+          {scoreBand && <Badge tone={tone}>{t(`match.scoreBand.${scoreBand}`)}</Badge>}
           <span className="text-xs text-ink-500">Why?</span>
         </span>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className={`transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden>

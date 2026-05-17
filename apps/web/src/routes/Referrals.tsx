@@ -102,18 +102,19 @@ export default function Referrals() {
     if (!session) return
     setBusy(true); setErr(null)
     try {
-      const withTimeout = <T,>(p: Promise<T>, ms = 10000): Promise<T> =>
-        Promise.race([p, new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Request timed out. Please try again.')), ms)
-        )])
-      const { data: code } = await withTimeout(supabase.rpc('generate_referral_code'))
-      const { data, error } = await withTimeout(
+      // Supabase builders are PromiseLike (not full Promise), so use Promise.race directly.
+      const timedOut = () => new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Request timed out. Please try again.')), 10000)
+      )
+      const { data: code } = await Promise.race([supabase.rpc('generate_referral_code'), timedOut()])
+      const { data, error } = await Promise.race([
         supabase.from('referrals').insert({
           referrer_id: session.user.id,
           referred_email: email.trim().toLowerCase(),
           code: (code as string) ?? Math.random().toString(36).slice(2, 10).toUpperCase(),
-        }).select().single()
-      )
+        }).select().single(),
+        timedOut(),
+      ])
       if (error) throw error
       setList((p) => [data as Referral, ...p])
       setEmail('')

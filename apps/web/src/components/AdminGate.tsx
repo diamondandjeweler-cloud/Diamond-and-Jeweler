@@ -34,10 +34,11 @@ export default function AdminGate({ children }: { children: ReactNode }) {
         return
       }
 
-      // Google (or any OAuth) login is strong auth — skip TOTP requirement
-      const isOAuth = data.currentAuthenticationMethods?.some(
-        (m: { method: string }) => m.method === 'oauth'
-      )
+      // Google (or any OAuth) login is strong auth — skip TOTP requirement.
+      // currentAuthenticationMethods is typed as AMREntry[] | string[] (union),
+      // so cast to a common element type before iterating.
+      const amr = (data.currentAuthenticationMethods ?? []) as Array<string | { method: string }>
+      const isOAuth = amr.some((m) => (typeof m === 'string' ? m : m.method) === 'oauth')
       if (isOAuth) { setAal('aal2'); return }
 
       // AAL1 via password — check if a verified TOTP factor exists

@@ -34,7 +34,13 @@ export default function AdminGate({ children }: { children: ReactNode }) {
         return
       }
 
-      // AAL1 — check if a verified TOTP factor exists
+      // Google (or any OAuth) login is strong auth — skip TOTP requirement
+      const isOAuth = data.currentAuthenticationMethods?.some(
+        (m: { method: string }) => m.method === 'oauth'
+      )
+      if (isOAuth) { setAal('aal2'); return }
+
+      // AAL1 via password — check if a verified TOTP factor exists
       const { data: factors } = await supabase.auth.mfa.listFactors()
       if (cancelled) return
       const hasVerifiedTotp = factors?.totp?.some(f => f.status === 'verified')

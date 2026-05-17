@@ -128,6 +128,7 @@ export default function TalentOnboarding() {
         phase?: Phase; fullName?: string; phone?: string; gender?: string
         race?: string; religion?: string; languages?: string[]
         locationMatters?: boolean | null; locationPostcode?: string; openToNewField?: boolean
+        apiMessages?: ApiMessage[]
       }) : null
 
       const restoredName = draft?.fullName || (prof?.full_name as string | null) || ''
@@ -151,6 +152,18 @@ export default function TalentOnboarding() {
         if (draft?.locationPostcode) setLocationPostcode(draft.locationPostcode)
         if (draft?.openToNewField != null) setOpenToNewField(draft.openToNewField)
         setPhase('resume')
+      } else if (draft?.apiMessages && draft.apiMessages.length > 1) {
+        // Mid-chat restore — resume exactly where they left off.
+        setApiMessages(draft.apiMessages)
+        setLog(draft.apiMessages.map((m, i) => ({
+          id: `r${i}`,
+          from: (m.role === 'assistant' ? 'system' : 'you') as 'system' | 'you',
+          content: m.content.replace('[PROFILE_READY]', '').trim(),
+        })))
+        chatInitRef.current = true
+        if (restoredName) setFullName(restoredName)
+        if (restoredPhone) setPhone(restoredPhone)
+        setPhase('chat')
       } else if (draft?.fullName && draft.phase && draft.phase !== 'basics') {
         // Partial progress in a later phase.
         setFullName(draft.fullName)
@@ -299,6 +312,20 @@ export default function TalentOnboarding() {
       const finalMsgs: ApiMessage[] = [...newApiMsgs, { role: 'assistant', content: accumulated }]
       setApiMessages(finalMsgs)
 
+      if (draftKey) {
+        try {
+          if (accumulated.includes('[PROFILE_READY]')) {
+            // Chat done — wipe mid-chat snapshot; Supabase has the real record.
+            const d = JSON.parse(localStorage.getItem(draftKey) || '{}') as Record<string, unknown>
+            const { apiMessages: _a, ...rest } = d
+            localStorage.setItem(draftKey, JSON.stringify(rest))
+          } else {
+            const d = JSON.parse(localStorage.getItem(draftKey) || '{}') as Record<string, unknown>
+            localStorage.setItem(draftKey, JSON.stringify({ ...d, apiMessages: finalMsgs, phase: 'chat' }))
+          }
+        } catch { /* ignore storage errors */ }
+      }
+
       if (accumulated.includes('[PROFILE_READY]')) {
         // Persist transcript to Supabase immediately — before DOB / docs phases.
         supabase.from('profiles')
@@ -322,6 +349,12 @@ export default function TalentOnboarding() {
       if (isAbort && accumulated.trim()) {
         const partialMsgs: ApiMessage[] = [...newApiMsgs, { role: 'assistant', content: accumulated }]
         setApiMessages(partialMsgs)
+        if (draftKey) {
+          try {
+            const d = JSON.parse(localStorage.getItem(draftKey) || '{}') as Record<string, unknown>
+            localStorage.setItem(draftKey, JSON.stringify({ ...d, apiMessages: partialMsgs, phase: 'chat' }))
+          } catch { /* ignore */ }
+        }
         supabase.from('profiles')
           .update({ interview_transcript: { messages: partialMsgs, saved_at: new Date().toISOString(), partial: true } })
           .eq('id', session!.user.id)

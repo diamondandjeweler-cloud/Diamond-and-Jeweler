@@ -93,11 +93,34 @@ export default function HMOnboarding() {
 
   const idRef = useRef(0)
   const nextId = () => `m${++idRef.current}`
-  // Stable conversation id for the whole onboarding chat — every turn shares it
-  // so analytics can group the full transcript.
   const conversationIdRef = useRef<string>(crypto.randomUUID())
   const chatInitRef = useRef(false)
   const updatedRef = useRef(false)
+  const draftCheckRef = useRef(false)
+  const draftKey = session ? `dnj.hm-onboard.${session.user.id}` : null
+
+  // On mount: restore mid-chat progress from localStorage so refresh doesn't lose the conversation.
+  useEffect(() => {
+    if (!session?.user.id || draftCheckRef.current) return
+    draftCheckRef.current = true
+    const raw = draftKey ? localStorage.getItem(draftKey) : null
+    if (!raw) return
+    try {
+      const d = JSON.parse(raw) as { fullName?: string; jobTitle?: string; apiMessages?: ApiMessage[] }
+      if (d.apiMessages && d.apiMessages.length > 1) {
+        setApiMessages(d.apiMessages)
+        setLog(d.apiMessages.map((m, i) => ({
+          id: `r${i}`,
+          from: (m.role === 'assistant' ? 'system' : 'you') as 'system' | 'you',
+          content: m.content.replace('[PROFILE_READY]', '').trim(),
+        })))
+        chatInitRef.current = true
+        if (d.fullName) setFullName(d.fullName)
+        if (d.jobTitle) setJobTitle(d.jobTitle)
+        setPhase('chat')
+      }
+    } catch { /* ignore */ }
+  }, [session?.user.id, draftKey])
 
   useEffect(() => {
     if (phase !== 'chat' || chatInitRef.current) return
@@ -207,6 +230,16 @@ export default function HMOnboarding() {
       const finalMsgs: ApiMessage[] = [...newApiMsgs, { role: 'assistant', content: accumulated }]
       setApiMessages(finalMsgs)
 
+      if (draftKey) {
+        try {
+          if (accumulated.includes('[PROFILE_READY]')) {
+            localStorage.removeItem(draftKey)
+          } else {
+            localStorage.setItem(draftKey, JSON.stringify({ fullName, jobTitle, apiMessages: finalMsgs }))
+          }
+        } catch { /* ignore */ }
+      }
+
       if (accumulated.includes('[PROFILE_READY]')) {
         const savedAt = new Date().toISOString()
         Promise.all([
@@ -225,6 +258,9 @@ export default function HMOnboarding() {
       if (isAbort && accumulated.trim()) {
         const partialMsgs: ApiMessage[] = [...newApiMsgs, { role: 'assistant', content: accumulated }]
         setApiMessages(partialMsgs)
+        if (draftKey) {
+          try { localStorage.setItem(draftKey, JSON.stringify({ fullName, jobTitle, apiMessages: partialMsgs })) } catch { /* ignore */ }
+        }
         const savedAt = new Date().toISOString()
         Promise.all([
           supabase.from('profiles').update({ interview_transcript: { messages: partialMsgs, saved_at: savedAt, partial: true } }).eq('id', session!.user.id),

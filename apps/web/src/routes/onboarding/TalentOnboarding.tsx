@@ -183,10 +183,17 @@ export default function TalentOnboarding() {
   useEffect(() => {
     if (!draftKey || phase === 'basics' || phase === 'resume' || phase === 'done' || phase === 'submit') return
     // DOB intentionally excluded — never persisted to localStorage in plaintext.
-    localStorage.setItem(draftKey, JSON.stringify({
-      phase, fullName, phone, gender: gender || '',
-      race, religion, languages, locationMatters, locationPostcode, openToNewField,
-    }))
+    // In chat phase, spread existing draft so apiMessages saved by sendMessage are preserved.
+    try {
+      const prev = phase === 'chat'
+        ? JSON.parse(localStorage.getItem(draftKey) || '{}') as Record<string, unknown>
+        : {}
+      localStorage.setItem(draftKey, JSON.stringify({
+        ...prev,
+        phase, fullName, phone, gender: gender || '',
+        race, religion, languages, locationMatters, locationPostcode, openToNewField,
+      }))
+    } catch { /* ignore storage errors */ }
   }, [draftKey, phase, fullName, phone, gender, race, religion, languages, locationMatters, locationPostcode, openToNewField])
 
   // Seed Bo's greeting when entering the chat phase — no API call needed.

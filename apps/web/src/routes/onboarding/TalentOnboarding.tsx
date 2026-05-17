@@ -217,6 +217,17 @@ export default function TalentOnboarding() {
     setIsStreaming(true)
     let accumulated = ''
 
+    // Show a soft warning after 10s if no chunk has arrived yet.
+    const warnMsgId = nextId()
+    let warnCleared = false
+    let warnTimer: ReturnType<typeof setTimeout> | undefined
+    const clearWarn = () => {
+      if (warnCleared) return
+      warnCleared = true
+      clearTimeout(warnTimer)
+      setLog((l) => l.filter((m) => m.id !== warnMsgId))
+    }
+
     try {
       const { data: authData } = await supabase.auth.getSession()
       const token = authData.session?.access_token
@@ -231,6 +242,13 @@ export default function TalentOnboarding() {
         stallTimer = setTimeout(() => abortCtrl.abort(), 25_000)
       }
       resetStall()
+
+      warnTimer = setTimeout(() => {
+        setLog((l) => [...l, {
+          id: warnMsgId, from: 'system',
+          content: "AI is taking longer than usual — if this doesn't resolve, please refresh the page to continue.",
+        }])
+      }, 10_000)
 
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-onboard`,
@@ -253,6 +271,7 @@ export default function TalentOnboarding() {
       outer: for (;;) {
         const { done, value } = await reader.read()
         if (done) break
+        clearWarn()
         resetStall()
         buffer += decoder.decode(value, { stream: true })
         const lines = buffer.split('\n')
@@ -323,6 +342,7 @@ export default function TalentOnboarding() {
         )
       }
     } finally {
+      clearWarn()
       setIsStreaming(false)
     }
   }

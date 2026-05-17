@@ -29,10 +29,15 @@ export default function ConsentGate({ children }: { children: ReactNode }) {
   const [currentLegal, setCurrentLegal] = useState<string | null | 'pending'>('pending')
   useEffect(() => {
     let cancelled = false
+    // Fail open after 4s — a hung Supabase connection must not trap users on a spinner.
+    const timeout = setTimeout(() => {
+      if (!cancelled) { cancelled = true; setCurrentLegal(null) }
+    }, 4000)
     void getCurrentLegalVersion().then((v) => {
+      clearTimeout(timeout)
       if (!cancelled) setCurrentLegal(v)
     })
-    return () => { cancelled = true }
+    return () => { cancelled = true; clearTimeout(timeout) }
   }, [])
 
   if (loading) return <LoadingSpinner full />

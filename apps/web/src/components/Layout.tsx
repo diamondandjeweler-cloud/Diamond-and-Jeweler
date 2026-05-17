@@ -146,14 +146,14 @@ export default function Layout() {
 }
 
 function navForRole(role: string | undefined, pathname: string, opts: { isHM?: boolean } = {}) {
-  const linkFor = (href: string, label: string, badge?: string) => ({
+  const linkFor = (href: string, label: string, badge?: string, end = false) => ({
     href, label, badge,
-    active: pathname === href || (href !== '/home' && pathname.startsWith(href)),
+    active: pathname === href || (!end && href !== '/home' && pathname.startsWith(href)),
   })
   const restaurantEnabled = import.meta.env.VITE_ENABLE_RESTAURANT === 'true'
   const restaurant = linkFor('/restaurant', 'Restaurant', 'DEV')
   if (role === 'talent') return [
-    linkFor('/home', 'My offers'),
+    linkFor('/talent', 'My offers', undefined, true),
     linkFor('/talent/profile', 'Profile'),
   ]
   if (role === 'hiring_manager') return [

@@ -35,10 +35,13 @@ export default function AdminGate({ children }: { children: ReactNode }) {
       }
 
       // Google (or any OAuth) login is strong auth — skip TOTP requirement.
-      // currentAuthenticationMethods is typed as AMREntry[] | string[] (union),
-      // so cast to a common element type before iterating.
-      const amr = (data.currentAuthenticationMethods ?? []) as Array<string | { method: string }>
-      const isOAuth = amr.some((m) => (typeof m === 'string' ? m : m.method) === 'oauth')
+      // currentAuthenticationMethods is typed as AMREntry[] | string[] (union of arrays),
+      // which creates an overloaded .some() that TS can't resolve with a typed callback.
+      // Cast to any[] to avoid the overload ambiguity.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const isOAuth = ((data.currentAuthenticationMethods ?? []) as any[]).some(
+        (m: any) => (typeof m === 'string' ? m : m?.method) === 'oauth',
+      )
       if (isOAuth) { setAal('aal2'); return }
 
       // AAL1 via password — check if a verified TOTP factor exists

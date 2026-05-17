@@ -102,17 +102,18 @@ export default function Referrals() {
     if (!session) return
     setBusy(true); setErr(null)
     try {
-      // Supabase builders are PromiseLike (not full Promise), so use Promise.race directly.
+      // Supabase builders are PromiseLike but not full Promise, so .then(r=>r) promotes
+      // them to genuine Promises that TypeScript accepts in Promise.race.
       const timedOut = () => new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('Request timed out. Please try again.')), 10000)
       )
-      const { data: code } = await Promise.race([supabase.rpc('generate_referral_code'), timedOut()])
+      const { data: code } = await Promise.race([supabase.rpc('generate_referral_code').then(r => r), timedOut()])
       const { data, error } = await Promise.race([
         supabase.from('referrals').insert({
           referrer_id: session.user.id,
           referred_email: email.trim().toLowerCase(),
           code: (code as string) ?? Math.random().toString(36).slice(2, 10).toUpperCase(),
-        }).select().single(),
+        }).select().single().then(r => r),
         timedOut(),
       ])
       if (error) throw error

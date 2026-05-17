@@ -262,10 +262,13 @@ export default function Referrals() {
           <CardBody>
             <div className="flex items-start justify-between gap-4 mb-3">
               <div className="min-w-0">
-                <div className="text-xs text-brand-700 font-medium mb-0.5">Your referral link</div>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <div className="text-xs text-brand-700 font-medium">Your referral link</div>
+                  <Badge tone="green">Unlimited</Badge>
+                </div>
                 <div className="font-mono text-sm text-ink-900 break-all">{shareUrl}</div>
                 <div className="text-xs text-ink-500 mt-1">
-                  Friend earns +{pointsCfg.perWelcome} Diamond Points · You earn +{pointsCfg.perReferral} Diamond Points when they finish onboarding
+                  Friend earns +{pointsCfg.perWelcome} Diamond Points · You earn +{pointsCfg.perReferral} Diamond Points when they finish onboarding · Share with anyone — every signup counts
                 </div>
               </div>
             </div>
@@ -315,9 +318,12 @@ export default function Referrals() {
 
       <Card className="mb-6">
         <CardBody>
-          <h2 className="font-display text-lg mb-1">Send a personalised invite</h2>
+          <div className="flex items-center gap-1.5 mb-1">
+            <h2 className="font-display text-lg">Send a personalised invite</h2>
+            <Badge tone="amber">Single-use</Badge>
+          </div>
           <p className="text-xs text-ink-500 mb-3">
-            We tie this code to your friend's email — only they can use it. (For open sharing, use the link above instead.)
+            We tie this code to your friend's email — single use, one person only. (For unlimited sharing, use the link above instead.)
           </p>
           <div className="flex gap-2 items-end">
             <div className="flex-1">

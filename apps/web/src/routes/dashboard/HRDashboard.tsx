@@ -59,6 +59,7 @@ export default function HRDashboard() {
   const [companyId, setCompanyId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState<string | null>(null)
+  const [loadRetry, setLoadRetry] = useState(0)
   const [schedulingId, setSchedulingId] = useState<string | null>(null)
   const [scheduledAt, setScheduledAt] = useState('')
   const [format, setFormat] = useState<'video' | 'phone' | 'in_person'>('video')
@@ -72,12 +73,20 @@ export default function HRDashboard() {
 
   useEffect(() => {
     let cancelled = false
+    setErr(null)
+    // Timeout: keep loading=true so the empty-data state never renders.
+    // The retry UI (below) replaces the spinner when this fires.
     const loadTimeout = setTimeout(() => {
-      if (!cancelled) { setErr('Loading timed out — please refresh the page.'); setLoading(false) }
-    }, 12000)
+      if (!cancelled) setErr('Taking too long — tap Retry to try again.')
+    }, 20000)
     async function load() {
       if (!userId || !userEmail) { clearTimeout(loadTimeout); setLoading(false); return }
       try {
+      // Warm the auth token first. If the access token is expired, this call
+      // completes the refresh before the DB queries start — otherwise all
+      // queries queue silently behind the refresh and appear to hang.
+      await supabase.auth.getSession()
+      if (cancelled) { clearTimeout(loadTimeout); return }
       const { data: comp } = await supabase.from('companies').select('id').eq('primary_hr_email', userEmail).maybeSingle()
       if (!comp) { setLoading(false); return }
       setCompanyId(comp.id)
@@ -190,7 +199,7 @@ export default function HRDashboard() {
     }
     void load()
     return () => { cancelled = true; clearTimeout(loadTimeout) }
-  }, [userId, userEmail])
+  }, [userId, userEmail, loadRetry])
 
   async function completeInterview(interviewId: string, matchId: string, hired: boolean) {
     const { error: iErr } = await supabase.from('interviews').update({ status: 'completed' }).eq('id', interviewId)
@@ -256,6 +265,14 @@ export default function HRDashboard() {
     }
   }
 
+  if (loading && err) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <p className="text-sm text-ink-500">{err}</p>
+        <Button onClick={() => { setErr(null); setLoadRetry((r) => r + 1) }}>Retry</Button>
+      </div>
+    )
+  }
   if (loading) return <LoadingSpinner />
 
   const isSelfHM = hms.some((h) => h.is_self)

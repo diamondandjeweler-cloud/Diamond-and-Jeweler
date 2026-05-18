@@ -1,0 +1,26 @@
+# Lefthook pre-commit hooks — catches lint + type errors before they reach CI.
+# Activated automatically after `npx lefthook install` (run once after cloning).
+# Docs: https://lefthook.dev/configuration/
+
+pre-commit:
+  parallel: true
+  jobs:
+    - name: lint
+      root: "apps/web"
+      glob:
+        - "*.ts"
+        - "*.tsx"
+      run: npm run lint
+      fail_text: |
+        ESLint errors detected. Run `npm run lint:fix` in apps/web/ to
+        auto-fix what you can, then fix the rest before committing.
+
+    - name: typecheck
+      root: "apps/web"
+      glob:
+        - "*.ts"
+        - "*.tsx"
+      run: npm run typecheck
+      fail_text: |
+        TypeScript errors detected. Run `npm run typecheck` in apps/web/
+        to see the full list, then fix before committing.

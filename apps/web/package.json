@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "prepare": "cd ../.. && npx lefthook install",
     "dev": "vite",
     "build": "tsc --noEmit && vite build && node scripts/inject-meta.mjs && node scripts/strip-sourcemaps.mjs",
     "preview": "vite preview --port 3000",
@@ -58,6 +59,7 @@
     "eslint-plugin-react-refresh": "^0.4.9",
     "eslint-plugin-storybook": "^0.8.0",
     "jsdom": "^24.1.1",
+    "lefthook": "^2.1.6",
     "postcss": "^8.4.41",
     "prettier": "^3.3.3",
     "storybook": "^8.2.9",

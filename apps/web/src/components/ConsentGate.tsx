@@ -22,6 +22,19 @@ import { getCachedLegalVersionSync, getCurrentLegalVersion, consentSatisfiesVers
 export default function ConsentGate({ children }: { children: ReactNode }) {
   const { loading, profile, session } = useSession()
 
+  // Escape hatch: if a session is present but profile never arrives (e.g. because
+  // fetchProfile hangs behind a stalled Supabase token refresh), stop spinning
+  // after 15 s and redirect to login — infinite spinner is never acceptable UX.
+  const [profileStuck, setProfileStuck] = useState(false)
+  useEffect(() => {
+    if (!loading && session && !profile) {
+      const t = setTimeout(() => setProfileStuck(true), 15_000)
+      return () => clearTimeout(t)
+    }
+    setProfileStuck(false)
+    return undefined
+  }, [loading, session, profile])
+
   // Initialise synchronously from localStorage so the spinner never appears when
   // the cache is warm (covers most cold Chrome-open scenarios after first load).
   // The effect below only fires a network fetch when the cache is missing/expired.
@@ -46,8 +59,8 @@ export default function ConsentGate({ children }: { children: ReactNode }) {
 
   if (loading) return <LoadingSpinner full />
   if (!profile) {
-    if (session) return <LoadingSpinner full />  // profile still loading
-    return <Navigate to="/login" replace />
+    if (session && !profileStuck) return <LoadingSpinner full />  // profile still loading
+    return <Navigate to="/login" replace />  // no session, or profile never arrived
   }
 
   // restaurant_staff bypass — they're internal users, not subject to the

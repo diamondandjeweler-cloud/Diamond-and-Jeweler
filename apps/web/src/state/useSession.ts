@@ -213,12 +213,22 @@ export function bootstrapSession() {
       // before the authoritative DB fetch completes.
       const validCache = cachedProfile && cachedProfile.id === session.user.id
       useSession.setState({ session, loading: false, ...(validCache ? { profile: cachedProfile } : {}) })
+      // Both fetches are guarded by a 12 s timeout. If the Supabase auth token
+      // refresh hangs (e.g. Cloudflare latency), these promises would otherwise
+      // block forever — keeping profile=null and trapping the user on a spinner.
+      // On timeout we fall back to the stale cached profile so the gate can pass.
+      const FETCH_TIMEOUT = 12_000
+      const withTimeout = <T,>(p: Promise<T>, fallback: T): Promise<T> =>
+        Promise.race([p, new Promise<T>((res) => setTimeout(() => res(fallback), FETCH_TIMEOUT))])
       const [profile, isHM] = await Promise.all([
-        fetchProfile(session.user.id).catch((e) => {
-          console.error('[session] fetchProfile failed in onAuthStateChange', e)
-          return null
-        }),
-        fetchIsHM(session.user.id),
+        withTimeout(
+          fetchProfile(session.user.id).catch((e) => {
+            console.error('[session] fetchProfile failed in onAuthStateChange', e)
+            return validCache ? cachedProfile : null
+          }),
+          validCache ? cachedProfile : null,
+        ),
+        withTimeout(fetchIsHM(session.user.id).catch(() => false), false),
       ])
       // Don't sign out on profile fetch failure — it cancels in-flight auth flows
       // (e.g. PKCE callback) and leaves the user stuck on "Check your email".

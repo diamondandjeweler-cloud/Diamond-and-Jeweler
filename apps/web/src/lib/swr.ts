@@ -15,3 +15,13 @@ export const swrConfig: SWRConfiguration = {
   errorRetryInterval: 1500,
   keepPreviousData: true,
 }
+
+/**
+ * For data that changes rarely (profiles, system_config, consent_versions).
+ * Revalidates at most once every 5 minutes; does not re-fetch on every mount.
+ */
+export const swrConfigSlow: SWRConfiguration = {
+  ...swrConfig,
+  dedupingInterval: 300_000,
+  revalidateIfStale: false,
+}

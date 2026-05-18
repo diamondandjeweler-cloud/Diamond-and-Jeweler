@@ -50,7 +50,7 @@ export default function Referrals() {
     void (async () => {
       try {
         const [refsR, cfgPerRef, cfgPerWelcome, cfgPerExtra] = await Promise.all([
-          supabase.from('referrals').select('*').eq('referrer_id', userId).order('created_at', { ascending: false }),
+          supabase.from('referrals').select('id, referred_email, code, status, created_at, reward_claimed_at').eq('referrer_id', userId).order('created_at', { ascending: false }),
           supabase.from('system_config').select('value').eq('key', 'points_per_referral').maybeSingle(),
           supabase.from('system_config').select('value').eq('key', 'points_referee_welcome').maybeSingle(),
           supabase.from('system_config').select('value').eq('key', 'points_per_extra_match').maybeSingle(),

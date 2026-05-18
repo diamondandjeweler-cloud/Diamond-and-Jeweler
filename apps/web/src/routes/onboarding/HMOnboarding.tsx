@@ -84,6 +84,18 @@ export default function HMOnboarding() {
 
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const [hmMissing, setHmMissing] = useState(false)
+
+  // Preflight: verify hiring_managers row exists before showing any questions.
+  useEffect(() => {
+    if (!session?.user.id) return
+    supabase
+      .from('hiring_managers')
+      .select('id')
+      .eq('profile_id', session.user.id)
+      .maybeSingle()
+      .then(({ data }) => { if (!data) setHmMissing(true) })
+  }, [session?.user.id])
 
   useEffect(() => {
     if (!isStreaming && phase === 'chat') {
@@ -130,6 +142,17 @@ export default function HMOnboarding() {
   }, [phase])
 
   if (!session || !profile) return null
+
+  if (hmMissing) return (
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+      <div className="w-full max-w-md space-y-4">
+        <Alert tone="red">
+          No hiring-manager record found for your account. Ask your HR contact to re-send the invite.
+        </Alert>
+        <Button className="w-full" onClick={() => navigate(-1)}>Back</Button>
+      </div>
+    </div>
+  )
 
   const DiamondPointsInfo = phase === 'basics' ? (
     <div className="mb-4 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-900">

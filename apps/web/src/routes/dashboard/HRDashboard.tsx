@@ -48,6 +48,8 @@ export default function HRDashboard() {
   useSeo({ title: 'Scheduling', noindex: true })
   const navigate = useNavigate()
   const { session, refreshIsHM } = useSession()
+  const userId = session?.user.id
+  const userEmail = session?.user.email ?? null
   const [hrTab, setHrTab] = useState<HRTab>('scheduling')
   const [pending, setPending] = useState<PendingRow[]>([])
   const [scheduled, setScheduled] = useState<ScheduledRow[]>([])
@@ -71,8 +73,6 @@ export default function HRDashboard() {
   useEffect(() => {
     let cancelled = false
     async function load() {
-      const userId = session?.user.id
-      const userEmail = session?.user.email ?? null
       if (!userId || !userEmail) { setLoading(false); return }
       try {
       const { data: comp } = await supabase.from('companies').select('id').eq('primary_hr_email', userEmail).maybeSingle()
@@ -185,7 +185,7 @@ export default function HRDashboard() {
     }
     void load()
     return () => { cancelled = true }
-  }, [session])
+  }, [userId, userEmail])
 
   async function completeInterview(interviewId: string, matchId: string, hired: boolean) {
     const { error: iErr } = await supabase.from('interviews').update({ status: 'completed' }).eq('id', interviewId)

@@ -80,6 +80,14 @@ export default function CompanyRegister() {
       ])
       if (error) throw error
 
+      if (isHM && data?.id) {
+        const { error: hmErr } = await supabase.from('hiring_managers').upsert(
+          { profile_id: userId, company_id: data.id, job_title: 'Hiring Manager' },
+          { onConflict: 'profile_id' },
+        )
+        if (hmErr) throw hmErr
+      }
+
       await markOnboardingComplete(userId)
 
       if (isHM && !licenseFile) {

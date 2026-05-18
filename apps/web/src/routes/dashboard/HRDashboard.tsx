@@ -72,8 +72,11 @@ export default function HRDashboard() {
 
   useEffect(() => {
     let cancelled = false
+    const loadTimeout = setTimeout(() => {
+      if (!cancelled) { setErr('Loading timed out — please refresh the page.'); setLoading(false) }
+    }, 12000)
     async function load() {
-      if (!userId || !userEmail) { setLoading(false); return }
+      if (!userId || !userEmail) { clearTimeout(loadTimeout); setLoading(false); return }
       try {
       const { data: comp } = await supabase.from('companies').select('id').eq('primary_hr_email', userEmail).maybeSingle()
       if (!comp) { setLoading(false); return }
@@ -178,13 +181,15 @@ export default function HRDashboard() {
       }>).filter((m) => !m.match_feedback || m.match_feedback.length === 0).length
       setOutcomesPending(pendingOutcomes)
 
+      clearTimeout(loadTimeout)
       setLoading(false)
       } catch (e) {
+        clearTimeout(loadTimeout)
         if (!cancelled) { setErr(e instanceof Error ? e.message : 'Load failed'); setLoading(false) }
       }
     }
     void load()
-    return () => { cancelled = true }
+    return () => { cancelled = true; clearTimeout(loadTimeout) }
   }, [userId, userEmail])
 
   async function completeInterview(interviewId: string, matchId: string, hired: boolean) {

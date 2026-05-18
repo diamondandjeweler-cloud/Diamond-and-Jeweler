@@ -260,6 +260,11 @@ export default function PrivacyNotice() {
             WATI — WhatsApp delivery (opt-in only) —{' '}
             <a href="https://www.wati.io" target="_blank" rel="noopener noreferrer" className="underline">WATI</a>
           </li>
+          <li>
+            Plausible Analytics — Privacy-friendly aggregate web analytics; no
+            cookies, no cross-site tracking (EU-hosted, Estonia) —{' '}
+            <a href="https://plausible.io" target="_blank" rel="noopener noreferrer" className="underline">Plausible</a>
+          </li>
         </ul>
         <p className="mt-2">These parties process data strictly on our instructions.</p>
       </Section>

@@ -207,7 +207,12 @@ export function bootstrapSession() {
       // fresh fetch runs in the background (stale-while-revalidate).
       setAuthHintCookie(session.access_token)
       const cachedProfile = loadCachedProfile()
-      useSession.setState({ session, loading: false, ...(cachedProfile ? { profile: cachedProfile } : {}) })
+      // Only serve cached profile for the current session user. A stale cache
+      // from a different user (e.g., previous occupant of a shared browser, or
+      // a re-seeded test account with a new UUID) would cause wrong-role routing
+      // before the authoritative DB fetch completes.
+      const validCache = cachedProfile && cachedProfile.id === session.user.id
+      useSession.setState({ session, loading: false, ...(validCache ? { profile: cachedProfile } : {}) })
       const [profile, isHM] = await Promise.all([
         fetchProfile(session.user.id).catch((e) => {
           console.error('[session] fetchProfile failed in onAuthStateChange', e)

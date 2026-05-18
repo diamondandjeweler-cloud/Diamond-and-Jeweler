@@ -52,7 +52,11 @@ WITH t(tester_id, email, full_name, user_role) AS (VALUES
   ('T17','t17.razif.energy@dnj-test.my',                'Razif Bin Hamid',           'talent'),
   ('T18','t18.vinothini.pharma@dnj-test.my',            'Vinothini Suppiah',         'talent'),
   ('T19','t19.kokwei.automotive@dnj-test.my',           'Tan Kok Wei',               'talent'),
-  ('T20','t20.nurin.sales@dnj-test.my',                 'Nurin Iskandar',            'talent')
+  ('T20','t20.nurin.sales@dnj-test.my',                 'Nurin Iskandar',            'talent'),
+  -- T21: intentionally left with onboarding_complete=false.
+  -- Use to verify the <18 DOB age gate during onboarding: log in, enter a DOB
+  -- that makes the user under 18, confirm the platform rejects the signup.
+  ('T21','t21.minor.agecheck@dnj-test.my',              'Minor Age Check',           'talent')
 ), inserted AS (
   INSERT INTO auth.users (
     instance_id, id, aud, role, email, encrypted_password,
@@ -98,6 +102,11 @@ SET onboarding_complete = true,
     whatsapp_opt_in     = true
 FROM auth.users u
 WHERE p.id = u.id AND u.email LIKE '%@dnj-test.my';
+
+-- T21 is the age-gate test account — keep onboarding incomplete so a human
+-- tester can log in, enter a minor DOB, and confirm the <18 rejection fires.
+UPDATE public.profiles SET onboarding_complete = false
+WHERE email = 't21.minor.agecheck@dnj-test.my';
 
 -- ============================================================
 -- 4) Create one company per HM (H02..H10), HM is created_by + verified by self

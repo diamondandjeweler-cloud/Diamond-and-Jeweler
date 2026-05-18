@@ -7,12 +7,14 @@ import { supabase } from '../lib/supabase'
 
 type AalState = 'loading' | 'aal2' | 'need_challenge' | 'need_enroll'
 
-// Test-domain bypass: admin accounts under @dnj-test.my skip the MFA gate so
-// automated smoke tests can drive the admin console without a human relaying
-// TOTP codes. Production admins (real @diamondandjeweler.com or personal
-// gmail addresses) are unaffected. Mirrors the planned BYPASS_CAPTCHA shape.
+// Test-domain bypass: when VITE_BYPASS_ADMIN_MFA=true (dev / CI only), admin
+// accounts under @dnj-test.my skip the TOTP gate so automated smoke tests can
+// drive the admin console without a human relaying codes.
+// Production builds leave this unset → false → MFA always enforced.
+// To verify MFA enforcement in staging, set VITE_BYPASS_ADMIN_MFA=false.
+const BYPASS_ADMIN_MFA = import.meta.env.VITE_BYPASS_ADMIN_MFA === 'true'
 function isTestAdmin(email: string | undefined | null): boolean {
-  return !!email && email.toLowerCase().endsWith('@dnj-test.my')
+  return BYPASS_ADMIN_MFA && !!email && email.toLowerCase().endsWith('@dnj-test.my')
 }
 
 export default function AdminGate({ children }: { children: ReactNode }) {

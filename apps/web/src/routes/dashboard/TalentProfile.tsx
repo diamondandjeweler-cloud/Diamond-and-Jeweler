@@ -161,6 +161,18 @@ export default function TalentProfile() {
     }
   }
 
+  function addWhitelistEntry() {
+    const v = whitelistInput.trim()
+    if (!v) return
+    if (/<[^>]*>|javascript:/i.test(v) || /on\w+\s*=/i.test(v)) {
+      setErr('Company name contains invalid characters. Remove any HTML or script content.')
+      return
+    }
+    if (!whitelistCompanies.includes(v)) setWhitelistCompanies((c) => [...c, v])
+    setWhitelistInput('')
+    setErr(null)
+  }
+
   async function save(e: React.FormEvent) {
     e.preventDefault()
     if (!talent) return
@@ -313,8 +325,9 @@ export default function TalentProfile() {
             <h2 className="font-semibold mb-2">{t('whatsapp.title')}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2">
               <div>
-                <label className="block text-sm mb-1">{t('whatsapp.numberLabel')}</label>
+                <label htmlFor="talent-wa-number" className="block text-sm mb-1">{t('whatsapp.numberLabel')}</label>
                 <input
+                  id="talent-wa-number"
                   type="tel"
                   value={whatsappNumber}
                   onChange={(e) => setWhatsappNumber(e.target.value)}
@@ -345,8 +358,9 @@ export default function TalentProfile() {
           </section>
 
           <section>
-            <h2 className="font-semibold mb-2">Privacy</h2>
+            <label htmlFor="talent-privacy" className="block font-semibold mb-2">Privacy</label>
             <select
+              id="talent-privacy"
               value={privacy}
               onChange={(e) => setPrivacy(e.target.value as PrivacyMode)}
               className="w-full border rounded px-3 py-2"
@@ -364,14 +378,13 @@ export default function TalentProfile() {
               <div className="flex gap-2 mb-2">
                 <input
                   type="text"
+                  aria-label="Company name to whitelist"
                   value={whitelistInput}
                   onChange={(e) => setWhitelistInput(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault()
-                      const v = whitelistInput.trim()
-                      if (v && !whitelistCompanies.includes(v)) setWhitelistCompanies((c) => [...c, v])
-                      setWhitelistInput('')
+                      addWhitelistEntry()
                     }
                   }}
                   placeholder="Company name…"
@@ -379,11 +392,7 @@ export default function TalentProfile() {
                 />
                 <button
                   type="button"
-                  onClick={() => {
-                    const v = whitelistInput.trim()
-                    if (v && !whitelistCompanies.includes(v)) setWhitelistCompanies((c) => [...c, v])
-                    setWhitelistInput('')
-                  }}
+                  onClick={addWhitelistEntry}
                   className="px-3 py-2 border rounded text-sm hover:bg-gray-50"
                 >
                   Add

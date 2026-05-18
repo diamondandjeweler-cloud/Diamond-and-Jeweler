@@ -669,7 +669,7 @@ export default function HMDashboard() {
         <div className="mb-6">
           <div className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-900">
             <span className="font-semibold">Want more than 3 matches?</span>{' '}
-            Earn Diamond Points by giving feedback, completing interviews, and referring friends — or buy more.
+            Earn Diamond Points by giving feedback, completing interviews, and referring friends — or unlock an extra match instantly for RM9.90.
             {' '}<span className="font-semibold">21 Diamond Points = 1 extra match.</span>
           </div>
         </div>

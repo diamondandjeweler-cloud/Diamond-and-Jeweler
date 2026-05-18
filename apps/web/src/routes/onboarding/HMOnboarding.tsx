@@ -156,7 +156,7 @@ export default function HMOnboarding() {
 
   const DiamondPointsInfo = phase === 'basics' ? (
     <div className="mb-4 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-900">
-      <span className="font-semibold">We'll screen all our candidates and hand-pick your 3 best matches — for free.</span>
+      <span className="font-semibold">Our AI Bolé will screen all our candidates and hand-pick your 3 best matches — for free.</span>
     </div>
   ) : null
 

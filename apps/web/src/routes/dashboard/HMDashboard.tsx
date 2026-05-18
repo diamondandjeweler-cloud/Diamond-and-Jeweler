@@ -429,7 +429,7 @@ export default function HMDashboard() {
 
   async function respond(id: string, next: 'invited_by_manager' | 'declined_by_manager') {
     if (next === 'invited_by_manager' && companyVerified === false) {
-      setErr('Company verification required before inviting candidates to interview.')
+      setErr('To proceed, please ask your HR manager to upload your company SSM certificate and business license.')
       return
     }
     setErr(null)
@@ -478,7 +478,7 @@ export default function HMDashboard() {
 
   async function doAction(matchId: string, action: string, extra?: Record<string, unknown>) {
     if (['schedule_round', 'make_offer', 'mark_hired'].includes(action) && companyVerified === false) {
-      setErr('Company verification required before proceeding with interviews.')
+      setErr('To proceed, please ask your HR manager to upload your company SSM certificate and business license.')
       return
     }
     setErr(null)
@@ -528,7 +528,7 @@ export default function HMDashboard() {
 
   async function revealContact(matchId: string) {
     if (companyVerified === false) {
-      setErr('Company verification required before revealing candidate contact details.')
+      setErr('To proceed, please ask your HR manager to upload your company SSM certificate and business license.')
       return
     }
     setErr(null)
@@ -649,18 +649,18 @@ export default function HMDashboard() {
 
       {companyVerified === false && companyId && (
         <div className="mb-6">
-          <Alert tone="amber" title="Company verification pending">
-            You can post roles and receive matches freely. To invite a candidate to interview or reveal contact details,
-            your HR Admin needs to complete company verification first.{' '}
+          <Alert tone="amber" title="Company documents pending">
+            You can post roles and review matches freely. When you&apos;re ready to contact a candidate,
+            ask your HR manager to upload your company SSM certificate and business license.{' '}
             <a
               href={`/onboarding/company/verify?company=${companyId}`}
               className="font-semibold underline"
               target="_blank"
               rel="noreferrer"
             >
-              Share this link with your HR Admin
+              Share this verification link
             </a>
-            {' '}to upload your SSM certificate and business license.
+            {' '}with them to get started.
           </Alert>
         </div>
       )}

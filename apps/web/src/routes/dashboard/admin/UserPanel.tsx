@@ -185,8 +185,9 @@ export default function UserPanel() {
               Onboarding will be reset so the user goes through the correct flow.
             </p>
             <div>
-              <label className="block text-sm font-medium text-ink-700 mb-1">New role</label>
+              <label htmlFor="admin-new-role" className="block text-sm font-medium text-ink-700 mb-1">New role</label>
               <select
+                id="admin-new-role"
                 value={newRole}
                 onChange={(e) => setNewRole(e.target.value)}
                 className="w-full border rounded-lg px-3 py-2 text-sm"
@@ -197,8 +198,9 @@ export default function UserPanel() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-ink-700 mb-1">Reason (required)</label>
+              <label htmlFor="admin-role-reason" className="block text-sm font-medium text-ink-700 mb-1">Reason (required)</label>
               <input
+                id="admin-role-reason"
                 type="text"
                 value={roleReason}
                 onChange={(e) => setRoleReason(e.target.value)}

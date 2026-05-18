@@ -53,8 +53,9 @@ export default function HMSettings() {
         <div className="space-y-4">
           <h2 className="text-sm font-semibold text-ink-700 uppercase tracking-wide">WhatsApp notifications</h2>
           <div>
-            <label className="block text-sm font-medium text-ink-700 mb-1">WhatsApp number</label>
+            <label htmlFor="hm-whatsapp-number" className="block text-sm font-medium text-ink-700 mb-1">WhatsApp number</label>
             <input
+              id="hm-whatsapp-number"
               type="tel"
               value={whatsappNumber}
               onChange={(e) => setWhatsappNumber(e.target.value)}

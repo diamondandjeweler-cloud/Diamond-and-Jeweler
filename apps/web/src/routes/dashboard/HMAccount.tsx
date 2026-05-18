@@ -37,7 +37,7 @@ export default function HMAccount() {
       <div className="space-y-6">
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-ink-500 mb-1">Email address</label>
+            <p className="block text-sm font-medium text-ink-500 mb-1">Email address</p>
             <p className="text-sm text-ink-900 px-3 py-2 bg-ink-50 border border-ink-200 rounded-lg">
               {session?.user.email}
             </p>

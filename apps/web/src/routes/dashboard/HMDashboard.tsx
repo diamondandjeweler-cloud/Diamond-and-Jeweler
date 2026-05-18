@@ -665,6 +665,16 @@ export default function HMDashboard() {
         </div>
       )}
 
+      {roleCount > 0 && (
+        <div className="mb-6">
+          <div className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-900">
+            <span className="font-semibold">Want more than 3 matches?</span>{' '}
+            Earn Diamond Points by giving feedback, completing interviews, and referring friends — or buy more.
+            {' '}<span className="font-semibold">21 Diamond Points = 1 extra match.</span>
+          </div>
+        </div>
+      )}
+
       {waiting && (
         <div className="mb-6">
           <Alert tone="amber" title={`Cold-start: ${waiting.roleCount === 1 ? 'one role' : `${waiting.roleCount} roles`} waiting for talents`}>

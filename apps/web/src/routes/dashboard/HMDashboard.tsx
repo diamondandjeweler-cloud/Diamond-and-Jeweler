@@ -91,6 +91,7 @@ export default function HMDashboard() {
   useSeo({ title: 'Candidates', noindex: true })
   const { t } = useTranslation()
   const { session, profile } = useSession()
+  const userId = session?.user.id
   const [roleCount, setRoleCount] = useState<number>(0)
   const [candidates, setCandidates] = useState<CandidateRow[]>([])
   const [oldestRoleOver24h, setOldestRoleOver24h] = useState(false)
@@ -180,7 +181,7 @@ export default function HMDashboard() {
     let watchdog: ReturnType<typeof setTimeout> | null = null
 
     async function load() {
-      if (!session) { setLoading(false); return }
+      if (!userId) { setLoading(false); return }
       watchdog = setTimeout(() => {
         if (cancelled) return
         console.error('[hm-dashboard] load watchdog tripped — a Supabase query stalled')
@@ -191,8 +192,8 @@ export default function HMDashboard() {
       // Phase 1 — hiring_managers + profiles.points fire in parallel.
       // Both only depend on session.user.id.
       const [{ data: hm }, { data: pointsRow }] = await Promise.all([
-        supabase.from('hiring_managers').select('id, company_id, reputation_score, feedback_volume, phs_offer_accept_rate, hm_quality_factor, hm_cancel_rate, date_of_birth_encrypted').eq('profile_id', session.user.id).maybeSingle(),
-        supabase.from('profiles').select('points').eq('id', session.user.id).maybeSingle(),
+        supabase.from('hiring_managers').select('id, company_id, reputation_score, feedback_volume, phs_offer_accept_rate, hm_quality_factor, hm_cancel_rate, date_of_birth_encrypted').eq('profile_id', userId).maybeSingle(),
+        supabase.from('profiles').select('points').eq('id', userId).maybeSingle(),
       ])
       if (!hm) { setLoading(false); return }
       if (!cancelled) {
@@ -352,7 +353,7 @@ export default function HMDashboard() {
     void load()
 
     const channel = supabase
-      .channel(`hm-matches-${session?.user.id ?? 'anon'}`)
+      .channel(`hm-matches-${userId ?? 'anon'}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, (payload) => {
         const next = payload.new as { id: string; role_id?: string; status?: string } | null
         const prev = payload.old as { id: string; role_id?: string } | null
@@ -369,7 +370,7 @@ export default function HMDashboard() {
       if (watchdog) clearTimeout(watchdog)
       void supabase.removeChannel(channel)
     }
-  }, [session, loadRounds, loadProposals, loadPreviews])
+  }, [userId, loadRounds, loadProposals, loadPreviews])
 
   async function handleUrgentSearch(roleId: string) {
     setUrgentMsg(null); setErr(null)

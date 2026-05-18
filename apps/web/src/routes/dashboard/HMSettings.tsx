@@ -7,6 +7,7 @@ import { useSeo } from '../../lib/useSeo'
 export default function HMSettings() {
   useSeo({ title: 'Settings', noindex: true })
   const { session, profile, refresh } = useSession()
+  const userId = session?.user.id
 
   const [whatsappNumber, setWhatsappNumber] = useState('')
   const [whatsappOptIn, setWhatsappOptIn] = useState(false)
@@ -23,7 +24,7 @@ export default function HMSettings() {
   }, [profile?.id])
 
   async function save() {
-    if (!session) return
+    if (!userId) return
     const trimmed = whatsappNumber.trim()
     if (trimmed && !/^\+?[0-9\s\-()]{7,20}$/.test(trimmed)) {
       setErr('Phone number contains invalid characters. Use digits, spaces, + or hyphens only (e.g. +60 12 345 6789).')
@@ -34,7 +35,7 @@ export default function HMSettings() {
       const { error } = await supabase.from('profiles').update({
         whatsapp_number: trimmed || null,
         whatsapp_opt_in: whatsappOptIn && !!trimmed,
-      }).eq('id', session.user.id)
+      }).eq('id', userId)
       if (error) throw error
       await refresh()
       setSaved(true)

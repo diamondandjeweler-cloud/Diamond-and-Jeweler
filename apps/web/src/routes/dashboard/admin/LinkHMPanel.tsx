@@ -21,6 +21,8 @@ interface LinkedHM {
 
 export default function LinkHMPanel() {
   const { session } = useSession()
+  const userId = session?.user.id
+  const userEmail = session?.user.email ?? null
   const [search, setSearch] = useState('')
   const [floaters, setFloaters] = useState<FloatingHM[]>([])
   const [linked, setLinked] = useState<LinkedHM[]>([])
@@ -30,47 +32,51 @@ export default function LinkHMPanel() {
   const [done, setDone] = useState<Record<string, string>>({}) // hm_id → mode used
 
   async function load() {
-    if (!session) return
+    if (!userId || !userEmail) { setLoading(false); return }
     setLoading(true)
-    const userEmail = session.user.email
-    const { data: comp } = await supabase.from('companies').select('id').eq('primary_hr_email', userEmail).maybeSingle()
-    if (!comp) { setLoading(false); return }
+    try {
+      const { data: comp } = await supabase.from('companies').select('id').eq('primary_hr_email', userEmail).maybeSingle()
+      if (!comp) { setLoading(false); return }
 
-    // Floating HMs (no company) — visible via hm_select_hr_floating policy.
-    const { data: floatData } = await supabase
-      .from('hiring_managers')
-      .select('id, job_title, created_at, profiles(full_name, email)')
-      .is('company_id', null)
-      .order('created_at', { ascending: false })
-      .limit(100)
+      // Floating HMs (no company) — visible via hm_select_hr_floating policy.
+      const { data: floatData } = await supabase
+        .from('hiring_managers')
+        .select('id, job_title, created_at, profiles(full_name, email)')
+        .is('company_id', null)
+        .order('created_at', { ascending: false })
+        .limit(100)
 
-    // Pending requests this company already sent.
-    const { data: pendingReqs } = await supabase
-      .from('company_hm_link_requests')
-      .select('hm_id')
-      .eq('company_id', comp.id)
-      .eq('status', 'pending')
-    const pendingSet = new Set((pendingReqs ?? []).map((r) => r.hm_id))
+      // Pending requests this company already sent.
+      const { data: pendingReqs } = await supabase
+        .from('company_hm_link_requests')
+        .select('hm_id')
+        .eq('company_id', comp.id)
+        .eq('status', 'pending')
+      const pendingSet = new Set((pendingReqs ?? []).map((r) => r.hm_id))
 
-    const enriched = ((floatData ?? []) as unknown as FloatingHM[]).map((hm) => ({
-      ...hm,
-      _pendingRequest: pendingSet.has(hm.id),
-    }))
-    setFloaters(enriched)
+      const enriched = ((floatData ?? []) as unknown as FloatingHM[]).map((hm) => ({
+        ...hm,
+        _pendingRequest: pendingSet.has(hm.id),
+      }))
+      setFloaters(enriched)
 
-    // Already-linked HMs.
-    const { data: linkedData } = await supabase
-      .from('hiring_managers')
-      .select('id, job_title, profiles(full_name, email)')
-      .eq('company_id', comp.id)
-      .order('created_at', { ascending: false })
-    setLinked((linkedData ?? []) as unknown as LinkedHM[])
+      // Already-linked HMs.
+      const { data: linkedData } = await supabase
+        .from('hiring_managers')
+        .select('id, job_title, profiles(full_name, email)')
+        .eq('company_id', comp.id)
+        .order('created_at', { ascending: false })
+      setLinked((linkedData ?? []) as unknown as LinkedHM[])
 
-    setLoading(false)
+      setLoading(false)
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Load failed')
+      setLoading(false)
+    }
   }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { void load() }, [session])
+  useEffect(() => { void load() }, [userId, userEmail])
 
   async function sendRequest(hmId: string, mode: 'request' | 'direct') {
     setBusy(hmId + mode)

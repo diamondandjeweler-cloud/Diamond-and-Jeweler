@@ -23,6 +23,7 @@ const TRAITS = [
 export default function PostRole() {
   useSeo({ title: 'Post a role', noindex: true })
   const { session } = useSession()
+  const userId = session?.user.id
   const navigate = useNavigate()
 
   const [hmId, setHmId] = useState<string | null>(null)
@@ -180,14 +181,14 @@ export default function PostRole() {
   }
 
   useEffect(() => {
-    if (!session) return
-    supabase.from('hiring_managers').select('id').eq('profile_id', session.user.id).maybeSingle()
+    if (!userId) { setLoading(false); return }
+    supabase.from('hiring_managers').select('id').eq('profile_id', userId).maybeSingle()
       .then(({ data, error }) => {
         if (error) setErr(error.message)
         setHmId(data?.id ?? null)
         setLoading(false)
       })
-  }, [session])
+  }, [userId])
 
   useEffect(() => {
     const n = typeof teamSize === 'number' ? Math.max(0, Math.min(50, teamSize)) : 0

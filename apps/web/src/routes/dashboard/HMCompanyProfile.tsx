@@ -16,6 +16,7 @@ interface CompanyRow {
 export default function HMCompanyProfile() {
   useSeo({ title: 'Company profile', noindex: true })
   const { session, profile, refresh } = useSession()
+  const userId = session?.user.id
 
   const [company, setCompany] = useState<CompanyRow | null>(null)
   const [jobTitle, setJobTitle] = useState('')
@@ -26,23 +27,30 @@ export default function HMCompanyProfile() {
   const [err, setErr] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!session) return
+    if (!userId) { setLoading(false); return }
+    let cancelled = false
     async function load() {
-      const { data, error } = await supabase
-        .from('hiring_managers')
-        .select('job_title, companies(name, industry, size, website, verified)')
-        .eq('profile_id', session!.user.id)
-        .maybeSingle()
-      setLoading(false)
-      if (error) { setErr(error.message); return }
-      if (data) {
-        setJobTitle(data.job_title ?? '')
-        const co = Array.isArray(data.companies) ? (data.companies[0] as CompanyRow ?? null) : (data.companies as unknown as CompanyRow | null)
-        setCompany(co)
+      try {
+        const { data, error } = await supabase
+          .from('hiring_managers')
+          .select('job_title, companies(name, industry, size, website, verified)')
+          .eq('profile_id', userId)
+          .maybeSingle()
+        if (cancelled) return
+        setLoading(false)
+        if (error) { setErr(error.message); return }
+        if (data) {
+          setJobTitle(data.job_title ?? '')
+          const co = Array.isArray(data.companies) ? (data.companies[0] as CompanyRow ?? null) : (data.companies as unknown as CompanyRow | null)
+          setCompany(co)
+        }
+      } catch (e) {
+        if (!cancelled) { setErr(e instanceof Error ? e.message : 'Load failed'); setLoading(false) }
       }
     }
     void load()
-  }, [session])
+    return () => { cancelled = true }
+  }, [userId])
 
   useEffect(() => {
     if (profile) setFullName(profile.full_name)

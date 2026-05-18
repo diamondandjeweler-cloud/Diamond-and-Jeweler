@@ -39,6 +39,7 @@ interface RoleRow {
 export default function MyRoles() {
   useSeo({ title: 'My roles', noindex: true })
   const { session } = useSession()
+  const userId = session?.user.id
   const [rows, setRows] = useState<RoleRow[]>([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState<string | null>(null)
@@ -64,13 +65,13 @@ export default function MyRoles() {
     await reload()
   }
 
-  // reload uses `session` and is intentionally only refired when it changes.
+  // reload uses `userId` (stable string) so TOKEN_REFRESHED doesn't trigger a re-run.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (session) void reload() }, [session])
+  useEffect(() => { if (userId) void reload() }, [userId])
 
   async function reload() {
     setLoading(true)
-    const { data: hm } = await supabase.from('hiring_managers').select('id').eq('profile_id', session!.user.id).maybeSingle()
+    const { data: hm } = await supabase.from('hiring_managers').select('id').eq('profile_id', userId!).maybeSingle()
     if (!hm) { setLoading(false); return }
 
     const { data: roles, error } = await supabase

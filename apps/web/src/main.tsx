@@ -6,8 +6,17 @@ import * as Sentry from '@sentry/react'
 import App from './App'
 import ErrorBoundary from './components/ErrorBoundary'
 import { swrConfig } from './lib/swr'
+import { bootstrapSession } from './state/useSession'
+import { getCurrentLegalVersion } from './lib/legalVersion'
 import './index.css'
 import './lib/i18n'
+
+// Start both async operations before React renders.
+// bootstrapSession: INITIAL_SESSION fires while React builds the tree.
+// getCurrentLegalVersion: warms the localStorage cache before ConsentGate mounts,
+// and deduplicates with any concurrent ConsentGate fetch so only one round-trip fires.
+bootstrapSession()
+void getCurrentLegalVersion()
 
 if (import.meta.env.VITE_SENTRY_DSN) {
   Sentry.init({

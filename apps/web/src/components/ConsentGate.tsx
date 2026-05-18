@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { useSession } from '../state/useSession'
 import LoadingSpinner from './LoadingSpinner'
-import { getCurrentLegalVersion, consentSatisfiesVersion } from '../lib/legalVersion'
+import { getCachedLegalVersionSync, getCurrentLegalVersion, consentSatisfiesVersion } from '../lib/legalVersion'
 
 /**
  * Forces consent before any authenticated route. Runs *before* OnboardingGate
@@ -22,12 +22,16 @@ import { getCurrentLegalVersion, consentSatisfiesVersion } from '../lib/legalVer
 export default function ConsentGate({ children }: { children: ReactNode }) {
   const { loading, profile, session } = useSession()
 
-  // Fetch current legal_version once (cached in sessionStorage for 5min).
-  // Treat 'unknown' as the not-yet-fetched state — we render a spinner during
-  // the first fetch so we never flash protected content past the gate while
-  // the version comparison is still in flight.
-  const [currentLegal, setCurrentLegal] = useState<string | null | 'pending'>('pending')
+  // Initialise synchronously from localStorage so the spinner never appears when
+  // the cache is warm (covers most cold Chrome-open scenarios after first load).
+  // The effect below only fires a network fetch when the cache is missing/expired.
+  const [currentLegal, setCurrentLegal] = useState<string | null | 'pending'>(getCachedLegalVersionSync)
   useEffect(() => {
+    // Re-read cache inside the effect to avoid stale-closure issues.
+    // If still fresh, no fetch needed (state was already set correctly above).
+    const sync = getCachedLegalVersionSync()
+    if (sync !== 'pending') { setCurrentLegal(sync); return }
+
     let cancelled = false
     // Fail open after 4s — a hung Supabase connection must not trap users on a spinner.
     const timeout = setTimeout(() => {

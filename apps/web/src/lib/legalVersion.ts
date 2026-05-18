@@ -16,7 +16,10 @@
 import { supabase } from './supabase'
 
 const CACHE_KEY = 'dnj-legal-version-v1'
-const CACHE_TTL_MS = 5 * 60 * 1000  // 5 minutes — short enough that a hotfix bump propagates within one session.
+// 1 hour — legal version changes are rare; users re-consent manually when one happens,
+// and clearLegalVersionCache() is called on sign-out. Short TTLs caused a cold-start
+// spinner on every Chrome open because sessionStorage is wiped per-window.
+const CACHE_TTL_MS = 60 * 60 * 1000
 
 interface CacheEntry {
   value: string
@@ -32,36 +35,58 @@ export function normaliseLegalVersion(raw: string | null | undefined): string | 
 }
 
 /**
- * Fetch the platform's current legal_version from system_config. Cached in
- * localStorage for 5min. Returns the normalised "v<x.y>" string, or null
- * if the config row is missing.
+ * Synchronous cache read — returns the cached value if still fresh, otherwise
+ * 'pending'. Use as a useState initialiser so ConsentGate never shows a spinner
+ * on routes where the cache is warm (covers most cold Chrome-open scenarios once
+ * the 1-hour TTL is in effect).
  */
-export async function getCurrentLegalVersion(): Promise<string | null> {
+export function getCachedLegalVersionSync(): string | null | 'pending' {
   try {
     const cached = localStorage.getItem(CACHE_KEY)
     if (cached) {
       const parsed = JSON.parse(cached) as CacheEntry
       if (Date.now() - parsed.fetchedAt < CACHE_TTL_MS) return parsed.value
     }
-  } catch { /* tolerate parse errors */ }
+  } catch { /* tolerate */ }
+  return 'pending'
+}
 
-  const { data, error } = await supabase
-    .from('system_config')
-    .select('value')
-    .eq('key', 'legal_version')
-    .single()
-  if (error || !data) return null
+// Deduplicates concurrent callers (e.g. main.tsx warm-up + ConsentGate useEffect)
+// so only one Supabase round-trip fires even when both start before the cache is written.
+let inflightFetch: Promise<string | null> | null = null
 
-  const raw = (data.value as unknown) as string | { value?: string } | null
-  // system_config.value is jsonb — can be a quoted string "3.2" or a wrapped object.
-  const rawStr = typeof raw === 'string' ? raw : (raw && typeof raw === 'object' && typeof raw.value === 'string') ? raw.value : null
-  const normalised = normaliseLegalVersion(rawStr)
-  if (!normalised) return null
+/**
+ * Fetch the platform's current legal_version from system_config. Cached in
+ * localStorage for 1h. Returns the normalised "v<x.y>" string, or null
+ * if the config row is missing.
+ */
+export async function getCurrentLegalVersion(): Promise<string | null> {
+  const sync = getCachedLegalVersionSync()
+  if (sync !== 'pending') return sync
 
-  try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ value: normalised, fetchedAt: Date.now() } satisfies CacheEntry))
-  } catch { /* tolerate quota errors */ }
-  return normalised
+  if (inflightFetch) return inflightFetch
+
+  inflightFetch = (async () => {
+    const { data, error } = await supabase
+      .from('system_config')
+      .select('value')
+      .eq('key', 'legal_version')
+      .single()
+    if (error || !data) return null
+
+    const raw = (data.value as unknown) as string | { value?: string } | null
+    // system_config.value is jsonb — can be a quoted string "3.2" or a wrapped object.
+    const rawStr = typeof raw === 'string' ? raw : (raw && typeof raw === 'object' && typeof raw.value === 'string') ? raw.value : null
+    const normalised = normaliseLegalVersion(rawStr)
+    if (!normalised) return null
+
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ value: normalised, fetchedAt: Date.now() } satisfies CacheEntry))
+    } catch { /* tolerate quota errors */ }
+    return normalised
+  })()
+
+  try { return await inflightFetch } finally { inflightFetch = null }
 }
 
 /** True if the user's consent_version is at or above the current legal_version. */

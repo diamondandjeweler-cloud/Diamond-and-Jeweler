@@ -23,7 +23,7 @@ interface RoleRow {
   salary_min: number | null
   salary_max: number | null
   required_traits: string[]
-  status: 'active' | 'paused' | 'filled' | 'expired'
+  status: 'draft' | 'active' | 'paused' | 'filled' | 'expired'
 }
 
 export default function EditRole() {
@@ -85,6 +85,7 @@ export default function EditRole() {
       (original.department ?? null) !== (row.department ?? null)
     )
 
+    const isDraft = row.status === 'draft'
     const { error } = await supabase.from('roles').update({
       title: row.title,
       description: row.description,
@@ -95,12 +96,12 @@ export default function EditRole() {
       salary_min: row.salary_min,
       salary_max: row.salary_max,
       required_traits: row.required_traits,
+      ...(isDraft ? { status: 'active' } : {}),
     }).eq('id', row.id)
     if (error) { setBusy(false); setErr(error.message); return }
 
-    if (textChanged) {
-      void callFunction('moderate-role', { role_id: row.id, force: true }).catch(() => {})
-    }
+    void callFunction('moderate-role', { role_id: row.id, force: textChanged || isDraft }).catch(() => {})
+    if (isDraft) void callFunction('match-generate', { role_id: row.id }).catch(() => {})
 
     setBusy(false)
     navigate('/hm/roles', { replace: true })
@@ -126,9 +127,15 @@ export default function EditRole() {
     <div className="max-w-2xl mx-auto">
       <div className="bg-white border rounded-lg p-6">
         <h1 className="text-2xl font-bold mb-2">Edit role</h1>
-        <p className="text-sm text-gray-600 mb-4">
-          Edits apply immediately to existing matches. Status: <strong>{r.status}</strong>.
-        </p>
+        {r.status === 'draft' ? (
+          <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2 mb-4">
+            This role was pre-filled from your onboarding answers. Review the details below, then click <strong>Activate role</strong> to start receiving candidates.
+          </p>
+        ) : (
+          <p className="text-sm text-gray-600 mb-4">
+            Edits apply immediately to existing matches. Status: <strong>{r.status}</strong>.
+          </p>
+        )}
 
         <form onSubmit={save} className="space-y-4">
           <Field label="Title" required>
@@ -219,7 +226,7 @@ export default function EditRole() {
             </button>
             <button type="submit" disabled={busy}
               className="bg-brand-600 text-white px-4 py-2 rounded hover:bg-brand-700 disabled:bg-gray-300">
-              {busy ? 'Saving…' : 'Save changes'}
+              {busy ? 'Saving…' : r.status === 'draft' ? 'Activate role' : 'Save changes'}
             </button>
           </div>
         </form>

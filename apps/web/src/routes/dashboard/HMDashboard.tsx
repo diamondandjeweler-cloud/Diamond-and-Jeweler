@@ -115,6 +115,7 @@ export default function HMDashboard() {
   const [hmId, setHmId] = useState<string | null>(null)
   const [hmHasDob, setHmHasDob] = useState<boolean | null>(null)
   const [showAddDobModal, setShowAddDobModal] = useState(false)
+  const [onboardingDraftRoleId, setOnboardingDraftRoleId] = useState<string | null>(null)
 
   // Interview flow state
   const [roundsByMatch, setRoundsByMatch] = useState<Record<string, InterviewRound[]>>({})
@@ -215,7 +216,7 @@ export default function HMDashboard() {
             .maybeSingle()
             .then((res) => ({ kind: 'linkReq' as const, data: res.data }))
 
-      const [companyOrLink, { count }, { data: roleRows }] = await Promise.all([
+      const [companyOrLink, { count }, { data: roleRows }, { data: onboardingDraft }] = await Promise.all([
         companyOrLinkPromise,
         supabase.from('roles').select('*', { count: 'exact', head: true })
           .eq('hiring_manager_id', hm.id).eq('status', 'active'),
@@ -223,7 +224,10 @@ export default function HMDashboard() {
           .select('id, title, status, extra_matches_used, created_at')
           .eq('hiring_manager_id', hm.id)
           .limit(200),
+        supabase.from('roles').select('id').eq('hiring_manager_id', hm.id)
+          .eq('from_onboarding', true).eq('status', 'draft').maybeSingle(),
       ])
+      if (!cancelled && onboardingDraft) setOnboardingDraftRoleId(onboardingDraft.id)
 
       if (cid && !cancelled) setCompanyId(cid)
       if (companyOrLink.kind === 'company') {
@@ -604,6 +608,20 @@ export default function HMDashboard() {
               Decline
             </Button>
           </div>
+        </div>
+      )}
+
+      {onboardingDraftRoleId && (
+        <div className="mb-6 p-4 bg-brand-50 border border-brand-200 rounded-lg flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-brand-900">Your first role is ready to review</p>
+            <p className="text-xs text-brand-700 mt-0.5">
+              We pre-filled it from your onboarding answers. Review the details and activate it to start receiving candidates.
+            </p>
+          </div>
+          <Link to={`/hm/roles/${onboardingDraftRoleId}/edit`} className="btn-primary text-sm whitespace-nowrap">
+            Review &amp; activate
+          </Link>
         </div>
       )}
 

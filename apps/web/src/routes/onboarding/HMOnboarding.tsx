@@ -31,7 +31,7 @@ type Phase = 'basics' | 'chat' | 'mustHaves' | 'demographics' | 'hiringDetails' 
 interface ApiMessage { role: 'user' | 'assistant'; content: string }
 
 const BO_GREETING =
-  "Hey! I'm Bolé, your hiring buddy at DNJ. Let's start with just a few quick basics about the role — nothing heavy yet.\n\nFirst up: what role are you hiring for and which industry are you in?"
+  "Hey! I'm Bolé, your hiring buddy at DNJ. I'll ask you a few questions to understand your hiring needs — and everything you share here will be used to automatically set up your first role, so you won't have to fill anything in twice.\n\nFirst up: what role are you hiring for and which industry are you in?"
 
 export default function HMOnboarding() {
   const { session, profile, refresh } = useSession()
@@ -542,6 +542,29 @@ export default function HMOnboarding() {
 
       const { error: profErr } = await supabase.from('profiles').update({ full_name: fullName.trim() }).eq('id', userId)
       if (profErr) throw profErr
+
+      // Auto-create a draft role from chat data so the HM doesn't re-enter everything
+      if (extracted.role_type) {
+        const workArr = (() => {
+          const w = (extracted.work_arrangement_offered ?? '').toLowerCase()
+          if (w.includes('remote')) return 'remote'
+          if (w.includes('hybrid')) return 'hybrid'
+          return 'onsite'
+        })()
+        await supabase.from('roles').insert({
+          hiring_manager_id: hmRow.id,
+          title: extracted.role_type,
+          industry: extracted.industry ?? null,
+          salary_min: extracted.salary_offer_min ?? null,
+          salary_max: extracted.salary_offer_max ?? null,
+          work_arrangement: workArr,
+          required_traits: extracted.required_traits ?? [],
+          must_have_items: extracted.must_have_items?.length ? extracted.must_have_items : (mustHaveItems.length ? mustHaveItems : null),
+          eligibility_work_auth: extracted.required_work_authorization?.length ? extracted.required_work_authorization : [],
+          status: 'draft',
+          from_onboarding: true,
+        })
+      }
 
       await markOnboardingComplete(userId)
       await refresh()

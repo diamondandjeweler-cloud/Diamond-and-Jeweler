@@ -225,7 +225,7 @@ export default function HMDashboard() {
           .eq('hiring_manager_id', hm.id)
           .limit(200),
         supabase.from('roles').select('id').eq('hiring_manager_id', hm.id)
-          .eq('from_onboarding', true).eq('status', 'draft').maybeSingle(),
+          .eq('from_onboarding', true).eq('status', 'paused').maybeSingle(),
       ])
       if (!cancelled && onboardingDraft) setOnboardingDraftRoleId(onboardingDraft.id)
 

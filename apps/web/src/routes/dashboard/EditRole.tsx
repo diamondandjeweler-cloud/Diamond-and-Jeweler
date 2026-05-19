@@ -23,7 +23,8 @@ interface RoleRow {
   salary_min: number | null
   salary_max: number | null
   required_traits: string[]
-  status: 'draft' | 'active' | 'paused' | 'filled' | 'expired'
+  status: 'active' | 'paused' | 'filled' | 'expired'
+  from_onboarding: boolean
 }
 
 export default function EditRole() {
@@ -43,7 +44,7 @@ export default function EditRole() {
     void (async () => {
       const { data, error } = await supabase
         .from('roles')
-        .select('id, hiring_manager_id, title, description, department, location, work_arrangement, experience_level, salary_min, salary_max, required_traits, status')
+        .select('id, hiring_manager_id, title, description, department, location, work_arrangement, experience_level, salary_min, salary_max, required_traits, status, from_onboarding')
         .eq('id', id).single()
       if (cancelled) return
       if (error) setErr(error.message)
@@ -85,7 +86,7 @@ export default function EditRole() {
       (original.department ?? null) !== (row.department ?? null)
     )
 
-    const isDraft = row.status === 'draft'
+    const isDraft = row.status === 'paused' && row.from_onboarding
     const { error } = await supabase.from('roles').update({
       title: row.title,
       description: row.description,
@@ -127,7 +128,7 @@ export default function EditRole() {
     <div className="max-w-2xl mx-auto">
       <div className="bg-white border rounded-lg p-6">
         <h1 className="text-2xl font-bold mb-2">Edit role</h1>
-        {r.status === 'draft' ? (
+        {r.from_onboarding && r.status === 'paused' ? (
           <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2 mb-4">
             This role was pre-filled from your onboarding answers. Review the details below, then click <strong>Activate role</strong> to start receiving candidates.
           </p>
@@ -226,7 +227,7 @@ export default function EditRole() {
             </button>
             <button type="submit" disabled={busy}
               className="bg-brand-600 text-white px-4 py-2 rounded hover:bg-brand-700 disabled:bg-gray-300">
-              {busy ? 'Saving…' : r.status === 'draft' ? 'Activate role' : 'Save changes'}
+              {busy ? 'Saving…' : r.from_onboarding && r.status === 'paused' ? 'Activate role' : 'Save changes'}
             </button>
           </div>
         </form>

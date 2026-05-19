@@ -559,9 +559,8 @@ export default function HMOnboarding() {
           salary_max: extracted.salary_offer_max ?? null,
           work_arrangement: workArr,
           required_traits: extracted.required_traits ?? [],
-          must_have_items: extracted.must_have_items?.length ? extracted.must_have_items : (mustHaveItems.length ? mustHaveItems : null),
           eligibility_work_auth: extracted.required_work_authorization?.length ? extracted.required_work_authorization : [],
-          status: 'draft',
+          status: 'paused',
           from_onboarding: true,
         })
       }

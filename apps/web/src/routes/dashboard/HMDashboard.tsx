@@ -115,7 +115,7 @@ export default function HMDashboard() {
   const [hmId, setHmId] = useState<string | null>(null)
   const [hmHasDob, setHmHasDob] = useState<boolean | null>(null)
   const [showAddDobModal, setShowAddDobModal] = useState(false)
-  const [onboardingDraftRoleId, setOnboardingDraftRoleId] = useState<string | null>(null)
+  const [onboardingDraftRole, setOnboardingDraftRole] = useState<{ id: string; title: string; industry: string | null; salary_min: number | null; salary_max: number | null; work_arrangement: string | null; required_traits: string[] } | null>(null)
 
   // Interview flow state
   const [roundsByMatch, setRoundsByMatch] = useState<Record<string, InterviewRound[]>>({})
@@ -188,7 +188,7 @@ export default function HMDashboard() {
         console.error('[hm-dashboard] load watchdog tripped — a Supabase query stalled')
         setErr('Loading timed out — please refresh.')
         setLoading(false)
-      }, 12000)
+      }, 20000)
       try {
       // Phase 1 — hiring_managers + profiles.points fire in parallel.
       // Both only depend on session.user.id.
@@ -224,10 +224,10 @@ export default function HMDashboard() {
           .select('id, title, status, extra_matches_used, created_at')
           .eq('hiring_manager_id', hm.id)
           .limit(200),
-        supabase.from('roles').select('id').eq('hiring_manager_id', hm.id)
+        supabase.from('roles').select('id, title, industry, salary_min, salary_max, work_arrangement, required_traits').eq('hiring_manager_id', hm.id)
           .eq('from_onboarding', true).eq('status', 'paused').maybeSingle(),
       ])
-      if (!cancelled && onboardingDraft) setOnboardingDraftRoleId(onboardingDraft.id)
+      if (!cancelled && onboardingDraft) setOnboardingDraftRole(onboardingDraft as typeof onboardingDraft & { required_traits: string[] })
 
       if (cid && !cancelled) setCompanyId(cid)
       if (companyOrLink.kind === 'company') {
@@ -345,6 +345,9 @@ export default function HMDashboard() {
         if (!cancelled) setWaiting({ roleCount: coldRows.length, estimatedDays: band?.days ?? 14 })
       }
       if (watchdog) { clearTimeout(watchdog); watchdog = null }
+      // If the watchdog fired but the queries ultimately resolved, the page is
+      // fully loaded — clear the now-stale "timed out" banner.
+      if (!cancelled) setErr((cur) => cur === 'Loading timed out — please refresh.' ? null : cur)
       setLoading(false)
       } catch (e) {
         if (watchdog) { clearTimeout(watchdog); watchdog = null }
@@ -611,20 +614,6 @@ export default function HMDashboard() {
         </div>
       )}
 
-      {onboardingDraftRoleId && (
-        <div className="mb-6 p-4 bg-brand-50 border border-brand-200 rounded-lg flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-brand-900">Your first role is ready to review</p>
-            <p className="text-xs text-brand-700 mt-0.5">
-              We pre-filled it from your onboarding answers. Review the details and activate it to start receiving candidates.
-            </p>
-          </div>
-          <Link to={`/hm/roles/${onboardingDraftRoleId}/edit`} className="btn-primary text-sm whitespace-nowrap">
-            Review &amp; activate
-          </Link>
-        </div>
-      )}
-
       <PageHeader
         eyebrow={profile && t('dashboard.hmGreeting', { name: getDisplayName(profile) })}
         title="Your candidates"
@@ -752,17 +741,59 @@ export default function HMDashboard() {
       )}
 
       {candidates.length === 0 ? (
-        <Card>
-          <EmptyState
-            title={roleCount === 0 ? 'Post your first role' : oldestRoleOver24h ? 'No matches yet' : 'Curating candidates'}
-            description={roleCount === 0
-              ? 'Tell us about the role you want to fill and we\'ll surface up to three candidates.'
-              : oldestRoleOver24h
-                ? 'Our engine hasn\'t found a strong fit yet. Try widening the salary range or removing one required trait — that often unlocks the match.'
-                : 'Our engine reviews new talent every hour. You\'ll see up to 3 candidates per role as they arrive.'}
-            action={roleCount === 0 ? <Link to="/hm/post-role" className="btn-primary">Post a role</Link> : undefined}
-          />
-        </Card>
+        onboardingDraftRole ? (
+          <div className="rounded-xl border-2 border-brand-500 bg-white overflow-hidden shadow-sm">
+            <div className="bg-brand-600 px-5 py-3 flex items-center gap-2">
+              <svg className="w-5 h-5 text-white shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fillRule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0L3.3 9.7a1 1 0 011.4-1.4l3.3 3.3 6.8-6.8a1 1 0 011.4 0z" clipRule="evenodd" />
+              </svg>
+              <span className="text-white font-semibold text-sm">Your first role is ready — pre-filled from onboarding</span>
+            </div>
+            <div className="p-6">
+              <h3 className="text-xl font-bold text-gray-900">{onboardingDraftRole.title}</h3>
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
+                {onboardingDraftRole.industry && <span>{onboardingDraftRole.industry}</span>}
+                {(onboardingDraftRole.salary_min || onboardingDraftRole.salary_max) && (
+                  <span>RM {fmt(onboardingDraftRole.salary_min)} – {fmt(onboardingDraftRole.salary_max)}</span>
+                )}
+                {onboardingDraftRole.work_arrangement && (
+                  <span className="capitalize">{onboardingDraftRole.work_arrangement.replace(/_/g, '-')}</span>
+                )}
+              </div>
+              {onboardingDraftRole.required_traits?.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {onboardingDraftRole.required_traits.map((tr) => (
+                    <Badge key={tr}>{tr.replace(/_/g, ' ')}</Badge>
+                  ))}
+                </div>
+              )}
+              <p className="mt-4 text-sm text-gray-600">
+                Review the details, adjust anything that&apos;s off, then activate it to start receiving up to 3 curated candidates.
+              </p>
+              <div className="mt-5">
+                <Link
+                  to={`/hm/roles/${onboardingDraftRole.id}/edit`}
+                  className="btn-primary inline-flex items-center gap-2 text-base px-6 py-3"
+                >
+                  Review &amp; activate this role
+                  <span aria-hidden="true">→</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <Card>
+            <EmptyState
+              title={roleCount === 0 ? 'Post your first role' : oldestRoleOver24h ? 'No matches yet' : 'Curating candidates'}
+              description={roleCount === 0
+                ? 'Tell us about the role you want to fill and we\'ll surface up to three candidates.'
+                : oldestRoleOver24h
+                  ? 'Our engine hasn\'t found a strong fit yet. Try widening the salary range or removing one required trait — that often unlocks the match.'
+                  : 'Our engine reviews new talent every hour. You\'ll see up to 3 candidates per role as they arrive.'}
+              action={roleCount === 0 ? <Link to="/hm/post-role" className="btn-primary">Post a role</Link> : undefined}
+            />
+          </Card>
+        )
       ) : (
         <div className="grid md:grid-cols-2 gap-4">
           {candidates.map((c) => {

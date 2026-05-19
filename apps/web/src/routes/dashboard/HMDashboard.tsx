@@ -772,7 +772,7 @@ export default function HMDashboard() {
               </p>
               <div className="mt-5">
                 <Link
-                  to={`/hm/roles/${onboardingDraftRole.id}/edit`}
+                  to={`/hm/post-role/${onboardingDraftRole.id}`}
                   className="btn-primary inline-flex items-center gap-2 text-base px-6 py-3"
                 >
                   Review &amp; activate this role

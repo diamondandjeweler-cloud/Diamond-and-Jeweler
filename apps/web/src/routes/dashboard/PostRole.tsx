@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { callFunction } from '../../lib/functions'
@@ -21,13 +21,16 @@ const TRAITS = [
 ]
 
 export default function PostRole() {
-  useSeo({ title: 'Post a role', noindex: true })
+  const { id: editRoleId } = useParams<{ id?: string }>()
+  const isEdit = !!editRoleId
+  useSeo({ title: isEdit ? 'Review your role' : 'Post a role', noindex: true })
   const { session } = useSession()
   const userId = session?.user.id
   const navigate = useNavigate()
 
   const [hmId, setHmId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [fromOnboarding, setFromOnboarding] = useState(false)
   const [teamSize, setTeamSize] = useState<number | ''>('')
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
 
@@ -182,13 +185,78 @@ export default function PostRole() {
 
   useEffect(() => {
     if (!userId) { setLoading(false); return }
-    supabase.from('hiring_managers').select('id').eq('profile_id', userId).maybeSingle()
-      .then(({ data, error }) => {
-        if (error) setErr(error.message)
-        setHmId(data?.id ?? null)
-        setLoading(false)
-      })
-  }, [userId])
+    let cancelled = false
+    void (async () => {
+      const { data: hm, error } = await supabase
+        .from('hiring_managers').select('id').eq('profile_id', userId).maybeSingle()
+      if (cancelled) return
+      if (error) setErr(error.message)
+      setHmId(hm?.id ?? null)
+
+      // Edit mode: load the existing role and pre-fill every form field.
+      if (editRoleId && hm?.id) {
+        const { data: role, error: roleErr } = await supabase
+          .from('roles').select('*').eq('id', editRoleId).maybeSingle()
+        if (cancelled) return
+        if (roleErr) setErr(roleErr.message)
+        else if (!role) setErr('Role not found.')
+        else if (role.hiring_manager_id !== hm.id) setErr('You are not the owner of this role.')
+        else {
+          setTitle(role.title ?? '')
+          setDescription(role.description ?? '')
+          setDepartment(role.department ?? '')
+          setLocation(role.location ?? 'Kuala Lumpur')
+          setLocationPostcode(role.location_postcode ?? '')
+          setIndustry(role.industry ?? '')
+          setAcceptNoExperience(!!role.accept_no_experience)
+          if (role.work_arrangement) setWorkArr(role.work_arrangement as typeof workArr)
+          if (role.experience_level) setExperience(role.experience_level as typeof experience)
+          setSalaryMin(role.salary_min ?? 0)
+          setSalaryMax(role.salary_max ?? 0)
+          setRequiredTraits(role.required_traits ?? [])
+          if (role.employment_type) setEmploymentType(role.employment_type as typeof employmentType)
+          setHourlyRate(role.hourly_rate ?? 0)
+          setDurationDays(role.duration_days ?? '')
+          setStartDate(role.start_date ?? '')
+          setRequiresWeekend(!!role.requires_weekend)
+          setRequiresDrivingLicense(!!role.requires_driving_license)
+          setRequiresTravel(!!role.requires_travel)
+          setHasNightShifts(!!role.has_night_shifts)
+          setRequiresOwnCar(!!role.requires_own_car)
+          setRequiresRelocation(!!role.requires_relocation)
+          setRequiresOvertime(!!role.requires_overtime)
+          setIsCommissionBased(!!role.is_commission_based)
+          if (role.weight_preset) setWeightPreset(role.weight_preset as typeof weightPreset)
+          setSchedule({
+            start_time: role.schedule_start_time ?? '',
+            end_time: role.schedule_end_time ?? '',
+            days_per_week: role.days_per_week ?? '',
+            off_day_pattern: role.off_day_pattern ?? '',
+            shift_type: role.shift_type ?? '',
+          })
+          setMinEducationLevel(role.min_education_level ?? '')
+          setMinEducationClass(role.min_education_class ?? '')
+          setRequiredSkills(role.required_skills ?? [])
+          setPreferredSkills(role.preferred_skills ?? [])
+          setLanguagesRequired((role.languages_required as LanguageReq[]) ?? [])
+          setEnvironmentFlags(role.environment_flags ?? [])
+          setOpenTo(role.open_to ?? [])
+          setHeadcount(role.headcount ?? 1)
+          setReportsToTitle(role.reports_to_title ?? '')
+          setDirectTeamSize(role.direct_team_size ?? '')
+          setProbationMonths(role.probation_months ?? '')
+          setInterviewProcess(role.interview_process ?? '')
+          setStartUrgency(role.start_urgency ?? '')
+          setEligibilityWorkAuth(role.eligibility_work_auth ?? [])
+          setNnText(role.non_negotiables_text ?? '')
+          setNnAtoms((role.non_negotiables_atoms as NNAtom[]) ?? [])
+          setFromOnboarding(!!role.from_onboarding)
+        }
+      }
+      setLoading(false)
+    })()
+    return () => { cancelled = true }
+  }, [userId, editRoleId])
 
   useEffect(() => {
     const n = typeof teamSize === 'number' ? Math.max(0, Math.min(50, teamSize)) : 0
@@ -217,8 +285,9 @@ export default function PostRole() {
     return () => { cancelled = true }
   }, [title, location, experience, salaryMin, salaryMax])
 
-  // Draft restore — run once on mount
+  // Draft restore — run once on mount. Skipped in edit mode (role is the source).
   useEffect(() => {
+    if (isEdit) return
     try {
       const raw = localStorage.getItem(DRAFT_KEY)
       if (!raw) return
@@ -230,8 +299,9 @@ export default function PostRole() {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Draft autosave — debounced 600 ms, skips first mount
+  // Draft autosave — debounced 600 ms, skips first mount. Disabled in edit mode.
   useEffect(() => {
+    if (isEdit) return
     if (!didMount.current) { didMount.current = true; return }
     const json = JSON.stringify(collectDraft())
     const timer = setTimeout(() => {
@@ -255,7 +325,7 @@ export default function PostRole() {
 
   // DB draft check — only when no localStorage draft was found after hmId loads
   useEffect(() => {
-    if (!hmId || hasDraft) return
+    if (isEdit || !hmId || hasDraft) return
     supabase.from('job_posting_drafts')
       .select('draft_data, updated_at')
       .eq('hm_id', hmId)
@@ -300,8 +370,7 @@ export default function PostRole() {
     const timeoutId = setTimeout(() => controller.abort(), 30000)
 
     try {
-      const { data: inserted, error: insErr } = await supabase.from('roles').insert({
-        id: roleId,
+      const payload = {
         hiring_manager_id: hmId, title,
         description: description || null, department: department || null,
         location: location || null,
@@ -310,7 +379,7 @@ export default function PostRole() {
         accept_no_experience: acceptNoExperience,
         work_arrangement: workArr, experience_level: experience,
         salary_min: salaryMin || null, salary_max: salaryMax || null,
-        required_traits: requiredTraits, status: 'active',
+        required_traits: requiredTraits, status: 'active' as const,
         employment_type: employmentType,
         hourly_rate: employmentType === 'gig' || employmentType === 'part_time' || employmentType === 'contract' ? (hourlyRate || null) : null,
         duration_days: durationDays === '' ? null : Number(durationDays),
@@ -357,7 +426,12 @@ export default function PostRole() {
             .filter((c): c is NonNullable<typeof c> => c !== null)
           return chars.length > 0 ? chars : null
         })(),
-      }).select('id').abortSignal(controller.signal).single()
+      }
+
+      const savedId = isEdit ? editRoleId! : roleId
+      const { error: insErr } = isEdit
+        ? await supabase.from('roles').update(payload).eq('id', editRoleId!).abortSignal(controller.signal)
+        : await supabase.from('roles').insert({ id: roleId, ...payload }).abortSignal(controller.signal)
       clearTimeout(timeoutId)
 
       if (insErr) throw insErr
@@ -366,12 +440,12 @@ export default function PostRole() {
       // and persist atoms. This keeps the matcher honest even when the HM skips the preview.
       if (nnText.trim() && nnAtoms.length === 0) {
         void callFunction('extract-non-negotiables', {
-          side: 'hm', text: nnText.trim(), role_id: inserted.id,
+          side: 'hm', text: nnText.trim(), role_id: savedId,
         }).catch(() => {})
       }
 
-      void callFunction('moderate-role', { role_id: inserted.id }).catch(() => {})
-      void callFunction('match-generate', { role_id: inserted.id }).catch(() => {})
+      void callFunction('moderate-role', { role_id: savedId }).catch(() => {})
+      void callFunction('match-generate', { role_id: savedId }).catch(() => {})
       localStorage.removeItem(DRAFT_KEY)
       void supabase.from('job_posting_drafts').delete().eq('hm_id', hmId)
       navigate('/hm', { replace: true })
@@ -381,11 +455,15 @@ export default function PostRole() {
       // actually committed server-side (can happen when the response arrives
       // just after the abort). If so, proceed as success.
       if (e instanceof Error && e.name === 'AbortError') {
+        const checkId = isEdit ? editRoleId! : roleId
         const { data: committed } = await supabase
-          .from('roles').select('id').eq('id', roleId).maybeSingle()
-        if (committed) {
-          void callFunction('moderate-role', { role_id: roleId }).catch(() => {})
-          void callFunction('match-generate', { role_id: roleId }).catch(() => {})
+          .from('roles').select('id, status').eq('id', checkId).maybeSingle()
+        // Fresh insert: row exists = committed. Edit: row always exists, so the
+        // commit landed only if the status flipped to active.
+        const didCommit = isEdit ? committed?.status === 'active' : !!committed
+        if (didCommit) {
+          void callFunction('moderate-role', { role_id: checkId }).catch(() => {})
+          void callFunction('match-generate', { role_id: checkId }).catch(() => {})
           localStorage.removeItem(DRAFT_KEY)
           void supabase.from('job_posting_drafts').delete().eq('hm_id', hmId)
           navigate('/hm', { replace: true })
@@ -412,9 +490,15 @@ export default function PostRole() {
   return (
     <div className="max-w-3xl mx-auto">
       <PageHeader
-        eyebrow="New role"
-        title="Post a role"
-        description="Up to three candidates will be curated for this role as talents become eligible. Pilot estimate: ~14 days."
+        eyebrow={isEdit ? 'Review role' : 'New role'}
+        title={isEdit ? (fromOnboarding ? 'Review your first role' : 'Edit role') : 'Post a role'}
+        description={
+          isEdit
+            ? fromOnboarding
+              ? 'We pre-filled this from your onboarding answers. Check each section, adjust anything that\'s off, then activate it to start receiving candidates.'
+              : 'Update the details below. Changes apply immediately to matching.'
+            : 'Up to three candidates will be curated for this role as talents become eligible. Pilot estimate: ~14 days.'
+        }
       />
 
       {hasDraft && (
@@ -865,7 +949,11 @@ export default function PostRole() {
                 Save draft
               </Button>
               <Button type="submit" loading={busy} disabled={!title || requiredTraits.length === 0}>
-                {busy ? 'Posting…' : 'Post role & start matching'}
+                {busy
+                  ? (isEdit ? 'Saving…' : 'Posting…')
+                  : isEdit
+                    ? (fromOnboarding ? 'Activate role & start matching' : 'Save changes')
+                    : 'Post role & start matching'}
               </Button>
             </div>
           </div>

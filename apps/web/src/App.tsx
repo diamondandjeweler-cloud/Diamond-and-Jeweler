@@ -160,6 +160,7 @@ export default function App() {
           <Route path="/talent/profile" element={<RoleGate allow={['talent']}><ConsentGate><OnboardingGate><TalentProfile /></OnboardingGate></ConsentGate></RoleGate>} />
           <Route path="/hm"     element={<RoleGate allow={['hiring_manager']} alsoAllowHRwithHM><ConsentGate><OnboardingGate><HMDashboard /></OnboardingGate></ConsentGate></RoleGate>} />
           <Route path="/hm/post-role" element={<RoleGate allow={['hiring_manager']} alsoAllowHRwithHM><ConsentGate><OnboardingGate><PostRole /></OnboardingGate></ConsentGate></RoleGate>} />
+          <Route path="/hm/post-role/:id" element={<RoleGate allow={['hiring_manager']} alsoAllowHRwithHM><ConsentGate><OnboardingGate><PostRole /></OnboardingGate></ConsentGate></RoleGate>} />
           <Route path="/hm/roles" element={<RoleGate allow={['hiring_manager']} alsoAllowHRwithHM><ConsentGate><OnboardingGate><MyRoles /></OnboardingGate></ConsentGate></RoleGate>} />
           <Route path="/hm/roles/:id/edit" element={<RoleGate allow={['hiring_manager']} alsoAllowHRwithHM><ConsentGate><OnboardingGate><EditRole /></OnboardingGate></ConsentGate></RoleGate>} />
           <Route path="/hm/company" element={<RoleGate allow={['hiring_manager']} alsoAllowHRwithHM><ConsentGate><OnboardingGate><HMCompanyProfile /></OnboardingGate></ConsentGate></RoleGate>} />

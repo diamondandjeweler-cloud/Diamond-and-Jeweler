@@ -123,7 +123,7 @@ serve(async (req) => {
   }
 
   const transcript = messages
-    .map((m) => `${m.role === 'assistant' ? 'Bo' : 'Manager'}: ${m.content}`)
+    .map((m) => `${m.role === 'assistant' ? 'Bolé' : 'Manager'}: ${m.content}`)
     .join('\n\n')
 
   const result = await callExtractionAI(buildPrompt(transcript))

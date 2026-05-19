@@ -184,7 +184,7 @@ Extraction rules:
 
 export function transcriptFrom(messages: ExtractionMessage[]): string {
   return messages
-    .map((m) => `${m.role === 'assistant' ? 'Bo' : 'Candidate'}: ${m.content}`)
+    .map((m) => `${m.role === 'assistant' ? 'Bolé' : 'Candidate'}: ${m.content}`)
     .join('\n\n')
 }
 

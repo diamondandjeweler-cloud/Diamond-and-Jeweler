@@ -86,15 +86,63 @@ export default function HMOnboarding() {
   const [err, setErr] = useState<string | null>(null)
   const [hmMissing, setHmMissing] = useState(false)
 
-  // Preflight: verify hiring_managers row exists before showing any questions.
+  // Preflight: verify hiring_managers row exists — if missing, try to self-heal by
+  // finding the user's company and inserting the row. Only show the error if there
+  // is genuinely no company to link to (truly uninvited / un-registered user).
   useEffect(() => {
     if (!session?.user.id) return
-    supabase
-      .from('hiring_managers')
-      .select('id')
-      .eq('profile_id', session.user.id)
-      .maybeSingle()
-      .then(({ data }) => { if (!data) setHmMissing(true) })
+    const userId = session.user.id
+
+    async function preflight() {
+      const { data: hmRow } = await supabase
+        .from('hiring_managers')
+        .select('id')
+        .eq('profile_id', userId)
+        .maybeSingle()
+
+      if (hmRow) return // all good
+
+      // No HM row — try to find a company this user owns
+      const { data: company } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('created_by', userId)
+        .maybeSingle()
+
+      if (!company) {
+        // Also try primary_hr_email match
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('id', userId)
+          .maybeSingle()
+        if (prof?.email) {
+          const { data: companyByEmail } = await supabase
+            .from('companies')
+            .select('id')
+            .eq('primary_hr_email', prof.email)
+            .maybeSingle()
+          if (companyByEmail) {
+            await supabase.from('hiring_managers').upsert(
+              { profile_id: userId, company_id: companyByEmail.id, job_title: 'Hiring Manager' },
+              { onConflict: 'profile_id' },
+            )
+            return // healed
+          }
+        }
+        setHmMissing(true) // no company at all — show error
+        return
+      }
+
+      // Found a company — insert the missing HM row silently
+      await supabase.from('hiring_managers').upsert(
+        { profile_id: userId, company_id: company.id, job_title: 'Hiring Manager' },
+        { onConflict: 'profile_id' },
+      )
+      // healed — no error shown, onboarding proceeds
+    }
+
+    void preflight()
   }, [session?.user.id])
 
   useEffect(() => {

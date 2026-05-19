@@ -111,14 +111,45 @@ export default function HMOnboarding() {
   const draftCheckRef = useRef(false)
   const draftKey = session ? `dnj.hm-onboard.${session.user.id}` : null
 
-  // On mount: restore mid-chat progress from localStorage so refresh doesn't lose the conversation.
+  // On mount: restore all saved progress from localStorage.
   useEffect(() => {
     if (!session?.user.id || draftCheckRef.current) return
     draftCheckRef.current = true
     const raw = draftKey ? localStorage.getItem(draftKey) : null
     if (!raw) return
     try {
-      const d = JSON.parse(raw) as { fullName?: string; jobTitle?: string; apiMessages?: ApiMessage[] }
+      const d = JSON.parse(raw) as {
+        phase?: Phase; fullName?: string; jobTitle?: string; apiMessages?: ApiMessage[]
+        mustHaveItems?: string[]
+        hmRequiresDrivingLicense?: boolean; hmRequiresWeekends?: boolean; hmRequiresTravel?: boolean
+        hmRequiresNightShifts?: boolean; hmRequiresRelocation?: boolean; hmOnsiteOnly?: boolean
+        hmRequiresOwnTransport?: boolean; hmHasCommission?: boolean
+        race?: string; religion?: string; languages?: string[]
+        locationMatters?: boolean | null; locationPostcode?: string
+        budgetApproved?: string; deadlineToFill?: string; interviewRoundsHM?: number | null
+        salaryFlex?: boolean | null; failureAt90Days?: string
+      }
+      if (d.fullName) setFullName(d.fullName)
+      if (d.jobTitle) setJobTitle(d.jobTitle)
+      if (d.mustHaveItems?.length) setMustHaveItems(d.mustHaveItems)
+      if (d.hmRequiresDrivingLicense) setHmRequiresDrivingLicense(d.hmRequiresDrivingLicense)
+      if (d.hmRequiresWeekends) setHmRequiresWeekends(d.hmRequiresWeekends)
+      if (d.hmRequiresTravel) setHmRequiresTravel(d.hmRequiresTravel)
+      if (d.hmRequiresNightShifts) setHmRequiresNightShifts(d.hmRequiresNightShifts)
+      if (d.hmRequiresRelocation) setHmRequiresRelocation(d.hmRequiresRelocation)
+      if (d.hmOnsiteOnly) setHmOnsiteOnly(d.hmOnsiteOnly)
+      if (d.hmRequiresOwnTransport) setHmRequiresOwnTransport(d.hmRequiresOwnTransport)
+      if (d.hmHasCommission) setHmHasCommission(d.hmHasCommission)
+      if (d.race) setRace(d.race)
+      if (d.religion) setReligion(d.religion)
+      if (d.languages?.length) setLanguages(d.languages)
+      if (d.locationMatters != null) setLocationMatters(d.locationMatters)
+      if (d.locationPostcode) setLocationPostcode(d.locationPostcode)
+      if (d.budgetApproved) setBudgetApproved(d.budgetApproved)
+      if (d.deadlineToFill) setDeadlineToFill(d.deadlineToFill)
+      if (d.interviewRoundsHM != null) setInterviewRoundsHM(d.interviewRoundsHM)
+      if (d.salaryFlex != null) setSalaryFlex(d.salaryFlex)
+      if (d.failureAt90Days) setFailureAt90Days(d.failureAt90Days)
       if (d.apiMessages && d.apiMessages.length > 1) {
         setApiMessages(d.apiMessages)
         setLog(d.apiMessages.map((m, i) => ({
@@ -127,12 +158,38 @@ export default function HMOnboarding() {
           content: m.content.replace('[PROFILE_READY]', '').trim(),
         })))
         chatInitRef.current = true
-        if (d.fullName) setFullName(d.fullName)
-        if (d.jobTitle) setJobTitle(d.jobTitle)
-        setPhase('chat')
+        setPhase(d.phase && d.phase !== 'basics' && d.phase !== 'done' && d.phase !== 'submit' ? d.phase : 'chat')
+      } else if (d.phase && d.phase !== 'basics' && d.phase !== 'done' && d.phase !== 'submit') {
+        setPhase(d.phase)
       }
     } catch { /* ignore */ }
   }, [session?.user.id, draftKey])
+
+  // Autosave all form state on every change — DOB intentionally excluded (never in plaintext).
+  useEffect(() => {
+    if (!draftKey || phase === 'basics' || phase === 'done' || phase === 'submit') return
+    try {
+      const prev = JSON.parse(localStorage.getItem(draftKey) || '{}') as Record<string, unknown>
+      localStorage.setItem(draftKey, JSON.stringify({
+        ...prev,
+        phase, fullName, jobTitle,
+        mustHaveItems,
+        hmRequiresDrivingLicense, hmRequiresWeekends, hmRequiresTravel,
+        hmRequiresNightShifts, hmRequiresRelocation, hmOnsiteOnly,
+        hmRequiresOwnTransport, hmHasCommission,
+        race, religion, languages, locationMatters, locationPostcode,
+        budgetApproved, deadlineToFill, interviewRoundsHM, salaryFlex, failureAt90Days,
+      }))
+    } catch { /* ignore storage errors */ }
+  }, [
+    draftKey, phase, fullName, jobTitle,
+    mustHaveItems,
+    hmRequiresDrivingLicense, hmRequiresWeekends, hmRequiresTravel,
+    hmRequiresNightShifts, hmRequiresRelocation, hmOnsiteOnly,
+    hmRequiresOwnTransport, hmHasCommission,
+    race, religion, languages, locationMatters, locationPostcode,
+    budgetApproved, deadlineToFill, interviewRoundsHM, salaryFlex, failureAt90Days,
+  ])
 
   useEffect(() => {
     if (phase !== 'chat' || chatInitRef.current) return
@@ -440,6 +497,7 @@ export default function HMOnboarding() {
 
       await markOnboardingComplete(userId)
       await refresh()
+      if (draftKey) try { localStorage.removeItem(draftKey) } catch { /* ignore */ }
       setPhase('done')
       setTimeout(() => navigate('/hm', { replace: true }), 1400)
     } catch (e) {

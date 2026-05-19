@@ -129,10 +129,49 @@ export default function TalentOnboarding() {
         race?: string; religion?: string; languages?: string[]
         locationMatters?: boolean | null; locationPostcode?: string; openToNewField?: boolean
         apiMessages?: ApiMessage[]
+        dealBreakerItems?: string[]; minSalaryHard?: number | null
+        noWeekendWork?: boolean; noDrivingLicense?: boolean; noTravel?: boolean
+        noNightShifts?: boolean; noOwnCar?: boolean; remoteOnly?: boolean
+        noRelocation?: boolean; noOvertime?: boolean; noCommissionOnly?: boolean
+        skills?: string[]; languagesProficiency?: LanguageReq[]
+        availableShifts?: string[]; availableDaysPerWeek?: number | ''
+        environmentPreferences?: string[]; candidateTypes?: string[]
+        priorityConcernsText?: string; priorityConcernsAtoms?: NNAtom[]
       }) : null
 
       const restoredName = draft?.fullName || (prof?.full_name as string | null) || ''
       const restoredPhone = draft?.phone || (prof?.phone as string | null) || ''
+
+      // Shared helper: restore all structured form fields from draft
+      function restoreDraftFields(d: typeof draft) {
+        if (!d) return
+        if (d.gender) setGender(d.gender as Gender)
+        if (d.race) setRace(d.race)
+        if (d.religion) setReligion(d.religion)
+        if (d.languages?.length) setLanguages(d.languages)
+        if (d.locationMatters != null) setLocationMatters(d.locationMatters)
+        if (d.locationPostcode) setLocationPostcode(d.locationPostcode)
+        if (d.openToNewField != null) setOpenToNewField(d.openToNewField)
+        if (d.dealBreakerItems?.length) setDealBreakerItems(d.dealBreakerItems)
+        if (d.minSalaryHard != null) setMinSalaryHard(d.minSalaryHard)
+        if (d.noWeekendWork) setNoWeekendWork(d.noWeekendWork)
+        if (d.noDrivingLicense) setNoDrivingLicense(d.noDrivingLicense)
+        if (d.noTravel) setNoTravel(d.noTravel)
+        if (d.noNightShifts) setNoNightShifts(d.noNightShifts)
+        if (d.noOwnCar) setNoOwnCar(d.noOwnCar)
+        if (d.remoteOnly) setRemoteOnly(d.remoteOnly)
+        if (d.noRelocation) setNoRelocation(d.noRelocation)
+        if (d.noOvertime) setNoOvertime(d.noOvertime)
+        if (d.noCommissionOnly) setNoCommissionOnly(d.noCommissionOnly)
+        if (d.skills?.length) setSkills(d.skills)
+        if (d.languagesProficiency?.length) setLanguagesProficiency(d.languagesProficiency)
+        if (d.availableShifts?.length) setAvailableShifts(d.availableShifts)
+        if (d.availableDaysPerWeek != null) setAvailableDaysPerWeek(d.availableDaysPerWeek)
+        if (d.environmentPreferences?.length) setEnvironmentPreferences(d.environmentPreferences)
+        if (d.candidateTypes?.length) setCandidateTypes(d.candidateTypes)
+        if (d.priorityConcernsText) setPriorityConcernsText(d.priorityConcernsText)
+        if (d.priorityConcernsAtoms?.length) setPriorityConcernsAtoms(d.priorityConcernsAtoms)
+      }
 
       if (savedTranscript?.messages?.length) {
         // Chat is complete — restore it so the user never has to redo the conversation.
@@ -144,13 +183,7 @@ export default function TalentOnboarding() {
         })))
         setFullName(restoredName)
         setPhone(restoredPhone)
-        if (draft?.gender) setGender(draft.gender as Gender)
-        if (draft?.race) setRace(draft.race)
-        if (draft?.religion) setReligion(draft.religion)
-        if (draft?.languages?.length) setLanguages(draft.languages)
-        if (draft?.locationMatters != null) setLocationMatters(draft.locationMatters)
-        if (draft?.locationPostcode) setLocationPostcode(draft.locationPostcode)
-        if (draft?.openToNewField != null) setOpenToNewField(draft.openToNewField)
+        restoreDraftFields(draft)
         setPhase('resume')
       } else if (draft?.apiMessages && draft.apiMessages.length > 1) {
         // Mid-chat restore — resume exactly where they left off.
@@ -163,11 +196,13 @@ export default function TalentOnboarding() {
         chatInitRef.current = true
         if (restoredName) setFullName(restoredName)
         if (restoredPhone) setPhone(restoredPhone)
+        restoreDraftFields(draft)
         setPhase('chat')
       } else if (draft?.fullName && draft.phase && draft.phase !== 'basics') {
         // Partial progress in a later phase.
         setFullName(draft.fullName)
         if (draft.phone) setPhone(draft.phone)
+        restoreDraftFields(draft)
         setPhase('resume')
       } else if (restoredName) {
         // Pre-fill name/phone from profile but stay on basics.
@@ -180,21 +215,33 @@ export default function TalentOnboarding() {
   }, [sessionId, draftKey])
 
   // ── Autosave draft whenever key fields change ─────────────────────────────
+  // DOB intentionally excluded — never persisted to localStorage in plaintext.
   useEffect(() => {
     if (!draftKey || phase === 'basics' || phase === 'resume' || phase === 'done' || phase === 'submit') return
-    // DOB intentionally excluded — never persisted to localStorage in plaintext.
-    // In chat phase, spread existing draft so apiMessages saved by sendMessage are preserved.
     try {
-      const prev = phase === 'chat'
-        ? JSON.parse(localStorage.getItem(draftKey) || '{}') as Record<string, unknown>
-        : {}
+      const prev = JSON.parse(localStorage.getItem(draftKey) || '{}') as Record<string, unknown>
       localStorage.setItem(draftKey, JSON.stringify({
         ...prev,
         phase, fullName, phone, gender: gender || '',
         race, religion, languages, locationMatters, locationPostcode, openToNewField,
+        dealBreakerItems, minSalaryHard,
+        noWeekendWork, noDrivingLicense, noTravel, noNightShifts,
+        noOwnCar, remoteOnly, noRelocation, noOvertime, noCommissionOnly,
+        skills, languagesProficiency, availableShifts, availableDaysPerWeek,
+        environmentPreferences, candidateTypes,
+        priorityConcernsText, priorityConcernsAtoms,
       }))
     } catch { /* ignore storage errors */ }
-  }, [draftKey, phase, fullName, phone, gender, race, religion, languages, locationMatters, locationPostcode, openToNewField])
+  }, [
+    draftKey, phase, fullName, phone, gender,
+    race, religion, languages, locationMatters, locationPostcode, openToNewField,
+    dealBreakerItems, minSalaryHard,
+    noWeekendWork, noDrivingLicense, noTravel, noNightShifts,
+    noOwnCar, remoteOnly, noRelocation, noOvertime, noCommissionOnly,
+    skills, languagesProficiency, availableShifts, availableDaysPerWeek,
+    environmentPreferences, candidateTypes,
+    priorityConcernsText, priorityConcernsAtoms,
+  ])
 
   // Seed Bo's greeting when entering the chat phase — no API call needed.
   useEffect(() => {
@@ -547,6 +594,7 @@ export default function TalentOnboarding() {
         profile: s.profile ? { ...s.profile, onboarding_complete: true } : s.profile,
       }))
       void refresh()
+      if (draftKey) try { localStorage.removeItem(draftKey) } catch { /* ignore */ }
       setPhase('done')
       setTimeout(() => navigate('/talent', { replace: true, state: { extractionPending: true } }), 1200)
     } catch (e) {

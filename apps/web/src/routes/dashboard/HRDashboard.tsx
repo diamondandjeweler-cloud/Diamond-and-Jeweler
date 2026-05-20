@@ -247,7 +247,17 @@ export default function HRDashboard() {
       setLoading(false)
       } catch (e) {
         clearTimeout(loadTimeout)
-        if (!cancelled) { setErr(e instanceof Error ? e.message : 'Load failed'); setLoading(false) }
+        if (!cancelled) {
+          setErr(e instanceof Error ? e.message : 'Load failed')
+          // Settle any still-null data slots so skeletons resolve and the
+          // user sees the error banner against the empty-state UI.
+          setHms((cur) => cur ?? [])
+          setOpenRoles((cur) => cur ?? [])
+          setPending((cur) => cur ?? [])
+          setScheduled((cur) => cur ?? [])
+          setOutcomesPending((cur) => cur ?? 0)
+          setLoading(false)
+        }
       }
     }
     void load()

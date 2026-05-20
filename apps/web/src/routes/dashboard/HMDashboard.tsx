@@ -201,11 +201,18 @@ export default function HMDashboard() {
     let watchdog: ReturnType<typeof setTimeout> | null = null
 
     async function load() {
-      if (!userId) { setLoading(false); return }
+      if (!userId) {
+        if (!cancelled) { setCandidates([]); setRoleCount(0) }
+        setLoading(false); return
+      }
       watchdog = setTimeout(() => {
         if (cancelled) return
         console.error('[hm-dashboard] load watchdog tripped — a Supabase query stalled')
         setErr('Loading timed out — please refresh.')
+        // Settle the data slots so the skeleton doesn't shimmer forever; the
+        // error banner above will tell the user what happened.
+        setCandidates((cur) => cur ?? [])
+        setRoleCount((cur) => cur ?? 0)
         setLoading(false)
       }, 20000)
       try {
@@ -215,7 +222,13 @@ export default function HMDashboard() {
         supabase.from('hiring_managers').select('id, company_id, reputation_score, feedback_volume, phs_offer_accept_rate, hm_quality_factor, hm_cancel_rate, date_of_birth_encrypted').eq('profile_id', userId).maybeSingle(),
         supabase.from('profiles').select('points').eq('id', userId).maybeSingle(),
       ])
-      if (!hm) { setLoading(false); return }
+      if (!hm) {
+        // User has no hiring_managers row yet (HR who hasn't self-added,
+        // or partial onboarding). Settle to empty so the dashboard shows
+        // the post-a-role empty state instead of indefinite skeletons.
+        if (!cancelled) { setCandidates([]); setRoleCount(0) }
+        setLoading(false); return
+      }
       if (!cancelled) {
         setHmId((hm as unknown as { id: string }).id)
         setHmHasDob((hm as unknown as { date_of_birth_encrypted: string | null }).date_of_birth_encrypted != null)
@@ -381,6 +394,10 @@ export default function HMDashboard() {
         if (watchdog) { clearTimeout(watchdog); watchdog = null }
         if (!cancelled) {
           setErr(e instanceof Error ? e.message : 'Failed to load. Please refresh.')
+          // Failed mid-load — settle skeletons so the error banner shows
+          // against a stable layout instead of indefinite shimmer.
+          setCandidates((cur) => cur ?? [])
+          setRoleCount((cur) => cur ?? 0)
           setLoading(false)
         }
       }

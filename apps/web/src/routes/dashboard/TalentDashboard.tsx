@@ -158,7 +158,13 @@ export default function TalentDashboard() {
     let talentId: string | null = null
 
     async function load() {
-      if (!userId) { setLoading(false); return }
+      if (!userId) {
+        // No session yet — materialize an empty matches array so the page
+        // settles instead of shimmering skeletons indefinitely. The effect
+        // re-fires when userId arrives.
+        if (!cancelled) setMatches([])
+        setLoading(false); return
+      }
       try {
         // Phase 1 — fire all session-only queries in parallel. Previously these
         // ran sequentially, costing ~3× the network RTT on dashboard mount.
@@ -256,7 +262,13 @@ export default function TalentDashboard() {
           ])
         }
       } catch (e) {
-        if (!cancelled) setErr(e instanceof Error ? e.message : 'Failed to load offers')
+        if (!cancelled) {
+          setErr(e instanceof Error ? e.message : 'Failed to load offers')
+          // Failed load — settle the skeletons so the user sees the error banner
+          // and the empty state instead of indefinite shimmer. The error banner
+          // already explains the situation; nullable arrays would just trap.
+          setMatches((cur) => cur ?? [])
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }

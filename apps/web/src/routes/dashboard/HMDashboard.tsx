@@ -946,7 +946,7 @@ function CandidateCard({
   const displayName = realName
     ?? (row.talents?.privacy_mode === 'anonymous'
       ? 'Anonymous candidate'
-      : `Candidate #${row.talents?.id.slice(0, 6).toUpperCase()}`)
+      : 'Candidate')
 
   const topTags = Object.entries(row.talents?.derived_tags ?? {})
     .filter(([tag, score]) => !/^\d+$/.test(tag) && typeof score === 'number' && !isNaN(score) && score > 0)

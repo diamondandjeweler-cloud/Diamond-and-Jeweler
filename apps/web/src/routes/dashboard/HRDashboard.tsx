@@ -438,7 +438,7 @@ export default function HRDashboard() {
                   <div>
                     <h3 className="font-display text-lg text-ink-900">{s.role_title}</h3>
                     <div className="text-xs text-ink-500 mt-0.5">
-                      Candidate #{s.talent_id.slice(0, 6).toUpperCase()} ·{' '}
+                      Candidate ·{' '}
                       {s.scheduled_at
                         ? new Date(s.scheduled_at).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur', dateStyle: 'medium', timeStyle: 'short' })
                         : '—'}
@@ -496,7 +496,7 @@ export default function HRDashboard() {
                     <div>
                       <h3 className="font-display text-lg text-ink-900">{p.roles?.title}</h3>
                       <div className="text-xs text-ink-500 mt-0.5 flex items-center gap-2">
-                        <span>Candidate #{p.talents?.id.slice(0, 6).toUpperCase()}</span>
+                        <span>Candidate</span>
                         <Badge tone="green">{Math.round(p.compatibility_score ?? 0)}% match</Badge>
                       </div>
                     </div>

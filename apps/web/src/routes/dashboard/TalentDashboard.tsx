@@ -4,14 +4,24 @@ import { useTranslation } from 'react-i18next'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { callFunction } from '../../lib/functions'
-import LoadingSpinner from '../../components/LoadingSpinner'
 import { useSeo } from '../../lib/useSeo'
 import { getDisplayName } from '../../lib/displayName'
+import { readDashCache, writeDashCache } from '../../lib/dashboardCache'
+import Skeleton from '../../components/Skeleton'
+import { SkeletonCard } from '../../components/Skeleton'
 import { Button, Card, Badge, Alert, EmptyState, PageHeader, Stat } from '../../components/ui'
 import MatchExplain from '../../components/MatchExplain'
 import CareerNudgePanel from '../../components/CareerNudgePanel'
 import GrowthNudgePreferences from '../../components/GrowthNudgePreferences'
 import type { PublicReasoning } from '../../types/db'
+
+/** Cached snapshot — counts only. The full match details (scores, IDs) are
+ *  refetched fresh every visit to keep PDPA exposure surface minimal. */
+interface TalentCacheSnapshot {
+  matchesCount: number
+  openCount: number
+  inFlightCount: number
+}
 
 interface MatchRow {
   id: string
@@ -67,8 +77,15 @@ export default function TalentDashboard() {
   const { session, profile } = useSession()
   const location = useLocation()
   const navigate = useNavigate()
-  const [matches, setMatches] = useState<MatchRow[]>([])
-  const [loading, setLoading] = useState(true)
+  // Cached counts hydrate the KPI strip instantly. `matches` itself remains
+  // null until fresh data arrives, but the headline numbers don't shimmer.
+  const cachedSnap = useState(() => readDashCache<TalentCacheSnapshot>('talent_dashboard', session?.user.id))[0]
+  const [matches, setMatches] = useState<MatchRow[] | null>(null)
+  // `loading` state was previously gating the whole render via early-return
+  // spinner. With the shell-always-rendered refactor, the boolean was unused
+  // and removed. setMatches/setErr re-renders are still triggered by the load
+  // effect's normal flow.
+  const setLoading = (_v: boolean) => { /* deprecated no-op; kept to minimise diff */ }
   const [err, setErr] = useState<string | null>(null)
   const [extractionStatus, setExtractionStatus] = useState<string | null>(null)
   const [showJustSavedModal, setShowJustSavedModal] = useState<boolean>(
@@ -221,6 +238,15 @@ export default function TalentDashboard() {
         else {
           const rows = (data ?? []) as unknown as MatchRow[]
           setMatches(rows)
+          // Cache safe-to-show counts so the KPI strip is instant on return.
+          // We never cache match IDs / scores / role details — those refetch.
+          const openCount = rows.filter((m) => ['generated', 'viewed'].includes(m.status)).length
+          const inFlightCount = rows.filter((m) => !['generated', 'viewed'].includes(m.status)).length
+          writeDashCache<TalentCacheSnapshot>('talent_dashboard', userId, {
+            matchesCount: rows.length,
+            openCount,
+            inFlightCount,
+          })
           const interviewMatchIds = rows
             .filter((r) => ['invited_by_manager', 'interview_scheduled', 'interview_completed', 'offer_made'].includes(r.status))
             .map((r) => r.id)
@@ -245,10 +271,11 @@ export default function TalentDashboard() {
         const prev = payload.old as MatchRow & { talent_id?: string } | null
         if (next?.talent_id !== talentId && prev?.talent_id !== talentId) return
         setMatches((xs) => {
-          if (payload.eventType === 'DELETE') return xs.filter((m) => m.id !== prev?.id)
-          if (payload.eventType === 'INSERT' && next) return [next, ...xs]
-          if (payload.eventType === 'UPDATE' && next) return xs.map((m) => (m.id === next.id ? { ...m, ...next } : m))
-          return xs
+          const cur = xs ?? []
+          if (payload.eventType === 'DELETE') return cur.filter((m) => m.id !== prev?.id)
+          if (payload.eventType === 'INSERT' && next) return [next, ...cur]
+          if (payload.eventType === 'UPDATE' && next) return cur.map((m) => (m.id === next.id ? { ...m, ...next } : m))
+          return cur
         })
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'interview_rounds' }, (payload) => {
@@ -398,14 +425,14 @@ export default function TalentDashboard() {
     // Optimistic UI — flip the status locally before the edge function returns,
     // so the button feels instant even when the function cold-starts. On error
     // we revert to the snapshot taken below.
-    const prev = matches.find((m) => m.id === matchId) ?? null
+    const prev = matches?.find((m) => m.id === matchId) ?? null
     const optimisticStatus: Record<string, string> = {
       accept_offer: 'hired',
       decline_offer: 'cancelled',
     }
     const nextStatus = optimisticStatus[action]
     if (nextStatus) {
-      setMatches((ms) => ms.map((m) => (m.id === matchId ? { ...m, status: nextStatus } : m)))
+      setMatches((ms) => (ms ?? []).map((m) => (m.id === matchId ? { ...m, status: nextStatus } : m)))
     }
     try {
       await callFunction('interview-action', { action, match_id: matchId })
@@ -417,10 +444,10 @@ export default function TalentDashboard() {
         .eq('id', matchId)
         .maybeSingle()
         .then(({ data: updated }) => {
-          if (updated) setMatches((ms) => ms.map((m) => (m.id === matchId ? (updated as unknown as MatchRow) : m)))
+          if (updated) setMatches((ms) => (ms ?? []).map((m) => (m.id === matchId ? (updated as unknown as MatchRow) : m)))
         })
     } catch (e) {
-      if (prev) setMatches((ms) => ms.map((m) => (m.id === matchId ? prev : m)))
+      if (prev) setMatches((ms) => (ms ?? []).map((m) => (m.id === matchId ? prev : m)))
       setErr(e instanceof Error ? e.message : `Action failed: ${action}`)
     } finally {
       setActionBusy(null)
@@ -438,7 +465,7 @@ export default function TalentDashboard() {
         picked_slot: slot,
       })
       await Promise.all([loadRounds([matchId]), loadProposals([matchId])])
-      setMatches((ms) => ms.map((m) => (m.id === matchId ? { ...m, status: 'interview_scheduled' } : m)))
+      setMatches((ms) => (ms ?? []).map((m) => (m.id === matchId ? { ...m, status: 'interview_scheduled' } : m)))
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Could not confirm the interview slot')
     } finally {
@@ -487,8 +514,8 @@ export default function TalentDashboard() {
   }
 
   async function respond(id: string, next: 'accepted_by_talent' | 'declined_by_talent') {
-    const current = matches.find((m) => m.id === id)
-    setMatches((ms) => ms.map((m) => (m.id === id ? { ...m, status: next } : m)))
+    const current = matches?.find((m) => m.id === id)
+    setMatches((ms) => (ms ?? []).map((m) => (m.id === id ? { ...m, status: next } : m)))
     const { error } = await supabase.from('matches').update({
       status: next,
       viewed_at: new Date().toISOString(),
@@ -496,17 +523,23 @@ export default function TalentDashboard() {
     }).eq('id', id)
     if (error) {
       setErr(error.message)
-      setMatches((ms) => ms.map((m) => (m.id === id ? { ...m, status: current?.status ?? 'generated' } : m)))
+      setMatches((ms) => (ms ?? []).map((m) => (m.id === id ? { ...m, status: current?.status ?? 'generated' } : m)))
       return
     }
     const event_type = next === 'accepted_by_talent' ? 'accept_interview' : 'reject_with_reason'
     try { await callFunction('award-points', { event_type, match_id: id }) } catch { /* tolerate */ }
   }
 
-  if (loading) return <LoadingSpinner />
-
-  const openCount = matches.filter((m) => ['generated', 'viewed'].includes(m.status)).length
-  const inFlight  = matches.filter((m) => !['generated', 'viewed'].includes(m.status)).length
+  // Shell renders immediately — individual data sections handle their own
+  // skeleton state. Cached counts (if any) keep the KPI strip from shimmering.
+  const openCount = matches != null
+    ? matches.filter((m) => ['generated', 'viewed'].includes(m.status)).length
+    : cachedSnap?.openCount ?? null
+  const inFlight  = matches != null
+    ? matches.filter((m) => !['generated', 'viewed'].includes(m.status)).length
+    : cachedSnap?.inFlightCount ?? null
+  const totalActive = matches != null ? matches.length : cachedSnap?.matchesCount ?? null
+  const slotsAvailable = totalActive != null ? Math.max(0, 3 - totalActive) : null
 
   return (
     <div>
@@ -548,10 +581,24 @@ export default function TalentDashboard() {
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-        <Stat label="Awaiting response" value={openCount} tone={openCount > 0 ? 'brand' : 'default'} />
-        <Stat label="In progress" value={inFlight} />
-        <Stat label="Total active" value={matches.length} />
-        <Stat label="Slots available" value={Math.max(0, 3 - matches.length)} hint="We curate up to 3 at a time" />
+        <Stat
+          label="Awaiting response"
+          value={openCount == null ? <Skeleton width={40} height={28} /> : openCount}
+          tone={(openCount ?? 0) > 0 ? 'brand' : 'default'}
+        />
+        <Stat
+          label="In progress"
+          value={inFlight == null ? <Skeleton width={40} height={28} /> : inFlight}
+        />
+        <Stat
+          label="Total active"
+          value={totalActive == null ? <Skeleton width={40} height={28} /> : totalActive}
+        />
+        <Stat
+          label="Slots available"
+          value={slotsAvailable == null ? <Skeleton width={40} height={28} /> : slotsAvailable}
+          hint="We curate up to 3 at a time"
+        />
       </div>
 
       <CareerNudgePanel side="talent" />
@@ -568,7 +615,13 @@ export default function TalentDashboard() {
 
       {err && <div className="mb-6"><Alert tone="red">{err}</Alert></div>}
 
-      {matches.length === 0 ? (
+      {matches == null ? (
+        // Pre-fetch: 2 skeleton offer cards so the layout feels populated.
+        <div className="grid md:grid-cols-2 gap-4">
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+      ) : matches.length === 0 ? (
         <Card>
           <EmptyState
             title="Still finding your matches"
@@ -651,7 +704,7 @@ export default function TalentDashboard() {
         </div>
       </Card>
 
-      {matches.length >= 3 && extraUsed < 3 && (
+      {(matches?.length ?? 0) >= 3 && extraUsed < 3 && (
         <Card className="mt-8 border-dashed border-accent-500">
           <div className="p-6 text-center">
             <div className="text-sm font-medium text-ink-700 mb-1">Already looked at all three?</div>

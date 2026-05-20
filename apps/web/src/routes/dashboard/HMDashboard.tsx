@@ -4,11 +4,20 @@ import { useTranslation } from 'react-i18next'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { callFunction } from '../../lib/functions'
-import LoadingSpinner from '../../components/LoadingSpinner'
 import { useSeo } from '../../lib/useSeo'
 import { getDisplayName } from '../../lib/displayName'
 import { formatError } from '../../lib/errors'
+import { readDashCache, writeDashCache } from '../../lib/dashboardCache'
+import Skeleton, { SkeletonCard } from '../../components/Skeleton'
 import { Button, Card, Badge, Alert, EmptyState, PageHeader, Stat } from '../../components/ui'
+
+/** HM dashboard KPI snapshot — safe-to-cache aggregates only. */
+interface HMCacheSnapshot {
+  roleCount: number
+  candidatesCount: number
+  actionNeededCount: number
+  hiredAllTime: number
+}
 import MatchExplain from '../../components/MatchExplain'
 import ScreeningChecklist from '../../components/ScreeningChecklist'
 import CareerNudgePanel from '../../components/CareerNudgePanel'
@@ -92,11 +101,18 @@ export default function HMDashboard() {
   const { t } = useTranslation()
   const { session, profile } = useSession()
   const userId = session?.user.id
-  const [roleCount, setRoleCount] = useState<number>(0)
-  const [candidates, setCandidates] = useState<CandidateRow[]>([])
+  // Hydrate KPI counts from local snapshot so the headline numbers don't
+  // shimmer on returning visits. The candidate list itself is null-init'd
+  // and skeletoned until fresh data arrives.
+  const cachedSnap = useState(() => readDashCache<HMCacheSnapshot>('hm_dashboard', userId))[0]
+  const [roleCount, setRoleCount] = useState<number | null>(cachedSnap?.roleCount ?? null)
+  const [candidates, setCandidates] = useState<CandidateRow[] | null>(null)
   const [oldestRoleOver24h, setOldestRoleOver24h] = useState(false)
   const [waiting, setWaiting] = useState<WaitingInfo | null>(null)
-  const [loading, setLoading] = useState(true)
+  // `loading` previously gated the whole render via blocking spinner. With the
+  // shell-always-rendered refactor, the value is no longer read; the setter is
+  // retained as a no-op so the existing load() calls don't need to change.
+  const setLoading = (_v: boolean) => { /* no-op */ }
   const [err, setErr] = useState<string | null>(null)
   const [roleExtras, setRoleExtras] = useState<RoleExtraInfo[]>([])
   const [unlockingRoleId, setUnlockingRoleId] = useState<string | null>(null)
@@ -303,12 +319,21 @@ export default function HMDashboard() {
       ])
       if (cancelled) return
 
-      if (!cancelled) setHiredAllTime((hiredRes as { count: number | null }).count ?? 0)
+      const hiredAllTimeCount = (hiredRes as { count: number | null }).count ?? 0
+      if (!cancelled) setHiredAllTime(hiredAllTimeCount)
 
       if (error) setErr(error.message)
       else {
         const rows = (matchData ?? []) as unknown as CandidateRow[]
         setCandidates(rows)
+        // Cache aggregates only — no candidate IDs / scores / status detail.
+        const actionNeededLocal = rows.filter((c) => ['generated', 'viewed', 'accepted_by_talent'].includes(c.status)).length
+        writeDashCache<HMCacheSnapshot>('hm_dashboard', userId, {
+          roleCount: (count ?? 0),
+          candidatesCount: rows.length,
+          actionNeededCount: actionNeededLocal,
+          hiredAllTime: hiredAllTimeCount,
+        })
         // Load rounds + pending proposals for interview-stage matches.
         const interviewMatchIds = rows
           .filter((r) => ['invited_by_manager', 'interview_scheduled', 'interview_completed', 'offer_made'].includes(r.status))
@@ -369,8 +394,8 @@ export default function HMDashboard() {
         const prev = payload.old as { id: string; role_id?: string } | null
         const touched = next?.role_id ?? prev?.role_id
         if (!touched || !hmRoleIds.includes(touched)) return
-        if (payload.eventType === 'DELETE') setCandidates((xs) => xs.filter((c) => c.id !== prev?.id))
-        else if (payload.eventType === 'UPDATE' && next) setCandidates((xs) => xs.map((c) => (c.id === next.id ? { ...c, ...next } : c)))
+        if (payload.eventType === 'DELETE') setCandidates((xs) => (xs ?? []).filter((c) => c.id !== prev?.id))
+        else if (payload.eventType === 'UPDATE' && next) setCandidates((xs) => (xs ?? []).map((c) => (c.id === next.id ? { ...c, ...next } : c)))
         else if (payload.eventType === 'INSERT') void load()
       })
       .subscribe()
@@ -498,8 +523,8 @@ export default function HMDashboard() {
     setRespondMsg(null)
     const actionLabel = next === 'invited_by_manager' ? 'invite' : 'decline'
     setActionBusy(`${id}:${actionLabel}`)
-    const prevStatus = candidates.find((c) => c.id === id)?.status
-    setCandidates((cs) => cs.map((c) => (c.id === id ? { ...c, status: next } : c)))
+    const prevStatus = candidates?.find((c) => c.id === id)?.status
+    setCandidates((cs) => (cs ?? []).map((c) => (c.id === id ? { ...c, status: next } : c)))
 
     // State machine requires generated → viewed before viewed → invited_by_manager or
     // viewed → declined_by_manager. Advance through 'viewed' first so both actions are
@@ -508,7 +533,7 @@ export default function HMDashboard() {
       const { error: viewErr } = await supabase.from('matches').update({ status: 'viewed' }).eq('id', id)
       if (viewErr) {
         setErr(viewErr.message)
-        if (prevStatus) setCandidates((cs) => cs.map((c) => (c.id === id ? { ...c, status: prevStatus } : c)))
+        if (prevStatus) setCandidates((cs) => (cs ?? []).map((c) => (c.id === id ? { ...c, status: prevStatus } : c)))
         setActionBusy(null)
         return
       }
@@ -521,7 +546,7 @@ export default function HMDashboard() {
     if (error) {
       setErr(error.message)
       if (prevStatus) {
-        setCandidates((cs) => cs.map((c) => (c.id === id ? { ...c, status: prevStatus } : c)))
+        setCandidates((cs) => (cs ?? []).map((c) => (c.id === id ? { ...c, status: prevStatus } : c)))
       }
       setActionBusy(null)
       return
@@ -547,7 +572,7 @@ export default function HMDashboard() {
     setActionBusy(`${matchId}:${action}`)
     // Optimistic UI — predict the next status so the click feels instant
     // while the edge function (which may cold-start) is in flight.
-    const prev = candidates.find((c) => c.id === matchId) ?? null
+    const prev = candidates?.find((c) => c.id === matchId) ?? null
     const optimisticStatus: Record<string, string> = {
       make_offer: 'offer_made',
       mark_hired: 'hired',
@@ -559,7 +584,7 @@ export default function HMDashboard() {
     }
     const nextStatus = optimisticStatus[action]
     if (nextStatus) {
-      setCandidates((cs) => cs.map((c) => (c.id === matchId ? { ...c, status: nextStatus } : c)))
+      setCandidates((cs) => (cs ?? []).map((c) => (c.id === matchId ? { ...c, status: nextStatus } : c)))
     }
     if (action === 'schedule_round') {
       // Close the picker immediately — the function will confirm asynchronously.
@@ -576,12 +601,12 @@ export default function HMDashboard() {
         .eq('id', matchId)
         .maybeSingle()
         .then(({ data: updated }) => {
-          if (updated) setCandidates((cs) => cs.map((c) => (c.id === matchId ? (updated as unknown as CandidateRow) : c)))
+          if (updated) setCandidates((cs) => (cs ?? []).map((c) => (c.id === matchId ? (updated as unknown as CandidateRow) : c)))
         })
       void loadRounds([matchId])
       void loadProposals([matchId])
     } catch (e) {
-      if (prev) setCandidates((cs) => cs.map((c) => (c.id === matchId ? prev : c)))
+      if (prev) setCandidates((cs) => (cs ?? []).map((c) => (c.id === matchId ? prev : c)))
       setErr(e instanceof Error ? e.message : `Action failed: ${action}`)
     } finally {
       setActionBusy(null)
@@ -628,9 +653,14 @@ export default function HMDashboard() {
     }
   }
 
-  if (loading) return <LoadingSpinner />
-
-  const actionNeeded = candidates.filter((c) => ['generated', 'viewed', 'accepted_by_talent'].includes(c.status)).length
+  // Shell always renders; sections skeleton themselves. Cached counts (if any)
+  // keep the KPI strip from shimmering on returning visits.
+  const candidatesCount = candidates != null ? candidates.length : cachedSnap?.candidatesCount ?? null
+  const actionNeeded = candidates != null
+    ? candidates.filter((c) => ['generated', 'viewed', 'accepted_by_talent'].includes(c.status)).length
+    : cachedSnap?.actionNeededCount ?? null
+  const roleCountForStat = roleCount ?? null
+  const hiredAllTimeForStat = candidates != null ? hiredAllTime : cachedSnap?.hiredAllTime ?? null
 
   async function respondToLinkRequest(action: 'accept' | 'decline') {
     if (!linkRequest) return
@@ -682,10 +712,10 @@ export default function HMDashboard() {
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-        <Stat label="Active roles" value={roleCount} />
-        <Stat label="Candidates" value={candidates.length} />
-        <Stat label="Awaiting you" value={actionNeeded} tone={actionNeeded > 0 ? 'brand' : 'default'} />
-        <Stat label="Hired (all time)" value={hiredAllTime} />
+        <Stat label="Active roles" value={roleCountForStat == null ? <Skeleton width={40} height={28} /> : roleCountForStat} />
+        <Stat label="Candidates" value={candidatesCount == null ? <Skeleton width={40} height={28} /> : candidatesCount} />
+        <Stat label="Awaiting you" value={actionNeeded == null ? <Skeleton width={40} height={28} /> : actionNeeded} tone={(actionNeeded ?? 0) > 0 ? 'brand' : 'default'} />
+        <Stat label="Hired (all time)" value={hiredAllTimeForStat == null ? <Skeleton width={40} height={28} /> : hiredAllTimeForStat} />
       </div>
 
       <CareerNudgePanel side="hm" />
@@ -727,7 +757,7 @@ export default function HMDashboard() {
         </div>
       )}
 
-      {roleCount > 0 && (
+      {(roleCount ?? 0) > 0 && (
         <div className="mb-6">
           <div className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-900">
             <span className="font-semibold">Want more than 3 matches?</span>{' '}
@@ -795,7 +825,13 @@ export default function HMDashboard() {
         </div>
       )}
 
-      {candidates.length === 0 ? (
+      {candidates == null ? (
+        // Pre-fetch: show 2 skeleton candidate cards.
+        <div className="grid md:grid-cols-2 gap-4">
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+      ) : candidates.length === 0 ? (
         onboardingDraftRole ? (
           <div className="rounded-xl border-2 border-brand-500 bg-white overflow-hidden shadow-sm">
             <div className="bg-brand-600 px-5 py-3 flex items-center gap-2">

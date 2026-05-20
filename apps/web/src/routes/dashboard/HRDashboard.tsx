@@ -2,10 +2,20 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
-import LoadingSpinner from '../../components/LoadingSpinner'
 import { useSeo } from '../../lib/useSeo'
+import { readDashCache, writeDashCache } from '../../lib/dashboardCache'
+import Skeleton from '../../components/Skeleton'
 import { Button, Card, Badge, Alert, EmptyState, PageHeader, Stat, Input, Select } from '../../components/ui'
 import LinkHMPanel from './admin/LinkHMPanel'
+
+/** Snapshot of structural data that's safe to cache cross-session. Excludes
+ *  candidate-level identifiers and match scores (PDPA-sensitive). */
+interface HRCacheSnapshot {
+  companyId: string | null
+  outcomesPending: number
+  hms: HMRow[]
+  openRoles: OpenRoleRow[]
+}
 
 interface PendingRow {
   id: string
@@ -51,12 +61,18 @@ export default function HRDashboard() {
   const userId = session?.user.id
   const userEmail = session?.user.email ?? null
   const [hrTab, setHrTab] = useState<HRTab>('scheduling')
-  const [pending, setPending] = useState<PendingRow[]>([])
-  const [scheduled, setScheduled] = useState<ScheduledRow[]>([])
-  const [outcomesPending, setOutcomesPending] = useState<number>(0)
-  const [hms, setHms] = useState<HMRow[]>([])
-  const [openRoles, setOpenRoles] = useState<OpenRoleRow[]>([])
-  const [companyId, setCompanyId] = useState<string | null>(null)
+  // Hydrate from localStorage so returning users see their last-known KPI
+  // numbers + lists instantly. `null` = "still loading from network, show
+  // skeleton". A loaded-but-empty array shows the EmptyState card.
+  const cached = useState(() => readDashCache<HRCacheSnapshot>('hr_dashboard', userId))[0]
+  const [pending, setPending] = useState<PendingRow[] | null>(null)
+  const [scheduled, setScheduled] = useState<ScheduledRow[] | null>(null)
+  const [outcomesPending, setOutcomesPending] = useState<number | null>(cached?.outcomesPending ?? null)
+  const [hms, setHms] = useState<HMRow[] | null>(cached?.hms ?? null)
+  const [openRoles, setOpenRoles] = useState<OpenRoleRow[] | null>(cached?.openRoles ?? null)
+  const [companyId, setCompanyId] = useState<string | null>(cached?.companyId ?? null)
+  // `loading` now only controls the error-banner timeout — never the shell
+  // render. The shell always paints; individual sections skeleton themselves.
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState<string | null>(null)
   const [loadRetry, setLoadRetry] = useState(0)
@@ -88,7 +104,14 @@ export default function HRDashboard() {
       await supabase.auth.getSession()
       if (cancelled) { clearTimeout(loadTimeout); return }
       const { data: comp } = await supabase.from('companies').select('id').eq('primary_hr_email', userEmail).maybeSingle()
-      if (!comp) { setLoading(false); return }
+      if (!comp) {
+        // No company row yet — surface empty lists (not skeletons) so the
+        // EmptyState UI takes over instead of permanent shimmer.
+        setHms([]); setOpenRoles([]); setPending([]); setScheduled([])
+        setOutcomesPending(0)
+        setLoading(false)
+        return
+      }
       setCompanyId(comp.id)
 
       // §1 — All hiring managers in the company, with their profile names.
@@ -109,8 +132,21 @@ export default function HRDashboard() {
           role_count: 0,
           is_self: h.profile_id === userId,
         }))
-        if (!cancelled) setHms(hmsMappedEmpty)
-        if (!cancelled) setLoading(false)
+        if (!cancelled) {
+          setHms(hmsMappedEmpty)
+          // No HMs means no roles, no matches, no interviews. Materialise
+          // those as empty arrays so their sections render EmptyState
+          // instead of staying on skeleton.
+          setOpenRoles([])
+          setPending([])
+          setScheduled([])
+          setOutcomesPending(0)
+          writeDashCache<HRCacheSnapshot>('hr_dashboard', userId, {
+            companyId: comp.id, outcomesPending: 0,
+            hms: hmsMappedEmpty, openRoles: [],
+          })
+          setLoading(false)
+        }
         return
       }
 
@@ -148,7 +184,15 @@ export default function HRDashboard() {
       if (!cancelled) setOpenRoles(openRolesMapped)
 
       const roleIds = (rolesData ?? []).map((r) => r.id)
-      if (roleIds.length === 0) { setLoading(false); return }
+      if (roleIds.length === 0) {
+        // HMs exist but no roles posted yet — empty the data slots so the
+        // KPI numbers settle on 0 and the lists show EmptyState.
+        setPending([]); setScheduled([]); setOutcomesPending(0)
+        writeDashCache<HRCacheSnapshot>('hr_dashboard', userId, {
+          companyId: comp.id, outcomesPending: 0, hms: hmsMapped, openRoles: openRolesMapped,
+        })
+        setLoading(false); return
+      }
 
       const [{ data: pendingData, error: pendErr }, { data: scheduledData }, { data: completedMatches }] = await Promise.all([
         supabase.from('matches')
@@ -190,6 +234,15 @@ export default function HRDashboard() {
       }>).filter((m) => !m.match_feedback || m.match_feedback.length === 0).length
       setOutcomesPending(pendingOutcomes)
 
+      // Persist a snapshot for instant render on the next visit. Only the
+      // safe, structural fields — never the candidate-level matches arrays.
+      writeDashCache<HRCacheSnapshot>('hr_dashboard', userId, {
+        companyId: comp.id,
+        outcomesPending: pendingOutcomes,
+        hms: hmsMapped,
+        openRoles: openRolesMapped,
+      })
+
       clearTimeout(loadTimeout)
       setLoading(false)
       } catch (e) {
@@ -208,7 +261,7 @@ export default function HRDashboard() {
       .update({ status: hired ? 'hired' : 'interview_completed', updated_at: new Date().toISOString() })
       .eq('id', matchId)
     if (mErr) { setErr(mErr.message); return }
-    setScheduled((xs) => xs.filter((s) => s.interview_id !== interviewId))
+    setScheduled((xs) => (xs ?? []).filter((s) => s.interview_id !== interviewId))
   }
 
   async function scheduleInterview(matchId: string) {
@@ -220,7 +273,7 @@ export default function HRDashboard() {
     if (iErr) { setErr(iErr.message); return }
     const { error: mErr } = await supabase.from('matches').update({ status: 'interview_scheduled' }).eq('id', matchId)
     if (mErr) { setErr(mErr.message); return }
-    setPending((rs) => rs.filter((r) => r.id !== matchId))
+    setPending((rs) => (rs ?? []).filter((r) => r.id !== matchId))
     setSchedulingId(null); setScheduledAt('')
   }
 
@@ -265,7 +318,10 @@ export default function HRDashboard() {
     }
   }
 
-  if (loading && err) {
+  // The blocking spinner is gone — the shell always renders. The only
+  // remaining "block-everything" state is the explicit timeout-error retry,
+  // shown when the load watchdog fires AND we still have no cached snapshot.
+  if (loading && err && hms == null) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
         <p className="text-sm text-ink-500">{err}</p>
@@ -273,9 +329,8 @@ export default function HRDashboard() {
       </div>
     )
   }
-  if (loading) return <LoadingSpinner />
 
-  const isSelfHM = hms.some((h) => h.is_self)
+  const isSelfHM = (hms ?? []).some((h) => h.is_self)
 
   return (
     <div>
@@ -318,13 +373,20 @@ export default function HRDashboard() {
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
-        <Stat label="To schedule" value={pending.length} tone={pending.length > 0 ? 'brand' : 'default'} />
-        <Stat label="Upcoming interviews" value={scheduled.length} />
+        <Stat
+          label="To schedule"
+          value={pending == null ? <Skeleton width={40} height={28} /> : pending.length}
+          tone={(pending?.length ?? 0) > 0 ? 'brand' : 'default'}
+        />
+        <Stat
+          label="Upcoming interviews"
+          value={scheduled == null ? <Skeleton width={40} height={28} /> : scheduled.length}
+        />
         <Stat
           label="Outcomes pending"
-          value={outcomesPending}
-          hint={outcomesPending > 0 ? 'Awaiting feedback' : undefined}
-          tone={outcomesPending > 0 ? 'brand' : 'default'}
+          value={outcomesPending == null ? <Skeleton width={40} height={28} /> : outcomesPending}
+          hint={(outcomesPending ?? 0) > 0 ? 'Awaiting feedback' : undefined}
+          tone={(outcomesPending ?? 0) > 0 ? 'brand' : 'default'}
         />
       </div>
 
@@ -335,10 +397,26 @@ export default function HRDashboard() {
         <SectionHeader
           title="Your hiring managers"
           subtitle="They define what each role on their team needs."
-          count={hms.length}
+          count={hms?.length}
           action={<Link to="/hr/invite" className="btn-primary btn-sm">Invite a hiring manager</Link>}
         />
-        {hms.length === 0 ? (
+        {hms == null ? (
+          // Pre-fetch: show skeleton rows with the same footprint as the
+          // real cards so there's no layout shift when data arrives.
+          <div className="space-y-2">
+            {[0, 1].map((i) => (
+              <Card key={i}>
+                <div className="p-4 flex items-center justify-between gap-3">
+                  <div className="space-y-2">
+                    <Skeleton width={120} height={16} />
+                    <Skeleton width={180} height={11} rounded="sm" />
+                  </div>
+                  <Skeleton width={120} height={32} />
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : hms.length === 0 ? (
           <Card>
             <EmptyState
               title="No hiring managers yet"
@@ -393,13 +471,24 @@ export default function HRDashboard() {
         <SectionHeader
           title="Open roles"
           subtitle="Posted by your hiring managers. Read-only — they own role content."
-          count={openRoles.length}
+          count={openRoles?.length}
         />
-        {openRoles.length === 0 ? (
+        {openRoles == null ? (
+          <div className="space-y-2">
+            {[0, 1].map((i) => (
+              <Card key={i}>
+                <div className="p-4 space-y-2">
+                  <Skeleton width={200} height={16} />
+                  <Skeleton width={120} height={11} rounded="sm" />
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : openRoles.length === 0 ? (
           <Card>
             <EmptyState
               title="No open roles yet"
-              description={hms.length === 0
+              description={(hms?.length ?? 0) === 0
                 ? 'Once you invite hiring managers, the roles they post will appear here.'
                 : 'Your hiring managers haven’t posted any roles yet.'}
             />
@@ -425,14 +514,14 @@ export default function HRDashboard() {
         <SectionHeader
           title="Schedule interviews"
           subtitle="When a hiring manager invites a candidate, schedule the interview here."
-          count={pending.length + scheduled.length}
+          count={(pending?.length ?? 0) + (scheduled?.length ?? 0)}
         />
 
-      {scheduled.length > 0 && (
+      {(scheduled?.length ?? 0) > 0 && (
         <section className="mb-8">
-          <SubHeader title="Upcoming interviews" count={scheduled.length} />
+          <SubHeader title="Upcoming interviews" count={scheduled!.length} />
           <div className="space-y-3">
-            {scheduled.map((s) => (
+            {scheduled!.map((s) => (
               <Card key={s.interview_id}>
                 <div className="p-5 flex flex-wrap items-center justify-between gap-4">
                   <div>
@@ -462,7 +551,7 @@ export default function HRDashboard() {
                           })
                           const j = await r.json() as { meeting_url?: string; provider?: string; error?: string }
                           if (!r.ok) throw new Error(j.error || 'Failed')
-                          setScheduled((xs) => xs.map((x) => x.interview_id === s.interview_id ? { ...x, meeting_url: j.meeting_url ?? null, meeting_provider: j.provider ?? null } : x))
+                          setScheduled((xs) => (xs ?? []).map((x) => x.interview_id === s.interview_id ? { ...x, meeting_url: j.meeting_url ?? null, meeting_provider: j.provider ?? null } : x))
                         } catch (e) {
                           setErr((e as Error).message)
                         }
@@ -479,8 +568,22 @@ export default function HRDashboard() {
       )}
 
       <section>
-        <SubHeader title="Awaiting your scheduling" count={pending.length} />
-        {pending.length === 0 ? (
+        <SubHeader title="Awaiting your scheduling" count={pending?.length ?? 0} />
+        {pending == null ? (
+          <div className="space-y-3">
+            {[0, 1].map((i) => (
+              <Card key={i}>
+                <div className="p-5 flex items-start justify-between gap-3">
+                  <div className="space-y-2">
+                    <Skeleton width={220} height={18} />
+                    <Skeleton width={140} height={11} rounded="sm" />
+                  </div>
+                  <Skeleton width={140} height={32} />
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : pending.length === 0 ? (
           <Card>
             <EmptyState
               title="Nothing to schedule"

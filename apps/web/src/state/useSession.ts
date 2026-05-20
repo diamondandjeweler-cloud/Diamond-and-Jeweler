@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { fetchProfile } from '../lib/api'
 import { clearAdminVerified } from '../lib/adminReauth'
+import { clearAllDashCaches } from '../lib/dashboardCache'
 import type { Profile } from '../types/db'
 
 interface SessionState {
@@ -114,6 +115,7 @@ export const useSession = create<SessionState>((set) => ({
     clearAdminVerified()
     saveCachedProfile(null)
     saveCachedIsHM(null, false)
+    clearAllDashCaches()
     try { sessionStorage.removeItem('dnj.admin_aal_state') } catch { /* tolerate */ }
     try {
       Object.keys(localStorage).forEach((k) => {

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
-import LoadingSpinner from '../../../components/LoadingSpinner'
 import { formatError } from '../../../lib/errors'
+import { readDashCache, writeDashCache } from '../../../lib/dashboardCache'
+import Skeleton from '../../../components/Skeleton'
 
 interface Kpis {
   total_matches: number
@@ -25,12 +26,14 @@ const TRACKED_STATUSES = [
 ]
 
 export default function KpiPanel() {
-  const [kpis, setKpis] = useState<Kpis | null>(null)
-  const [loading, setLoading] = useState(true)
+  // Hydrate from local cache so admins re-opening /admin see numbers
+  // instantly. Live refresh runs in the background and swaps in fresh data.
+  const cached = useState(() => readDashCache<Kpis>('admin_kpi'))[0]
+  const [kpis, setKpis] = useState<Kpis | null>(cached)
   const [err, setErr] = useState<string | null>(null)
 
   async function load() {
-    setLoading(true); setErr(null)
+    setErr(null)
     try {
       // F1 fix — single SECURITY DEFINER RPC replaces 14 parallel head+count
       // queries. The old pattern was returning 503 across all matches/profiles
@@ -41,26 +44,29 @@ export default function KpiPanel() {
       const { data, error } = await supabase.rpc('get_admin_kpis')
       if (error) throw error
       if (!data) throw new Error('get_admin_kpis returned no data')
-      setKpis(data as Kpis)
+      const fresh = data as Kpis
+      setKpis(fresh)
+      writeDashCache<Kpis>('admin_kpi', undefined, fresh)
     } catch (e) {
       setErr(formatError(e))
-    } finally {
-      setLoading(false)
     }
   }
 
   useEffect(() => { void load() }, [])
 
-  if (loading) return <LoadingSpinner />
-  if (err) return <p className="text-sm text-red-600">{err}</p>
-  if (!kpis) return null
+  // Error only blocks if we don't even have a cached snapshot to render.
+  if (err && !kpis) return <p className="text-sm text-red-600">{err}</p>
 
-  const expiry_rate = kpis.total_matches > 0
+  // While fresh data is on the wire and we have no cache, show a skeleton
+  // version of the KPI grid (same structure, shimmer in place of numbers).
+  const skel = <Skeleton width={56} height={28} />
+
+  const expiry_rate = kpis && kpis.total_matches > 0
     ? kpis.by_status['expired'] / kpis.total_matches
-    : 0
-  const ghost_rate = kpis.total_users > 0
+    : null
+  const ghost_rate = kpis && kpis.total_users > 0
     ? kpis.ghost_users / kpis.total_users
-    : 0
+    : null
 
   return (
     <div>
@@ -72,39 +78,39 @@ export default function KpiPanel() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <Stat label="Active matches" value={
+        <Stat label="Active matches" value={kpis ? (
           kpis.by_status['generated'] + kpis.by_status['viewed'] +
           kpis.by_status['accepted_by_talent'] + kpis.by_status['invited_by_manager'] +
           kpis.by_status['hr_scheduling'] + kpis.by_status['interview_scheduled']
-        } />
-        <Stat label="Hired" value={kpis.by_status['hired']} />
-        <Stat label="Expired" value={kpis.by_status['expired']} />
-        <Stat label="Total matches (all time)" value={kpis.total_matches} />
+        ) : skel} />
+        <Stat label="Hired" value={kpis ? kpis.by_status['hired'] : skel} />
+        <Stat label="Expired" value={kpis ? kpis.by_status['expired'] : skel} />
+        <Stat label="Total matches (all time)" value={kpis ? kpis.total_matches : skel} />
 
-        <Stat label="Active talents" value={kpis.active_talents} />
-        <Stat label="Active roles" value={kpis.active_roles} />
-        <Stat label="Verified companies" value={kpis.companies_verified} />
-        <Stat label="Pending verification" value={kpis.companies_pending} highlight={kpis.companies_pending > 0} />
+        <Stat label="Active talents" value={kpis ? kpis.active_talents : skel} />
+        <Stat label="Active roles" value={kpis ? kpis.active_roles : skel} />
+        <Stat label="Verified companies" value={kpis ? kpis.companies_verified : skel} />
+        <Stat label="Pending verification" value={kpis ? kpis.companies_pending : skel} highlight={(kpis?.companies_pending ?? 0) > 0} />
 
-        <Stat label="Total users" value={kpis.total_users} />
-        <Stat label="Banned users" value={kpis.banned_users} highlight={kpis.banned_users > 0} />
-        <Stat label="Ghosting users (≥3)" value={kpis.ghost_users} highlight={kpis.ghost_users > 0} />
-        <Stat label="Waitlist pending" value={kpis.waitlist_pending} highlight={kpis.waitlist_pending > 0} />
+        <Stat label="Total users" value={kpis ? kpis.total_users : skel} />
+        <Stat label="Banned users" value={kpis ? kpis.banned_users : skel} highlight={(kpis?.banned_users ?? 0) > 0} />
+        <Stat label="Ghosting users (≥3)" value={kpis ? kpis.ghost_users : skel} highlight={(kpis?.ghost_users ?? 0) > 0} />
+        <Stat label="Waitlist pending" value={kpis ? kpis.waitlist_pending : skel} highlight={(kpis?.waitlist_pending ?? 0) > 0} />
       </div>
 
       <h3 className="font-semibold text-sm mb-3">Rates</h3>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
         <Rate label="Match expiry rate"      value={expiry_rate} hint="expired / total matches" />
         <Rate label="Ghosting rate"          value={ghost_rate}  hint="ghost_score ≥ 3 / all users" />
-        <Rate label="Interview → hire rate"  value={kpis.interview_hire_rate}
-              hint={kpis.interview_hire_rate === null ? 'no interviews yet' : 'hired / (completed + hired)'} />
+        <Rate label="Interview → hire rate"  value={kpis?.interview_hire_rate ?? null}
+              hint={kpis == null ? '…' : kpis.interview_hire_rate === null ? 'no interviews yet' : 'hired / (completed + hired)'} />
       </div>
 
       <h3 className="font-semibold text-sm mb-3">Latency</h3>
       <div className="grid grid-cols-1 gap-3 mb-6">
         <Stat
           label="Avg. time to first view (last 200 viewed matches)"
-          value={kpis.avg_hours_to_first_view === null ? '—' : `${kpis.avg_hours_to_first_view.toFixed(1)} h`}
+          value={kpis == null ? skel : kpis.avg_hours_to_first_view === null ? '—' : `${kpis.avg_hours_to_first_view.toFixed(1)} h`}
         />
       </div>
 
@@ -115,7 +121,7 @@ export default function KpiPanel() {
             {TRACKED_STATUSES.map((s) => (
               <tr key={s} className="border-b last:border-0">
                 <td className="py-1.5 capitalize text-gray-700">{s.replace(/_/g, ' ')}</td>
-                <td className="py-1.5 text-right font-mono">{kpis.by_status[s]}</td>
+                <td className="py-1.5 text-right font-mono">{kpis ? kpis.by_status[s] : <Skeleton width={32} height={12} rounded="sm" />}</td>
               </tr>
             ))}
           </tbody>
@@ -127,7 +133,7 @@ export default function KpiPanel() {
 
 function Stat({
   label, value, highlight,
-}: { label: string; value: number | string; highlight?: boolean }) {
+}: { label: string; value: React.ReactNode; highlight?: boolean }) {
   return (
     <div className={`bg-white border rounded p-3 ${highlight ? 'border-amber-300' : ''}`}>
       <div className="text-xs text-gray-500">{label}</div>
@@ -137,7 +143,9 @@ function Stat({
 }
 
 function Rate({ label, value, hint }: { label: string; value: number | null; hint: string }) {
-  const pct = value === null ? '—' : `${(value * 100).toFixed(1)}%`
+  const pct = value === null
+    ? <Skeleton width={56} height={28} />
+    : `${(value * 100).toFixed(1)}%`
   return (
     <div className="bg-white border rounded p-3">
       <div className="text-xs text-gray-500">{label}</div>

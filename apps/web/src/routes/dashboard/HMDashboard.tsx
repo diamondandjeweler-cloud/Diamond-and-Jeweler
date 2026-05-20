@@ -951,15 +951,23 @@ export default function HMDashboard() {
                           <div className="text-xs text-ink-500">{3 - r.extraUsed} extra unlock{3 - r.extraUsed === 1 ? '' : 's'} remaining</div>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => void handleRedeemExtra(r.id, r.title)}
-                            disabled={busy || insufficientPoints}
-                            title={insufficientPoints ? `Need ${POINTS_PER_EXTRA} Diamond Points (you have ${pointsBalance ?? 0})` : undefined}
-                          >
-                            {redeemingRoleId === r.id ? 'Redeeming…' : `Use ${POINTS_PER_EXTRA} Diamond Points`}
-                          </Button>
+                          {insufficientPoints ? (
+                            <Link
+                              to="/points"
+                              className="inline-flex items-center rounded-md border border-ink-200 bg-white px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-ink-50"
+                            >
+                              Get {POINTS_PER_EXTRA} Diamond Points →
+                            </Link>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => void handleRedeemExtra(r.id, r.title)}
+                              disabled={busy}
+                            >
+                              {redeemingRoleId === r.id ? 'Redeeming…' : `Use ${POINTS_PER_EXTRA} Diamond Points`}
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             onClick={() => void handleUnlockExtra(r.id)}
@@ -969,6 +977,12 @@ export default function HMDashboard() {
                           </Button>
                         </div>
                       </div>
+                      {insufficientPoints && (
+                        <div className="mt-2 text-xs text-ink-500">
+                          You have {pointsBalance ?? 0} / {POINTS_PER_EXTRA} Diamond Points. Earn them from feedback (+5), interviews, and referrals (+19) — or top up on the{' '}
+                          <Link to="/points" className="font-medium text-brand-700 hover:underline">wallet page</Link>.
+                        </div>
+                      )}
                       {unlockMsg && unlockMsg.roleId === r.id && (
                         <div className={`mt-2 text-xs ${unlockMsg.tone === 'green' ? 'text-emerald-700' : 'text-red-700'}`}>
                           {unlockMsg.text}

@@ -661,18 +661,32 @@ export default function TalentDashboard() {
               Pay RM 9.90 or spend {POINTS_PER_EXTRA} Diamond Points{pointsBalance != null ? ` (balance: ${pointsBalance})` : ''}.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-2">
-              <Button
-                variant="secondary"
-                onClick={handleRedeemExtraTalent}
-                disabled={unlocking || redeemingExtra || (pointsBalance != null && pointsBalance < POINTS_PER_EXTRA)}
-                title={pointsBalance != null && pointsBalance < POINTS_PER_EXTRA ? `Need ${POINTS_PER_EXTRA} Diamond Points (you have ${pointsBalance})` : undefined}
-              >
-                {redeemingExtra ? 'Redeeming…' : `Use ${POINTS_PER_EXTRA} Diamond Points`}
-              </Button>
+              {pointsBalance != null && pointsBalance < POINTS_PER_EXTRA ? (
+                <Link
+                  to="/points"
+                  className="inline-flex items-center rounded-md border border-ink-200 bg-white px-3 py-1.5 text-sm font-medium text-ink-700 hover:bg-ink-50"
+                >
+                  Get {POINTS_PER_EXTRA} Diamond Points →
+                </Link>
+              ) : (
+                <Button
+                  variant="secondary"
+                  onClick={handleRedeemExtraTalent}
+                  disabled={unlocking || redeemingExtra}
+                >
+                  {redeemingExtra ? 'Redeeming…' : `Use ${POINTS_PER_EXTRA} Diamond Points`}
+                </Button>
+              )}
               <Button onClick={handleUnlockExtra} disabled={unlocking || redeemingExtra}>
                 {unlocking ? 'Starting payment…' : 'Unlock extra offer — RM 9.90'}
               </Button>
             </div>
+            {pointsBalance != null && pointsBalance < POINTS_PER_EXTRA && (
+              <div className="mt-3 text-xs text-ink-500">
+                You have {pointsBalance} / {POINTS_PER_EXTRA} Diamond Points. Earn them from feedback (+5), interviews, and referrals (+19) — or top up on the{' '}
+                <Link to="/points" className="font-medium text-brand-700 hover:underline">wallet page</Link>.
+              </div>
+            )}
             {unlockMsg && (
               <div className={`mt-3 text-xs ${unlockMsg.tone === 'green' ? 'text-emerald-700' : 'text-red-700'}`}>
                 {unlockMsg.text}

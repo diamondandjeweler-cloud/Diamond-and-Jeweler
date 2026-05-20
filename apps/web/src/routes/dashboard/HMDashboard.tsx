@@ -434,9 +434,31 @@ export default function HMDashboard() {
     } finally { setUnlockingRoleId(null) }
   }
 
+  async function viewResume(matchId: string) {
+    if (companyVerified === false) {
+      setErr('Résumé unlocks once your HR manager verifies the company profile (SSM + business license).')
+      return
+    }
+    setActionBusy(`${matchId}:resume`)
+    try {
+      const res = await callFunction<{ signed_url?: string; error?: string; message?: string }>('get-resume-url', { match_id: matchId })
+      if (res?.signed_url) {
+        window.open(res.signed_url, '_blank', 'noopener,noreferrer')
+      } else {
+        setErr(res?.message ?? res?.error ?? 'Could not load résumé.')
+      }
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Could not load résumé.')
+    } finally {
+      setActionBusy(null)
+    }
+  }
+
   async function respond(id: string, next: 'invited_by_manager' | 'declined_by_manager') {
     if (next === 'invited_by_manager' && companyVerified === false) {
       setErr('To proceed, please ask your HR manager to upload your company SSM certificate and business license.')
+      setRespondMsg({ tone: 'red', text: 'Invite is locked until your company profile is verified by HR.' })
+      window.setTimeout(() => setRespondMsg((m) => (m && m.tone === 'red' ? null : m)), 6000)
       return
     }
     setErr(null)
@@ -809,6 +831,8 @@ export default function HMDashboard() {
                 contact={contactByMatch[c.id]}
                 actionBusy={actionBusy}
                 schedulingFor={schedulingFor}
+                companyVerified={companyVerified}
+                companyId={companyId}
                 onInvite={() => void respond(c.id, 'invited_by_manager')}
                 onDecline={() => void respond(c.id, 'declined_by_manager')}
                 onScheduleRound={() => setSchedulingFor(c.id)}
@@ -818,6 +842,7 @@ export default function HMDashboard() {
                 onMarkHired={() => void doAction(c.id, 'mark_hired')}
                 onCancel={() => void doAction(c.id, 'cancel_match')}
                 onRevealContact={() => void revealContact(c.id)}
+                onViewResume={() => void viewResume(c.id)}
                 feedbackEntry={feedbackState[c.id] ?? { rating: c.match_feedback?.[0]?.rating ?? 0, hired: c.match_feedback?.[0]?.hired ?? false, notes: c.match_feedback?.[0]?.notes ?? '', outcome: '', freeText: '', saving: false, saved: !!c.match_feedback?.[0] }}
                 onFeedbackChange={(patch) => setFeedbackState((s) => ({ ...s, [c.id]: { ...(s[c.id] ?? { rating: 0, hired: false, notes: '', outcome: '', freeText: '', saving: false, saved: false }), ...patch } }))}
                 onFeedbackSubmit={() => void submitFeedback(c.id)}
@@ -915,8 +940,10 @@ export default function HMDashboard() {
 
 function CandidateCard({
   row, rounds, pendingProposal, preview, contact, actionBusy, schedulingFor,
+  companyVerified, companyId,
   onInvite, onDecline,
   onScheduleRound, onCancelProposal, onCompleteInterviews, onMakeOffer, onMarkHired, onCancel, onRevealContact,
+  onViewResume,
   feedbackEntry, onFeedbackChange, onFeedbackSubmit,
 }: {
   row: CandidateRow
@@ -926,6 +953,8 @@ function CandidateCard({
   contact: ContactInfo | null | undefined
   actionBusy: string | null
   schedulingFor: string | null
+  companyVerified: boolean | null
+  companyId: string | null
   onInvite: () => void
   onDecline: () => void
   onScheduleRound: () => void
@@ -935,10 +964,19 @@ function CandidateCard({
   onMarkHired: () => void
   onCancel: () => void
   onRevealContact: () => void
+  onViewResume: () => void
   feedbackEntry: { rating: number; hired: boolean; notes: string; outcome: string; freeText: string; saving: boolean; saved: boolean; pointsAwarded?: number }
   onFeedbackChange: (patch: Partial<{ rating: number; hired: boolean; notes: string; outcome: string; freeText: string }>) => void
   onFeedbackSubmit: () => void
 }) {
+  // Company gate: invites + scheduling + offers + résumé reveal all require a
+  // verified company (companies.verified=true). Treat null as "still loading"
+  // so we don't briefly flash buttons as disabled.
+  const companyLocked = companyVerified === false
+  const lockTitle = companyLocked
+    ? 'Locked until your HR uploads your company SSM + business license. Use the amber banner at the top of the dashboard to share the verification link.'
+    : undefined
+  const verifyHref = companyId ? `/onboarding/company/verify?company=${companyId}` : null
   // Real name + photo when the talent has opted into public (or whitelist-matched) visibility;
   // otherwise fall back to the anonymized handle. The preview RPC enforces the policy server-side.
   const realName = preview?.display_name ?? null
@@ -1092,7 +1130,14 @@ function CandidateCard({
           <div className="mt-4 border border-emerald-200 rounded-lg p-3 bg-emerald-50">
             <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wide mb-2">Candidate contact details</p>
             {contact === undefined ? (
-              <Button size="sm" onClick={onRevealContact}>Reveal contact info</Button>
+              <Button
+                size="sm"
+                onClick={onRevealContact}
+                disabled={companyLocked}
+                title={companyLocked ? lockTitle : undefined}
+              >
+                Reveal contact info
+              </Button>
             ) : contact === null ? (
               <p className="text-xs text-red-600">Could not load contact.</p>
             ) : (
@@ -1106,6 +1151,25 @@ function CandidateCard({
         )}
 
         <div className="mt-4 space-y-3">
+          {/* Résumé reveal — available at any stage once company is verified */}
+          <div className="flex gap-2 flex-wrap items-center">
+            <Button
+              onClick={onViewResume}
+              size="sm"
+              variant="secondary"
+              loading={actionBusy === `${row.id}:resume`}
+              disabled={actionBusy !== null || companyLocked}
+              title={companyLocked ? lockTitle : undefined}
+            >
+              View résumé
+            </Button>
+            {companyLocked && verifyHref && (
+              <a href={verifyHref} target="_blank" rel="noreferrer" className="text-xs text-amber-700 underline">
+                Unlock — verify company
+              </a>
+            )}
+          </div>
+
           {/* Stage 1: new candidates */}
           {['generated', 'viewed', 'accepted_by_talent'].includes(row.status) && (
             <div className="flex gap-2 flex-wrap">
@@ -1113,7 +1177,8 @@ function CandidateCard({
                 onClick={onInvite}
                 size="sm"
                 loading={actionBusy === `${row.id}:invite`}
-                disabled={actionBusy !== null}
+                disabled={actionBusy !== null || companyLocked}
+                title={companyLocked ? lockTitle : undefined}
               >
                 Invite to interview
               </Button>
@@ -1135,8 +1200,8 @@ function CandidateCard({
               <Button
                 size="sm"
                 onClick={onScheduleRound}
-                disabled={schedulingFor === row.id || actionBusy !== null || !!pendingProposal}
-                title={pendingProposal ? 'Withdraw the pending proposal first to send new times.' : undefined}
+                disabled={schedulingFor === row.id || actionBusy !== null || !!pendingProposal || companyLocked}
+                title={companyLocked ? lockTitle : (pendingProposal ? 'Withdraw the pending proposal first to send new times.' : undefined)}
               >
                 {rounds.length === 0 ? 'Propose interview times' : 'Propose times for next round'}
               </Button>
@@ -1169,7 +1234,8 @@ function CandidateCard({
               <Button
                 size="sm"
                 loading={busy('make_offer')}
-                disabled={actionBusy !== null}
+                disabled={actionBusy !== null || companyLocked}
+                title={companyLocked ? lockTitle : undefined}
                 onClick={onMakeOffer}
               >
                 Make offer
@@ -1192,7 +1258,8 @@ function CandidateCard({
               <Button
                 size="sm"
                 loading={busy('mark_hired')}
-                disabled={actionBusy !== null}
+                disabled={actionBusy !== null || companyLocked}
+                title={companyLocked ? lockTitle : undefined}
                 onClick={onMarkHired}
               >
                 Confirm hired

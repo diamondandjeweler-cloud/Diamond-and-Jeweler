@@ -1085,6 +1085,25 @@ function CandidateCard({
           </Badge>
         </div>
 
+        {/* Résumé reveal — promoted to the top of the card so HMs find it
+            without scrolling past the long match-reasoning blocks below. */}
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <Button
+            onClick={onViewResume}
+            size="sm"
+            loading={actionBusy === `${row.id}:resume`}
+            disabled={actionBusy !== null || companyLocked}
+            title={companyLocked ? lockTitle : undefined}
+          >
+            📄 View résumé
+          </Button>
+          {companyLocked && verifyHref && (
+            <a href={verifyHref} target="_blank" rel="noreferrer" className="text-xs text-amber-700 underline">
+              Locked — verify your company first
+            </a>
+          )}
+        </div>
+
         <div className="bg-ink-50 rounded-lg p-3 mb-4 text-sm">
           <div className="text-xs text-ink-500 uppercase tracking-wide mb-0.5">Expects</div>
           <div className="text-ink-900 font-medium">
@@ -1207,25 +1226,6 @@ function CandidateCard({
         )}
 
         <div className="mt-4 space-y-3">
-          {/* Résumé reveal — available at any stage once company is verified */}
-          <div className="flex gap-2 flex-wrap items-center">
-            <Button
-              onClick={onViewResume}
-              size="sm"
-              variant="secondary"
-              loading={actionBusy === `${row.id}:resume`}
-              disabled={actionBusy !== null || companyLocked}
-              title={companyLocked ? lockTitle : undefined}
-            >
-              View résumé
-            </Button>
-            {companyLocked && verifyHref && (
-              <a href={verifyHref} target="_blank" rel="noreferrer" className="text-xs text-amber-700 underline">
-                Unlock — verify company
-              </a>
-            )}
-          </div>
-
           {/* Stage 1: new candidates */}
           {['generated', 'viewed', 'accepted_by_talent'].includes(row.status) && (
             <div className="flex gap-2 flex-wrap">

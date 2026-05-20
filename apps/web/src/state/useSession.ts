@@ -279,9 +279,24 @@ export function bootstrapSession() {
       // Don't sign out on profile fetch failure — it cancels in-flight auth flows
       // (e.g. PKCE callback) and leaves the user stuck on "Check your email".
       // Onboarding/consent gates handle missing profiles gracefully.
-      useSession.setState({ profile, isHM })
-      saveCachedProfile(profile)
+      //
+      // Cache-preservation guard: if the fresh fetch returned null (transient
+      // Supabase error, RLS hiccup, network timeout) but we had a valid cached
+      // profile for this same user, keep the cached value. Overwriting it with
+      // null wipes localStorage and causes the next reload to start cold —
+      // which was the "spinner hang on /hr" regression that broke prod after
+      // the dashboard-refactor deploy.
+      const finalProfile = profile ?? (validCache ? cachedProfile : null)
+      useSession.setState({ profile: finalProfile, isHM })
+      // Only persist a NON-null profile. Persisting null on a transient error
+      // would defeat the cache-preservation guard above on the next reload.
+      if (finalProfile) saveCachedProfile(finalProfile)
       saveCachedIsHM(session.user.id, isHM)
+      // If the profile didn't resolve at all (no cache, fetch failed) — clear
+      // the dedup key so a subsequent TOKEN_REFRESHED or refresh() call gets
+      // another shot at fetching it. Otherwise the user is trapped on the
+      // spinner until they manually reload.
+      if (!finalProfile) lastFetchedFor = null
     } catch (e) {
       console.error('[session] onAuthStateChange failed', e)
       useSession.setState({ loading: false })

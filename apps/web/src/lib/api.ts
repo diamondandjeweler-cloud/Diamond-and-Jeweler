@@ -8,8 +8,13 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
     .eq('id', userId)
     .maybeSingle()
   if (error) {
+    // F-cache regression — previously this returned null silently, which the
+    // session bootstrap then *stored* as the live profile + wiped the
+    // localStorage cache. The next reload found no cached profile and the
+    // auth gates hung on a spinner forever. Throwing here lets the bootstrap's
+    // `.catch` handler fall back to the cached profile instead.
     console.error('fetchProfile error', error)
-    return null
+    throw error
   }
   return data as Profile | null
 }

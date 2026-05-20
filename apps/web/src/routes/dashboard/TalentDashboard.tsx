@@ -76,6 +76,9 @@ export default function TalentDashboard() {
   )
   const [extraUsed, setExtraUsed] = useState(0)
   const [unlocking, setUnlocking] = useState(false)
+  const [redeemingExtra, setRedeemingExtra] = useState(false)
+  const [unlockMsg, setUnlockMsg] = useState<{ tone: 'green' | 'red'; text: string } | null>(null)
+  const POINTS_PER_EXTRA = 21
   const [urgentBusy, setUrgentBusy] = useState(false)
   const [urgentResult, setUrgentResult] = useState<{
     role: { id: string; title: string; description: string | null; salary_min: number | null; salary_max: number | null; location: string | null; work_arrangement: string | null }
@@ -314,14 +317,38 @@ export default function TalentDashboard() {
   }
 
   async function handleUnlockExtra() {
-    setErr(null); setUnlocking(true)
+    setErr(null); setUnlockMsg(null); setUnlocking(true)
     try {
       const res = await callFunction<{ paymentUrl: string }>('unlock-extra-match', { match_type: 'talent_extra' })
       if (res?.paymentUrl) window.location.href = res.paymentUrl
-      else setErr('Could not start payment')
+      else setUnlockMsg({ tone: 'red', text: 'Could not start payment — no URL returned.' })
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Failed to start payment')
+      console.error('[unlock-extra-match] failed', e)
+      setUnlockMsg({ tone: 'red', text: e instanceof Error ? e.message : 'Failed to start payment' })
     } finally { setUnlocking(false) }
+  }
+
+  async function handleRedeemExtraTalent() {
+    setErr(null); setUnlockMsg(null)
+    if (pointsBalance != null && pointsBalance < POINTS_PER_EXTRA) {
+      setUnlockMsg({
+        tone: 'red',
+        text: `Need ${POINTS_PER_EXTRA} Diamond Points (you have ${pointsBalance}). Earn more from feedback, interviews, or referrals.`,
+      })
+      return
+    }
+    if (!window.confirm(`Spend ${POINTS_PER_EXTRA} Diamond Points to unlock 1 extra offer curated for you?`)) return
+    setRedeemingExtra(true)
+    try {
+      await callFunction<{ message: string; cost: number }>('redeem-points', { target_type: 'talent' })
+      setUnlockMsg({ tone: 'green', text: `Redeemed ${POINTS_PER_EXTRA} Diamond Points — your extra offer is being surfaced now.` })
+      setPointsBalance((p) => (p == null ? p : p - POINTS_PER_EXTRA))
+      setExtraUsed((u) => u + 1)
+      setTimeout(() => { window.location.reload() }, 1500)
+    } catch (e) {
+      console.error('[redeem-points] failed', e)
+      setUnlockMsg({ tone: 'red', text: e instanceof Error ? e.message : 'Failed to redeem points' })
+    } finally { setRedeemingExtra(false) }
   }
 
   async function handleUrgentJobSearch() {
@@ -630,10 +657,27 @@ export default function TalentDashboard() {
             <div className="text-sm font-medium text-ink-700 mb-1">Already looked at all three?</div>
             <p className="text-sm text-ink-500 mb-4">
               Unlock one extra offer curated for you. You have {3 - extraUsed} extra unlock{3 - extraUsed === 1 ? '' : 's'} remaining.
+              <br />
+              Pay RM 9.90 or spend {POINTS_PER_EXTRA} Diamond Points{pointsBalance != null ? ` (balance: ${pointsBalance})` : ''}.
             </p>
-            <Button onClick={handleUnlockExtra} disabled={unlocking}>
-              {unlocking ? 'Starting payment…' : 'Unlock extra offer — RM 9.90'}
-            </Button>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <Button
+                variant="secondary"
+                onClick={handleRedeemExtraTalent}
+                disabled={unlocking || redeemingExtra || (pointsBalance != null && pointsBalance < POINTS_PER_EXTRA)}
+                title={pointsBalance != null && pointsBalance < POINTS_PER_EXTRA ? `Need ${POINTS_PER_EXTRA} Diamond Points (you have ${pointsBalance})` : undefined}
+              >
+                {redeemingExtra ? 'Redeeming…' : `Use ${POINTS_PER_EXTRA} Diamond Points`}
+              </Button>
+              <Button onClick={handleUnlockExtra} disabled={unlocking || redeemingExtra}>
+                {unlocking ? 'Starting payment…' : 'Unlock extra offer — RM 9.90'}
+              </Button>
+            </div>
+            {unlockMsg && (
+              <div className={`mt-3 text-xs ${unlockMsg.tone === 'green' ? 'text-emerald-700' : 'text-red-700'}`}>
+                {unlockMsg.text}
+              </div>
+            )}
           </div>
         </Card>
       )}

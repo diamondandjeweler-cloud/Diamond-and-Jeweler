@@ -100,11 +100,14 @@ export default function HMDashboard() {
   const [err, setErr] = useState<string | null>(null)
   const [roleExtras, setRoleExtras] = useState<RoleExtraInfo[]>([])
   const [unlockingRoleId, setUnlockingRoleId] = useState<string | null>(null)
+  const [redeemingRoleId, setRedeemingRoleId] = useState<string | null>(null)
+  const [unlockMsg, setUnlockMsg] = useState<{ roleId: string; tone: 'green' | 'red'; text: string } | null>(null)
   const [urgentRoleId, setUrgentRoleId] = useState<string | null>(null)
   const [urgentBusy, setUrgentBusy] = useState(false)
   const [urgentMsg, setUrgentMsg] = useState<{ tone: 'green' | 'amber' | 'red'; text: React.ReactNode } | null>(null)
   const [pointsBalance, setPointsBalance] = useState<number | null>(null)
   const URGENT_COST = 9
+  const POINTS_PER_EXTRA = 21
   const [feedbackState, setFeedbackState] = useState<Record<string, { rating: number; hired: boolean; notes: string; outcome: string; freeText: string; saving: boolean; saved: boolean; pointsAwarded?: number }>>({})
   const [hmReputation, setHmReputation] = useState<{ reputation_score: number | null; feedback_volume: number; phs_offer_accept_rate: number | null; hm_quality_factor: number | null; hm_cancel_rate: number | null } | null>(null)
   const [hiredAllTime, setHiredAllTime] = useState<number>(0)
@@ -422,16 +425,46 @@ export default function HMDashboard() {
   }
 
   async function handleUnlockExtra(roleId: string) {
-    setErr(null); setUnlockingRoleId(roleId)
+    setErr(null); setUnlockMsg(null); setUnlockingRoleId(roleId)
     try {
       const res = await callFunction<{ paymentUrl: string }>('unlock-extra-match', {
         match_type: 'hm_extra', role_id: roleId,
       })
       if (res?.paymentUrl) window.location.href = res.paymentUrl
-      else setErr('Could not start payment')
+      else setUnlockMsg({ roleId, tone: 'red', text: 'Could not start payment — no URL returned.' })
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Failed to start payment')
+      console.error('[unlock-extra-match] failed', e)
+      setUnlockMsg({ roleId, tone: 'red', text: e instanceof Error ? e.message : 'Failed to start payment' })
     } finally { setUnlockingRoleId(null) }
+  }
+
+  async function handleRedeemExtra(roleId: string, roleTitle: string) {
+    setErr(null); setUnlockMsg(null)
+    if (pointsBalance != null && pointsBalance < POINTS_PER_EXTRA) {
+      setUnlockMsg({
+        roleId, tone: 'red',
+        text: `Need ${POINTS_PER_EXTRA} Diamond Points (you have ${pointsBalance}). Earn more from feedback, interviews, or referrals.`,
+      })
+      return
+    }
+    if (!window.confirm(`Spend ${POINTS_PER_EXTRA} Diamond Points to unlock 1 extra candidate for "${roleTitle}"?`)) return
+    setRedeemingRoleId(roleId)
+    try {
+      await callFunction<{ message: string; cost: number }>('redeem-points', {
+        target_type: 'role', role_id: roleId,
+      })
+      setUnlockMsg({
+        roleId, tone: 'green',
+        text: `Redeemed ${POINTS_PER_EXTRA} Diamond Points — your extra candidate is being surfaced now.`,
+      })
+      setPointsBalance((p) => (p == null ? p : p - POINTS_PER_EXTRA))
+      setRoleExtras((prev) => prev.map((r) => r.id === roleId ? { ...r, extraUsed: r.extraUsed + 1 } : r))
+      // Refresh the dashboard so the new match appears once match-generate finishes.
+      setTimeout(() => { window.location.reload() }, 1500)
+    } catch (e) {
+      console.error('[redeem-points] failed', e)
+      setUnlockMsg({ roleId, tone: 'red', text: e instanceof Error ? e.message : 'Failed to redeem points' })
+    } finally { setRedeemingRoleId(null) }
   }
 
   async function viewResume(matchId: string) {
@@ -901,26 +934,49 @@ export default function HMDashboard() {
           <div className="p-6">
             <div className="text-sm font-medium text-ink-900 mb-1">Need more candidates?</div>
             <p className="text-sm text-ink-500 mb-4">
-              Each role fills up to 3 curated candidates for free. You can unlock up to 3 more per role at RM 9.90 each.
+              Each role fills up to 3 curated candidates for free. Unlock up to 3 more per role —
+              pay RM 9.90 or spend {POINTS_PER_EXTRA} Diamond Points{pointsBalance != null ? ` (balance: ${pointsBalance})` : ''}.
             </p>
             <div className="space-y-2">
               {roleExtras
                 .filter((r) => r.activeCount >= 3 && r.extraUsed < 3)
-                .map((r) => (
-                  <div key={r.id} className="flex flex-wrap items-center justify-between gap-3 border-t border-ink-100 pt-3 first:border-t-0 first:pt-0">
-                    <div>
-                      <div className="text-sm font-medium text-ink-900">{r.title}</div>
-                      <div className="text-xs text-ink-500">{3 - r.extraUsed} extra unlock{3 - r.extraUsed === 1 ? '' : 's'} remaining</div>
+                .map((r) => {
+                  const busy = unlockingRoleId === r.id || redeemingRoleId === r.id
+                  const insufficientPoints = pointsBalance != null && pointsBalance < POINTS_PER_EXTRA
+                  return (
+                    <div key={r.id} className="border-t border-ink-100 pt-3 first:border-t-0 first:pt-0">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-medium text-ink-900">{r.title}</div>
+                          <div className="text-xs text-ink-500">{3 - r.extraUsed} extra unlock{3 - r.extraUsed === 1 ? '' : 's'} remaining</div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => void handleRedeemExtra(r.id, r.title)}
+                            disabled={busy || insufficientPoints}
+                            title={insufficientPoints ? `Need ${POINTS_PER_EXTRA} Diamond Points (you have ${pointsBalance ?? 0})` : undefined}
+                          >
+                            {redeemingRoleId === r.id ? 'Redeeming…' : `Use ${POINTS_PER_EXTRA} Diamond Points`}
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => void handleUnlockExtra(r.id)}
+                            disabled={busy}
+                          >
+                            {unlockingRoleId === r.id ? 'Starting payment…' : 'Unlock — RM 9.90'}
+                          </Button>
+                        </div>
+                      </div>
+                      {unlockMsg && unlockMsg.roleId === r.id && (
+                        <div className={`mt-2 text-xs ${unlockMsg.tone === 'green' ? 'text-emerald-700' : 'text-red-700'}`}>
+                          {unlockMsg.text}
+                        </div>
+                      )}
                     </div>
-                    <Button
-                      size="sm"
-                      onClick={() => void handleUnlockExtra(r.id)}
-                      disabled={unlockingRoleId === r.id}
-                    >
-                      {unlockingRoleId === r.id ? 'Starting payment…' : 'Unlock — RM 9.90'}
-                    </Button>
-                  </div>
-                ))}
+                  )
+                })}
             </div>
           </div>
         </Card>

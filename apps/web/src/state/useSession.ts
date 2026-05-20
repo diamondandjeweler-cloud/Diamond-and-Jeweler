@@ -113,6 +113,7 @@ export const useSession = create<SessionState>((set) => ({
     }
     clearAdminVerified()
     saveCachedProfile(null)
+    try { sessionStorage.removeItem('dnj.admin_aal_state') } catch { /* tolerate */ }
     try {
       Object.keys(localStorage).forEach((k) => {
         if (k.startsWith('sb-') || k === 'supabase.auth.token') localStorage.removeItem(k)
@@ -174,6 +175,11 @@ export function bootstrapSession() {
     }
   }, 8000)
 
+  // Dedupe key — supabase-js fires onAuthStateChange repeatedly (INITIAL_SESSION,
+  // TOKEN_REFRESHED, USER_UPDATED, sometimes back-to-back). Without this, every
+  // event triggers another fetchProfile + fetchIsHM round-trip, which is what
+  // showed up as duplicate /profiles and /hiring_managers calls in DevTools.
+  let lastFetchedFor: string | null = null
   supabase.auth.onAuthStateChange(async (event, session) => {
     clearTimeout(watchdog)
     try {
@@ -191,6 +197,7 @@ export function bootstrapSession() {
         const definitiveEvents = new Set<string>(['SIGNED_OUT', 'USER_DELETED', 'INITIAL_SESSION'])
         const definitive = definitiveEvents.has(event as unknown as string)
         if (definitive) {
+          lastFetchedFor = null
           clearAuthHintCookie()
           useSession.setState({ session: null, profile: null, isHM: false, loading: false })
         } else {
@@ -206,6 +213,15 @@ export function bootstrapSession() {
       // ConsentGate/RoleHome pass through without a spinner while the
       // fresh fetch runs in the background (stale-while-revalidate).
       setAuthHintCookie(session.access_token)
+      // Dedupe: if we already fetched profile/isHM for this user in this tab,
+      // skip the round-trip. Token refreshes (USER_UPDATED, TOKEN_REFRESHED)
+      // would otherwise re-issue the same queries every few minutes.
+      const dedupeKey = session.user.id
+      if (lastFetchedFor === dedupeKey) {
+        useSession.setState({ session, loading: false })
+        return
+      }
+      lastFetchedFor = dedupeKey
       const cachedProfile = loadCachedProfile()
       // Only serve cached profile for the current session user. A stale cache
       // from a different user (e.g., previous occupant of a shared browser, or

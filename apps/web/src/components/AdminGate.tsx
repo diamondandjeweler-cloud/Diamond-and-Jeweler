@@ -17,22 +17,47 @@ function isTestAdmin(email: string | undefined | null): boolean {
   return BYPASS_ADMIN_MFA && !!email && email.toLowerCase().endsWith('@dnj-test.my')
 }
 
+// Per-tab cache: once MFA has resolved to aal2 in this tab, skip the round-trip
+// on subsequent /admin navigations. Cleared on signOut (useSession) and on tab
+// close (sessionStorage). Keeps the spinner off the screen for repeat visits.
+const AAL_CACHE_KEY = 'dnj.admin_aal_state'
+function readCachedAal(): AalState | null {
+  try {
+    const v = sessionStorage.getItem(AAL_CACHE_KEY)
+    return v === 'aal2' ? 'aal2' : null
+  } catch { return null }
+}
+function writeCachedAal(v: AalState) {
+  try {
+    if (v === 'aal2') sessionStorage.setItem(AAL_CACHE_KEY, v)
+    else sessionStorage.removeItem(AAL_CACHE_KEY)
+  } catch { /* tolerate */ }
+}
+
 export default function AdminGate({ children }: { children: ReactNode }) {
   const { loading, profile } = useSession()
   const location = useLocation()
-  const [aal, setAal] = useState<AalState>('loading')
+  const [aal, setAal] = useState<AalState>(() => readCachedAal() ?? 'loading')
 
   useEffect(() => {
     if (loading || !profile || profile.role !== 'admin') return
-    if (isTestAdmin(profile.email)) { setAal('aal2'); return }
+    if (isTestAdmin(profile.email)) { setAal('aal2'); writeCachedAal('aal2'); return }
+    // Already verified earlier in this tab — don't re-check.
+    if (readCachedAal() === 'aal2') { setAal('aal2'); return }
     let cancelled = false
+    // Hard 5 s timeout — never spin forever on a hung MFA endpoint.
+    const timeout = setTimeout(() => {
+      if (!cancelled) { cancelled = true; setAal('need_challenge') }
+    }, 5000)
     async function checkAal() {
       const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
       if (cancelled) return
+      clearTimeout(timeout)
       if (!data) { setAal('need_challenge'); return }
 
       if (data.currentLevel === 'aal2') {
         setAal('aal2')
+        writeCachedAal('aal2')
         return
       }
 
@@ -44,7 +69,7 @@ export default function AdminGate({ children }: { children: ReactNode }) {
       const isOAuth = ((data.currentAuthenticationMethods ?? []) as any[]).some(
         (m: any) => (typeof m === 'string' ? m : m?.method) === 'oauth',
       )
-      if (isOAuth) { setAal('aal2'); return }
+      if (isOAuth) { setAal('aal2'); writeCachedAal('aal2'); return }
 
       // AAL1 via password — check if a verified TOTP factor exists
       const { data: factors } = await supabase.auth.mfa.listFactors()
@@ -53,7 +78,7 @@ export default function AdminGate({ children }: { children: ReactNode }) {
       setAal(hasVerifiedTotp ? 'need_challenge' : 'need_enroll')
     }
     void checkAal()
-    return () => { cancelled = true }
+    return () => { cancelled = true; clearTimeout(timeout) }
   }, [loading, profile])
 
   if (loading) return <LoadingSpinner full />

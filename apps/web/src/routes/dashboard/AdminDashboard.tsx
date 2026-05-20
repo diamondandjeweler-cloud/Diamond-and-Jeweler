@@ -5,8 +5,10 @@ import { PageHeader } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
 import { useSession } from '../../state/useSession'
 
+// KpiPanel is the default tab — bundle it with AdminDashboard so the initial
+// /admin render doesn't trigger a Suspense fallback. All other panels stay lazy.
+import KpiPanel from './admin/KpiPanel'
 // Each panel is its own chunk — only the active tab is downloaded.
-const KpiPanel            = lazy(() => import('./admin/KpiPanel'))
 const VerificationQueue   = lazy(() => import('./admin/VerificationQueue'))
 const WaitlistPanel       = lazy(() => import('./admin/WaitlistPanel'))
 const ColdStartPanel      = lazy(() => import('./admin/ColdStartPanel'))

@@ -19,9 +19,12 @@ export default function NotificationBell() {
 
   const unread = items.filter((i) => !i.read).length
 
-  // Initial load + realtime subscription.
+  // Initial load + realtime subscription. Depending on `session.user.id` (not
+  // the whole session object) means token refreshes — which produce a fresh
+  // session reference every ~hour — don't re-fire this effect.
+  const userId = session?.user.id
   useEffect(() => {
-    if (!session) return
+    if (!userId) return
     let cancelled = false
 
     void (async () => {
@@ -35,14 +38,14 @@ export default function NotificationBell() {
     })()
 
     const channel = supabase
-      .channel(`notif-${session.user.id}`)
+      .channel(`notif-${userId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'notifications',
-          filter: `user_id=eq.${session.user.id}`,
+          filter: `user_id=eq.${userId}`,
         },
         (payload) => {
           setItems((xs) => [payload.new as NotificationRow, ...xs].slice(0, 20))
@@ -54,7 +57,7 @@ export default function NotificationBell() {
       cancelled = true
       void supabase.removeChannel(channel)
     }
-  }, [session])
+  }, [userId])
 
   // Close on outside click or Escape key.
   useEffect(() => {

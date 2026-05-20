@@ -4,7 +4,9 @@ import { useSession, bootstrapSession } from './state/useSession'
 import { supabase } from './lib/supabase'
 import Layout from './components/Layout'
 import LoadingSpinner from './components/LoadingSpinner'
+import RouteSkeleton from './components/RouteSkeleton'
 import ProtectedRoute from './components/ProtectedRoute'
+import { prefetchRoleHome } from './lib/prefetch'
 import OnboardingGate from './components/OnboardingGate'
 import AdminGate from './components/AdminGate'
 import ConsentGate from './components/ConsentGate'
@@ -90,11 +92,18 @@ const RestaurantAdmin  = lazy(() => import('./routes/restaurant/Admin'))
 export default function App() {
   const { loading, session, profile } = useSession()
   useEffect(() => { bootstrapSession() }, [])
+  // Once we know the user's role, prefetch their likely dashboard chunk in
+  // the background. By the time they click "Home" / "Dashboard", the chunk
+  // is already in the browser's module cache — zero wait.
+  useEffect(() => { if (profile?.role) prefetchRoleHome(profile.role) }, [profile?.role])
 
-  if (loading && !session) return <LoadingSpinner full />
+  // Initial session check — show the route skeleton instead of a centred spinner
+  // so the perceived layout matches what's about to render. LoadingSpinner kept
+  // for narrow cases (e.g. Signout where the user is mid-redirect).
+  if (loading && !session) return <RouteSkeleton />
 
   return (
-    <Suspense fallback={<LoadingSpinner full />}>
+    <Suspense fallback={<RouteSkeleton />}>
       <Routes>
         {/* Public */}
         <Route path="/" element={<Landing />} />

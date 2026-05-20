@@ -236,9 +236,71 @@
       ]
     }
     </script>
+    <!-- App shell skeleton — paints in <100ms before React mounts, gone the moment
+         React's first render replaces #root. Keeps cold-load from looking like a
+         white blank page (especially on slow 4G in MY). Inline CSS so it works
+         even before the Tailwind bundle arrives. CSP-safe: no external assets. -->
+    <style>
+      #dnj-shell {
+        font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        color: #0B1220;
+        min-height: 100vh;
+        background: #fff;
+      }
+      #dnj-shell .dnj-bar {
+        height: 56px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        align-items: center;
+        padding: 0 1rem;
+        background: #ffffff;
+        position: sticky;
+        top: 0;
+      }
+      #dnj-shell .dnj-logo {
+        font-family: Fraunces, Georgia, serif;
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: #1d4ed8;
+        letter-spacing: -0.01em;
+      }
+      #dnj-shell .dnj-content { padding: 1.25rem 1rem; max-width: 1200px; margin: 0 auto; }
+      #dnj-shell .dnj-block {
+        background: linear-gradient(90deg, rgba(222,223,218,0.55) 0%, rgba(248,248,247,0.95) 50%, rgba(222,223,218,0.55) 100%);
+        background-size: 200% 100%;
+        border-radius: 8px;
+        animation: dnj-shimmer 1.4s ease-in-out infinite;
+      }
+      #dnj-shell .dnj-row { display: flex; gap: 12px; margin-bottom: 12px; }
+      @keyframes dnj-shimmer {
+        0%   { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+      }
+      /* Once React mounts, #root has children — hide the skeleton.
+         The :has() selector is supported in all evergreen browsers (2023+);
+         older browsers fall through to the JS removal below. */
+      #root:has(*) ~ #dnj-shell { display: none; }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    <div id="dnj-shell" aria-hidden="true">
+      <div class="dnj-bar">
+        <span class="dnj-logo">DNJ</span>
+      </div>
+      <div class="dnj-content">
+        <div class="dnj-block" style="height: 28px; width: 60%; margin-bottom: 16px;"></div>
+        <div class="dnj-block" style="height: 14px; width: 90%; margin-bottom: 8px;"></div>
+        <div class="dnj-block" style="height: 14px; width: 80%; margin-bottom: 24px;"></div>
+        <div class="dnj-row">
+          <div class="dnj-block" style="height: 140px; flex: 1;"></div>
+          <div class="dnj-block" style="height: 140px; flex: 1;"></div>
+          <div class="dnj-block" style="height: 140px; flex: 1;"></div>
+        </div>
+        <div class="dnj-block" style="height: 14px; width: 70%; margin-bottom: 8px;"></div>
+        <div class="dnj-block" style="height: 14px; width: 55%;"></div>
+      </div>
+    </div>
     <noscript>
       <div style="font-family:system-ui,sans-serif;max-width:720px;margin:4rem auto;padding:2rem;border:1px solid #e5e7eb;border-radius:12px">
         <h1 style="font-size:1.5rem;margin-bottom:0.75rem">DNJ — AI-Curated Recruitment Platform Malaysia</h1>

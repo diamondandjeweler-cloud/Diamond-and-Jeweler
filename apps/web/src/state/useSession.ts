@@ -113,6 +113,7 @@ export const useSession = create<SessionState>((set) => ({
     }
     clearAdminVerified()
     saveCachedProfile(null)
+    saveCachedIsHM(null, false)
     try { sessionStorage.removeItem('dnj.admin_aal_state') } catch { /* tolerate */ }
     try {
       Object.keys(localStorage).forEach((k) => {
@@ -128,6 +129,7 @@ export const useSession = create<SessionState>((set) => ({
 }))
 
 const PROFILE_CACHE_KEY = 'dnj.profile_cache'
+const ISHM_CACHE_KEY = 'dnj.ishm_cache'
 
 function loadCachedProfile(): Profile | null {
   try {
@@ -140,6 +142,26 @@ function saveCachedProfile(profile: Profile | null) {
   try {
     if (profile) localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile))
     else localStorage.removeItem(PROFILE_CACHE_KEY)
+  } catch { /* tolerate */ }
+}
+
+interface IsHMCacheEntry { userId: string; isHM: boolean }
+
+function loadCachedIsHM(userId: string): boolean | null {
+  try {
+    const raw = localStorage.getItem(ISHM_CACHE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as IsHMCacheEntry
+    // Only honour the cache if it's for the same user — a re-seeded test account
+    // or a shared browser would otherwise inherit the wrong HM flag.
+    return parsed && parsed.userId === userId ? !!parsed.isHM : null
+  } catch { return null }
+}
+
+function saveCachedIsHM(userId: string | null, isHM: boolean) {
+  try {
+    if (userId) localStorage.setItem(ISHM_CACHE_KEY, JSON.stringify({ userId, isHM } satisfies IsHMCacheEntry))
+    else localStorage.removeItem(ISHM_CACHE_KEY)
   } catch { /* tolerate */ }
 }
 
@@ -228,7 +250,13 @@ export function bootstrapSession() {
       // a re-seeded test account with a new UUID) would cause wrong-role routing
       // before the authoritative DB fetch completes.
       const validCache = cachedProfile && cachedProfile.id === session.user.id
-      useSession.setState({ session, loading: false, ...(validCache ? { profile: cachedProfile } : {}) })
+      const cachedIsHM = loadCachedIsHM(session.user.id)
+      useSession.setState({
+        session,
+        loading: false,
+        ...(validCache ? { profile: cachedProfile } : {}),
+        ...(cachedIsHM != null ? { isHM: cachedIsHM } : {}),
+      })
       // Both fetches are guarded by a 12 s timeout. If the Supabase auth token
       // refresh hangs (e.g. Cloudflare latency), these promises would otherwise
       // block forever — keeping profile=null and trapping the user on a spinner.
@@ -251,6 +279,7 @@ export function bootstrapSession() {
       // Onboarding/consent gates handle missing profiles gracefully.
       useSession.setState({ profile, isHM })
       saveCachedProfile(profile)
+      saveCachedIsHM(session.user.id, isHM)
     } catch (e) {
       console.error('[session] onAuthStateChange failed', e)
       useSession.setState({ loading: false })

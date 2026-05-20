@@ -1,8 +1,74 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    // Service worker — cache-first for hashed JS/CSS/fonts/images so returning
+    // users skip network entirely for static assets. Stale-while-revalidate for
+    // index.html so deploys still reach users on the next navigation. Excludes
+    // anything under /auth/ and /admin/ so we never serve a stale shell to
+    // role-gated routes.
+    VitePWA({
+      // Don't auto-register; we'll register manually after first paint so the
+      // SW install never competes with the critical render path.
+      injectRegister: null,
+      // Generate a manifest + sw.js with auto-update: when a new deploy ships,
+      // the SW activates on next reload (skipWaiting + clientsClaim).
+      registerType: 'autoUpdate',
+      strategies: 'generateSW',
+      workbox: {
+        // Precache all build outputs except sourcemaps + the legacy noscript
+        // SEO HTML files (those are CDN-cached by Vercel; pre-caching them
+        // would balloon the SW manifest unnecessarily).
+        globPatterns: ['**/*.{js,css,woff2,svg,png,webp}'],
+        globIgnores: ['**/*.map', '**/sw.js', '**/workbox-*.js'],
+        navigateFallback: '/index.html',
+        // SPA routes that should NOT fall back to index.html (let the network
+        // / Vercel routing handle them).
+        navigateFallbackDenylist: [
+          /^\/api\//,
+          /^\/auth\/callback/,
+          /\.(?:xml|txt|json|map)$/,
+        ],
+        runtimeCaching: [
+          {
+            // Google Fonts CSS — stale-while-revalidate; small + rarely changes.
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\//,
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'gfonts-css', expiration: { maxEntries: 8, maxAgeSeconds: 60 * 60 * 24 * 30 } },
+          },
+          {
+            // Google Fonts files — cache-first; hashed URLs.
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\//,
+            handler: 'CacheFirst',
+            options: { cacheName: 'gfonts-files', expiration: { maxEntries: 16, maxAgeSeconds: 60 * 60 * 24 * 365 } },
+          },
+          {
+            // Supabase REST/RPC — NEVER cache. Authz decisions and RLS scope
+            // must hit the network every time. NetworkOnly forces that.
+            urlPattern: /^https:\/\/sfnrpbsdscikpmbhrzub\.supabase\.co\//,
+            handler: 'NetworkOnly',
+          },
+          {
+            // Same-origin images (og-image, favicon, etc.) — cache-first.
+            urlPattern: ({ request, url }) => request.destination === 'image' && url.origin === self.location.origin,
+            handler: 'CacheFirst',
+            options: { cacheName: 'images', expiration: { maxEntries: 32, maxAgeSeconds: 60 * 60 * 24 * 30 } },
+          },
+        ],
+        // Tell Workbox to skip the waiting phase and claim clients immediately
+        // so a new deploy's SW takes over on the next page load instead of two
+        // reloads from now. Pairs with the in-app update toast (not yet wired;
+        // for now, deploys propagate silently within ~1 reload).
+        skipWaiting: true,
+        clientsClaim: true,
+      },
+      manifest: false,        // we already ship public/manifest.json
+      includeAssets: [],      // public/ assets are picked up by globPatterns
+    }),
+  ],
   server: { port: 3000, host: true },
   build: {
     // Production source maps were publicly fetchable from /assets/*.js.map (HTTP

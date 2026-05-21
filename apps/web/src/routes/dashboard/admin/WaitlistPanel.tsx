@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
-import LoadingSpinner from '../../../components/LoadingSpinner'
+import ListSkeleton from '../../../components/ListSkeleton'
 
 interface WaitlistRow {
   id: string
@@ -12,8 +12,8 @@ interface WaitlistRow {
 }
 
 export default function WaitlistPanel() {
-  const [rows, setRows] = useState<WaitlistRow[]>([])
-  const [loading, setLoading] = useState(true)
+  // PII (email + name) — skeleton-on-load, no localStorage persistence.
+  const [rows, setRows] = useState<WaitlistRow[] | null>(null)
   const [err, setErr] = useState<string | null>(null)
 
   useEffect(() => {
@@ -25,9 +25,8 @@ export default function WaitlistPanel() {
       .limit(500)
       .then(({ data, error }) => {
         if (cancelled) return
-        if (error) setErr(error.message)
-        else setRows((data ?? []) as WaitlistRow[])
-        setLoading(false)
+        if (error) { setErr(error.message); setRows([]); return }
+        setRows((data ?? []) as WaitlistRow[])
       })
     return () => { cancelled = true }
   }, [])
@@ -38,14 +37,15 @@ export default function WaitlistPanel() {
       .update({ approved: true, approved_at: new Date().toISOString() })
       .eq('id', id)
     if (error) setErr(error.message)
-    else setRows((rs) => rs.map((r) => (r.id === id ? { ...r, approved: true } : r)))
+    else setRows((rs) => (rs ?? []).map((r) => (r.id === id ? { ...r, approved: true } : r)))
   }
 
-  if (loading) return <LoadingSpinner />
   return (
     <div>
       {err && <p className="text-sm text-red-600 mb-3">{err}</p>}
-      {rows.length === 0 ? (
+      {rows == null ? (
+        <ListSkeleton rows={5} variant="row" />
+      ) : rows.length === 0 ? (
         <p className="text-sm text-gray-600">Waitlist is empty.</p>
       ) : (
         <table className="w-full text-sm">

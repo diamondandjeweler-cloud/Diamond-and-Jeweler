@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
-import LoadingSpinner from '../../../components/LoadingSpinner'
+import { FormSkeleton } from '../../../components/ListSkeleton'
 
 interface ConfigRow {
   key: string
@@ -173,7 +173,7 @@ export default function SystemConfigPanel() {
     await reload()
   }
 
-  if (loading) return <LoadingSpinner />
+  if (loading) return <FormSkeleton fields={8} />
   return (
     <div>
       <p className="text-sm text-gray-600 mb-4">

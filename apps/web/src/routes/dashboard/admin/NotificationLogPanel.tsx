@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { callFunction } from '../../../lib/functions'
-import LoadingSpinner from '../../../components/LoadingSpinner'
+import ListSkeleton from '../../../components/ListSkeleton'
 
 interface NotifRow {
   id: string
@@ -74,7 +74,7 @@ export default function NotificationLogPanel() {
         </button>
       </div>
       {err && <p className="text-sm text-red-600 mb-2">{err}</p>}
-      {loading ? <LoadingSpinner /> : (
+      {loading ? <ListSkeleton rows={5} variant="row" /> : (
         rows.length === 0 ? <p className="text-sm text-gray-500">No notifications logged.</p> : (
           <div className="space-y-2">
             {rows.map((r) => (

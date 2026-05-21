@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { callFunction } from '../../lib/functions'
-import LoadingSpinner from '../../components/LoadingSpinner'
+import { FormSkeleton } from '../../components/ListSkeleton'
 import { Button, Card, Alert, Input, Select, Textarea, PageHeader } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
 import { getLifeChartCharacter, type Gender } from '../../lib/lifeChartCharacter'
@@ -476,7 +476,14 @@ export default function PostRole() {
     } finally { setBusy(false) }
   }
 
-  if (loading) return <LoadingSpinner />
+  if (loading) {
+    return (
+      <div className="max-w-3xl mx-auto">
+        <PageHeader title="Post a role" description="Tell us about the role you want to fill." />
+        <Card><div className="p-6"><FormSkeleton fields={12} /></div></Card>
+      </div>
+    )
+  }
   if (!hmId) {
     return (
       <div className="max-w-xl mx-auto">

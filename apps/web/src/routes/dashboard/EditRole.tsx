@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { callFunction } from '../../lib/functions'
-import LoadingSpinner from '../../components/LoadingSpinner'
+import { FormSkeleton } from '../../components/ListSkeleton'
 import { useSeo } from '../../lib/useSeo'
 
 const TRAITS = [
@@ -108,8 +108,10 @@ export default function EditRole() {
     navigate('/hm/roles', { replace: true })
   }
 
-  if (loading) return <LoadingSpinner />
-  if (err && !row) {
+  // Edit-form shell renders immediately even while the role row is loading.
+  // The form area below shows FormSkeleton until the row arrives. We still
+  // surface the recoverable error UI when ownership check or fetch fails.
+  if (err && !row && !loading) {
     return (
       <div className="max-w-lg mx-auto text-center">
         <p className="text-red-600 mb-4">{err}</p>
@@ -119,7 +121,17 @@ export default function EditRole() {
       </div>
     )
   }
-  if (!row) return null
+  if (!row) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-white border rounded-lg p-6">
+          <h1 className="text-2xl font-bold mb-2">Edit role</h1>
+          <p className="text-sm text-ink-500 mb-6">Update the role details below.</p>
+          <FormSkeleton fields={10} />
+        </div>
+      </div>
+    )
+  }
 
   const r = row
   const set = <K extends keyof RoleRow>(k: K, v: RoleRow[K]) => setRow({ ...r, [k]: v })

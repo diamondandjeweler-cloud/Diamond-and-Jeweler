@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { useSession } from '../../../state/useSession'
 import { formatError } from '../../../lib/errors'
-import LoadingSpinner from '../../../components/LoadingSpinner'
+import ListSkeleton from '../../../components/ListSkeleton'
 
 interface TesterTalent {
   talent_id: string
@@ -206,7 +206,7 @@ export default function DevSeedPanel() {
     )
   }
 
-  if (loading) return <LoadingSpinner />
+  if (loading) return <ListSkeleton rows={3} variant="row" />
 
   return (
     <div>

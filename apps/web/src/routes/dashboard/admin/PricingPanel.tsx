@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
-import { Alert, Button, Spinner } from '../../../components/ui'
+import { Alert, Button } from '../../../components/ui'
+import { FormSkeleton } from '../../../components/ListSkeleton'
 
 interface Package {
   id: string
@@ -119,7 +120,7 @@ export default function PricingPanel() {
     setPackages((p) => p.filter((pkg) => pkg.id !== id))
   }
 
-  if (loading) return <div className="py-8 text-center"><Spinner /></div>
+  if (loading) return <FormSkeleton fields={6} />
 
   return (
     <div className="space-y-8 max-w-2xl">

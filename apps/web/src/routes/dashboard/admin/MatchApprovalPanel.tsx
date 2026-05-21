@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
-import LoadingSpinner from '../../../components/LoadingSpinner'
+import ListSkeleton from '../../../components/ListSkeleton'
 
 interface PendingMatch {
   id: string
@@ -261,7 +261,7 @@ export default function MatchApprovalPanel() {
 
       {err && <p className="text-sm text-red-600 mb-3">{err}</p>}
 
-      {loading ? <LoadingSpinner /> : rows.length === 0 ? (
+      {loading ? <ListSkeleton rows={5} variant="row" /> : rows.length === 0 ? (
         <p className="text-sm text-gray-500">No matches pending approval.</p>
       ) : (
         <div className="space-y-2">

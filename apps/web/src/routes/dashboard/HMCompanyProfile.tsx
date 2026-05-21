@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
-import LoadingSpinner from '../../components/LoadingSpinner'
+import { FormSkeleton } from '../../components/ListSkeleton'
 import { Button, Input, Alert, PageHeader } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
 
@@ -78,7 +78,14 @@ export default function HMCompanyProfile() {
     }
   }
 
-  if (loading) return <LoadingSpinner full />
+  if (loading) {
+    return (
+      <div className="max-w-xl">
+        <PageHeader title="Company profile" description="Your professional details and company information." />
+        <FormSkeleton fields={8} />
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-xl">

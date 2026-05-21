@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSession } from '../../../state/useSession'
 import { supabase } from '../../../lib/supabase'
 import { callFunction } from '../../../lib/functions'
-import LoadingSpinner from '../../../components/LoadingSpinner'
+import ListSkeleton from '../../../components/ListSkeleton'
 import { Button, Alert, Input } from '../../../components/ui'
 
 interface FloatingHM {
@@ -24,19 +24,21 @@ export default function LinkHMPanel() {
   const userId = session?.user.id
   const userEmail = session?.user.email ?? null
   const [search, setSearch] = useState('')
-  const [floaters, setFloaters] = useState<FloatingHM[]>([])
-  const [linked, setLinked] = useState<LinkedHM[]>([])
-  const [loading, setLoading] = useState(true)
+  const [floaters, setFloaters] = useState<FloatingHM[] | null>(null)
+  const [linked, setLinked] = useState<LinkedHM[] | null>(null)
+  // `loading` kept as a no-op so existing setLoading() call sites don't need
+  // structural changes; render path now drives off `floaters == null` etc.
+  const setLoading = (_v: boolean) => { /* no-op */ }
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [done, setDone] = useState<Record<string, string>>({}) // hm_id → mode used
 
   async function load() {
-    if (!userId || !userEmail) { setLoading(false); return }
+    if (!userId || !userEmail) { setFloaters([]); setLinked([]); setLoading(false); return }
     setLoading(true)
     try {
       const { data: comp } = await supabase.from('companies').select('id').eq('primary_hr_email', userEmail).maybeSingle()
-      if (!comp) { setLoading(false); return }
+      if (!comp) { setFloaters([]); setLinked([]); setLoading(false); return }
 
       // Floating HMs (no company) — visible via hm_select_hr_floating policy.
       const { data: floatData } = await supabase
@@ -71,6 +73,8 @@ export default function LinkHMPanel() {
       setLoading(false)
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Load failed')
+      setFloaters((cur) => cur ?? [])
+      setLinked((cur) => cur ?? [])
       setLoading(false)
     }
   }
@@ -91,7 +95,7 @@ export default function LinkHMPanel() {
     setBusy(null)
   }
 
-  const filtered = floaters.filter((hm) => {
+  const filtered = (floaters ?? []).filter((hm) => {
     if (!search) return true
     const q = search.toLowerCase()
     return (
@@ -101,8 +105,6 @@ export default function LinkHMPanel() {
     )
   })
 
-  if (loading) return <LoadingSpinner />
-
   return (
     <div className="space-y-8">
       {err && <Alert tone="red">{err}</Alert>}
@@ -111,7 +113,7 @@ export default function LinkHMPanel() {
       <section>
         <div className="flex items-center gap-3 mb-4">
           <h2 className="text-sm font-semibold text-gray-800">
-            Unlinked hiring managers{floaters.length > 0 ? ` (${floaters.length})` : ''}
+            Unlinked hiring managers{(floaters?.length ?? 0) > 0 ? ` (${floaters!.length})` : ''}
           </h2>
           <button onClick={() => void load()} className="text-xs border px-2 py-1 rounded hover:bg-gray-50">
             Refresh
@@ -130,7 +132,9 @@ export default function LinkHMPanel() {
           />
         </div>
 
-        {filtered.length === 0 ? (
+        {floaters == null ? (
+          <ListSkeleton rows={3} variant="row" />
+        ) : filtered.length === 0 ? (
           <p className="text-sm text-gray-400">No unlinked hiring managers found.</p>
         ) : (
           <div className="space-y-2">
@@ -184,13 +188,13 @@ export default function LinkHMPanel() {
       </section>
 
       {/* Already-linked HMs */}
-      {linked.length > 0 && (
+      {(linked?.length ?? 0) > 0 && (
         <section>
           <h2 className="text-sm font-semibold text-gray-800 mb-3">
-            Your hiring managers ({linked.length})
+            Your hiring managers ({linked!.length})
           </h2>
           <div className="space-y-2">
-            {linked.map((hm) => (
+            {linked!.map((hm) => (
               <div key={hm.id} className="bg-gray-50 border rounded-lg p-3 flex items-center gap-3">
                 <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold shrink-0">
                   {(hm.profiles?.full_name ?? '?')[0].toUpperCase()}

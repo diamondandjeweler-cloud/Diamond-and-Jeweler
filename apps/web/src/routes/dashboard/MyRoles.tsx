@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { callFunction } from '../../lib/functions'
-import LoadingSpinner from '../../components/LoadingSpinner'
 import { Button, Card, Badge, Alert, EmptyState, PageHeader, BadgeTone } from '../../components/ui'
+import ListSkeleton from '../../components/ListSkeleton'
 import { useSeo } from '../../lib/useSeo'
+import { readDashCache, writeDashCache } from '../../lib/dashboardCache'
 
 type RoleStatus = 'active' | 'paused' | 'filled' | 'expired'
 type ModerationStatus = 'pending' | 'approved' | 'flagged' | 'rejected'
@@ -40,8 +41,16 @@ export default function MyRoles() {
   useSeo({ title: 'My roles', noindex: true })
   const { session } = useSession()
   const userId = session?.user.id
-  const [rows, setRows] = useState<RoleRow[]>([])
-  const [loading, setLoading] = useState(true)
+  // Hydrate the role list synchronously from the per-user cache so the page
+  // renders with content on returning visits. null = "still fetching", []
+  // = "fetched, empty" (shows EmptyState).
+  const cached = useState(() => readDashCache<RoleRow[]>('my_roles', userId))[0]
+  const [rows, setRows] = useState<RoleRow[] | null>(cached)
+  // `loading` boolean was previously gating the page with a blocking spinner.
+  // The render path no longer reads it (skeleton renders from `rows == null`).
+  // Kept as a no-op so reload()/submitAppeal()'s setLoading() calls don't need
+  // structural changes.
+  const setLoading = (_v: boolean) => { /* no-op; rows == null drives skeleton */ }
   const [err, setErr] = useState<string | null>(null)
   const [appeal, setAppeal] = useState<{ role: RoleRow; text: string; busy: boolean; err: string | null } | null>(null)
 
@@ -71,34 +80,51 @@ export default function MyRoles() {
 
   async function reload() {
     setLoading(true)
-    const { data: hm } = await supabase.from('hiring_managers').select('id').eq('profile_id', userId!).maybeSingle()
-    if (!hm) { setLoading(false); return }
+    try {
+      const { data: hm } = await supabase.from('hiring_managers').select('id').eq('profile_id', userId!).maybeSingle()
+      if (!hm) {
+        // No HM row — settle to empty so EmptyState renders instead of indefinite skeleton.
+        setRows([])
+        writeDashCache<RoleRow[]>('my_roles', userId, [])
+        setLoading(false); return
+      }
 
-    const { data: roles, error } = await supabase
-      .from('roles')
-      .select('id, title, department, location, work_arrangement, experience_level, salary_min, salary_max, required_traits, required_skills, headcount, min_education_level, start_urgency, open_to, languages_required, status, created_at, vacancy_expires_at, moderation_status, moderation_reason, moderation_appealed_at, moderation_reviewed_at')
-      .eq('hiring_manager_id', hm.id)
-      .order('created_at', { ascending: false })
-    if (error) { setErr(error.message); setLoading(false); return }
+      const { data: roles, error } = await supabase
+        .from('roles')
+        .select('id, title, department, location, work_arrangement, experience_level, salary_min, salary_max, required_traits, required_skills, headcount, min_education_level, start_urgency, open_to, languages_required, status, created_at, vacancy_expires_at, moderation_status, moderation_reason, moderation_appealed_at, moderation_reviewed_at')
+        .eq('hiring_manager_id', hm.id)
+        .order('created_at', { ascending: false })
+      if (error) {
+        setErr(error.message)
+        // Preserve any cached rows on error — null sentinel never replaces real data.
+        setRows((cur) => cur ?? [])
+        setLoading(false); return
+      }
 
-    const roleList = (roles ?? []) as RoleRow[]
-    const withCounts = await Promise.all(roleList.map(async (r) => {
-      const { count } = await supabase.from('matches').select('id', { count: 'exact', head: true })
-        .eq('role_id', r.id)
-        .in('status', ['generated', 'viewed', 'accepted_by_talent', 'invited_by_manager', 'hr_scheduling', 'interview_scheduled'])
-      return { ...r, match_count: count ?? 0 }
-    }))
-    setRows(withCounts)
-    setLoading(false)
+      const roleList = (roles ?? []) as RoleRow[]
+      const withCounts = await Promise.all(roleList.map(async (r) => {
+        const { count } = await supabase.from('matches').select('id', { count: 'exact', head: true })
+          .eq('role_id', r.id)
+          .in('status', ['generated', 'viewed', 'accepted_by_talent', 'invited_by_manager', 'hr_scheduling', 'interview_scheduled'])
+        return { ...r, match_count: count ?? 0 }
+      }))
+      setRows(withCounts)
+      writeDashCache<RoleRow[]>('my_roles', userId, withCounts)
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Failed to load roles')
+      setRows((cur) => cur ?? [])
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function setStatus(id: string, next: RoleStatus) {
-    const prev = rows.find((r) => r.id === id)?.status
-    setRows((xs) => xs.map((r) => (r.id === id ? { ...r, status: next } : r)))
+    const prev = rows?.find((r) => r.id === id)?.status
+    setRows((xs) => (xs ?? []).map((r) => (r.id === id ? { ...r, status: next } : r)))
     const { error } = await supabase.from('roles').update({ status: next }).eq('id', id)
     if (error) {
       setErr(error.message)
-      setRows((xs) => xs.map((r) => (r.id === id ? { ...r, status: prev ?? r.status } : r)))
+      setRows((xs) => (xs ?? []).map((r) => (r.id === id ? { ...r, status: prev ?? r.status } : r)))
       return
     }
     if (next === 'active') {
@@ -110,13 +136,12 @@ export default function MyRoles() {
 
   async function extendVacancy(id: string) {
     const newExpiry = new Date(Date.now() + 45 * 86400000).toISOString()
-    setRows((xs) => xs.map((r) => (r.id === id ? { ...r, vacancy_expires_at: newExpiry } : r)))
+    setRows((xs) => (xs ?? []).map((r) => (r.id === id ? { ...r, vacancy_expires_at: newExpiry } : r)))
     const { error } = await supabase.from('roles').update({ vacancy_expires_at: newExpiry }).eq('id', id)
     if (error) { setErr(error.message) }
   }
 
-  if (loading) return <LoadingSpinner />
-
+  // Shell renders immediately; the list section renders skeleton -> empty -> data.
   return (
     <div>
       <PageHeader
@@ -177,7 +202,9 @@ export default function MyRoles() {
         </div>
       )}
 
-      {rows.length === 0 ? (
+      {rows == null ? (
+        <ListSkeleton rows={3} variant="card" />
+      ) : rows.length === 0 ? (
         <Card>
           <EmptyState
             title="No roles yet"

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { callFunction } from '../../../lib/functions'
-import LoadingSpinner from '../../../components/LoadingSpinner'
+import ListSkeleton from '../../../components/ListSkeleton'
 
 type ModStatus = 'pending' | 'flagged' | 'rejected' | 'approved'
 
@@ -259,7 +259,7 @@ export default function ModerationPanel() {
 
       {err && <p className="text-sm text-red-600 mb-3">{err}</p>}
 
-      {loading ? <LoadingSpinner /> : rows.length === 0 ? (
+      {loading ? <ListSkeleton rows={5} variant="row" /> : rows.length === 0 ? (
         <p className="text-sm text-gray-500">Nothing in this bucket.</p>
       ) : (
         <div className="space-y-2">

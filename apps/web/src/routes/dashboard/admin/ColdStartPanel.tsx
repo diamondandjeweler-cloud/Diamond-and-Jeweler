@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
-import LoadingSpinner from '../../../components/LoadingSpinner'
+import ListSkeleton from '../../../components/ListSkeleton'
 
 interface ColdStartRole {
   queue_id: string
@@ -118,7 +118,7 @@ export default function ColdStartPanel() {
     await reloadQueue()
   }
 
-  if (loading) return <LoadingSpinner />
+  if (loading) return <ListSkeleton rows={5} variant="row" />
 
   const autoSwitchReached = (activeTalents ?? 0) >= COLD_START_AUTO_SWITCH_THRESHOLD
 

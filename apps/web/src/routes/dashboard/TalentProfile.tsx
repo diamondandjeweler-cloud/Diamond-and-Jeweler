@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
-import LoadingSpinner from '../../components/LoadingSpinner'
+import { FormSkeleton } from '../../components/ListSkeleton'
 import { PREFERENCE_ASPECTS } from '../../data/preference-aspects'
 import { useTranslation } from 'react-i18next'
 import { useSeo } from '../../lib/useSeo'
@@ -218,7 +218,7 @@ export default function TalentProfile() {
     navigate('/talent')
   }
 
-  if (loading) return <LoadingSpinner />
+  if (loading) return <FormSkeleton fields={10} />
   if (!talent) {
     return (
       <div className="max-w-lg mx-auto text-center">

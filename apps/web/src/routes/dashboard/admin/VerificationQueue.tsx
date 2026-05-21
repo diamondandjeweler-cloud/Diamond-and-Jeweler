@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
-import LoadingSpinner from '../../../components/LoadingSpinner'
+import ListSkeleton from '../../../components/ListSkeleton'
 
 interface CompanyRow {
   id: string
@@ -12,8 +12,8 @@ interface CompanyRow {
 }
 
 export default function VerificationQueue() {
-  const [rows, setRows] = useState<CompanyRow[]>([])
-  const [loading, setLoading] = useState(true)
+  // PII-bearing list (company HR emails); never cached, just skeleton-on-load.
+  const [rows, setRows] = useState<CompanyRow[] | null>(null)
   const [err, setErr] = useState<string | null>(null)
 
   useEffect(() => {
@@ -26,9 +26,8 @@ export default function VerificationQueue() {
       .limit(100)
       .then(({ data, error }) => {
         if (cancelled) return
-        if (error) setErr(error.message)
-        else setRows((data ?? []) as CompanyRow[])
-        setLoading(false)
+        if (error) { setErr(error.message); setRows([]); return }
+        setRows((data ?? []) as CompanyRow[])
       })
     return () => { cancelled = true }
   }, [])
@@ -39,7 +38,7 @@ export default function VerificationQueue() {
       .update({ verified: true, verified_at: new Date().toISOString() })
       .eq('id', id)
     if (error) setErr(error.message)
-    else setRows((rs) => rs.filter((r) => r.id !== id))
+    else setRows((rs) => (rs ?? []).filter((r) => r.id !== id))
   }
 
   async function viewLicense(path: string) {
@@ -48,11 +47,12 @@ export default function VerificationQueue() {
     window.open(data.signedUrl, '_blank')
   }
 
-  if (loading) return <LoadingSpinner />
   return (
     <div>
       {err && <p className="text-sm text-red-600 mb-3">{err}</p>}
-      {rows.length === 0 ? (
+      {rows == null ? (
+        <ListSkeleton rows={5} variant="row" />
+      ) : rows.length === 0 ? (
         <p className="text-sm text-gray-600">All companies verified.</p>
       ) : (
         <div className="space-y-2">

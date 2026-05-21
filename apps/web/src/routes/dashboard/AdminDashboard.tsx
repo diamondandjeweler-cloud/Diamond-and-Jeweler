@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState } from 'react'
 import TabButton from './admin/TabButton'
-import LoadingSpinner from '../../components/LoadingSpinner'
+import ListSkeleton from '../../components/ListSkeleton'
 import { PageHeader } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
 import { useSession } from '../../state/useSession'
@@ -85,7 +85,7 @@ export default function AdminDashboard() {
       </div>
 
       <section role="tabpanel" aria-label={active.label} className="animate-fade-in">
-        <Suspense fallback={<LoadingSpinner />}>
+        <Suspense fallback={<ListSkeleton rows={4} variant="row" />}>
           {active.render()}
         </Suspense>
       </section>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
-import LoadingSpinner from '../../../components/LoadingSpinner'
+import ListSkeleton from '../../../components/ListSkeleton'
 import { formatError } from '../../../lib/errors'
 
 // F14 — switched from a direct PostgREST select on `audit_log` to a
@@ -142,7 +142,7 @@ export default function AuditLogPanel() {
 
       {err && <p className="text-sm text-red-600 mb-3">{err}</p>}
       {loading ? (
-        <LoadingSpinner />
+        <ListSkeleton rows={5} variant="row" />
       ) : rows.length === 0 ? (
         <p className="text-sm text-gray-500">No events match this view.</p>
       ) : (

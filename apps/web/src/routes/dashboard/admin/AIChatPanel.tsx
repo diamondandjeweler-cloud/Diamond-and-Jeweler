@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
-import LoadingSpinner from '../../../components/LoadingSpinner'
+import ListSkeleton from '../../../components/ListSkeleton'
 
 type Endpoint = 'chat-support' | 'chat-onboard'
 type UserRoleFilter = 'talent' | 'hiring_manager' | 'hr_admin' | 'admin' | 'all'
@@ -286,7 +286,7 @@ export default function AIChatPanel() {
       </div>
 
       {loading ? (
-        <LoadingSpinner />
+        <ListSkeleton rows={5} variant="row" />
       ) : tab === 'conversations' ? (
         conversations.length === 0 ? (
           <p className="text-ink-500 text-sm text-center py-12">No conversations match these filters.</p>

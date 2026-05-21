@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
-import LoadingSpinner from '../../../components/LoadingSpinner'
+import ListSkeleton from '../../../components/ListSkeleton'
 
 interface TagRow {
   id: string
@@ -49,7 +49,7 @@ export default function TagPanel() {
     else await reload()
   }
 
-  if (loading) return <LoadingSpinner />
+  if (loading) return <ListSkeleton rows={6} variant="row" />
   return (
     <div>
       {err && <p className="text-sm text-red-600 mb-3">{err}</p>}

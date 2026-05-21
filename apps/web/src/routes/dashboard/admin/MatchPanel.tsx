@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
-import LoadingSpinner from '../../../components/LoadingSpinner'
+import ListSkeleton from '../../../components/ListSkeleton'
 import { formatError } from '../../../lib/errors'
 
 // F8 — Switched from a direct PostgREST embed (`from('matches').select('…,
@@ -85,7 +85,7 @@ export default function MatchPanel() {
         </button>
       </div>
       {err && <p className="text-sm text-red-600 mb-2">{err}</p>}
-      {loading ? <LoadingSpinner /> : (
+      {loading ? <ListSkeleton rows={5} variant="row" /> : (
         rows.length === 0 ? <p className="text-sm text-gray-500">No matches in this view.</p> : (
           <div className="space-y-2">
             {rows.map((m) => (

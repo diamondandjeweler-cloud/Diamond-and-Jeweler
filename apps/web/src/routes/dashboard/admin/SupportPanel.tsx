@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
-import LoadingSpinner from '../../../components/LoadingSpinner'
+import ListSkeleton from '../../../components/ListSkeleton'
 
 type TicketStatus = 'open' | 'in_progress' | 'resolved'
 type TicketCategory = 'enquiry' | 'bug' | 'feature' | 'payment'
@@ -135,7 +135,7 @@ export default function SupportPanel() {
       </div>
 
       {loading ? (
-        <LoadingSpinner />
+        <ListSkeleton rows={5} variant="row" />
       ) : tickets.length === 0 ? (
         <p className="text-ink-500 text-sm text-center py-12">No tickets found.</p>
       ) : (

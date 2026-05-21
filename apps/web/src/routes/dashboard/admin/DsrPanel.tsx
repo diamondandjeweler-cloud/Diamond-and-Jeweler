@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { callFunction } from '../../../lib/functions'
-import LoadingSpinner from '../../../components/LoadingSpinner'
+import ListSkeleton from '../../../components/ListSkeleton'
 
 interface CorrectionItem { field: string; new_value: unknown }
 
@@ -100,7 +100,7 @@ export default function DsrPanel() {
     }
   }
 
-  if (loading) return <LoadingSpinner />
+  if (loading) return <ListSkeleton rows={4} variant="row" />
 
   return (
     <div>

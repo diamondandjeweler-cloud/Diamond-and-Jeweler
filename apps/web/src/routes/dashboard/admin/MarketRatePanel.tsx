@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
-import LoadingSpinner from '../../../components/LoadingSpinner'
+import ListSkeleton from '../../../components/ListSkeleton'
 
 interface MarketRow {
   id: string
@@ -78,7 +78,7 @@ export default function MarketRatePanel() {
     await reload()
   }
 
-  if (loading) return <LoadingSpinner />
+  if (loading) return <ListSkeleton rows={5} variant="row" />
 
   return (
     <div>

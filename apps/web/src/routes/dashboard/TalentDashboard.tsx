@@ -183,7 +183,17 @@ export default function TalentDashboard() {
             .maybeSingle(),
         ])
         if (cancelled) return
-        if (!talent) return
+        if (!talent) {
+          // User has a profile but no talents row yet (mid-onboarding, or test
+          // account without seed data). Settle the matches slot to empty so the
+          // KPI numbers + offer-card area show their EmptyState instead of
+          // shimmering skeletons forever.
+          setMatches([])
+          writeDashCache<TalentCacheSnapshot>('talent_dashboard', userId, {
+            matchesCount: 0, openCount: 0, inFlightCount: 0,
+          })
+          return
+        }
         setExtractionStatus((talent as unknown as { extraction_status: string | null }).extraction_status ?? 'complete')
         talentId = talent.id
         setExtraUsed(talent.extra_matches_used ?? 0)

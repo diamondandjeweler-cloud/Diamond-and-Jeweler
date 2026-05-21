@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
@@ -6,6 +6,7 @@ import { FormSkeleton } from '../../components/ListSkeleton'
 import { PREFERENCE_ASPECTS } from '../../data/preference-aspects'
 import { useTranslation } from 'react-i18next'
 import { useSeo } from '../../lib/useSeo'
+import { signedUrl, uploadPrivate } from '../../lib/storage'
 
 type PrivacyMode = 'public' | 'anonymous' | 'whitelist'
 
@@ -21,6 +22,7 @@ interface TalentRow {
   extraction_status: 'pending' | 'processing' | 'complete' | 'failed' | null
   extraction_error: string | null
   extraction_started_at: string | null
+  photo_url: string | null
 }
 
 export default function TalentProfile() {
@@ -55,6 +57,95 @@ export default function TalentProfile() {
   const [retryMsg, setRetryMsg] = useState<string | null>(null)
 
   const [busy, setBusy] = useState(false)
+
+  const [photoBusy, setPhotoBusy] = useState(false)
+  const [resumeBusy, setResumeBusy] = useState(false)
+  const [docMsg, setDocMsg] = useState<string | null>(null)
+  const cachedResumeRef = useRef<{ storage_path: string; file_name: string } | null>(null)
+
+  async function viewPhoto() {
+    if (!talent) return
+    if (!talent.photo_url) { setDocMsg('No photo on file.'); return }
+    setDocMsg(null); setPhotoBusy(true)
+    try {
+      const url = await signedUrl('talent-photos', talent.photo_url, 60)
+      window.open(url, '_blank', 'noopener,noreferrer')
+    } catch (e) {
+      setDocMsg(`Could not load photo: ${(e as Error).message}`)
+    } finally {
+      setPhotoBusy(false)
+    }
+  }
+
+  async function onPhotoFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !session || !talent) return
+    setDocMsg(null); setPhotoBusy(true)
+    try {
+      const path = await uploadPrivate('talent-photos', file, session.user.id, file.name)
+      const { error } = await supabase.from('talents').update({ photo_url: path }).eq('id', talent.id)
+      if (error) throw error
+      setTalent({ ...talent, photo_url: path })
+      setDocMsg('Photo updated.')
+    } catch (e) {
+      setDocMsg(`Upload failed: ${(e as Error).message}`)
+    } finally {
+      setPhotoBusy(false)
+    }
+  }
+
+  async function viewResume() {
+    if (!talent) return
+    setDocMsg(null); setResumeBusy(true)
+    try {
+      let doc = cachedResumeRef.current
+      if (!doc) {
+        const { data, error } = await supabase
+          .from('talent_documents')
+          .select('storage_path, file_name')
+          .eq('talent_id', talent.id)
+          .eq('doc_type', 'resume')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        if (error) throw error
+        if (!data) { setDocMsg('No resume on file.'); return }
+        doc = { storage_path: data.storage_path as string, file_name: data.file_name as string }
+        cachedResumeRef.current = doc
+      }
+      const url = await signedUrl('resumes', doc.storage_path, 60)
+      window.open(url, '_blank', 'noopener,noreferrer')
+    } catch (e) {
+      setDocMsg(`Could not load resume: ${(e as Error).message}`)
+    } finally {
+      setResumeBusy(false)
+    }
+  }
+
+  async function onResumeFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !session || !talent) return
+    setDocMsg(null); setResumeBusy(true)
+    try {
+      const path = await uploadPrivate('resumes', file, session.user.id, file.name)
+      const { error } = await supabase.from('talent_documents').insert({
+        talent_id: talent.id,
+        doc_type: 'resume',
+        storage_path: path,
+        file_name: file.name,
+        purge_after: null,
+      })
+      if (error) throw error
+      cachedResumeRef.current = { storage_path: path, file_name: file.name }
+      setDocMsg('Resume updated.')
+    } catch (e) {
+      setDocMsg(`Upload failed: ${(e as Error).message}`)
+    } finally {
+      setResumeBusy(false)
+    }
+  }
 
   useEffect(() => {
     if (profile) {
@@ -103,7 +194,7 @@ export default function TalentProfile() {
       try {
         const { data, error } = await supabase
           .from('talents')
-          .select('id, expected_salary_min, expected_salary_max, is_open_to_offers, privacy_mode, whitelist_companies, preference_ratings, parsed_resume, extraction_status, extraction_error, extraction_started_at')
+          .select('id, expected_salary_min, expected_salary_max, is_open_to_offers, privacy_mode, whitelist_companies, preference_ratings, parsed_resume, extraction_status, extraction_error, extraction_started_at, photo_url')
           .eq('profile_id', userId)
           .maybeSingle()
         if (cancelled) return
@@ -304,6 +395,56 @@ export default function TalentProfile() {
             <p className="text-sm text-ink-500">No summary yet — complete your profile chat to generate this.</p>
           </div>
         ) : null}
+
+        <section className="mb-6 border-t pt-4">
+          <h2 className="font-semibold mb-2">Documents</h2>
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm w-24 text-gray-700">Photo</span>
+              <button
+                type="button"
+                onClick={() => void viewPhoto()}
+                disabled={photoBusy}
+                className="px-3 py-1.5 border rounded text-sm hover:bg-gray-50 disabled:opacity-50"
+              >
+                {photoBusy ? 'Loading…' : 'View photo'}
+              </button>
+              <label className="px-3 py-1.5 border rounded text-sm hover:bg-gray-50 cursor-pointer">
+                Replace photo
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png"
+                  className="hidden"
+                  onChange={(e) => void onPhotoFile(e)}
+                  disabled={photoBusy}
+                />
+              </label>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm w-24 text-gray-700">Resume</span>
+              <button
+                type="button"
+                onClick={() => void viewResume()}
+                disabled={resumeBusy}
+                className="px-3 py-1.5 border rounded text-sm hover:bg-gray-50 disabled:opacity-50"
+              >
+                {resumeBusy ? 'Loading…' : 'View resume'}
+              </button>
+              <label className="px-3 py-1.5 border rounded text-sm hover:bg-gray-50 cursor-pointer">
+                Replace resume
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  className="hidden"
+                  onChange={(e) => void onResumeFile(e)}
+                  disabled={resumeBusy}
+                />
+              </label>
+            </div>
+            {docMsg && <p className="text-xs text-ink-700">{docMsg}</p>}
+            <p className="text-xs text-gray-500">Files open in a new tab via a short-lived secure link.</p>
+          </div>
+        </section>
 
         <form onSubmit={save} className="space-y-6">
           <section>

@@ -85,17 +85,26 @@ export const useSession = create<SessionState>((set) => ({
         set({ session: null, profile: null, isHM: false, loading: false })
         return
       }
+      const cached = loadCachedProfile()
+      const validCache = cached && cached.id === data.session.user.id
       const [profile, isHM] = await Promise.all([
         fetchProfile(data.session.user.id).catch((e) => {
           console.error('[session] fetchProfile failed', e)
-          return null
+          // Same cache-preservation guard as the bootstrap path — never let a
+          // transient fetch error overwrite a valid cached profile with null.
+          return validCache ? cached : null
         }),
         fetchIsHM(data.session.user.id),
       ])
-      set({ session: data.session, profile, isHM, loading: false })
+      const finalProfile = profile ?? (validCache ? cached : null)
+      set({ session: data.session, profile: finalProfile, isHM, loading: false })
+      if (finalProfile) saveCachedProfile(finalProfile)
     } catch (e) {
+      // F-cache regression — don't blow away the session/profile on a
+      // network-level failure of getSession(). The user might still have
+      // a valid local session that just couldn't be re-verified this round.
       console.error('[session] refresh failed', e)
-      set({ session: null, profile: null, isHM: false, loading: false })
+      set({ loading: false })
     }
   },
   signOut: async () => {
@@ -296,7 +305,29 @@ export function bootstrapSession() {
       // the dedup key so a subsequent TOKEN_REFRESHED or refresh() call gets
       // another shot at fetching it. Otherwise the user is trapped on the
       // spinner until they manually reload.
-      if (!finalProfile) lastFetchedFor = null
+      if (!finalProfile) {
+        lastFetchedFor = null
+        // Proactive retry ladder — TOKEN_REFRESHED only fires ~hourly, so
+        // without this the user stays on the spinner indefinitely. Retry
+        // refresh() at 3s, 8s, 18s (jittered). After the third attempt the
+        // surrounding gate UI (ConsentGate retry escape hatch / route-level
+        // error boundary) takes over and offers manual sign-out.
+        const session2 = session
+        const retryDelays = [3_000, 5_000, 10_000]
+        retryDelays.forEach((delay, i) => {
+          setTimeout(() => {
+            // Bail if user signed out, navigated to a different session, or
+            // profile arrived in the meantime.
+            const cur = useSession.getState()
+            if (!cur.session || cur.session.user.id !== session2.user.id) return
+            if (cur.profile) return
+            console.warn(`[session] profile retry #${i + 1} firing (cache empty, last fetch failed)`)
+            useSession.getState().refresh().catch((err) => {
+              console.error(`[session] profile retry #${i + 1} failed`, err)
+            })
+          }, delay)
+        })
+      }
     } catch (e) {
       console.error('[session] onAuthStateChange failed', e)
       useSession.setState({ loading: false })

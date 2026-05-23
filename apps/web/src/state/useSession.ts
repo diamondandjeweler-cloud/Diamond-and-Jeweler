@@ -54,16 +54,32 @@ function clearAuthHintCookie() {
 }
 
 async function fetchIsHM(userId: string): Promise<boolean> {
-  const { data, error } = await supabase
-    .from('hiring_managers')
-    .select('id')
-    .eq('profile_id', userId)
-    .maybeSingle()
-  if (error) {
-    console.error('[session] fetchIsHM failed', error)
+  // IMPORTANT: this uses an explicit authenticated REST fetch rather than the
+  // supabase-js query builder. Empirically (verified live), the builder's
+  // `.from('hiring_managers').eq('profile_id', me)` returns 0 rows here even
+  // for a user who has the row — while an identical raw fetch carrying the same
+  // access token + apikey returns it. The builder appears not to attach the
+  // user token to this particular request, yielding an anon-scoped false
+  // negative that wrongly bounces "Switch to HM view". Reading the token from
+  // getSession() and attaching it ourselves is deterministic.
+  try {
+    const { data: sess } = await supabase.auth.getSession()
+    const token = sess.session?.access_token
+    if (!token) return false
+    const base = import.meta.env.VITE_SUPABASE_URL as string
+    const apikey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+    const url = `${base}/rest/v1/hiring_managers?select=id&profile_id=eq.${encodeURIComponent(userId)}&limit=1`
+    const r = await fetch(url, { headers: { apikey, Authorization: `Bearer ${token}` } })
+    if (!r.ok) {
+      console.error('[session] fetchIsHM failed', r.status)
+      return false
+    }
+    const rows = (await r.json()) as unknown[]
+    return Array.isArray(rows) && rows.length > 0
+  } catch (e) {
+    console.error('[session] fetchIsHM threw', e)
     return false
   }
-  return !!data
 }
 
 export const useSession = create<SessionState>((set) => ({

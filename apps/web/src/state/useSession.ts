@@ -63,14 +63,11 @@ async function fetchIsHM(userId: string): Promise<boolean> {
   // negative that wrongly bounces "Switch to HM view". Reading the token from
   // getSession() and attaching it ourselves is deterministic.
   try {
-    let { data: sess } = await supabase.auth.getSession()
-    // Freshness guard: a token within 120s of expiry (or already expired) would
-    // 401 the query and yield a false "not an HM". Force a refresh first.
-    const expAt = sess.session?.expires_at ?? 0
-    if (!sess.session || (expAt - Date.now() / 1000) < 120) {
-      const { data: refreshed } = await supabase.auth.refreshSession()
-      if (refreshed.session) sess = refreshed
-    }
+    // getSession() transparently refreshes an expired/near-expiry token. With
+    // the in-tab serializing lock (lib/supabase.ts) this no longer races the
+    // auto-refresh tick, so the token it returns is valid — no explicit
+    // refreshSession() needed (that would just add another racer).
+    const { data: sess } = await supabase.auth.getSession()
     const token = sess.session?.access_token
     if (!token) return false
     const base = import.meta.env.VITE_SUPABASE_URL as string

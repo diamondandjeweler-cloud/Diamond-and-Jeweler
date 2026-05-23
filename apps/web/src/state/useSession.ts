@@ -54,16 +54,32 @@ function clearAuthHintCookie() {
 }
 
 async function fetchIsHM(userId: string): Promise<boolean> {
-  const { data, error } = await supabase
-    .from('hiring_managers')
-    .select('id')
-    .eq('profile_id', userId)
-    .maybeSingle()
-  if (error) {
-    console.error('[session] fetchIsHM failed', error)
-    return false
+  // Auth-context-drop guard. supabase-js sometimes fires this query before the
+  // access token has propagated to PostgREST (most visible right after
+  // INITIAL_SESSION at bootstrap). PostgREST then treats the request as anon,
+  // the hiring_managers RLS "see-own-row" policy returns 0 rows, and we'd
+  // wrongly conclude the user isn't a hiring manager — which permanently
+  // bounces "Switch to HM view" for HR users who are also HMs.
+  //
+  // A row is authoritative (return true immediately). A null result is NOT
+  // trusted on the first try: warm the session and retry once before
+  // concluding false. This is the same class of fix as the get_admin_kpis /
+  // get_admin_audit_log RPCs created for the analytics panels.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const { data, error } = await supabase
+      .from('hiring_managers')
+      .select('id')
+      .eq('profile_id', userId)
+      .maybeSingle()
+    if (error) console.error('[session] fetchIsHM failed', error)
+    if (data) return true
+    if (attempt === 0) {
+      // Warm the auth token, then retry once.
+      try { await supabase.auth.getSession() } catch { /* tolerate */ }
+      await new Promise((r) => setTimeout(r, 250))
+    }
   }
-  return !!data
+  return false
 }
 
 export const useSession = create<SessionState>((set) => ({
@@ -171,7 +187,12 @@ function loadCachedIsHM(userId: string): boolean | null {
 
 function saveCachedIsHM(userId: string | null, isHM: boolean) {
   try {
-    if (userId) localStorage.setItem(ISHM_CACHE_KEY, JSON.stringify({ userId, isHM } satisfies IsHMCacheEntry))
+    // Only persist a POSITIVE result. A false is frequently a transient
+    // auth-context false-negative on the hiring_managers select; caching it
+    // would make "Switch to HM view" permanently bounce across reloads.
+    // Non-HMs (the majority — all talents) simply re-fetch each load, which
+    // is one cheap indexed lookup and never blocks render.
+    if (userId && isHM) localStorage.setItem(ISHM_CACHE_KEY, JSON.stringify({ userId, isHM } satisfies IsHMCacheEntry))
     else localStorage.removeItem(ISHM_CACHE_KEY)
   } catch { /* tolerate */ }
 }

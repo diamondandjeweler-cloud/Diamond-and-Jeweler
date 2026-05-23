@@ -63,7 +63,14 @@ async function fetchIsHM(userId: string): Promise<boolean> {
   // negative that wrongly bounces "Switch to HM view". Reading the token from
   // getSession() and attaching it ourselves is deterministic.
   try {
-    const { data: sess } = await supabase.auth.getSession()
+    let { data: sess } = await supabase.auth.getSession()
+    // Freshness guard: a token within 120s of expiry (or already expired) would
+    // 401 the query and yield a false "not an HM". Force a refresh first.
+    const expAt = sess.session?.expires_at ?? 0
+    if (!sess.session || (expAt - Date.now() / 1000) < 120) {
+      const { data: refreshed } = await supabase.auth.refreshSession()
+      if (refreshed.session) sess = refreshed
+    }
     const token = sess.session?.access_token
     if (!token) return false
     const base = import.meta.env.VITE_SUPABASE_URL as string
@@ -202,10 +209,32 @@ function saveCachedIsHM(userId: string | null, isHM: boolean) {
   } catch { /* tolerate */ }
 }
 
+// Re-warm the auth session whenever the tab regains focus. Background tabs
+// throttle timers, so supabase-js's auto-refresh can miss a token rotation
+// while hidden — and the noopLock in lib/supabase.ts removes the cross-tab
+// coordination that would otherwise catch up. A token then expires unnoticed;
+// the next query 401s ("JWT expired") and the app appears frozen until a
+// manual reload. getSession() refreshes a stale token on demand, so calling it
+// on visibility/focus restores a valid token before the user's next action.
+let visibilityRewarmWired = false
+function wireVisibilityRewarm() {
+  if (visibilityRewarmWired || typeof document === 'undefined') return
+  visibilityRewarmWired = true
+  const rewarm = () => {
+    if (document.visibilityState !== 'visible') return
+    // getSession() returns the stored session and transparently refreshes it
+    // if the access token is expired/near-expiry. Fire-and-forget.
+    void supabase.auth.getSession().catch(() => { /* tolerate */ })
+  }
+  document.addEventListener('visibilitychange', rewarm)
+  window.addEventListener('focus', rewarm)
+}
+
 let bootstrapped = false
 export function bootstrapSession() {
   if (bootstrapped) return
   bootstrapped = true
+  wireVisibilityRewarm()
 
   // Wipe stale PKCE verifiers from prior abandoned sign-ins. A verifier is only
   // valid between the redirect-to-Google and the callback exchange; if one is

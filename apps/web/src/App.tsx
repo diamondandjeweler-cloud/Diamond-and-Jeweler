@@ -90,12 +90,24 @@ const Reports          = lazy(() => import('./routes/restaurant/Reports'))
 const RestaurantAdmin  = lazy(() => import('./routes/restaurant/Admin'))
 
 export default function App() {
-  const { loading, session, profile } = useSession()
+  const { loading, session, profile, isHM } = useSession()
   useEffect(() => { bootstrapSession() }, [])
   // Once we know the user's role, prefetch their likely dashboard chunk in
   // the background. By the time they click "Home" / "Dashboard", the chunk
   // is already in the browser's module cache — zero wait.
   useEffect(() => { if (profile?.role) prefetchRoleHome(profile.role) }, [profile?.role])
+
+  // Self-heal isHM for hr_admin users. The bootstrap fetchIsHM runs inside
+  // onAuthStateChange, where supabase-js can fail to attach the auth token to
+  // PostgREST — yielding a false-negative that bounces "Switch to HM view".
+  // refreshIsHM() runs here in a normal effect context (auth token reliably
+  // attached), so it re-resolves the true value. Only fires for hr_admin with
+  // isHM still false — talents/HMs are unaffected; one cheap query at most.
+  useEffect(() => {
+    if (session && profile?.role === 'hr_admin' && !isHM) {
+      void useSession.getState().refreshIsHM()
+    }
+  }, [session, profile?.role, isHM])
 
   // Initial session check — show the route skeleton instead of a centred spinner
   // so the perceived layout matches what's about to render. LoadingSpinner kept

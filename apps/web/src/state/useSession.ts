@@ -54,32 +54,16 @@ function clearAuthHintCookie() {
 }
 
 async function fetchIsHM(userId: string): Promise<boolean> {
-  // Auth-context-drop guard. supabase-js sometimes fires this query before the
-  // access token has propagated to PostgREST (most visible right after
-  // INITIAL_SESSION at bootstrap). PostgREST then treats the request as anon,
-  // the hiring_managers RLS "see-own-row" policy returns 0 rows, and we'd
-  // wrongly conclude the user isn't a hiring manager — which permanently
-  // bounces "Switch to HM view" for HR users who are also HMs.
-  //
-  // A row is authoritative (return true immediately). A null result is NOT
-  // trusted on the first try: warm the session and retry once before
-  // concluding false. This is the same class of fix as the get_admin_kpis /
-  // get_admin_audit_log RPCs created for the analytics panels.
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const { data, error } = await supabase
-      .from('hiring_managers')
-      .select('id')
-      .eq('profile_id', userId)
-      .maybeSingle()
-    if (error) console.error('[session] fetchIsHM failed', error)
-    if (data) return true
-    if (attempt === 0) {
-      // Warm the auth token, then retry once.
-      try { await supabase.auth.getSession() } catch { /* tolerate */ }
-      await new Promise((r) => setTimeout(r, 250))
-    }
+  const { data, error } = await supabase
+    .from('hiring_managers')
+    .select('id')
+    .eq('profile_id', userId)
+    .maybeSingle()
+  if (error) {
+    console.error('[session] fetchIsHM failed', error)
+    return false
   }
-  return false
+  return !!data
 }
 
 export const useSession = create<SessionState>((set) => ({
@@ -89,10 +73,15 @@ export const useSession = create<SessionState>((set) => ({
   loading: true,
   setProfile: (p) => set({ profile: p }),
   refreshIsHM: async () => {
+    // Runs in a NORMAL context (not inside onAuthStateChange), so getSession()
+    // reliably warms the token and the subsequent fetchIsHM query carries auth
+    // to PostgREST. This is the authoritative isHM resolver — the bootstrap's
+    // in-callback fetch is best-effort and can false-negative.
     const { data } = await supabase.auth.getSession()
     if (!data.session) { set({ isHM: false }); return }
     const isHM = await fetchIsHM(data.session.user.id)
     set({ isHM })
+    saveCachedIsHM(data.session.user.id, isHM)
   },
   refresh: async () => {
     try {

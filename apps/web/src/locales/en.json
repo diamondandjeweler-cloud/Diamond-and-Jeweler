@@ -360,5 +360,22 @@
       "tipPoolHint": "Splits the shift's tip total by hours worked + tables served.",
       "noTips": "No tips collected this shift."
     }
+  },
+  "staleLoop": {
+    "hmBannerHeading": "3 days live — here's how this role compares",
+    "hmBannerIntro": "We checked the market against {{count}} similar vacancies. Apply a suggestion to update the form, or keep your current settings.",
+    "talentBannerHeading": "3 days in — let's see what's holding things back",
+    "talentBannerIntro": "We've spotted {{count}} open vacancies that line up with your profile. A small tweak could unlock several of them.",
+    "apply": "Apply",
+    "applied": "Applied",
+    "keep": "Keep",
+    "gap": {
+      "salaryBelowMedian": "Salary cap RM {{roleMax}} is below the market median RM {{marketMedian}}. Suggested: raise max to RM {{suggestMax}}.",
+      "arrangementStricter": "Onsite-only — {{flexPct}}% of similar roles offer remote or hybrid. Suggested: switch to hybrid.",
+      "ownCarUncommon": "Only {{pct}}% of similar roles require own car. Consider dropping this requirement.",
+      "overtimeUncommon": "Only {{pct}}% of similar roles require overtime. Consider dropping this requirement.",
+      "travelUncommon": "Only {{pct}}% of similar roles require travel. Consider dropping this requirement.",
+      "salaryExpectationAboveMarket": "Most roles cap around RM {{marketMax}}; your minimum is RM {{expectedMin}}. Consider lowering to RM {{suggestMin}}."
+    }
   }
 }

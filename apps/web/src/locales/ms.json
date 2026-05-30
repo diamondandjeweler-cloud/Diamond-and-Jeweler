@@ -356,5 +356,22 @@
       "tipPoolHint": "Bahagikan tabung tip mengikut jam bekerja + meja dilayan.",
       "noTips": "Tiada tip dikutip syif ini."
     }
+  },
+  "staleLoop": {
+    "hmBannerHeading": "3 hari dipaparkan — lihat bagaimana jawatan ini dibandingkan",
+    "hmBannerIntro": "Kami semak pasaran terhadap {{count}} jawatan serupa. Klik Guna untuk menerima cadangan, atau kekalkan tetapan asal.",
+    "talentBannerHeading": "Sudah 3 hari — mari kita lihat apa yang menyekat",
+    "talentBannerIntro": "Kami nampak {{count}} jawatan terbuka yang sesuai dengan profil anda. Sedikit pelarasan boleh membuka beberapa daripadanya.",
+    "apply": "Guna",
+    "applied": "Telah diguna",
+    "keep": "Kekal",
+    "gap": {
+      "salaryBelowMedian": "Had gaji RM {{roleMax}} lebih rendah daripada median pasaran RM {{marketMedian}}. Cadangan: naikkan had ke RM {{suggestMax}}.",
+      "arrangementStricter": "Hanya pejabat — {{flexPct}}% jawatan serupa menawarkan kerja jauh atau hibrid. Cadangan: tukar ke hibrid.",
+      "ownCarUncommon": "Hanya {{pct}}% jawatan serupa memerlukan kereta sendiri. Pertimbangkan untuk mengeluarkan syarat ini.",
+      "overtimeUncommon": "Hanya {{pct}}% jawatan serupa memerlukan kerja lebih masa. Pertimbangkan untuk mengeluarkan syarat ini.",
+      "travelUncommon": "Hanya {{pct}}% jawatan serupa memerlukan perjalanan. Pertimbangkan untuk mengeluarkan syarat ini.",
+      "salaryExpectationAboveMarket": "Kebanyakan jawatan setakat RM {{marketMax}}; minimum anda RM {{expectedMin}}. Pertimbangkan untuk turunkan ke RM {{suggestMin}}."
+    }
   }
 }

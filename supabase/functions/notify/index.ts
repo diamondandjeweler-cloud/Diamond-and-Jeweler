@@ -45,6 +45,7 @@ type NotifyType =
   | 'interview_round_scheduled' | 'interview_cancelled'
   | 'offer_made_notify' | 'offer_accepted' | 'offer_declined'
   | 'growth_opportunity'
+  | 'stale_loop_role_nudge' | 'stale_loop_talent_nudge'
 
 interface Payload {
   user_id: string
@@ -65,7 +66,10 @@ serve(async (req) => {
   }
 
   // Marketing-category notifications require consents.market = true.
-  const MARKETING_TYPES: NotifyType[] = ['match_expiring', 'match_no_action_48h', 'growth_opportunity']
+  const MARKETING_TYPES: NotifyType[] = [
+    'match_expiring', 'match_no_action_48h', 'growth_opportunity',
+    'stale_loop_role_nudge', 'stale_loop_talent_nudge',
+  ]
   const isMarketing = (MARKETING_TYPES as string[]).includes(payload.type)
 
   const db = adminClient()
@@ -431,6 +435,82 @@ function compose(
         + `<p><a href="${SITE}/home">${T.linkText}</a>.</p>`
         + `<p style="font-size:12px;color:#6b7280;">${T.snoozeHint}</p>`
       return { subject: T.subject, body: bodyText, html }
+    }
+    case 'stale_loop_role_nudge': {
+      const roleTitle = typeof data.role_title === 'string' ? data.role_title : 'your role'
+      const peerCount = typeof data.peer_count === 'number' ? data.peer_count : 0
+      const marketMedian = typeof data.market_median === 'number' ? data.market_median : null
+      const roleMax = typeof data.role_max === 'number' ? data.role_max : null
+      const roleId = typeof data.role_id === 'string' ? data.role_id : ''
+      const link = roleId ? `${SITE}/hm/roles/${encodeURIComponent(roleId)}/edit?nudge=stale_3d` : `${SITE}/hr`
+      const safeRole = escapeHtml(roleTitle)
+      const safeLink = escapeHtml(link)
+      const salaryHint = (marketMedian && roleMax && roleMax < marketMedian)
+        ? { en: ` Market median is RM ${marketMedian}; yours caps at RM ${roleMax}.`,
+            ms: ` Median pasaran ialah RM ${marketMedian}; anda hanya sehingga RM ${roleMax}.`,
+            zh: ` 市场中位数 RM ${marketMedian}，您的上限 RM ${roleMax}。` }
+        : { en: '', ms: '', zh: '' }
+      const T = {
+        en: {
+          subject: `Your "${roleTitle}" has been live 3 days — want to revise?`,
+          greet: 'Hi',
+          body: `Your "${roleTitle}" role has been live 3 days with no candidate moving forward. We see ${peerCount} similar vacancies hiring in your area.${salaryHint.en} Review the suggested adjustments and decide what to revise.`,
+          linkText: 'Review suggestions',
+        },
+        ms: {
+          subject: `Jawatan "${roleTitle}" telah dipaparkan 3 hari — semak semula?`,
+          greet: 'Hai',
+          body: `Jawatan "${roleTitle}" telah dipaparkan 3 hari tanpa calon yang bergerak maju. Kami lihat ${peerCount} jawatan serupa sedang mengambil pekerja di kawasan anda.${salaryHint.ms} Semak cadangan kami dan putuskan apa yang ingin disemak semula.`,
+          linkText: 'Semak cadangan',
+        },
+        zh: {
+          subject: `"${roleTitle}" 已上线 3 天 — 要修改吗？`,
+          greet: '嗨',
+          body: `"${roleTitle}" 职位上线已 3 天，仍没有候选人推进。市场上有 ${peerCount} 个类似空缺正在招聘。${salaryHint.zh} 查看我们的建议，看看要不要调整。`,
+          linkText: '查看建议',
+        },
+      }[locale]
+      return {
+        subject: T.subject,
+        body: `${T.greet} ${first},\n\n${T.body}\n\n${link}\n\n– DNJ`,
+        html: `<p>${T.greet} ${safeFirst},</p><p>${escapeHtml(T.body)}</p><p><a href="${safeLink}">${T.linkText}</a>.</p>`,
+      }
+    }
+    case 'stale_loop_talent_nudge': {
+      const activeRoles = typeof data.active_role_count === 'number' ? data.active_role_count : 0
+      const marketMedianMax = typeof data.role_median_max === 'number' ? data.role_median_max : null
+      const expectedMin = typeof data.expected_min === 'number' ? data.expected_min : null
+      const link = `${SITE}/me/edit?nudge=stale_3d`
+      const salaryHint = (marketMedianMax && expectedMin && expectedMin > marketMedianMax)
+        ? { en: ` Most roles cap around RM ${marketMedianMax}; your minimum is RM ${expectedMin}.`,
+            ms: ` Kebanyakan jawatan setakat RM ${marketMedianMax}; minimum anda RM ${expectedMin}.`,
+            zh: ` 大多数职位上限约 RM ${marketMedianMax}，您的最低期望 RM ${expectedMin}。` }
+        : { en: '', ms: '', zh: '' }
+      const T = {
+        en: {
+          subject: 'Open vacancies match your profile — small tweaks could help',
+          greet: 'Hi',
+          body: `We've spotted ${activeRoles} open vacancies that line up with your profile, but none have moved forward yet.${salaryHint.en} A small adjustment to your salary or location preferences could unlock several of them.`,
+          linkText: 'Review preferences',
+        },
+        ms: {
+          subject: 'Ada jawatan terbuka yang sepadan — sedikit pelarasan boleh membantu',
+          greet: 'Hai',
+          body: `Kami nampak ${activeRoles} jawatan terbuka yang sesuai dengan profil anda, tetapi belum ada yang bergerak maju.${salaryHint.ms} Pelarasan kecil pada gaji atau lokasi pilihan boleh membuka beberapa jawatan tersebut.`,
+          linkText: 'Semak pilihan anda',
+        },
+        zh: {
+          subject: '有空缺与您匹配 — 微调一下也许能打开局面',
+          greet: '嗨',
+          body: `我们发现 ${activeRoles} 个空缺与您的资料相符，但暂时没有推进。${salaryHint.zh} 稍微调整薪资或地点偏好，可能就能解锁其中几个。`,
+          linkText: '查看您的偏好',
+        },
+      }[locale]
+      return {
+        subject: T.subject,
+        body: `${T.greet} ${first},\n\n${T.body}\n\n${link}\n\n– DNJ`,
+        html: `<p>${T.greet} ${safeFirst},</p><p>${escapeHtml(T.body)}</p><p><a href="${escapeHtml(link)}">${T.linkText}</a>.</p>`,
+      }
     }
     case 'dsr_export_ready': {
       const url = typeof data.download_url === 'string' ? data.download_url : SITE

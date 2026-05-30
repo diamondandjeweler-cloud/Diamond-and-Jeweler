@@ -356,5 +356,22 @@
       "tipPoolHint": "按工时 + 服务桌数分配本班次小费总额。",
       "noTips": "本班次未收取小费。"
     }
+  },
+  "staleLoop": {
+    "hmBannerHeading": "上线 3 天 — 看看这个职位与市场比较如何",
+    "hmBannerIntro": "我们对照了 {{count}} 个类似空缺。点击「应用」采用建议，或保留当前设置。",
+    "talentBannerHeading": "已 3 天 — 来看看是什么挡住了机会",
+    "talentBannerIntro": "我们发现 {{count}} 个空缺与您的资料相符。稍作调整也许就能解锁其中几个。",
+    "apply": "应用",
+    "applied": "已应用",
+    "keep": "保留",
+    "gap": {
+      "salaryBelowMedian": "薪资上限 RM {{roleMax}} 低于市场中位数 RM {{marketMedian}}。建议：将上限提高至 RM {{suggestMax}}。",
+      "arrangementStricter": "仅限驻场 — {{flexPct}}% 的类似职位提供远程或混合办公。建议：改为混合办公。",
+      "ownCarUncommon": "仅 {{pct}}% 的类似职位要求自备车辆。可考虑取消此要求。",
+      "overtimeUncommon": "仅 {{pct}}% 的类似职位要求加班。可考虑取消此要求。",
+      "travelUncommon": "仅 {{pct}}% 的类似职位要求出差。可考虑取消此要求。",
+      "salaryExpectationAboveMarket": "大多数职位上限约 RM {{marketMax}}，您的最低期望 RM {{expectedMin}}。可考虑下调至 RM {{suggestMin}}。"
+    }
   }
 }

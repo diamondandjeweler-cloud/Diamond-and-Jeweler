@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { callFunction } from '../../lib/functions'
@@ -27,16 +27,44 @@ interface RoleRow {
   from_onboarding: boolean
 }
 
+interface GapItem {
+  kind: string
+  role_max?: number
+  market_median?: number
+  suggest_max?: number
+  role_arrangement?: string
+  peer_remote_pct?: number
+  peer_hybrid_pct?: number
+  suggest?: string
+  peer_own_car_pct?: number
+  peer_overtime_pct?: number
+  peer_travel_pct?: number
+  suggest_drop?: string
+}
+interface NudgeRow {
+  id: string
+  gap_payload: {
+    peer_count?: number
+    market_median?: number | null
+    gaps?: GapItem[]
+  } | null
+  response_at: string | null
+}
+
 export default function EditRole() {
   useSeo({ title: 'Edit role', noindex: true })
   const { id } = useParams<{ id: string }>()
   const { session } = useSession()
   const navigate = useNavigate()
+  const [search] = useSearchParams()
+  const nudgeMode = search.get('nudge') === 'stale_3d'
 
   const [loading, setLoading] = useState(true)
   const [row, setRow] = useState<RoleRow | null>(null)
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [nudge, setNudge] = useState<NudgeRow | null>(null)
+  const [appliedKinds, setAppliedKinds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (!id || !session) return
@@ -58,10 +86,21 @@ export default function EditRole() {
           setRow(data as RoleRow)
         }
       }
+
+      // Stale-loop nudge banner: pull most recent open nudge for this role.
+      if (nudgeMode) {
+        const { data: n } = await supabase.from('stale_loop_nudges')
+          .select('id, gap_payload, response_at')
+          .eq('party', 'hm').eq('subject_id', id)
+          .is('response_at', null)
+          .order('sent_at', { ascending: false }).limit(1).maybeSingle()
+        if (!cancelled && n) setNudge(n as NudgeRow)
+      }
+
       setLoading(false)
     })()
     return () => { cancelled = true }
-  }, [id, session])
+  }, [id, session, nudgeMode])
 
   async function save(e: React.FormEvent) {
     e.preventDefault()
@@ -104,8 +143,49 @@ export default function EditRole() {
     void callFunction('moderate-role', { role_id: row.id, force: textChanged || isDraft }).catch(() => {})
     if (isDraft) void callFunction('match-generate', { role_id: row.id }).catch(() => {})
 
+    // Record the HM's response to the stale-loop nudge so we can close the loop.
+    if (nudge) {
+      const kind = appliedKinds.size > 0 ? 'revised' : 'declined'
+      void supabase.rpc('fn_stale_loop_record_response', {
+        p_nudge_id: nudge.id,
+        p_response_kind: kind,
+        p_response_payload: { applied: Array.from(appliedKinds) },
+      }).then(() => { /* fire-and-forget */ })
+    }
+
     setBusy(false)
     navigate('/hm/roles', { replace: true })
+  }
+
+  function applyGap(g: GapItem) {
+    if (!row) return
+    if (g.kind === 'salary_below_median' && typeof g.suggest_max === 'number') {
+      setRow({ ...row, salary_max: g.suggest_max })
+    } else if (g.kind === 'arrangement_stricter_than_peers' && g.suggest === 'hybrid') {
+      setRow({ ...row, work_arrangement: 'hybrid' })
+    }
+    setAppliedKinds(prev => new Set(prev).add(g.kind))
+  }
+
+  function describeGap(g: GapItem): string {
+    switch (g.kind) {
+      case 'salary_below_median':
+        return `Salary cap RM ${g.role_max} is below the market median RM ${g.market_median}. Suggested: raise max to RM ${g.suggest_max}.`
+      case 'arrangement_stricter_than_peers':
+        return `Onsite-only — ${Math.round((g.peer_remote_pct ?? 0) + (g.peer_hybrid_pct ?? 0))}% of similar roles offer remote or hybrid. Suggested: switch to hybrid.`
+      case 'requires_own_car_uncommon':
+        return `Only ${g.peer_own_car_pct}% of similar roles require own car. Consider dropping this requirement.`
+      case 'requires_overtime_uncommon':
+        return `Only ${g.peer_overtime_pct}% of similar roles require overtime. Consider dropping this requirement.`
+      case 'requires_travel_uncommon':
+        return `Only ${g.peer_travel_pct}% of similar roles require travel. Consider dropping this requirement.`
+      default:
+        return 'Suggestion available.'
+    }
+  }
+
+  function canApply(g: GapItem): boolean {
+    return g.kind === 'salary_below_median' || g.kind === 'arrangement_stricter_than_peers'
   }
 
   // Edit-form shell renders immediately even while the role row is loading.
@@ -148,6 +228,35 @@ export default function EditRole() {
           <p className="text-sm text-gray-600 mb-4">
             Edits apply immediately to existing matches. Status: <strong>{r.status}</strong>.
           </p>
+        )}
+
+        {nudge && nudge.gap_payload && (nudge.gap_payload.gaps?.length ?? 0) > 0 && (
+          <div className="border border-blue-200 bg-blue-50 rounded-lg p-4 mb-4">
+            <h2 className="text-sm font-semibold text-blue-900 mb-1">
+              3 days live — here's how this role compares
+            </h2>
+            <p className="text-xs text-blue-800 mb-3">
+              We checked the market against {nudge.gap_payload.peer_count ?? 0} similar vacancies. Apply a suggestion to update the form, or keep your current settings.
+            </p>
+            <ul className="space-y-2">
+              {nudge.gap_payload.gaps!.map((g, i) => {
+                const applied = appliedKinds.has(g.kind)
+                return (
+                  <li key={i} className="flex items-start gap-3 text-sm bg-white border border-blue-100 rounded px-3 py-2">
+                    <span className="flex-1 text-gray-800">{describeGap(g)}</span>
+                    {canApply(g) && (
+                      <button type="button" onClick={() => applyGap(g)} disabled={applied}
+                        className={`text-xs px-3 py-1 rounded ${
+                          applied ? 'bg-green-100 text-green-700' : 'bg-blue-600 text-white hover:bg-blue-700'
+                        }`}>
+                        {applied ? 'Applied' : 'Apply'}
+                      </button>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
         )}
 
         <form onSubmit={save} className="space-y-4">

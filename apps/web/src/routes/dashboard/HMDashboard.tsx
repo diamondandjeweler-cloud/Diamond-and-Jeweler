@@ -722,6 +722,7 @@ export default function HMDashboard() {
         description="Curated shortlists for your active roles. Invite to interview or decline — up to three per role."
         actions={
           <>
+            <Link to="/hm/org-chart" className="btn-secondary">Org Chart Consultant</Link>
             <Link to="/hm/roles" className="btn-secondary">My roles</Link>
             <Link to="/hm/post-role" className="btn-primary">Post a role</Link>
           </>

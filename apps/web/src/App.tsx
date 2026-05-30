@@ -51,6 +51,9 @@ const TalentProfile    = lazy(() => import('./routes/dashboard/TalentProfile'))
 const HMCompanyProfile = lazy(() => import('./routes/dashboard/HMCompanyProfile'))
 const HMSettings       = lazy(() => import('./routes/dashboard/HMSettings'))
 const HMAccount        = lazy(() => import('./routes/dashboard/HMAccount'))
+const OrgChartList     = lazy(() => import('./routes/dashboard/OrgChartList'))
+const OrgChartNew      = lazy(() => import('./routes/dashboard/OrgChartNew'))
+const OrgChartDetail   = lazy(() => import('./routes/dashboard/OrgChartDetail'))
 
 const PrivacyNotice    = lazy(() => import('./routes/legal/PrivacyNotice'))
 const Terms            = lazy(() => import('./routes/legal/Terms'))
@@ -187,6 +190,9 @@ export default function App() {
           <Route path="/hm/company" element={<RoleGate allow={['hiring_manager']} alsoAllowHRwithHM><ConsentGate><OnboardingGate><HMCompanyProfile /></OnboardingGate></ConsentGate></RoleGate>} />
           <Route path="/hm/settings" element={<RoleGate allow={['hiring_manager']} alsoAllowHRwithHM><ConsentGate><OnboardingGate><HMSettings /></OnboardingGate></ConsentGate></RoleGate>} />
           <Route path="/hm/account" element={<RoleGate allow={['hiring_manager']} alsoAllowHRwithHM><ConsentGate><OnboardingGate><HMAccount /></OnboardingGate></ConsentGate></RoleGate>} />
+          <Route path="/hm/org-chart" element={<RoleGate allow={['hiring_manager']} alsoAllowHRwithHM><ConsentGate><OnboardingGate><OrgChartList /></OnboardingGate></ConsentGate></RoleGate>} />
+          <Route path="/hm/org-chart/new" element={<RoleGate allow={['hiring_manager']} alsoAllowHRwithHM><ConsentGate><OnboardingGate><OrgChartNew /></OnboardingGate></ConsentGate></RoleGate>} />
+          <Route path="/hm/org-chart/:id" element={<RoleGate allow={['hiring_manager']} alsoAllowHRwithHM><ConsentGate><OnboardingGate><OrgChartDetail /></OnboardingGate></ConsentGate></RoleGate>} />
           <Route path="/hr"     element={<RoleGate allow={['hr_admin']}><ConsentGate><OnboardingGate><HRDashboard /></OnboardingGate></ConsentGate></RoleGate>} />
           <Route path="/hr/invite" element={<RoleGate allow={['hr_admin']}><ConsentGate><OnboardingGate><InviteHM /></OnboardingGate></ConsentGate></RoleGate>} />
           <Route path="/admin"  element={<AdminGate><AdminDashboard /></AdminGate>} />

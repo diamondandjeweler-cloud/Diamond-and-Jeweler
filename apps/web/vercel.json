@@ -37,6 +37,13 @@
       "continue": true
     },
     {
+      "src": "^/(careers(?:/[^/]+)?|jobs/[a-z0-9-]+|jobs-in-[a-z0-9-]+|hire-[a-z0-9-]+)/?$",
+      "headers": {
+        "Cache-Control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800"
+      },
+      "continue": true
+    },
+    {
       "src": "/(.*)",
       "headers": {
         "Cache-Control": "public, max-age=0, s-maxage=60, stale-while-revalidate=86400"

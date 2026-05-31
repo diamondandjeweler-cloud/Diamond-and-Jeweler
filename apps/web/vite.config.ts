@@ -57,6 +57,19 @@ export default defineConfig({
             handler: 'CacheFirst',
             options: { cacheName: 'images', expiration: { maxEntries: 32, maxAgeSeconds: 60 * 60 * 24 * 30 } },
           },
+          {
+            // SEO silo pages (/careers, /jobs/*, /jobs-in-*, /hire-*) and the
+            // landing page — stale-while-revalidate so repeat visitors get
+            // instant navigation while the SW silently updates in the background.
+            // Only caches GET navigation requests; Supabase API calls are excluded
+            // by the NetworkOnly rule above.
+            urlPattern: /^\/(careers(?:\/[^/?]+)?|jobs\/[^/?]+|jobs-in-[^/?]+|hire-[^/?]+)\/?(?:\?.*)?$/,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'seo-pages',
+              expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 7 },
+            },
+          },
         ],
         // Tell Workbox to skip the waiting phase and claim clients immediately
         // so a new deploy's SW takes over on the next page load instead of two

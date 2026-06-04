@@ -62,3 +62,32 @@ export function prefetchRoleHome(role: Role | null | undefined) {
     }
   })
 }
+
+let publicPrefetched = false
+
+/**
+ * Prefetch the most likely-next routes for unauthenticated visitors landing
+ * on `/`. Most Landing visitors click one of: /careers (SEO/jobs browse),
+ * /start/talent or /start/hiring (entry funnels), /login, /signup. These
+ * chunks are tiny (15-25KB each gzipped) so we prefetch them eagerly during
+ * idle so the next click feels instant.
+ *
+ * No-op on subsequent calls in the same tab. Safe to call even if user is
+ * already logged in — the chunks will be cached for the next visit.
+ */
+export function prefetchPublicNext() {
+  if (publicPrefetched) return
+  publicPrefetched = true
+
+  ric(() => {
+    try {
+      void import('../routes/Careers')
+      void import('../routes/Start')
+      // Login + SignUp are bundled into the main chunk (App.tsx imports them
+      // eagerly to avoid a Suspense fallback on the most common entry point),
+      // so we skip them here — already parsed.
+    } catch {
+      // Prefetch is best-effort; never throw into the idle callback.
+    }
+  })
+}

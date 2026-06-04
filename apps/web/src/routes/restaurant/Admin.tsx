@@ -200,7 +200,7 @@ function MenuTab({ categories, items, branchId, onChanged }: {
                 <div className="text-xs font-medium text-ink-700 mb-1">Photo</div>
                 <div className="flex items-center gap-3">
                   {form.image_url
-                    ? <img src={form.image_url} alt="preview" className="w-14 h-14 rounded-lg object-cover border border-ink-200" />
+                    ? <img src={form.image_url} alt="preview" loading="lazy" decoding="async" className="w-14 h-14 rounded-lg object-cover border border-ink-200" />
                     : <div className="w-14 h-14 rounded-lg bg-ink-100 flex items-center justify-center text-ink-400 text-xs border border-ink-200">None</div>
                   }
                   <input ref={fileRef} type="file" accept="image/*" className="hidden"
@@ -248,7 +248,7 @@ function MenuTab({ categories, items, branchId, onChanged }: {
                     <tr className="border-t border-ink-100 hover:bg-ink-50/50">
                       <td className="p-3">
                         {m.image_url
-                          ? <img src={m.image_url} alt={m.name} className="w-10 h-10 rounded-lg object-cover border border-ink-100" />
+                          ? <img src={m.image_url} alt={m.name} loading="lazy" decoding="async" className="w-10 h-10 rounded-lg object-cover border border-ink-100" />
                           : <div className="w-10 h-10 rounded-lg bg-ink-100 flex items-center justify-center text-ink-300">
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
                             </div>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import ListSkeleton from '../../../components/ListSkeleton'
 
@@ -63,6 +63,11 @@ export default function AIChatPanel() {
   const [roleFilter, setRoleFilter] = useState<UserRoleFilter>('all')
   const [dateRange, setDateRange] = useState<DateRange>('7d')
   const [search, setSearch] = useState('')
+  // Decouple the expensive conversation grouping from the input's render. With
+  // up to 1000 messages and per-keystroke filter work, the input lagged on
+  // longer queries — useDeferredValue lets React keep the input snappy and
+  // re-run the heavy useMemo at lower priority.
+  const deferredSearch = useDeferredValue(search)
 
   const reload = useCallback(async () => {
     setLoading(true)
@@ -146,14 +151,14 @@ export default function AIChatPanel() {
     }
     out.sort((a, b) => b.last_at.localeCompare(a.last_at))
 
-    if (!search.trim()) return out
-    const s = search.toLowerCase()
+    if (!deferredSearch.trim()) return out
+    const s = deferredSearch.toLowerCase()
     return out.filter((c) =>
       c.messages.some((m) => m.content.toLowerCase().includes(s)) ||
       (c.profile?.email ?? '').toLowerCase().includes(s) ||
       (c.profile?.full_name ?? '').toLowerCase().includes(s),
     )
-  }, [messages, profiles, search])
+  }, [messages, profiles, deferredSearch])
 
   const topQuestions = useMemo<TopQuestion[]>(() => {
     const counts = new Map<string, { count: number; last_seen: string }>()

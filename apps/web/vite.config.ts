@@ -33,18 +33,9 @@ export default defineConfig({
           /\.(?:xml|txt|json|map)$/,
         ],
         runtimeCaching: [
-          {
-            // Google Fonts CSS — stale-while-revalidate; small + rarely changes.
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\//,
-            handler: 'StaleWhileRevalidate',
-            options: { cacheName: 'gfonts-css', expiration: { maxEntries: 8, maxAgeSeconds: 60 * 60 * 24 * 30 } },
-          },
-          {
-            // Google Fonts files — cache-first; hashed URLs.
-            urlPattern: /^https:\/\/fonts\.gstatic\.com\//,
-            handler: 'CacheFirst',
-            options: { cacheName: 'gfonts-files', expiration: { maxEntries: 16, maxAgeSeconds: 60 * 60 * 24 * 365 } },
-          },
+          // Google Fonts caching rules removed: fonts are now self-hosted via
+          // @fontsource-variable (see src/index.css). They ship under
+          // /assets/*.woff2 and are precached by globPatterns above.
           {
             // Supabase REST/RPC — NEVER cache. Authz decisions and RLS scope
             // must hit the network every time. NetworkOnly forces that.

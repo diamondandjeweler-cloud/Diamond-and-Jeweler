@@ -1,3 +1,11 @@
+/* Self-hosted variable fonts — ship via Vite as hashed /assets/*.woff2 so we
+   skip the round-trip to fonts.googleapis.com (CSS) + fonts.gstatic.com (woff2).
+   Browser uses unicode-range in each @font-face to download only the subsets
+   it actually needs (latin / latin-ext). font-display: swap is preserved by
+   @fontsource. Drops 2 external origin handshakes on cold load. */
+@import '@fontsource-variable/inter/wght.css';
+@import '@fontsource-variable/fraunces/wght.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

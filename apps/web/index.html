@@ -4,18 +4,11 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Critical-path preconnects (max 4 per Lighthouse): Supabase + Google Fonts. -->
+    <!-- Critical-path preconnect: Supabase only. Fonts are now self-hosted
+         (@fontsource-variable in src/index.css) and shipped as hashed
+         /assets/*.woff2 with the immutable Cache-Control header, so no
+         external font origin handshake is needed. -->
     <link rel="preconnect" href="https://sfnrpbsdscikpmbhrzub.supabase.co" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- Fonts: preload with high priority so the CSS arrives before the render
-         engine needs it. fetchpriority="high" promotes this above other
-         lower-priority preloads in Chrome's fetch queue.
-         The synchronous <link rel="stylesheet"> below is unavoidable without
-         an onload= handler (blocked by CSP); the preload minimises its
-         render-blocking window to near zero on warm connections. -->
-    <link rel="preload" as="style" fetchpriority="high" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:wght@400;500;600;700&display=swap" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:wght@400;500;600;700&display=swap" />
     <!-- Non-critical (auth-only / analytics): just dns-prefetch to avoid the preconnect handshake cost. -->
     <link rel="dns-prefetch" href="https://challenges.cloudflare.com" />
     <link rel="dns-prefetch" href="https://plausible.io" />
@@ -247,7 +240,7 @@
          even before the Tailwind bundle arrives. CSP-safe: no external assets. -->
     <style>
       #dnj-shell {
-        font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        font-family: "Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
         color: #0B1220;
         min-height: 100vh;
         background: #fff;
@@ -263,7 +256,7 @@
         top: 0;
       }
       #dnj-shell .dnj-logo {
-        font-family: Fraunces, Georgia, serif;
+        font-family: "Fraunces Variable", Fraunces, Georgia, serif;
         font-weight: 700;
         font-size: 1.1rem;
         color: #1d4ed8;

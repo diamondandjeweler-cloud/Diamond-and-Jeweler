@@ -300,7 +300,7 @@ export default function Referrals() {
 
             {showQr && qrSrc && (
               <div className="mt-3 pt-3 border-t border-brand-200 flex flex-col items-center gap-2">
-                <img src={qrSrc} alt="Referral QR code" width={200} height={200} className="rounded bg-white p-2 border border-ink-100" />
+                <img src={qrSrc} alt="Referral QR code" width={200} height={200} loading="lazy" decoding="async" className="rounded bg-white p-2 border border-ink-100" />
                 <div className="text-xs text-ink-500">Point a phone camera at the QR to open your referral link</div>
               </div>
             )}

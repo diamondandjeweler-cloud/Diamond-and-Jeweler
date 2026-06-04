@@ -250,7 +250,7 @@ export default function HMDashboard() {
 
       const [companyOrLink, { count }, { data: roleRows }, { data: onboardingDraft }] = await Promise.all([
         companyOrLinkPromise,
-        supabase.from('roles').select('*', { count: 'exact', head: true })
+        supabase.from('roles').select('id', { count: 'exact', head: true })
           .eq('hiring_manager_id', hm.id).eq('status', 'active'),
         supabase.from('roles')
           .select('id, title, status, extra_matches_used, created_at')
@@ -1135,6 +1135,8 @@ function CandidateCard({
               <img
                 src={photoUrl}
                 alt={displayName}
+                loading="lazy"
+                decoding="async"
                 className="w-14 h-14 rounded-full object-cover border border-ink-100 shrink-0"
               />
             ) : (

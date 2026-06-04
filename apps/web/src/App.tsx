@@ -6,7 +6,7 @@ import Layout from './components/Layout'
 import LoadingSpinner from './components/LoadingSpinner'
 import RouteSkeleton from './components/RouteSkeleton'
 import ProtectedRoute from './components/ProtectedRoute'
-import { prefetchRoleHome } from './lib/prefetch'
+import { prefetchRoleHome, prefetchPublicNext } from './lib/prefetch'
 import OnboardingGate from './components/OnboardingGate'
 import AdminGate from './components/AdminGate'
 import ConsentGate from './components/ConsentGate'
@@ -99,6 +99,10 @@ export default function App() {
   // the background. By the time they click "Home" / "Dashboard", the chunk
   // is already in the browser's module cache — zero wait.
   useEffect(() => { if (profile?.role) prefetchRoleHome(profile.role) }, [profile?.role])
+  // For unauthenticated visitors (the public Landing entry point), warm the
+  // public next-step chunks (Careers, Start) during idle so the first click
+  // feels instant. Runs once per tab; no-op after login.
+  useEffect(() => { if (!loading && !session) prefetchPublicNext() }, [loading, session])
 
   // Self-heal isHM for hr_admin users. The bootstrap fetchIsHM runs inside
   // onAuthStateChange, where supabase-js can fail to attach the auth token to

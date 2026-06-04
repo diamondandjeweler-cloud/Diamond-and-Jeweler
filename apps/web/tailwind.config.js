@@ -38,8 +38,11 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
-        display: ['"Fraunces"', 'Georgia', 'serif'],
+        // 'Inter Variable' / 'Fraunces Variable' are self-hosted via @fontsource
+        // (see index.css). Plain 'Inter' / 'Fraunces' kept as fallbacks in case
+        // an old SW serves the previous Google Fonts CSS; system fonts after.
+        sans: ['"Inter Variable"', 'Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        display: ['"Fraunces Variable"', '"Fraunces"', 'Georgia', 'serif'],
       },
       fontSize: {
         // Tighter line-heights for display, more generous for body

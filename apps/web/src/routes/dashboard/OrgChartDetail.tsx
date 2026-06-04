@@ -167,7 +167,7 @@ export default function OrgChartDetail() {
       || '<li>All key archetypes are represented.</li>'
 
     const rawHtml = `
-      <div style="font-family:Inter,sans-serif;max-width:800px;color:#1f2937;">
+      <div style="font-family:'Inter Variable',Inter,sans-serif;max-width:800px;color:#1f2937;">
         <div style="background:linear-gradient(135deg,#0F4C81,#1d6fb8);color:#fff;padding:24px;border-radius:8px;">
           <h1 style="margin:0;">Organisational Restructure Report</h1>
           <div style="opacity:.9;margin-top:6px;">Prepared for ${escapeHtml(row.client_company)} · ${new Date().toLocaleDateString()}</div>

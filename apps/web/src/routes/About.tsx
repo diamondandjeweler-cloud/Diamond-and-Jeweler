@@ -54,17 +54,17 @@ export default function About() {
   })
 
   return (
-    <div className="min-h-screen bg-white text-[#0B1220] font-sans">
-      <header className="border-b border-gray-100">
+    <div className="min-h-screen bg-white dark:bg-[#0B1220] text-[#0B1220] dark:text-white font-sans">
+      <header className="border-b border-gray-100 dark:border-gray-700 dark:bg-[#0B1742]">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2" aria-label="DNJ home">
             <span className="font-extrabold tracking-tight text-[20px]">DNJ</span>
-            <span className="text-[10px] tracking-[0.22em] text-gray-500">DIAMOND &amp; JEWELER</span>
+            <span className="text-[10px] tracking-[0.22em] text-gray-500 dark:text-gray-400">DIAMOND &amp; JEWELER</span>
           </Link>
           <nav className="flex items-center gap-5 text-sm" aria-label="Site navigation">
-            <Link to="/careers" className="text-gray-600 hover:text-[#0B1220]">Jobs</Link>
-            <Link to="/careers/urgent-hiring-malaysia-2026" className="text-gray-600 hover:text-[#0B1220]">Blog</Link>
-            <Link to="/start/talent" className="text-[#1B2A6B] font-semibold underline underline-offset-4">
+            <Link to="/careers" className="text-gray-600 dark:text-gray-400 hover:text-[#0B1220] dark:hover:text-white">Jobs</Link>
+            <Link to="/careers/urgent-hiring-malaysia-2026" className="text-gray-600 dark:text-gray-400 hover:text-[#0B1220] dark:hover:text-white">Blog</Link>
+            <Link to="/start/talent" className="text-[#1B2A6B] dark:text-[#a6b6ff] font-semibold underline underline-offset-4">
               Apply now
             </Link>
           </nav>
@@ -299,9 +299,9 @@ export default function About() {
 
       {/* #audit #26 — company info for B2B trust */}
       <section className="max-w-5xl mx-auto px-6 mt-12 mb-2">
-        <div className="rounded-xl bg-[#fafbff] ring-1 ring-[#e8edff] px-6 py-5 flex flex-col md:flex-row md:items-center gap-4 md:gap-10 text-sm text-gray-600">
+        <div className="rounded-xl bg-[#fafbff] dark:bg-[#0d1528] ring-1 ring-[#e8edff] dark:ring-[#1e2d52] px-6 py-5 flex flex-col md:flex-row md:items-center gap-4 md:gap-10 text-sm text-gray-600 dark:text-gray-400">
           <div>
-            <span className="font-semibold text-[#0B1220]">DNJ — Diamond &amp; Jeweler</span>
+            <span className="font-semibold text-[#0B1220] dark:text-white">DNJ — Diamond &amp; Jeweler</span>
             <span className="mx-2 text-gray-300">|</span>
             Registered in Malaysia
           </div>
@@ -314,9 +314,9 @@ export default function About() {
         </div>
       </section>
 
-      <footer className="border-t border-gray-100 mt-6 py-6 text-center text-xs text-gray-500">
+      <footer className="border-t border-gray-100 dark:border-gray-700 mt-6 py-6 text-center text-xs text-gray-500 dark:text-gray-400 dark:bg-[#0B1742]">
         <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5">
-          <Link to="/" className="hover:text-[#0B1220]">Home</Link>
+          <Link to="/" className="hover:text-[#0B1220] dark:hover:text-white">Home</Link>
           <span aria-hidden>·</span>
           <Link to="/careers" className="hover:text-[#0B1220]">Jobs</Link>
           <span aria-hidden>·</span>

@@ -285,17 +285,17 @@ export default function Careers() {
   })
 
   return (
-    <div className="min-h-screen bg-white text-[#0B1220] font-sans">
-      <header className="border-b border-gray-100">
+    <div className="min-h-screen bg-white dark:bg-[#0B1220] text-[#0B1220] dark:text-white font-sans">
+      <header className="border-b border-gray-100 dark:border-gray-700 dark:bg-[#0B1742]">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2" aria-label="DNJ home">
             <span className="font-extrabold tracking-tight text-[20px]">DNJ</span>
-            <span className="text-[10px] tracking-[0.22em] text-gray-500">DIAMOND &amp; JEWELER</span>
+            <span className="text-[10px] tracking-[0.22em] text-gray-500 dark:text-gray-400">DIAMOND &amp; JEWELER</span>
           </Link>
           <nav aria-label="Primary" className="flex items-center gap-5 text-sm">
-            <Link to="/about" className="text-gray-600 hover:text-[#0B1220]">About</Link>
-            <Link to="/careers/urgent-hiring-malaysia-2026" className="text-gray-600 hover:text-[#0B1220]">Blog</Link>
-            <Link to="/start/talent" className="text-[#1B2A6B] font-semibold underline underline-offset-4">
+            <Link to="/about" className="text-gray-600 dark:text-gray-400 hover:text-[#0B1220] dark:hover:text-white">About</Link>
+            <Link to="/careers/urgent-hiring-malaysia-2026" className="text-gray-600 dark:text-gray-400 hover:text-[#0B1220] dark:hover:text-white">Blog</Link>
+            <Link to="/start/talent" className="text-[#1B2A6B] dark:text-[#a6b6ff] font-semibold underline underline-offset-4">
               Apply now
             </Link>
           </nav>
@@ -303,10 +303,10 @@ export default function Careers() {
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-10">
-        <nav aria-label="Breadcrumb" className="text-xs text-gray-500 mb-4">
-          <Link to="/" className="hover:text-[#0B1220]">Home</Link>
+        <nav aria-label="Breadcrumb" className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+          <Link to="/" className="hover:text-[#0B1220] dark:hover:text-white">Home</Link>
           <span className="mx-2">/</span>
-          <span aria-current="page" className="text-gray-700">Careers</span>
+          <span aria-current="page" className="text-gray-700 dark:text-gray-300">Careers</span>
         </nav>
 
         <section>
@@ -405,19 +405,19 @@ export default function Careers() {
             {ROLES.map((r) => (
               <li
                 key={r.title}
-                className="rounded-xl border border-gray-200 bg-white p-5 hover:border-[#0B1742] transition-colors group"
+                className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#0d1528] p-5 hover:border-[#0B1742] dark:hover:border-[#5468ef] transition-colors group"
               >
                 <div className="flex items-start justify-between gap-2 mb-1">
-                  <h3 className="text-base font-semibold text-[#0B1220]">{r.title}</h3>
+                  <h3 className="text-base font-semibold text-[#0B1220] dark:text-white">{r.title}</h3>
                   {/* Salary — #audit #4: visible salary ranges */}
                   <span className="flex-shrink-0 text-xs font-semibold text-[#0B6B3F] bg-[#ecfdf5] border border-[#86efac]/50 px-2 py-0.5 rounded-full whitespace-nowrap">
                     {r.salary}
                   </span>
                 </div>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   {r.type} · {r.location} · {r.level}
                 </p>
-                <p className="text-sm text-gray-700 mt-2 leading-snug">{r.blurb}</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 leading-snug">{r.blurb}</p>
                 <Link
                   to="/start/talent"
                   className="inline-flex items-center mt-3 text-sm font-semibold text-[#1B2A6B] hover:text-[#0B1220]"

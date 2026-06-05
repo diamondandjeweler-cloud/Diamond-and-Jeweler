@@ -113,14 +113,14 @@ export default function RoleSilo() {
   if (!role) return <Navigate to="/careers" replace />
 
   return (
-    <div className="min-h-screen bg-white text-[#0B1220] font-sans">
-      <header className="border-b border-gray-100">
+    <div className="min-h-screen bg-white dark:bg-[#0B1220] text-[#0B1220] dark:text-white font-sans">
+      <header className="border-b border-gray-100 dark:border-gray-700 dark:bg-[#0B1742]">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2" aria-label="DNJ home">
             <span className="font-extrabold tracking-tight text-[20px]">DNJ</span>
-            <span className="text-[10px] tracking-[0.22em] text-gray-500">DIAMOND &amp; JEWELER</span>
+            <span className="text-[10px] tracking-[0.22em] text-gray-500 dark:text-gray-400">DIAMOND &amp; JEWELER</span>
           </Link>
-          <Link to="/start/talent" className="text-sm text-[#1B2A6B] font-semibold underline underline-offset-4">
+          <Link to="/start/talent" className="text-sm text-[#1B2A6B] dark:text-[#a6b6ff] font-semibold underline underline-offset-4">
             Apply now
           </Link>
         </div>

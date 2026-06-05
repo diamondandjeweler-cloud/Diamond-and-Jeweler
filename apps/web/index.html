@@ -57,9 +57,10 @@
     <meta name="twitter:image:alt" content="DNJ — AI-curated recruitment platform Malaysia" />
 
     <link rel="canonical" href="https://diamondandjeweler.com/" />
+    <!-- #audit #13: removed broken hreflang alternates — all languages currently served at
+         the same URL with no separate translated paths. Add proper /ms/ and /zh/ paths
+         when full BM/Chinese content is shipped; until then hreflang signals are misleading. -->
     <link rel="alternate" hreflang="en-MY" href="https://diamondandjeweler.com/" />
-    <link rel="alternate" hreflang="ms-MY" href="https://diamondandjeweler.com/" />
-    <link rel="alternate" hreflang="zh-MY" href="https://diamondandjeweler.com/" />
     <link rel="alternate" hreflang="x-default" href="https://diamondandjeweler.com/" />
     <link rel="manifest" href="/manifest.json" />
 
@@ -109,7 +110,10 @@
         "areaServed": "MY",
         "availableLanguage": ["en", "ms", "zh"]
       }],
-      "sameAs": []
+      "sameAs": [
+        "https://www.instagram.com/dnj.ai",
+        "https://www.tiktok.com/@diamondandjeweler"
+      ]
     }
     </script>
 

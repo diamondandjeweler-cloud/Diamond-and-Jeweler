@@ -9,12 +9,13 @@ import { useSeo } from '../lib/useSeo'
 const CAREERS_KEYWORDS =
   'jobs near me, job vacancy near me, apply job online, latest job vacancy, part time job near me, full time job, fresh graduate job, vacancy near me, job opening near me, apply now, send resume, job seeking, job search, jobs in Malaysia, recruitment Malaysia, job portal Malaysia, sales job vacancy, admin executive job vacancy, account assistant job vacancy, finance job vacancy, banking job vacancy, software developer job vacancy, IT job vacancy, engineering job vacancy, marketing executive job vacancy, graphic designer job vacancy, customer service job vacancy, hr job vacancy, healthcare job vacancy, nursing job vacancy, education job vacancy, teaching job vacancy, hospitality job vacancy, hotel job vacancy, construction job vacancy, logistics job vacancy, supply chain job, manufacturing job vacancy, production job vacancy, f&b job vacancy, restaurant job vacancy, job vacancy in Kuala Lumpur, job vacancy in PJ, job vacancy in Penang, job vacancy in Johor Bahru, job vacancy in Malaysia, jobs near KL, hiring in Kuala Lumpur, hiring in Malaysia, work from home Kuala Lumpur, remote job Malaysia, fresh graduate Kuala Lumpur, graduate trainee, entry level, junior level, career opportunity, career growth job, stable job, career advancement, new job opportunity, job vacancy, job hiring, job opening, employment, recruitment, career, vacancy, hiring, job posting, apply online, submit resume, contract job, temporary job, internship, freelance job, remote job, hybrid job, shift job, permanent job, internship for students, spm leaver job, diploma holder job, degree holder job, luxury retail job, pilot job Malaysia, cadet pilot program, jeweler job vacancy, gemologist job, ai curated matching, ai recruitment Malaysia, curated matching, three matches per role'
 
-const ROLES: Array<{ title: string; type: string; location: string; level: string; blurb: string }> = [
+const ROLES: Array<{ title: string; type: string; location: string; level: string; blurb: string; salary: string }> = [
   {
     title: 'Sales Executive',
     type: 'Full time',
     location: 'Kuala Lumpur, PJ, nationwide',
     level: 'Fresh graduate · Junior · Mid-level',
+    salary: 'RM 2,800 – 6,000 base + commission',
     blurb:
       'Sales executive roles with commission and a clear growth path. Get matched directly with companies recruiting sales professionals across every industry.',
   },
@@ -23,6 +24,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
     type: 'Full time · Hybrid',
     location: 'Kuala Lumpur, PJ, nationwide',
     level: 'Fresh graduate · Junior · Mid-level',
+    salary: 'RM 2,500 – 4,500',
     blurb:
       'Admin and office executive roles with hybrid options. Your profile is matched to companies hiring administrative professionals.',
   },
@@ -31,6 +33,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
     type: 'Full time · Permanent',
     location: 'Kuala Lumpur, PJ',
     level: 'SPM · Diploma · Fresh graduate',
+    salary: 'RM 2,200 – 3,800',
     blurb:
       'Account assistant roles for fresh graduates and SPM leavers — a stable entry point into a finance career.',
   },
@@ -39,6 +42,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
     type: 'Full time',
     location: 'Kuala Lumpur, PJ',
     level: 'Junior · Mid · Senior',
+    salary: 'RM 3,500 – 10,000',
     blurb:
       'Accountant, financial analyst and finance manager roles. ACCA / CIMA-friendly employers, predictable salary progression.',
   },
@@ -47,6 +51,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
     type: 'Full time',
     location: 'Kuala Lumpur, PJ, Penang',
     level: 'Fresh graduate · Junior · Mid-level',
+    salary: 'RM 3,000 – 8,000',
     blurb:
       'Bank officer, relationship manager, credit and operations roles. Structured career paths with strong benefits and management-trainee schemes.',
   },
@@ -55,6 +60,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
     type: 'Full time · Remote · Hybrid',
     location: 'Malaysia (remote-friendly)',
     level: 'Junior · Mid · Senior',
+    salary: 'RM 4,000 – 15,000',
     blurb:
       'Frontend, backend and full-stack roles with remote and hybrid options. Matched by stack, culture and career goals.',
   },
@@ -63,6 +69,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
     type: 'Full time · Contract',
     location: 'KL, Shah Alam, Penang, JB',
     level: 'Fresh graduate · Junior · Senior',
+    salary: 'RM 3,000 – 9,000',
     blurb:
       'Mechanical, electrical, civil, chemical and process engineering roles across manufacturing, construction, oil and gas and electronics.',
   },
@@ -71,6 +78,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
     type: 'Full time',
     location: 'Kuala Lumpur, PJ',
     level: 'Fresh graduate · Junior · Mid-level',
+    salary: 'RM 2,800 – 6,000',
     blurb:
       'Digital, brand, content and social marketing roles. Matched with teams that fit your strengths and trajectory.',
   },
@@ -79,6 +87,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
     type: 'Full time · Freelance',
     location: 'Kuala Lumpur, PJ',
     level: 'Junior · Mid-level',
+    salary: 'RM 2,500 – 5,500',
     blurb:
       'Brand, packaging, digital and print design roles — full time and freelance. Portfolio-first matching.',
   },
@@ -87,6 +96,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
     type: 'Full time · Shift',
     location: 'Kuala Lumpur, PJ, Penang',
     level: 'Fresh graduate · Entry level',
+    salary: 'RM 2,200 – 3,800',
     blurb:
       'Customer service and support roles, shift and full time. Matched on communication skills and availability.',
   },
@@ -95,6 +105,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
     type: 'Full time',
     location: 'Kuala Lumpur, PJ',
     level: 'Junior · Mid-level',
+    salary: 'RM 2,500 – 4,500',
     blurb:
       'HR assistant and executive roles with recruitment, payroll and HR-ops exposure. Career path to HR manager.',
   },
@@ -103,6 +114,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
     type: 'Full time · Part time · Shift',
     location: 'KL, PJ, Penang, JB',
     level: 'Fresh graduate · Experienced',
+    salary: 'RM 2,500 – 7,000',
     blurb:
       'Nurse, medical assistant, pharmacy and allied-health roles in hospitals, clinics and specialist centres.',
   },
@@ -111,6 +123,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
     type: 'Full time · Part time · Contract',
     location: 'KL, PJ, Penang, Subang',
     level: 'Fresh graduate · Experienced',
+    salary: 'RM 2,500 – 6,500',
     blurb:
       'Teacher, tutor and lecturer roles across schools, colleges, universities and the private-tuition and edtech sectors.',
   },
@@ -119,6 +132,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
     type: 'Full time · Part time · Shift',
     location: 'KL, Penang, JB, Subang',
     level: 'Fresh graduate · Experienced',
+    salary: 'RM 2,000 – 6,000',
     blurb:
       'Front office, housekeeping, events and guest-services roles in hotels, resorts and tourism operators.',
   },
@@ -127,6 +141,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
     type: 'Full time · Contract',
     location: 'KL, Shah Alam, JB, PJ',
     level: 'Fresh graduate · Experienced',
+    salary: 'RM 3,000 – 9,000',
     blurb:
       'Site supervisor, quantity surveyor, project and safety roles across residential, commercial and infrastructure projects.',
   },
@@ -135,6 +150,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
     type: 'Full time · Contract',
     location: 'KL, Shah Alam, JB, Penang',
     level: 'Fresh graduate · Experienced',
+    salary: 'RM 2,800 – 7,000',
     blurb:
       'Warehouse, procurement, shipping, fleet and planning roles — a fast-growing category fuelled by e-commerce.',
   },
@@ -143,6 +159,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
     type: 'Full time · Shift · Contract',
     location: 'Penang, Shah Alam, JB',
     level: 'Fresh graduate · Experienced',
+    salary: 'RM 2,500 – 6,000',
     blurb:
       'Production, QA/QC, planning and supervisor roles across electronics, semiconductor, FMCG and industrial sectors.',
   },
@@ -151,6 +168,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
     type: 'Full time · Part time · Shift',
     location: 'KL, PJ, Penang, Subang',
     level: 'Fresh graduate · Experienced',
+    salary: 'RM 1,800 – 5,500',
     blurb:
       'Chef, kitchen, barista, service and outlet-management roles across restaurants, cafes, hotels and F&B chains.',
   },
@@ -159,6 +177,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
     type: 'Full time · Part time · Shift',
     location: 'Kuala Lumpur, PJ, Penang',
     level: 'Entry level · Experienced',
+    salary: 'RM 2,800 – 8,000 + commission',
     blurb:
       'Sales associate, clienteling and boutique-management roles in jewelry, watches and luxury fashion.',
   },
@@ -167,6 +186,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
     type: 'Full time · Permanent',
     location: 'Kuala Lumpur, PJ',
     level: 'Diploma · Degree · Trade-certified',
+    salary: 'RM 2,500 – 7,500',
     blurb:
       'Specialist jewelry-trade roles — bench jeweler, diamond grader, gemologist and jewelry designer — with GIA / HRD pathway support.',
   },
@@ -175,6 +195,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
     type: 'Full time · Trainee program',
     location: 'Kuala Lumpur, Penang, JB',
     level: 'Fresh graduate · Experienced',
+    salary: 'RM 8,000 – 25,000+',
     blurb:
       'Cadet pilot program for fresh graduates plus direct-entry roles for experienced first officers and captains.',
   },
@@ -183,6 +204,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
     type: 'Internship · Part time',
     location: 'Nationwide',
     level: 'Internship for students',
+    salary: 'RM 800 – 1,500 / month',
     blurb:
       'Internships across business, tech, design, engineering and more. Many convert to full time for strong performers.',
   },
@@ -270,7 +292,9 @@ export default function Careers() {
             <span className="font-extrabold tracking-tight text-[20px]">DNJ</span>
             <span className="text-[10px] tracking-[0.22em] text-gray-500">DIAMOND &amp; JEWELER</span>
           </Link>
-          <nav aria-label="Primary" className="text-sm">
+          <nav aria-label="Primary" className="flex items-center gap-5 text-sm">
+            <Link to="/about" className="text-gray-600 hover:text-[#0B1220]">About</Link>
+            <Link to="/careers/urgent-hiring-malaysia-2026" className="text-gray-600 hover:text-[#0B1220]">Blog</Link>
             <Link to="/start/talent" className="text-[#1B2A6B] font-semibold underline underline-offset-4">
               Apply now
             </Link>
@@ -381,10 +405,16 @@ export default function Careers() {
             {ROLES.map((r) => (
               <li
                 key={r.title}
-                className="rounded-xl border border-gray-200 bg-white p-5 hover:border-[#0B1742] transition-colors"
+                className="rounded-xl border border-gray-200 bg-white p-5 hover:border-[#0B1742] transition-colors group"
               >
-                <h3 className="text-base font-semibold text-[#0B1220]">{r.title}</h3>
-                <p className="text-xs text-gray-500 mt-1">
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <h3 className="text-base font-semibold text-[#0B1220]">{r.title}</h3>
+                  {/* Salary — #audit #4: visible salary ranges */}
+                  <span className="flex-shrink-0 text-xs font-semibold text-[#0B6B3F] bg-[#ecfdf5] border border-[#86efac]/50 px-2 py-0.5 rounded-full whitespace-nowrap">
+                    {r.salary}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500">
                   {r.type} · {r.location} · {r.level}
                 </p>
                 <p className="text-sm text-gray-700 mt-2 leading-snug">{r.blurb}</p>

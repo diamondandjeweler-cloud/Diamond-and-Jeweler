@@ -200,101 +200,123 @@ export default function Landing() {
   if (!loading && session && profile) return <Navigate to="/home" replace />
 
   return (
-    <div className="relative min-h-screen flex flex-col bg-white text-[#0B1220] font-sans overflow-hidden">
-      <a
-        href="#landing-main"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-[#0B1220] text-white px-3 py-2 rounded z-50 text-sm"
-      >
-        Skip to main content
-      </a>
-      <BackgroundDecor />
+    <div className="bg-white text-[#0B1220] font-sans">
+      {/* ─── First screen ─── */}
+      <div className="relative min-h-screen flex flex-col overflow-hidden">
+        <a
+          href="#landing-main"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-[#0B1220] text-white px-3 py-2 rounded z-50 text-sm"
+        >
+          Skip to main content
+        </a>
+        <BackgroundDecor />
 
-      {/* Top Bar */}
-      <header className="relative z-10 px-6 md:px-12 pt-4 pb-2 flex items-center justify-between flex-shrink-0">
-        <Link to="/" className="flex items-center gap-3" aria-label="DNJ home">
-          <BrandMark />
-          <div className="leading-none">
-            <div className="font-sans font-extrabold text-[26px] tracking-tight text-[#0B1220]">DNJ</div>
-            <div className="text-[10px] font-medium tracking-[0.22em] text-gray-500 mt-1">DIAMOND &amp; JEWELER</div>
-          </div>
-        </Link>
-
-        <div className="inline-flex items-center gap-2 border border-gray-300 px-3.5 py-1.5 rounded-full text-xs text-gray-700 bg-white shadow-sm">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#C9A24D]" />
-          {t('landing.pilot')}
-        </div>
-      </header>
-
-      <main id="landing-main" className="relative z-10 flex-1 flex flex-col items-center justify-start md:justify-center px-6 py-4 md:py-2 md:min-h-0">
-        {/* Hero */}
-        <div className="text-center max-w-3xl mx-auto mb-4 md:mb-6">
-          <div className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2">
-            {t('landing.eyebrow').toUpperCase()}
-          </div>
-          <h1 className="font-sans font-bold text-[34px] md:text-[46px] leading-[1.05] tracking-tight text-[#0B1220] mb-2">
-            {t('landing.titleLead')}{' '}
-            <span className="text-[#A07D32]">{t('landing.titleHighlight')}</span>
-            <br />
-            {t('landing.titleTrail')}
-          </h1>
-          <div className="flex items-center justify-center gap-2 mb-1.5">
-            <span className="h-px w-8 bg-gradient-to-r from-transparent to-[#a6b6ff]" />
-            <span className="h-1.5 w-1.5 rounded-full bg-[#7b8efc]" />
-            <span className="h-px w-8 bg-gradient-to-l from-transparent to-[#a6b6ff]" />
-          </div>
-          <p className="text-gray-600 text-[14px] md:text-[15px] leading-snug">
-            <span className="block">AI-curated recruitment for every industry in Malaysia.</span>
-            <span className="block">Three matches, zero noise.</span>
-          </p>
-        </div>
-
-        {/* Cards */}
-        <div className="relative grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-12 max-w-4xl w-full">
-          <DecisionCard
-            to="/start/talent"
-            title={t('landing.talent')}
-            description={t('landing.talentDesc')}
-            illustration={<DiamondIllustration />}
-            cta={t('common.continue')}
-          />
-          <OrDivider />
-          <DecisionCard
-            to="/start/hiring"
-            title={t('landing.hiring')}
-            description={t('landing.hiringDesc')}
-            illustration={<MagnifierIllustration />}
-            cta={t('common.continue')}
-          />
-        </div>
-
-        {/* Sign-in row */}
-        <div className="mt-4 md:mt-5 flex items-center justify-center gap-2.5 text-sm">
-          <ShieldIcon />
-          <span className="text-gray-500">{t('landing.haveAccount')}</span>
-          <Link
-            to="/login"
-            className="font-semibold text-[#1B2A6B] underline underline-offset-4 decoration-[1.5px] hover:text-[#0B1220] inline-flex items-center gap-1"
-          >
-            {t('landing.signInDashboard')}
-            <Arrow />
+        {/* Top Bar */}
+        <header className="relative z-10 px-6 md:px-12 pt-4 pb-2 flex items-center justify-between flex-shrink-0">
+          <Link to="/" className="flex items-center gap-3" aria-label="DNJ home">
+            <BrandMark />
+            <div className="leading-none">
+              <div className="font-sans font-extrabold text-[26px] tracking-tight text-[#0B1220]">DNJ</div>
+              <div className="text-[10px] font-medium tracking-[0.22em] text-gray-500 mt-1">DIAMOND &amp; JEWELER</div>
+            </div>
           </Link>
-        </div>
-      </main>
 
-      <footer className="relative z-10 pt-1 pb-2 text-center text-[10px] text-gray-500 flex-shrink-0 flex flex-col items-center gap-1">
-        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
-          <Link to="/about" className="hover:text-[#0B1220]">About</Link>
-          <span>·</span>
-          <Link to="/careers" className="hover:text-[#0B1220]">Careers</Link>
-          <span>·</span>
-          <Link to="/privacy" className="hover:text-[#0B1220]">{t('footer.privacy')}</Link>
-          <span>·</span>
-          <Link to="/terms" className="hover:text-[#0B1220]">{t('footer.terms')}</Link>
-          <span>·</span>
-          <span>© 2026 DNJ</span>
-        </div>
-        <PopularSearches />
-      </footer>
+          {/* Primary navigation — visible on md+ */}
+          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600" aria-label="Site navigation">
+            <Link to="/careers" className="hover:text-[#0B1220] transition-colors">Jobs</Link>
+            <Link to="/about" className="hover:text-[#0B1220] transition-colors">About</Link>
+            <Link to="/careers/urgent-hiring-malaysia-2026" className="hover:text-[#0B1220] transition-colors">Blog</Link>
+          </nav>
+
+          <div className="inline-flex items-center gap-2 border border-gray-300 px-3.5 py-1.5 rounded-full text-xs text-gray-700 bg-white shadow-sm">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#C9A24D]" />
+            {t('landing.pilot')}
+          </div>
+        </header>
+
+        <main id="landing-main" className="relative z-10 flex-1 flex flex-col items-center justify-start md:justify-center px-6 py-4 md:py-2 md:min-h-0">
+          {/* Hero */}
+          <div className="text-center max-w-3xl mx-auto mb-4 md:mb-6">
+            <div className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2">
+              {t('landing.eyebrow').toUpperCase()}
+            </div>
+            <h1 className="font-sans font-bold text-[34px] md:text-[46px] leading-[1.05] tracking-tight text-[#0B1220] mb-2">
+              {t('landing.titleLead')}{' '}
+              <span className="text-[#A07D32]">{t('landing.titleHighlight')}</span>
+              <br />
+              {t('landing.titleTrail')}
+            </h1>
+            <div className="flex items-center justify-center gap-2 mb-1.5">
+              <span className="h-px w-8 bg-gradient-to-r from-transparent to-[#a6b6ff]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#7b8efc]" />
+              <span className="h-px w-8 bg-gradient-to-l from-transparent to-[#a6b6ff]" />
+            </div>
+            <p className="text-gray-600 text-[14px] md:text-[15px] leading-snug">
+              <span className="block">AI-curated recruitment for every industry in Malaysia.</span>
+              <span className="block">Three matches, zero noise.</span>
+            </p>
+          </div>
+
+          {/* Cards */}
+          <div className="relative grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-12 max-w-4xl w-full">
+            <DecisionCard
+              to="/start/talent"
+              title={t('landing.talent')}
+              description={t('landing.talentDesc')}
+              illustration={<DiamondIllustration />}
+              cta={t('common.continue')}
+            />
+            <OrDivider />
+            <DecisionCard
+              to="/start/hiring"
+              title={t('landing.hiring')}
+              description={t('landing.hiringDesc')}
+              illustration={<MagnifierIllustration />}
+              cta={t('common.continue')}
+            />
+          </div>
+
+          {/* Sign-in row */}
+          <div className="mt-4 md:mt-5 flex items-center justify-center gap-2.5 text-sm">
+            <ShieldIcon />
+            <span className="text-gray-500">{t('landing.haveAccount')}</span>
+            <Link
+              to="/login"
+              className="font-semibold text-[#1B2A6B] underline underline-offset-4 decoration-[1.5px] hover:text-[#0B1220] inline-flex items-center gap-1"
+            >
+              {t('landing.signInDashboard')}
+              <Arrow />
+            </Link>
+          </div>
+        </main>
+
+        {/* Footer — text-xs (12px) for accessibility; includes Blog link */}
+        <footer className="relative z-10 pt-2 pb-3 text-center text-xs text-gray-500 flex-shrink-0 flex flex-col items-center gap-1">
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5">
+            <Link to="/about" className="hover:text-[#0B1220]">About</Link>
+            <span aria-hidden>·</span>
+            <Link to="/careers" className="hover:text-[#0B1220]">Jobs</Link>
+            <span aria-hidden>·</span>
+            <Link to="/careers/urgent-hiring-malaysia-2026" className="hover:text-[#0B1220]">Blog</Link>
+            <span aria-hidden>·</span>
+            <Link to="/privacy" className="hover:text-[#0B1220]">{t('footer.privacy')}</Link>
+            <span aria-hidden>·</span>
+            <Link to="/terms" className="hover:text-[#0B1220]">{t('footer.terms')}</Link>
+            <span aria-hidden>·</span>
+            <span>© 2026 DNJ</span>
+          </div>
+          <PopularSearches />
+        </footer>
+      </div>{/* end first-screen */}
+
+      {/* ─── Below-the-fold content ─── */}
+      <TrustStrip />
+      <HowItWorksSection />
+      <SocialProofStrip />
+      <BoleSection />
+      <PassiveTalentSection />
+      <ReferralSection />
+      <WhatsAppCTA />
     </div>
   )
 }
@@ -764,5 +786,324 @@ function Arrow() {
         strokeLinejoin="round"
       />
     </svg>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BELOW-THE-FOLD SECTIONS  (#audit: #2 How-it-Works, #5 WhatsApp, #6 Social
+// proof, #8 Referral, #10 Passive talent, #24 Footer size, #30 Bole)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Thin trust bar immediately below the hero screen */
+function TrustStrip() {
+  const pills = [
+    { icon: '🔒', label: 'PDPA-Compliant' },
+    { icon: '🔐', label: 'End-to-End Encrypted' },
+    { icon: '✦', label: 'AI-Curated Matching', gold: true },
+    { icon: '🇲🇾', label: 'Malaysia-first platform' },
+  ]
+  return (
+    <div className="bg-[#0B1742] py-3 px-6">
+      <ul className="max-w-4xl mx-auto flex flex-wrap items-center justify-center gap-x-8 gap-y-2" aria-label="Platform trust signals">
+        {pills.map((p) => (
+          <li key={p.label} className={`flex items-center gap-2 text-sm ${p.gold ? 'text-[#C9A24D] font-semibold' : 'text-white/80'}`}>
+            <span aria-hidden>{p.icon}</span>
+            {p.label}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+/** Step arrow — horizontal on desktop, vertical on mobile */
+function StepArrow() {
+  return (
+    <div className="flex items-center justify-center text-[#C9A24D]" aria-hidden>
+      {/* Desktop: → */}
+      <svg className="hidden md:block" width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <path d="M4 14h20m0 0l-7-7m7 7l-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      {/* Mobile: ↓ */}
+      <svg className="block md:hidden" width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <path d="M14 4v20m0 0l-7-7m7 7l7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </div>
+  )
+}
+
+/** #2 — How Bole works in 3 steps */
+function HowItWorksSection() {
+  return (
+    <section className="py-16 px-6 bg-white" aria-labelledby="how-it-works-heading">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-10">
+          <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">How It Works</p>
+          <h2 id="how-it-works-heading" className="text-2xl md:text-3xl font-bold tracking-tight text-[#0B1220]">
+            Precision recruitment in three steps
+          </h2>
+          <p className="text-gray-500 mt-2 max-w-lg mx-auto text-sm leading-relaxed">
+            No cold applications. No CV black hole. Complete your profile once and let Bole — our advanced AI — find the right fit.
+          </p>
+        </div>
+
+        <div className="flex flex-col md:flex-row items-center gap-4 md:gap-2">
+          {/* Step 1 */}
+          <div className="flex-1 text-center bg-gradient-to-b from-[#fafbff] to-white rounded-2xl ring-1 ring-[#e8edff] p-6 w-full">
+            <div className="w-14 h-14 rounded-full bg-[#C9A24D]/10 border border-[#C9A24D]/50 flex items-center justify-center mx-auto mb-4">
+              <span className="text-[#C9A24D] font-bold text-lg leading-none">01</span>
+            </div>
+            <h3 className="font-bold text-[#0B1220] mb-2">Complete your profile</h3>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              Tell us your career story — skills, goals, salary expectations, culture fit. Five minutes. No resume required.
+            </p>
+          </div>
+
+          <StepArrow />
+
+          {/* Step 2 — highlighted (Bole) */}
+          <div className="flex-1 text-center rounded-2xl ring-1 ring-[#5468ef]/30 p-6 w-full shadow-[0_8px_32px_-8px_rgba(84,104,239,0.25)]"
+               style={{ background: 'linear-gradient(160deg,#0B1742 0%,#0B1220 100%)' }}>
+            <div className="w-14 h-14 rounded-full bg-[#C9A24D]/20 border border-[#C9A24D]/50 flex items-center justify-center mx-auto mb-4">
+              <span className="text-[#C9A24D] font-bold text-xl leading-none" aria-label="Bole character">伯</span>
+            </div>
+            <h3 className="font-bold text-white mb-2">Bole scans every industry</h3>
+            <p className="text-sm text-white/75 leading-relaxed">
+              Our AI reads your six facets — skills, trajectory, character, working style, growth potential and culture fit — across every active role in Malaysia.
+            </p>
+          </div>
+
+          <StepArrow />
+
+          {/* Step 3 */}
+          <div className="flex-1 text-center bg-gradient-to-b from-[#fafbff] to-white rounded-2xl ring-1 ring-[#e8edff] p-6 w-full">
+            <div className="w-14 h-14 rounded-full bg-[#C9A24D]/10 border border-[#C9A24D]/50 flex items-center justify-center mx-auto mb-4">
+              <span className="text-[#C9A24D] font-bold text-lg leading-none">03</span>
+            </div>
+            <h3 className="font-bold text-[#0B1220] mb-2">Receive 3 curated matches</h3>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              Three employers. Three genuine fits. You review, decide, and connect — no applications fired into the void.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-8 text-center">
+          <Link
+            to="/start/talent"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#0B1742] text-white font-semibold text-sm hover:bg-[#1B2A6B] transition-colors shadow-[0_4px_14px_rgba(11,23,66,0.35)]"
+          >
+            Start my profile <Arrow />
+          </Link>
+          <p className="text-xs text-gray-400 mt-2">Free to join · No application fees</p>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/** #30 — Meet Bole: the AI behind the matching */
+function BoleSection() {
+  const facets = ['Skills', 'Career trajectory', 'Character', 'Working style', 'Growth potential', 'Culture fit']
+  return (
+    <section
+      className="py-16 px-6"
+      style={{ background: 'radial-gradient(110% 120% at 80% 0%, #1B2A6B 0%, #0B1742 50%, #0B1220 100%)' }}
+      aria-labelledby="bole-heading"
+    >
+      <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+        <div>
+          <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-3 uppercase">Meet Bole</p>
+          <div className="text-[80px] font-extrabold text-[#C9A24D] leading-none mb-4" aria-hidden>伯樂</div>
+          <h2 id="bole-heading" className="text-2xl md:text-3xl font-bold text-white mb-3 tracking-tight">
+            The AI that recognises your brilliance
+          </h2>
+          <p className="text-white/75 text-sm leading-relaxed max-w-sm">
+            Named after the legendary talent scout 伯樂 (Bole), who could spot an extraordinary horse in any crowd. Our Bole doesn't manufacture talent — it <em>recognises</em> what's already there.
+          </p>
+          <p className="text-white/60 text-sm leading-relaxed mt-3 max-w-sm">
+            You're already a diamond. Bole's job is to make sure the right people see it.
+          </p>
+          <Link
+            to="/about"
+            className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#C9A24D] hover:text-white transition-colors"
+          >
+            Read the full story <Arrow />
+          </Link>
+        </div>
+        <div>
+          <p className="text-white/50 text-xs tracking-widest uppercase mb-3">The six facets Bole reads</p>
+          <div className="flex flex-wrap gap-2">
+            {facets.map((f) => (
+              <span
+                key={f}
+                className="px-3 py-1.5 rounded-full text-sm text-[#dbe4ff] border border-[#a6b6ff]/30 bg-[#a6b6ff]/10"
+              >
+                {f}
+              </span>
+            ))}
+          </div>
+          <div className="mt-6 rounded-xl bg-white/5 border border-white/10 p-4 text-sm text-white/70 leading-relaxed">
+            <span className="block text-[#C9A24D] font-semibold mb-1">Why only three matches?</span>
+            Three genuinely-aligned opportunities demand your full attention. Three hundred listings demand nothing but your time.
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/** #10 — Passive talent feature: your profile works 24/7 */
+function PassiveTalentSection() {
+  return (
+    <section className="py-14 px-6 bg-white" aria-labelledby="passive-heading">
+      <div className="max-w-4xl mx-auto">
+        <div className="rounded-2xl ring-1 ring-[#e8edff] bg-gradient-to-br from-[#fafbff] to-[#f0f4ff] p-8 md:p-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+          <div>
+            <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">Passive matching</p>
+            <h2 id="passive-heading" className="text-2xl font-bold tracking-tight text-[#0B1220] mb-3">
+              Your profile works while you sleep
+            </h2>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              You don't send applications. Bole sends you matches.
+            </p>
+            <p className="text-sm text-gray-600 leading-relaxed mt-2">
+              Complete your profile once and our AI continuously scans new roles across every industry — alerting you to the right opportunity before it ever reaches the open market.
+            </p>
+            <ul className="mt-4 space-y-2 text-sm text-gray-700">
+              {[
+                'No daily job-board scrolling',
+                'No cold applications into the void',
+                'Early visibility into roles before they go public',
+                'Candidate confidentiality — employers see only what you share',
+              ].map((point) => (
+                <li key={point} className="flex items-start gap-2">
+                  <span className="text-[#C9A24D] mt-0.5 flex-shrink-0" aria-hidden>✦</span>
+                  {point}
+                </li>
+              ))}
+            </ul>
+            <Link
+              to="/start/talent"
+              className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0B1742] text-white text-sm font-semibold hover:bg-[#1B2A6B] transition-colors"
+            >
+              Join — it's free <Arrow />
+            </Link>
+          </div>
+          {/* Visual: a sleeping diamond / passive indicator */}
+          <div className="flex flex-col items-center justify-center gap-4 text-center">
+            <div className="relative">
+              <div className="w-24 h-24 rounded-full bg-[#e8edff] flex items-center justify-center">
+                <svg width="48" height="48" viewBox="0 0 44 44" fill="none" aria-hidden>
+                  <polygon points="6,16 22,4 38,16" fill="#a6b6ff" stroke="#0b1742" strokeWidth="0.9" strokeLinejoin="round" />
+                  <polygon points="6,16 38,16 22,40" fill="#0b1742" stroke="#0b1742" strokeWidth="0.9" strokeLinejoin="round" />
+                  <polygon points="9,15 22,5 19,15" fill="#ffffff" opacity="0.55" />
+                </svg>
+              </div>
+              {/* Pulse ring */}
+              <span className="absolute inset-0 rounded-full border-2 border-[#7b8efc]/40 animate-ping" aria-hidden />
+            </div>
+            <div className="text-sm text-gray-500 max-w-[180px] leading-relaxed">
+              Bole scans continuously — matching happens automatically as new roles open
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/** #6 — Social proof / trust signals strip */
+function SocialProofStrip() {
+  const signals = [
+    { stat: 'Every industry', label: 'Sales · Finance · Tech · Aviation · Luxury & more' },
+    { stat: '3 matches', label: 'Per cycle · Quality over volume' },
+    { stat: 'PDPA', label: 'Fully compliant · End-to-end encrypted' },
+    { stat: '~14 days', label: 'Typical first-match timeline' },
+  ]
+  return (
+    <div className="border-y border-gray-100 bg-[#fafbff] py-8 px-6">
+      <ul className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6" aria-label="Platform at a glance">
+        {signals.map((s) => (
+          <li key={s.stat} className="text-center">
+            <div className="text-[#0B1742] font-extrabold text-xl tracking-tight">{s.stat}</div>
+            <div className="text-xs text-gray-500 mt-0.5 leading-snug">{s.label}</div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+/** #8 — Referral teaser */
+function ReferralSection() {
+  return (
+    <section className="py-12 px-6 bg-white" aria-labelledby="referral-heading">
+      <div className="max-w-4xl mx-auto">
+        <div
+          className="rounded-2xl p-8 text-center"
+          style={{ background: 'linear-gradient(135deg,#fffaf1 0%,#fff7e6 100%)', border: '1px solid #e9c97a' }}
+        >
+          <p className="text-[#8a6420] tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">Refer & Earn</p>
+          <h2 id="referral-heading" className="text-xl font-bold text-[#0B1220] mb-2">
+            Know someone brilliant? Refer them.
+          </h2>
+          <p className="text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
+            Refer a friend to DNJ and earn platform reward points when they receive their first curated match. Every brilliant person deserves to be seen.
+          </p>
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              to="/login"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#C9A24D] text-[#0B1220] text-sm font-bold hover:bg-[#b88c38] transition-colors"
+            >
+              Refer a friend <Arrow />
+            </Link>
+            <Link
+              to="/start/talent"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-[#C9A24D]/60 text-[#8a6420] text-sm font-semibold hover:bg-[#C9A24D]/10 transition-colors"
+            >
+              Join DNJ first
+            </Link>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/** #5 — WhatsApp CTA (Malaysia-first contact) */
+function WhatsAppCTA() {
+  // Replace WHATSAPP_NUMBER with the business WhatsApp number, e.g. 60123456789
+  const WHATSAPP_NUMBER = '60123456789' // TODO: update to real number
+  const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Hi DNJ, I have a question about the platform.')}`
+  return (
+    <section className="py-14 px-6 bg-[#fafbff] border-t border-gray-100" aria-labelledby="contact-heading">
+      <div className="max-w-4xl mx-auto text-center">
+        <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">Questions?</p>
+        <h2 id="contact-heading" className="text-xl font-bold text-[#0B1220] mb-2">
+          We reply within 24 hours
+        </h2>
+        <p className="text-sm text-gray-500 max-w-sm mx-auto mb-6 leading-relaxed">
+          Reach us on WhatsApp for quick questions, or email us at{' '}
+          <a href="mailto:support@diamondandjeweler.com" className="text-[#1B2A6B] underline underline-offset-2">
+            support@diamondandjeweler.com
+          </a>
+        </p>
+        <a
+          href={WHATSAPP_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-3 px-6 py-3 rounded-xl font-semibold text-sm text-white transition-colors"
+          style={{ background: '#25D366' }}
+          aria-label="Chat with DNJ on WhatsApp"
+        >
+          {/* WhatsApp icon */}
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+            <path d="M10 0C4.477 0 0 4.477 0 10c0 1.763.462 3.415 1.27 4.847L0 20l5.293-1.238A9.953 9.953 0 0010 20c5.523 0 10-4.477 10-10S15.523 0 10 0zm5.34 14.386c-.225.632-1.324 1.208-1.822 1.255-.497.046-1.013.233-3.396-.707-2.895-1.136-4.74-4.084-4.883-4.272-.144-.188-1.177-1.567-1.177-2.987 0-1.42.744-2.118 1.007-2.406.263-.288.576-.36.768-.36.192 0 .384.002.552.01.177.009.414-.067.648.494.24.576.816 1.99.888 2.135.072.145.12.315.024.503-.096.188-.144.303-.288.47-.144.166-.303.37-.432.498-.144.143-.294.3-.126.587.168.288.744 1.227 1.595 1.987 1.095.977 2.018 1.278 2.306 1.422.288.144.456.12.624-.072.168-.192.72-.84.912-1.128.192-.288.384-.24.648-.144.264.096 1.68.793 1.968.937.288.144.48.216.552.336.072.12.072.696-.153 1.328z"/>
+          </svg>
+          Chat on WhatsApp
+        </a>
+        <p className="text-xs text-gray-400 mt-3">Mon – Fri, 9am – 6pm MYT · We also reply out-of-hours</p>
+      </div>
+    </section>
   )
 }

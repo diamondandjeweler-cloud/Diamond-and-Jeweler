@@ -61,9 +61,13 @@ export default function About() {
             <span className="font-extrabold tracking-tight text-[20px]">DNJ</span>
             <span className="text-[10px] tracking-[0.22em] text-gray-500">DIAMOND &amp; JEWELER</span>
           </Link>
-          <Link to="/start/talent" className="text-sm text-[#1B2A6B] font-semibold underline underline-offset-4">
-            Apply now
-          </Link>
+          <nav className="flex items-center gap-5 text-sm" aria-label="Site navigation">
+            <Link to="/careers" className="text-gray-600 hover:text-[#0B1220]">Jobs</Link>
+            <Link to="/careers/urgent-hiring-malaysia-2026" className="text-gray-600 hover:text-[#0B1220]">Blog</Link>
+            <Link to="/start/talent" className="text-[#1B2A6B] font-semibold underline underline-offset-4">
+              Apply now
+            </Link>
+          </nav>
         </div>
       </header>
 
@@ -293,14 +297,37 @@ export default function About() {
         </section>
       </main>
 
-      <footer className="border-t border-gray-100 mt-10 py-6 text-center text-xs text-gray-500">
-        <Link to="/" className="hover:text-[#0B1220]">Home</Link>
-        <span className="mx-2">·</span>
-        <Link to="/careers" className="hover:text-[#0B1220]">Careers</Link>
-        <span className="mx-2">·</span>
-        <Link to="/privacy" className="hover:text-[#0B1220]">Privacy</Link>
-        <span className="mx-2">·</span>
-        <Link to="/terms" className="hover:text-[#0B1220]">Terms</Link>
+      {/* #audit #26 — company info for B2B trust */}
+      <section className="max-w-5xl mx-auto px-6 mt-12 mb-2">
+        <div className="rounded-xl bg-[#fafbff] ring-1 ring-[#e8edff] px-6 py-5 flex flex-col md:flex-row md:items-center gap-4 md:gap-10 text-sm text-gray-600">
+          <div>
+            <span className="font-semibold text-[#0B1220]">DNJ — Diamond &amp; Jeweler</span>
+            <span className="mx-2 text-gray-300">|</span>
+            Registered in Malaysia
+          </div>
+          <div>
+            <a href="mailto:support@diamondandjeweler.com" className="text-[#1B2A6B] underline underline-offset-2">
+              support@diamondandjeweler.com
+            </a>
+          </div>
+          <div className="text-xs text-gray-400">PDPA-compliant · End-to-end encrypted · All industries, nationwide</div>
+        </div>
+      </section>
+
+      <footer className="border-t border-gray-100 mt-6 py-6 text-center text-xs text-gray-500">
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5">
+          <Link to="/" className="hover:text-[#0B1220]">Home</Link>
+          <span aria-hidden>·</span>
+          <Link to="/careers" className="hover:text-[#0B1220]">Jobs</Link>
+          <span aria-hidden>·</span>
+          <Link to="/careers/urgent-hiring-malaysia-2026" className="hover:text-[#0B1220]">Blog</Link>
+          <span aria-hidden>·</span>
+          <Link to="/privacy" className="hover:text-[#0B1220]">Privacy</Link>
+          <span aria-hidden>·</span>
+          <Link to="/terms" className="hover:text-[#0B1220]">Terms</Link>
+          <span aria-hidden>·</span>
+          <span>2026 DNJ</span>
+        </div>
       </footer>
     </div>
   )

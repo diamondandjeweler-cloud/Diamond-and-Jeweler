@@ -27,45 +27,58 @@ const BASE = 'https://diamondandjeweler.com'
  * into <div id="root"> so crawlers see meaningful HTML before JS loads.
  */
 const ROUTES = {
-  // ----- Utility pages (no noscript body needed) -----
+  // ----- Utility pages — noindex (thin content, no crawl value) -----
   '/start/talent': {
     title: 'Find your next role · DNJ',
     description:
       'DNJ matches talent in Malaysia with exactly three curated roles at a time. Zero noise, three real opportunities.',
+    noindex: true,
+    keywords: 'DNJ talent onboarding, join DNJ, find job Malaysia, AI job matching',
   },
   '/start/hiring': {
     title: 'Hire with precision · DNJ',
     description:
       'DNJ delivers exactly three qualified candidates per open role to hiring managers and HR teams across Malaysia.',
+    noindex: true,
+    keywords: 'DNJ hiring, hire with AI, post a role Malaysia, AI recruitment Malaysia',
   },
   '/login': {
     title: 'Sign in · DNJ',
     description:
       'Sign in to your DNJ account to view your curated matches, manage your profile, or post new roles.',
+    noindex: true,
+    keywords: 'DNJ sign in, DNJ login, recruitment platform Malaysia login',
   },
   '/signup': {
     title: 'Create an account · DNJ',
     description:
       "Join DNJ — Malaysia's curated recruitment platform. Three matches, zero noise.",
+    noindex: true,
+    keywords: 'DNJ sign up, join DNJ, create account, AI recruitment Malaysia',
   },
   '/privacy': {
     title: 'Privacy notice · DNJ',
     description:
       'How DNJ collects, uses, and protects your personal data under PDPA (Malaysia) and applicable privacy laws.',
+    keywords: 'DNJ privacy policy, PDPA Malaysia, personal data protection, recruitment platform privacy, PDPA compliant',
   },
   '/terms': {
     title: 'Terms of service · DNJ',
     description:
       "Terms and conditions governing use of DNJ — Malaysia's curated recruitment platform.",
+    keywords: 'DNJ terms of service, recruitment platform terms Malaysia, DNJ terms and conditions',
   },
   '/password-reset': {
     title: 'Reset your password · DNJ',
     description: 'Request a secure password reset link for your DNJ account.',
+    noindex: true,
+    keywords: 'DNJ password reset, forgot password DNJ',
   },
   '/about': {
     title: 'About DNJ — Bole, the AI That Recognises Your Brilliance',
     description:
       "DNJ is an AI-curated recruitment platform for Malaysia. Meet Bole — our advanced AI talent scout that recognises your potential and matches you with the leader who brings out your brilliance. You're already a diamond; let the world see it.",
+    keywords: 'about DNJ, Bole AI, what is DNJ, AI talent scout Malaysia, AI recruitment Malaysia, curated recruitment platform, how DNJ works, diamond and jeweler recruitment, DNJ mission',
     bullets: [
       "You're already a diamond — most job boards just can't see it",
       'Bole is DNJ’s advanced AI talent scout — it recognises potential, it doesn’t manufacture it',
@@ -81,6 +94,7 @@ const ROUTES = {
     title: 'Careers — Job Vacancy Malaysia, All Industries | AI-Curated Recruitment | DNJ',
     description:
       'Precision recruitment powered by AI. Three matches at a time, zero noise. Job vacancy across every industry in Malaysia — sales, admin, finance, banking, IT and software, engineering, marketing, HR, customer service, healthcare, education, hospitality, construction, logistics, manufacturing, F&B and more. PDPA-compliant, end-to-end encrypted.',
+    keywords: 'job vacancy Malaysia, jobs near me, job vacancy near me, apply job online, latest job vacancy, fresh graduate job, AI curated recruitment Malaysia, curated matching recruitment, sales executive job vacancy, admin executive job vacancy, finance job vacancy, software developer job vacancy, engineering job vacancy, marketing executive job vacancy, customer service job vacancy, banking job Malaysia, healthcare job Malaysia, education job Malaysia, hospitality job Malaysia, logistics job Malaysia, manufacturing job Malaysia, pilot job vacancy, jeweler job vacancy, luxury retail job vacancy, jobs in Kuala Lumpur, jobs in PJ, jobs in Penang, jobs in Johor Bahru, work from home Malaysia, remote job Malaysia',
     bullets: [
       'A general recruitment platform — sales, admin, finance, banking, IT, engineering, marketing, HR, customer service, healthcare, education, hospitality, construction, logistics, manufacturing, F&B, retail and more',
       'AI-curated matching — up to three vetted candidates or roles per match cycle',
@@ -684,7 +698,7 @@ function buildNoscriptBlock(title, description, bullets) {
   ].join('')
 }
 
-function injectMeta(html, route, title, description, bullets) {
+function injectMeta(html, route, title, description, bullets, noindex, keywords) {
   const canonical = `${BASE}${route}`
   const t = escapeHtml(title)
   const d = escapeHtml(description)
@@ -699,6 +713,36 @@ function injectMeta(html, route, title, description, bullets) {
     .replace(/(<meta name="twitter:description" content=")[^"]*(")/,  `$1${d}$2`)
     .replace(/(<link rel="canonical" href=")[^"]*(")/,               `$1${c}$2`)
 
+  // #audit #13 — strip broken multi-language hreflang alternates from per-route HTML.
+  // All language variants currently served at the same URL; ms-MY/zh-MY alternates
+  // pointing to the root confuse Google. Keep only en-MY + x-default on the root.
+  out = out.replace(
+    /<link rel="alternate" hreflang="ms-MY"[^>]*>\n?/g, ''
+  ).replace(
+    /<link rel="alternate" hreflang="zh-MY"[^>]*>\n?/g, ''
+  )
+
+  // #audit #11 — noindex for utility pages (login, signup, password-reset etc.)
+  if (noindex) {
+    out = out.replace(
+      /(<meta name="robots" content=")[^"]*(")/,
+      '$1noindex, nofollow$2'
+    )
+    // Also block googlebot
+    out = out.replace(
+      /(<meta name="googlebot" content=")[^"]*(")/,
+      '$1noindex, nofollow$2'
+    )
+  }
+
+  // #audit #12 — page-specific keywords instead of the shared 300-word dump
+  if (keywords) {
+    out = out.replace(
+      /(<meta name="keywords" content=")[^"]*(")/,
+      `$1${escapeHtml(keywords)}$2`
+    )
+  }
+
   const noscript = buildNoscriptBlock(title, description, bullets)
   if (noscript) {
     out = out.replace('<div id="root"></div>', `<div id="root">${noscript}</div>`)
@@ -708,8 +752,8 @@ function injectMeta(html, route, title, description, bullets) {
 
 const baseHtml = readFileSync(join(DIST, 'index.html'), 'utf-8')
 
-for (const [route, { title, description, bullets }] of Object.entries(ROUTES)) {
-  const html = injectMeta(baseHtml, route, title, description, bullets)
+for (const [route, { title, description, bullets, noindex, keywords }] of Object.entries(ROUTES)) {
+  const html = injectMeta(baseHtml, route, title, description, bullets, noindex, keywords)
   // /start/talent  → dist/start/talent.html
   // /login         → dist/login.html
   const relPath = route.slice(1) + '.html' // strip leading /

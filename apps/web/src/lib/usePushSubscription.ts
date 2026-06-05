@@ -50,11 +50,13 @@ export function usePushSubscription() {
         applicationServerKey: urlBase64ToUint8Array(vapidKey),
       })
 
+      const subJson = sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } }
+
       const { error } = await supabase
         .from('push_subscriptions')
         .upsert(
-          { user_id: session.user.id, subscription: sub.toJSON() },
-          { onConflict: 'user_id, (subscription->>endpoint)' }
+          { user_id: session.user.id, endpoint: subJson.endpoint, subscription: subJson },
+          { onConflict: 'user_id,endpoint' }
         )
       if (error) throw error
 

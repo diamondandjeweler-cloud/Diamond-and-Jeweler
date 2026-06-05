@@ -9,9 +9,12 @@ import { useSeo } from '../lib/useSeo'
 const CAREERS_KEYWORDS =
   'jobs near me, job vacancy near me, apply job online, latest job vacancy, part time job near me, full time job, fresh graduate job, vacancy near me, job opening near me, apply now, send resume, job seeking, job search, jobs in Malaysia, recruitment Malaysia, job portal Malaysia, sales job vacancy, admin executive job vacancy, account assistant job vacancy, finance job vacancy, banking job vacancy, software developer job vacancy, IT job vacancy, engineering job vacancy, marketing executive job vacancy, graphic designer job vacancy, customer service job vacancy, hr job vacancy, healthcare job vacancy, nursing job vacancy, education job vacancy, teaching job vacancy, hospitality job vacancy, hotel job vacancy, construction job vacancy, logistics job vacancy, supply chain job, manufacturing job vacancy, production job vacancy, f&b job vacancy, restaurant job vacancy, job vacancy in Kuala Lumpur, job vacancy in PJ, job vacancy in Penang, job vacancy in Johor Bahru, job vacancy in Malaysia, jobs near KL, hiring in Kuala Lumpur, hiring in Malaysia, work from home Kuala Lumpur, remote job Malaysia, fresh graduate Kuala Lumpur, graduate trainee, entry level, junior level, career opportunity, career growth job, stable job, career advancement, new job opportunity, job vacancy, job hiring, job opening, employment, recruitment, career, vacancy, hiring, job posting, apply online, submit resume, contract job, temporary job, internship, freelance job, remote job, hybrid job, shift job, permanent job, internship for students, spm leaver job, diploma holder job, degree holder job, luxury retail job, pilot job Malaysia, cadet pilot program, jeweler job vacancy, gemologist job, ai curated matching, ai recruitment Malaysia, curated matching, three matches per role'
 
-const ROLES: Array<{ title: string; type: string; location: string; level: string; blurb: string; salary: string }> = [
+// #audit #3 — slug links each card to its public silo page (/jobs/[slug])
+// so visitors can browse detailed role info without creating an account.
+const ROLES: Array<{ title: string; type: string; location: string; level: string; blurb: string; salary: string; slug?: string }> = [
   {
     title: 'Sales Executive',
+    slug: 'sales-executive',
     type: 'Full time',
     location: 'Kuala Lumpur, PJ, nationwide',
     level: 'Fresh graduate · Junior · Mid-level',
@@ -21,6 +24,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
   },
   {
     title: 'Admin Executive',
+    slug: 'admin-executive',
     type: 'Full time · Hybrid',
     location: 'Kuala Lumpur, PJ, nationwide',
     level: 'Fresh graduate · Junior · Mid-level',
@@ -30,6 +34,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
   },
   {
     title: 'Account Assistant',
+    slug: 'account-assistant',
     type: 'Full time · Permanent',
     location: 'Kuala Lumpur, PJ',
     level: 'SPM · Diploma · Fresh graduate',
@@ -39,6 +44,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
   },
   {
     title: 'Finance & Accounting',
+    slug: 'finance',
     type: 'Full time',
     location: 'Kuala Lumpur, PJ',
     level: 'Junior · Mid · Senior',
@@ -48,6 +54,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
   },
   {
     title: 'Banking',
+    slug: 'banking',
     type: 'Full time',
     location: 'Kuala Lumpur, PJ, Penang',
     level: 'Fresh graduate · Junior · Mid-level',
@@ -57,6 +64,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
   },
   {
     title: 'Software Developer',
+    slug: 'software-developer',
     type: 'Full time · Remote · Hybrid',
     location: 'Malaysia (remote-friendly)',
     level: 'Junior · Mid · Senior',
@@ -66,6 +74,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
   },
   {
     title: 'Engineering',
+    slug: 'engineering',
     type: 'Full time · Contract',
     location: 'KL, Shah Alam, Penang, JB',
     level: 'Fresh graduate · Junior · Senior',
@@ -75,6 +84,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
   },
   {
     title: 'Marketing Executive',
+    slug: 'marketing-executive',
     type: 'Full time',
     location: 'Kuala Lumpur, PJ',
     level: 'Fresh graduate · Junior · Mid-level',
@@ -84,6 +94,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
   },
   {
     title: 'Graphic Designer',
+    slug: 'graphic-designer',
     type: 'Full time · Freelance',
     location: 'Kuala Lumpur, PJ',
     level: 'Junior · Mid-level',
@@ -93,6 +104,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
   },
   {
     title: 'Customer Service',
+    slug: 'customer-service',
     type: 'Full time · Shift',
     location: 'Kuala Lumpur, PJ, Penang',
     level: 'Fresh graduate · Entry level',
@@ -102,6 +114,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
   },
   {
     title: 'HR Assistant',
+    slug: 'hr-assistant',
     type: 'Full time',
     location: 'Kuala Lumpur, PJ',
     level: 'Junior · Mid-level',
@@ -111,6 +124,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
   },
   {
     title: 'Healthcare & Nursing',
+    slug: 'healthcare',
     type: 'Full time · Part time · Shift',
     location: 'KL, PJ, Penang, JB',
     level: 'Fresh graduate · Experienced',
@@ -120,6 +134,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
   },
   {
     title: 'Education & Teaching',
+    slug: 'education',
     type: 'Full time · Part time · Contract',
     location: 'KL, PJ, Penang, Subang',
     level: 'Fresh graduate · Experienced',
@@ -129,6 +144,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
   },
   {
     title: 'Hospitality & Hotel',
+    slug: 'hospitality',
     type: 'Full time · Part time · Shift',
     location: 'KL, Penang, JB, Subang',
     level: 'Fresh graduate · Experienced',
@@ -138,6 +154,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
   },
   {
     title: 'Construction',
+    slug: 'construction',
     type: 'Full time · Contract',
     location: 'KL, Shah Alam, JB, PJ',
     level: 'Fresh graduate · Experienced',
@@ -147,6 +164,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
   },
   {
     title: 'Logistics & Supply Chain',
+    slug: 'logistics',
     type: 'Full time · Contract',
     location: 'KL, Shah Alam, JB, Penang',
     level: 'Fresh graduate · Experienced',
@@ -156,6 +174,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
   },
   {
     title: 'Manufacturing & Production',
+    slug: 'manufacturing',
     type: 'Full time · Shift · Contract',
     location: 'Penang, Shah Alam, JB',
     level: 'Fresh graduate · Experienced',
@@ -165,6 +184,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
   },
   {
     title: 'Food & Beverage (F&B)',
+    slug: 'f-and-b',
     type: 'Full time · Part time · Shift',
     location: 'KL, PJ, Penang, Subang',
     level: 'Fresh graduate · Experienced',
@@ -174,6 +194,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
   },
   {
     title: 'Luxury Retail',
+    slug: 'luxury-retail',
     type: 'Full time · Part time · Shift',
     location: 'Kuala Lumpur, PJ, Penang',
     level: 'Entry level · Experienced',
@@ -183,6 +204,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
   },
   {
     title: 'Jeweler / Diamond Grader / Gemologist',
+    slug: 'jeweler',
     type: 'Full time · Permanent',
     location: 'Kuala Lumpur, PJ',
     level: 'Diploma · Degree · Trade-certified',
@@ -192,6 +214,7 @@ const ROLES: Array<{ title: string; type: string; location: string; level: strin
   },
   {
     title: 'Pilot / Cadet Pilot',
+    slug: 'pilot',
     type: 'Full time · Trainee program',
     location: 'Kuala Lumpur, Penang, JB',
     level: 'Fresh graduate · Experienced',
@@ -418,12 +441,22 @@ export default function Careers() {
                   {r.type} · {r.location} · {r.level}
                 </p>
                 <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 leading-snug">{r.blurb}</p>
-                <Link
-                  to="/start/talent"
-                  className="inline-flex items-center mt-3 text-sm font-semibold text-[#1B2A6B] hover:text-[#0B1220]"
-                >
-                  Apply online →
-                </Link>
+                <div className="mt-3 flex items-center gap-4">
+                  {r.slug && (
+                    <Link
+                      to={`/jobs/${r.slug}`}
+                      className="inline-flex items-center text-sm text-gray-500 dark:text-gray-400 hover:text-[#0B1220] dark:hover:text-white"
+                    >
+                      View role →
+                    </Link>
+                  )}
+                  <Link
+                    to="/start/talent"
+                    className="inline-flex items-center text-sm font-semibold text-[#1B2A6B] dark:text-[#a6b6ff] hover:text-[#0B1220] dark:hover:text-white"
+                  >
+                    Apply now →
+                  </Link>
+                </div>
               </li>
             ))}
           </ul>

@@ -67,6 +67,7 @@ const PointsWallet     = lazy(() => import('./routes/PointsWallet'))
 const Consult          = lazy(() => import('./routes/Consult'))
 const PaymentReturn    = lazy(() => import('./routes/PaymentReturn'))
 const NotFound         = lazy(() => import('./routes/NotFound'))
+const Pricing          = lazy(() => import('./routes/Pricing'))
 const MatchPreview     = lazy(() => import('./routes/dev/MatchPreview'))
 
 // Restaurant OS — own chunk per page; heavy and rarely all visited together.
@@ -131,6 +132,7 @@ export default function App() {
         {/* Public */}
         <Route path="/" element={<Landing />} />
         <Route path="/about" element={<About />} />
+        <Route path="/pricing" element={<Pricing />} />
         <Route path="/careers" element={<Careers />} />
         {/* F19 — /job-vacancy was a duplicate URL of /careers (SEO cannibalisation
             risk). Canonicalise to /careers via a client-side redirect. */}

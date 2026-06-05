@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useSession } from '../state/useSession'
 import { useSeo } from '../lib/useSeo'
 import { ROLES, LOCATIONS, ROLE_SLUGS, LOCATION_SLUGS } from '../data/silo-data'
+import { usePlatformStats } from '../lib/usePlatformStats'
 import DarkModeToggle from '../components/DarkModeToggle'
 
 const ORIGIN = 'https://diamondandjeweler.com'
@@ -231,6 +232,7 @@ export default function Landing() {
           {/* Primary navigation — visible on md+ */}
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600" aria-label="Site navigation">
             <Link to="/careers" className="hover:text-[#0B1220] transition-colors">Jobs</Link>
+            <Link to="/pricing" className="hover:text-[#0B1220] transition-colors">Pricing</Link>
             <Link to="/about" className="hover:text-[#0B1220] transition-colors">About</Link>
             <Link to="/careers/urgent-hiring-malaysia-2026" className="hover:text-[#0B1220] transition-colors">Blog</Link>
           </nav>
@@ -306,6 +308,8 @@ export default function Landing() {
             <Link to="/about" className="hover:text-[#0B1220]">About</Link>
             <span aria-hidden>·</span>
             <Link to="/careers" className="hover:text-[#0B1220]">Jobs</Link>
+            <span aria-hidden>·</span>
+            <Link to="/pricing" className="hover:text-[#0B1220]">Pricing</Link>
             <span aria-hidden>·</span>
             <Link to="/careers/urgent-hiring-malaysia-2026" className="hover:text-[#0B1220]">Blog</Link>
             <span aria-hidden>·</span>
@@ -1086,11 +1090,19 @@ function PassiveTalentSection() {
   )
 }
 
-/** #6 — Social proof / trust signals strip */
+/** #6 + #19 — Social proof strip with live Supabase counters */
 function SocialProofStrip() {
+  const { talentLabel, companyLabel } = usePlatformStats()
+
   const signals = [
-    { stat: 'Every industry', label: 'Sales · Finance · Tech · Aviation · Luxury & more' },
-    { stat: '3 matches', label: 'Per cycle · Quality over volume' },
+    {
+      stat: companyLabel ?? 'Active hiring',
+      label: companyLabel ? 'companies hiring on DNJ' : 'Across every industry in Malaysia',
+    },
+    {
+      stat: talentLabel ?? '3 matches',
+      label: talentLabel ? 'talent profiles and counting' : 'Per cycle · Quality over volume',
+    },
     { stat: 'PDPA', label: 'Fully compliant · End-to-end encrypted' },
     { stat: '~14 days', label: 'Typical first-match timeline' },
   ]
@@ -1098,7 +1110,7 @@ function SocialProofStrip() {
     <div className="border-y border-gray-100 dark:border-gray-800 bg-[#fafbff] dark:bg-[#0d1528] py-8 px-6">
       <ul className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6" aria-label="Platform at a glance">
         {signals.map((s) => (
-          <li key={s.stat} className="text-center">
+          <li key={s.label} className="text-center">
             <div className="text-[#0B1742] dark:text-[#a6b6ff] font-extrabold text-xl tracking-tight">{s.stat}</div>
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">{s.label}</div>
           </li>
@@ -1146,7 +1158,6 @@ function ReferralSection() {
 
 /** #5 — WhatsApp CTA (Malaysia-first contact) */
 function WhatsAppCTA() {
-  // Replace WHATSAPP_NUMBER with the business WhatsApp number, e.g. 60123456789
   const WHATSAPP_NUMBER = '601239449333'
   const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Hi DNJ, I have a question about the platform.')}`
   return (

@@ -74,11 +74,26 @@ const ROUTES = {
     noindex: true,
     keywords: 'DNJ password reset, forgot password DNJ',
   },
+  '/pricing': {
+    title: 'Pricing — DNJ AI-Curated Recruitment | Free for Talent',
+    description:
+      'Talent joins DNJ for free, always. Hiring managers pay per engagement — no CV pile, three curated matches per role, PDPA-compliant. Contact DNJ for a custom hiring proposal.',
+    keywords: 'DNJ pricing, recruitment platform pricing Malaysia, free job search Malaysia, AI recruitment cost, hiring manager pricing, curated recruitment fee, no placement fee Malaysia',
+    ogImage: `https://diamondandjeweler.com/api/og?page=pricing`,
+    bullets: [
+      'Talent: free to join, free to match, free forever',
+      'Hiring managers: custom pricing per role, no hidden fees',
+      'Three curated, pre-screened candidates per role — no CV pile',
+      'PDPA-compliant data handling, end-to-end encrypted',
+      'Contact us for a custom proposal within 1 business day',
+    ],
+  },
   '/about': {
     title: 'About DNJ — Bole, the AI That Recognises Your Brilliance',
     description:
       "DNJ is an AI-curated recruitment platform for Malaysia. Meet Bole — our advanced AI talent scout that recognises your potential and matches you with the leader who brings out your brilliance. You're already a diamond; let the world see it.",
     keywords: 'about DNJ, Bole AI, what is DNJ, AI talent scout Malaysia, AI recruitment Malaysia, curated recruitment platform, how DNJ works, diamond and jeweler recruitment, DNJ mission',
+    ogImage: `https://diamondandjeweler.com/api/og?page=about`,
     bullets: [
       "You're already a diamond — most job boards just can't see it",
       'Bole is DNJ’s advanced AI talent scout — it recognises potential, it doesn’t manufacture it',
@@ -95,6 +110,7 @@ const ROUTES = {
     description:
       'Precision recruitment powered by AI. Three matches at a time, zero noise. Job vacancy across every industry in Malaysia — sales, admin, finance, banking, IT and software, engineering, marketing, HR, customer service, healthcare, education, hospitality, construction, logistics, manufacturing, F&B and more. PDPA-compliant, end-to-end encrypted.',
     keywords: 'job vacancy Malaysia, jobs near me, job vacancy near me, apply job online, latest job vacancy, fresh graduate job, AI curated recruitment Malaysia, curated matching recruitment, sales executive job vacancy, admin executive job vacancy, finance job vacancy, software developer job vacancy, engineering job vacancy, marketing executive job vacancy, customer service job vacancy, banking job Malaysia, healthcare job Malaysia, education job Malaysia, hospitality job Malaysia, logistics job Malaysia, manufacturing job Malaysia, pilot job vacancy, jeweler job vacancy, luxury retail job vacancy, jobs in Kuala Lumpur, jobs in PJ, jobs in Penang, jobs in Johor Bahru, work from home Malaysia, remote job Malaysia',
+    ogImage: `https://diamondandjeweler.com/api/og?page=careers`,
     bullets: [
       'A general recruitment platform — sales, admin, finance, banking, IT, engineering, marketing, HR, customer service, healthcare, education, hospitality, construction, logistics, manufacturing, F&B, retail and more',
       'AI-curated matching — up to three vetted candidates or roles per match cycle',
@@ -698,7 +714,7 @@ function buildNoscriptBlock(title, description, bullets) {
   ].join('')
 }
 
-function injectMeta(html, route, title, description, bullets, noindex, keywords) {
+function injectMeta(html, route, title, description, bullets, noindex, keywords, ogImage) {
   const canonical = `${BASE}${route}`
   const t = escapeHtml(title)
   const d = escapeHtml(description)
@@ -743,6 +759,14 @@ function injectMeta(html, route, title, description, bullets, noindex, keywords)
     )
   }
 
+  // #audit #17 — per-page OG image via /api/og edge function
+  if (ogImage) {
+    const img = escapeHtml(ogImage)
+    out = out
+      .replace(/(<meta property="og:image" content=")[^"]*(")/,       `$1${img}$2`)
+      .replace(/(<meta name="twitter:image" content=")[^"]*(")/,      `$1${img}$2`)
+  }
+
   const noscript = buildNoscriptBlock(title, description, bullets)
   if (noscript) {
     out = out.replace('<div id="root"></div>', `<div id="root">${noscript}</div>`)
@@ -752,8 +776,8 @@ function injectMeta(html, route, title, description, bullets, noindex, keywords)
 
 const baseHtml = readFileSync(join(DIST, 'index.html'), 'utf-8')
 
-for (const [route, { title, description, bullets, noindex, keywords }] of Object.entries(ROUTES)) {
-  const html = injectMeta(baseHtml, route, title, description, bullets, noindex, keywords)
+for (const [route, { title, description, bullets, noindex, keywords, ogImage }] of Object.entries(ROUTES)) {
+  const html = injectMeta(baseHtml, route, title, description, bullets, noindex, keywords, ogImage)
   // /start/talent  → dist/start/talent.html
   // /login         → dist/login.html
   const relPath = route.slice(1) + '.html' // strip leading /

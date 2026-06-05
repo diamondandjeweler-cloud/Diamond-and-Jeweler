@@ -1,10 +1,17 @@
+import { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../state/useSession'
 import { useSeo } from '../lib/useSeo'
 import { ROLES, LOCATIONS, ROLE_SLUGS, LOCATION_SLUGS } from '../data/silo-data'
+import DarkModeToggle from '../components/DarkModeToggle'
 
 const ORIGIN = 'https://diamondandjeweler.com'
+
+// Paste a YouTube or Vimeo embed URL here when the video is ready.
+// Example YouTube: 'https://www.youtube.com/embed/VIDEO_ID?rel=0'
+// Leave empty to show the "Coming soon" placeholder.
+const VIDEO_URL = ''
 
 // Build crawler-visible JSON-LD that mirrors every silo URL we publish.
 // Massive ItemList + OccupationalCategory entries + extended FAQ — zero visual impact.
@@ -200,7 +207,7 @@ export default function Landing() {
   if (!loading && session && profile) return <Navigate to="/home" replace />
 
   return (
-    <div className="bg-white text-[#0B1220] font-sans">
+    <div className="bg-white dark:bg-[#0B1220] text-[#0B1220] dark:text-white font-sans">
       {/* ─── First screen ─── */}
       <div className="relative min-h-screen flex flex-col overflow-hidden">
         <a
@@ -228,9 +235,12 @@ export default function Landing() {
             <Link to="/careers/urgent-hiring-malaysia-2026" className="hover:text-[#0B1220] transition-colors">Blog</Link>
           </nav>
 
-          <div className="inline-flex items-center gap-2 border border-gray-300 px-3.5 py-1.5 rounded-full text-xs text-gray-700 bg-white shadow-sm">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#C9A24D]" />
-            {t('landing.pilot')}
+          <div className="flex items-center gap-3">
+            <DarkModeToggle />
+            <div className="inline-flex items-center gap-2 border border-gray-300 dark:border-gray-600 px-3.5 py-1.5 rounded-full text-xs text-gray-700 dark:text-gray-300 bg-white dark:bg-[#0B1742] shadow-sm">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#C9A24D]" />
+              {t('landing.pilot')}
+            </div>
           </div>
         </header>
 
@@ -312,6 +322,7 @@ export default function Landing() {
       {/* ─── Below-the-fold content ─── */}
       <TrustStrip />
       <HowItWorksSection />
+      <VideoSection />
       <SocialProofStrip />
       <BoleSection />
       <PassiveTalentSection />
@@ -832,29 +843,92 @@ function StepArrow() {
   )
 }
 
+/** #7 — 60-second explainer video */
+function VideoSection() {
+  const [playing, setPlaying] = useState(false)
+  return (
+    <section className="py-14 px-6 bg-white dark:bg-[#0d1528]" aria-labelledby="video-heading">
+      <div className="max-w-4xl mx-auto text-center">
+        <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">Watch</p>
+        <h2 id="video-heading" className="text-2xl md:text-3xl font-bold tracking-tight text-[#0B1220] dark:text-white mb-2">
+          See Bole in action — 60 seconds
+        </h2>
+        <p className="text-sm text-gray-500 max-w-lg mx-auto mb-8 leading-relaxed">
+          A quick look at how DNJ's AI curates your top three matches — from profile to offer.
+        </p>
+        <div className="relative w-full aspect-video max-w-4xl mx-auto rounded-2xl overflow-hidden
+                        shadow-[0_8px_32px_-8px_rgba(11,23,66,0.22)] ring-2 ring-[#0B1742]/20">
+          {VIDEO_URL && playing ? (
+            <iframe
+              src={VIDEO_URL}
+              title="DNJ — how Bole works in 60 seconds"
+              className="absolute inset-0 w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          ) : VIDEO_URL ? (
+            <button
+              type="button"
+              onClick={() => setPlaying(true)}
+              className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-4 group"
+              style={{ background: 'linear-gradient(160deg,#0B1742 0%,#0B1220 100%)' }}
+              aria-label="Play explainer video"
+            >
+              <div className="w-20 h-20 rounded-full bg-[#C9A24D]/20 border-2 border-[#C9A24D]/60
+                              flex items-center justify-center group-hover:bg-[#C9A24D]/30 transition-colors">
+                <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden>
+                  <polygon points="9,6 23,14 9,22" fill="#C9A24D" />
+                </svg>
+              </div>
+              <span className="text-sm font-medium text-white/80">Click to play</span>
+            </button>
+          ) : (
+            /* Coming-soon placeholder */
+            <div
+              className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-4"
+              style={{ background: 'linear-gradient(160deg,#0B1742 0%,#0B1220 100%)' }}
+            >
+              <div className="w-20 h-20 rounded-full bg-[#C9A24D]/20 border-2 border-[#C9A24D]/60
+                              flex items-center justify-center">
+                <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden>
+                  <polygon points="9,6 23,14 9,22" fill="#C9A24D" stroke="#C9A24D" strokeLinejoin="round" />
+                </svg>
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-semibold text-[#C9A24D]">Coming soon</p>
+                <p className="text-xs text-white/60 mt-1">60-second explainer — how Bole works</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 /** #2 — How Bole works in 3 steps */
 function HowItWorksSection() {
   return (
-    <section className="py-16 px-6 bg-white" aria-labelledby="how-it-works-heading">
+    <section className="py-16 px-6 bg-white dark:bg-[#0d1528]" aria-labelledby="how-it-works-heading">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-10">
           <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">How It Works</p>
-          <h2 id="how-it-works-heading" className="text-2xl md:text-3xl font-bold tracking-tight text-[#0B1220]">
+          <h2 id="how-it-works-heading" className="text-2xl md:text-3xl font-bold tracking-tight text-[#0B1220] dark:text-white">
             Precision recruitment in three steps
           </h2>
-          <p className="text-gray-500 mt-2 max-w-lg mx-auto text-sm leading-relaxed">
+          <p className="text-gray-500 dark:text-gray-400 mt-2 max-w-lg mx-auto text-sm leading-relaxed">
             No cold applications. No CV black hole. Complete your profile once and let Bole — our advanced AI — find the right fit.
           </p>
         </div>
 
         <div className="flex flex-col md:flex-row items-center gap-4 md:gap-2">
           {/* Step 1 */}
-          <div className="flex-1 text-center bg-gradient-to-b from-[#fafbff] to-white rounded-2xl ring-1 ring-[#e8edff] p-6 w-full">
+          <div className="flex-1 text-center bg-gradient-to-b from-[#fafbff] to-white dark:from-[#1B2A6B]/20 dark:to-[#0d1528] rounded-2xl ring-1 ring-[#e8edff] dark:ring-[#1e2d52] p-6 w-full">
             <div className="w-14 h-14 rounded-full bg-[#C9A24D]/10 border border-[#C9A24D]/50 flex items-center justify-center mx-auto mb-4">
               <span className="text-[#C9A24D] font-bold text-lg leading-none">01</span>
             </div>
-            <h3 className="font-bold text-[#0B1220] mb-2">Complete your profile</h3>
-            <p className="text-sm text-gray-600 leading-relaxed">
+            <h3 className="font-bold text-[#0B1220] dark:text-white mb-2">Complete your profile</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
               Tell us your career story — skills, goals, salary expectations, culture fit. Five minutes. No resume required.
             </p>
           </div>
@@ -876,12 +950,12 @@ function HowItWorksSection() {
           <StepArrow />
 
           {/* Step 3 */}
-          <div className="flex-1 text-center bg-gradient-to-b from-[#fafbff] to-white rounded-2xl ring-1 ring-[#e8edff] p-6 w-full">
+          <div className="flex-1 text-center bg-gradient-to-b from-[#fafbff] to-white dark:from-[#1B2A6B]/20 dark:to-[#0d1528] rounded-2xl ring-1 ring-[#e8edff] dark:ring-[#1e2d52] p-6 w-full">
             <div className="w-14 h-14 rounded-full bg-[#C9A24D]/10 border border-[#C9A24D]/50 flex items-center justify-center mx-auto mb-4">
               <span className="text-[#C9A24D] font-bold text-lg leading-none">03</span>
             </div>
-            <h3 className="font-bold text-[#0B1220] mb-2">Receive 3 curated matches</h3>
-            <p className="text-sm text-gray-600 leading-relaxed">
+            <h3 className="font-bold text-[#0B1220] dark:text-white mb-2">Receive 3 curated matches</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
               Three employers. Three genuine fits. You review, decide, and connect — no applications fired into the void.
             </p>
           </div>
@@ -955,9 +1029,9 @@ function BoleSection() {
 /** #10 — Passive talent feature: your profile works 24/7 */
 function PassiveTalentSection() {
   return (
-    <section className="py-14 px-6 bg-white" aria-labelledby="passive-heading">
+    <section className="py-14 px-6 bg-white dark:bg-[#0d1528]" aria-labelledby="passive-heading">
       <div className="max-w-4xl mx-auto">
-        <div className="rounded-2xl ring-1 ring-[#e8edff] bg-gradient-to-br from-[#fafbff] to-[#f0f4ff] p-8 md:p-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+        <div className="rounded-2xl ring-1 ring-[#e8edff] dark:ring-[#1e2d52] bg-gradient-to-br from-[#fafbff] to-[#f0f4ff] dark:from-[#111827] dark:to-[#0d1528] p-8 md:p-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
           <div>
             <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">Passive matching</p>
             <h2 id="passive-heading" className="text-2xl font-bold tracking-tight text-[#0B1220] mb-3">
@@ -1021,12 +1095,12 @@ function SocialProofStrip() {
     { stat: '~14 days', label: 'Typical first-match timeline' },
   ]
   return (
-    <div className="border-y border-gray-100 bg-[#fafbff] py-8 px-6">
+    <div className="border-y border-gray-100 dark:border-gray-800 bg-[#fafbff] dark:bg-[#0d1528] py-8 px-6">
       <ul className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6" aria-label="Platform at a glance">
         {signals.map((s) => (
           <li key={s.stat} className="text-center">
-            <div className="text-[#0B1742] font-extrabold text-xl tracking-tight">{s.stat}</div>
-            <div className="text-xs text-gray-500 mt-0.5 leading-snug">{s.label}</div>
+            <div className="text-[#0B1742] dark:text-[#a6b6ff] font-extrabold text-xl tracking-tight">{s.stat}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">{s.label}</div>
           </li>
         ))}
       </ul>
@@ -1076,13 +1150,13 @@ function WhatsAppCTA() {
   const WHATSAPP_NUMBER = '601239449333'
   const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Hi DNJ, I have a question about the platform.')}`
   return (
-    <section className="py-14 px-6 bg-[#fafbff] border-t border-gray-100" aria-labelledby="contact-heading">
+    <section className="py-14 px-6 bg-[#fafbff] dark:bg-[#0d1528] border-t border-gray-100 dark:border-gray-800" aria-labelledby="contact-heading">
       <div className="max-w-4xl mx-auto text-center">
         <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">Questions?</p>
-        <h2 id="contact-heading" className="text-xl font-bold text-[#0B1220] mb-2">
+        <h2 id="contact-heading" className="text-xl font-bold text-[#0B1220] dark:text-white mb-2">
           We reply within 24 hours
         </h2>
-        <p className="text-sm text-gray-500 max-w-sm mx-auto mb-6 leading-relaxed">
+        <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-6 leading-relaxed">
           Reach us on WhatsApp for quick questions, or email us at{' '}
           <a href="mailto:support@diamondandjeweler.com" className="text-[#1B2A6B] underline underline-offset-2">
             support@diamondandjeweler.com

@@ -2,6 +2,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useSession } from '../state/useSession'
 import NotificationBell from './NotificationBell'
 import SupportForm from './SupportForm'
+import DarkModeToggle from './DarkModeToggle'
 
 export default function Layout() {
   const { profile, signOut, isHM } = useSession()
@@ -10,7 +11,7 @@ export default function Layout() {
   const navItems = navForRole(profile?.role, pathname, { isHM })
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-[#0B1220] text-ink-900 dark:text-white">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-ink-900 text-white px-3 py-2 rounded z-50 text-sm"
@@ -18,7 +19,7 @@ export default function Layout() {
         Skip to main content
       </a>
 
-      <header className="app-shell-header" role="banner">
+      <header className="app-shell-header dark:bg-[#0B1742] dark:border-gray-700" role="banner">
         <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-8">
             <Link
@@ -55,6 +56,7 @@ export default function Layout() {
           </div>
 
           <div className="flex items-center gap-3" aria-label="User navigation">
+            <DarkModeToggle />
 {profile?.role === 'talent' && profile?.points != null && (
               <Link to="/points" className="hidden sm:inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-accent-500/10 text-accent-600 ring-1 ring-accent-500/20 hover:bg-accent-500/15">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.5L12 16.9 5.8 21.4l2.4-7.5L2 9.4h7.6L12 2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>
@@ -105,13 +107,13 @@ export default function Layout() {
         )}
       </header>
 
-      <main id="main-content" className="flex-1 max-w-7xl w-full mx-auto px-4 md:px-6 py-8 md:py-10" role="main">
+      <main id="main-content" className="flex-1 max-w-7xl w-full mx-auto px-4 md:px-6 py-8 md:py-10 dark:bg-[#0B1220]" role="main">
         <Outlet />
       </main>
 
       <SupportForm />
 
-      <footer className="border-t border-ink-200 bg-white/60 backdrop-blur py-6 mt-8" role="contentinfo">
+      <footer className="border-t border-ink-200 dark:border-gray-700 bg-white/60 dark:bg-[#0B1742]/80 backdrop-blur py-6 mt-8" role="contentinfo">
         <div className="max-w-7xl mx-auto px-4 md:px-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-ink-500">
           <div className="flex items-center gap-2">
             <Logo small />

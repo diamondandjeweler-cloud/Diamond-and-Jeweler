@@ -1,6 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { resolve, dirname } from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
   plugins: [
@@ -14,63 +18,20 @@ export default defineConfig({
       // Don't auto-register; we'll register manually after first paint so the
       // SW install never competes with the critical render path.
       injectRegister: null,
-      // Generate a manifest + sw.js with auto-update: when a new deploy ships,
-      // the SW activates on next reload (skipWaiting + clientsClaim).
       registerType: 'autoUpdate',
-      strategies: 'generateSW',
-      workbox: {
-        // Precache all build outputs except sourcemaps + the legacy noscript
-        // SEO HTML files (those are CDN-cached by Vercel; pre-caching them
-        // would balloon the SW manifest unnecessarily).
+      // injectManifest: we supply our own src/sw.ts which adds push-notification
+      // handlers on top of the Workbox caching rules. VitePWA injects the
+      // precache manifest into the compiled SW automatically.
+      strategies: 'injectManifest',
+      srcDir: resolve(__dirname, 'src'),
+      filename: 'sw.ts',
+      injectManifest: {
+        // Precache all build outputs except sourcemaps.
         globPatterns: ['**/*.{js,css,woff2,svg,png,webp}'],
-        globIgnores: ['**/*.map', '**/sw.js', '**/workbox-*.js'],
-        navigateFallback: '/index.html',
-        // SPA routes that should NOT fall back to index.html (let the network
-        // / Vercel routing handle them).
-        navigateFallbackDenylist: [
-          /^\/api\//,
-          /^\/auth\/callback/,
-          /\.(?:xml|txt|json|map)$/,
-        ],
-        runtimeCaching: [
-          // Google Fonts caching rules removed: fonts are now self-hosted via
-          // @fontsource-variable (see src/index.css). They ship under
-          // /assets/*.woff2 and are precached by globPatterns above.
-          {
-            // Supabase REST/RPC — NEVER cache. Authz decisions and RLS scope
-            // must hit the network every time. NetworkOnly forces that.
-            urlPattern: /^https:\/\/sfnrpbsdscikpmbhrzub\.supabase\.co\//,
-            handler: 'NetworkOnly',
-          },
-          {
-            // Same-origin images (og-image, favicon, etc.) — cache-first.
-            urlPattern: ({ request, url }) => request.destination === 'image' && url.origin === self.location.origin,
-            handler: 'CacheFirst',
-            options: { cacheName: 'images', expiration: { maxEntries: 32, maxAgeSeconds: 60 * 60 * 24 * 30 } },
-          },
-          {
-            // SEO silo pages (/careers, /jobs/*, /jobs-in-*, /hire-*) and the
-            // landing page — stale-while-revalidate so repeat visitors get
-            // instant navigation while the SW silently updates in the background.
-            // Only caches GET navigation requests; Supabase API calls are excluded
-            // by the NetworkOnly rule above.
-            urlPattern: /^\/(careers(?:\/[^/?]+)?|jobs\/[^/?]+|jobs-in-[^/?]+|hire-[^/?]+)\/?(?:\?.*)?$/,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'seo-pages',
-              expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 7 },
-            },
-          },
-        ],
-        // Tell Workbox to skip the waiting phase and claim clients immediately
-        // so a new deploy's SW takes over on the next page load instead of two
-        // reloads from now. Pairs with the in-app update toast (not yet wired;
-        // for now, deploys propagate silently within ~1 reload).
-        skipWaiting: true,
-        clientsClaim: true,
+        globIgnores: ['**/*.map', '**/workbox-*.js'],
       },
       manifest: false,        // we already ship public/manifest.json
-      includeAssets: [],      // public/ assets are picked up by globPatterns
+      includeAssets: [],
     }),
   ],
   server: { port: 3000, host: true },

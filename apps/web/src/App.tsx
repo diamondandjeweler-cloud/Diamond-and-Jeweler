@@ -15,6 +15,8 @@ import Landing from './routes/Landing'
 import SignUp from './routes/auth/SignUp'
 import Login from './routes/auth/Login'
 import { LOCATION_SLUGS, HIRE_SLUGS } from './data/silo-data'
+import PwaInstallBanner from './components/PwaInstallBanner'
+import { useDarkMode } from './lib/useDarkMode'
 
 const Start            = lazy(() => import('./routes/Start'))
 const About            = lazy(() => import('./routes/About'))
@@ -93,6 +95,7 @@ const Reports          = lazy(() => import('./routes/restaurant/Reports'))
 const RestaurantAdmin  = lazy(() => import('./routes/restaurant/Admin'))
 
 export default function App() {
+  useDarkMode()
   const { loading, session, profile, isHM } = useSession()
   useEffect(() => { bootstrapSession() }, [])
   // Once we know the user's role, prefetch their likely dashboard chunk in
@@ -122,6 +125,7 @@ export default function App() {
   if (loading && !session) return <RouteSkeleton />
 
   return (
+    <>
     <Suspense fallback={<RouteSkeleton />}>
       <Routes>
         {/* Public */}
@@ -235,6 +239,8 @@ export default function App() {
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
+    <PwaInstallBanner />
+    </>
   )
 }
 

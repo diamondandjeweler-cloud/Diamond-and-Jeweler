@@ -14,6 +14,7 @@ import MatchExplain from '../../components/MatchExplain'
 import CareerNudgePanel from '../../components/CareerNudgePanel'
 import GrowthNudgePreferences from '../../components/GrowthNudgePreferences'
 import type { PublicReasoning } from '../../types/db'
+import { usePushSubscription } from '../../lib/usePushSubscription'
 
 /** Cached snapshot — counts only. The full match details (scores, IDs) are
  *  refetched fresh every visit to keep PDPA exposure surface minimal. */
@@ -75,6 +76,7 @@ export default function TalentDashboard() {
   useSeo({ title: 'My offers', noindex: true })
   const { t } = useTranslation()
   const { session, profile } = useSession()
+  const push = usePushSubscription()
   const location = useLocation()
   const navigate = useNavigate()
   // Cached counts hydrate the KPI strip instantly. `matches` itself remains
@@ -569,7 +571,35 @@ export default function TalentDashboard() {
         eyebrow={profile && t('dashboard.talentGreeting', { name: getDisplayName(profile) })}
         title="Your top opportunities"
         description="Up to three curated matches at a time. Accept or decline — no applications needed."
-        actions={<Link to="/talent/profile" className="btn-secondary">Edit profile</Link>}
+        actions={
+          <div className="flex items-center gap-2 flex-wrap">
+            {push.state === 'idle' && push.vapidReady && Notification.permission !== 'denied' && (
+              <button
+                type="button"
+                onClick={() => void push.subscribe()}
+                disabled={push.subscribing}
+                className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-brand-200 text-brand-700 hover:bg-brand-50 transition-colors disabled:opacity-60"
+                aria-label="Enable match notifications"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                Enable match alerts
+              </button>
+            )}
+            {push.state === 'subscribed' && (
+              <span className="text-xs text-green-600 font-medium flex items-center gap-1">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><polyline points="20 6 9 17 4 12" /></svg>
+                Match alerts on
+              </span>
+            )}
+            {push.showIosHint && (
+              <span className="text-xs text-gray-500">Add DNJ to your home screen to enable alerts on iPhone</span>
+            )}
+            <Link to="/talent/profile" className="btn-secondary">Edit profile</Link>
+          </div>
+        }
       />
 
       <ExpiryBanner

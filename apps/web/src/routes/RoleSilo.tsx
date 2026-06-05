@@ -1,7 +1,7 @@
 import { Link, useParams, Navigate } from 'react-router-dom'
 import { useSeo } from '../lib/useSeo'
 import RelatedLinks from '../components/RelatedLinks'
-import { ROLES, LOCATIONS, HIRES, type RoleSlug } from '../data/silo-data'
+import { ROLES, LOCATIONS, HIRES, type RoleSlug, type InterviewStage } from '../data/silo-data'
 
 const ORIGIN = 'https://diamondandjeweler.com'
 
@@ -195,6 +195,10 @@ export default function RoleSilo() {
           </ul>
         </section>
 
+        {role.interviewTips && role.interviewTips.length > 0 && (
+          <InterviewSection tips={role.interviewTips} roleName={role.name} />
+        )}
+
         <section className="mt-10 rounded-2xl bg-gradient-to-br from-[#0B1742] to-[#1B2A6B] text-white p-8 text-center">
           <h2 className="text-2xl font-bold mb-2">
             Precision recruitment, powered by AI
@@ -244,5 +248,53 @@ export default function RoleSilo() {
         <Link to="/terms" className="hover:text-[#0B1220]">Terms</Link>
       </footer>
     </div>
+  )
+}
+
+function InterviewSection({ tips, roleName }: { tips: InterviewStage[]; roleName: string }) {
+  return (
+    <section className="mt-10" aria-labelledby="interview-heading">
+      <div className="mb-5">
+        <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-1 uppercase">
+          Interview guide
+        </p>
+        <h2 id="interview-heading" className="text-xl md:text-2xl font-bold text-[#0B1220]">
+          What to expect in your DNJ {roleName.toLowerCase()} interview
+        </h2>
+        <p className="text-sm text-gray-500 mt-1 leading-relaxed">
+          DNJ's matching process is curated — here's how the process typically works for shortlisted candidates.
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        {tips.map((stage, index) => (
+          <div
+            key={stage.stage}
+            className="rounded-2xl ring-1 ring-[#e8edff] bg-white p-6"
+          >
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#C9A24D]/10 border border-[#C9A24D]/40
+                              flex items-center justify-center">
+                <span className="text-[#C9A24D] font-bold text-sm leading-none">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-[#0B1220] mb-1">{stage.stage}</h3>
+                <p className="text-sm text-gray-600 leading-relaxed mb-3">{stage.what}</p>
+                <ul className="space-y-1.5">
+                  {stage.tips.map((tip) => (
+                    <li key={tip} className="flex items-start gap-2 text-sm text-gray-700">
+                      <span className="text-[#C9A24D] mt-0.5 flex-shrink-0" aria-hidden>✦</span>
+                      {tip}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
   )
 }

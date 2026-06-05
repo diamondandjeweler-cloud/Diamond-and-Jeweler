@@ -52,6 +52,12 @@ export type HireSlug =
   | 'sales-team'
   | 'luxury-retail-staff'
 
+export interface InterviewStage {
+  stage: string    // e.g. "HR screen"
+  what: string     // what to expect
+  tips: string[]   // 2-3 bullet tips
+}
+
 export interface RoleConfig {
   slug: RoleSlug
   name: string                  // human-readable role
@@ -70,6 +76,7 @@ export interface RoleConfig {
   hasJobPosting: boolean        // only true for real recruiting tracks
   relatedRoles: RoleSlug[]
   relatedLocations: LocationSlug[]
+  interviewTips?: InterviewStage[]
 }
 
 export interface LocationConfig {
@@ -129,6 +136,44 @@ export const ROLES: Record<RoleSlug, RoleConfig> = {
     hasJobPosting: true,
     relatedRoles: ['cadet-pilot', 'sales-executive', 'customer-service'],
     relatedLocations: ['kuala-lumpur', 'penang', 'johor-bahru'],
+    interviewTips: [
+      {
+        stage: 'Aptitude & psychometric test',
+        what: 'Online or paper test covering spatial reasoning, maths and English comprehension. Some airlines add a personality questionnaire.',
+        tips: [
+          'Practise aviation-style spatial reasoning questions beforehand',
+          'Time yourself — most tests are strictly timed',
+          'Read instructions carefully; guessing penalties vary by test',
+        ],
+      },
+      {
+        stage: 'Medical assessment',
+        what: 'Class 1 medical with a CAAM-approved aviation medical examiner. Covers vision, hearing, cardiovascular and neurological checks.',
+        tips: [
+          'Get a pre-medical check-up 2–4 weeks before to address anything correctable',
+          'Bring complete medical records including any past surgery or prescription history',
+          'Colour vision is tested separately — confirm your result before applying',
+        ],
+      },
+      {
+        stage: 'Simulator / COMPASS assessment',
+        what: 'Basic handling assessment in a flight simulator or COMPASS (Crew & Pilot selection) suite. Tests coordination and workload management — not flying skill.',
+        tips: [
+          'Stay calm — assessors look for composure under pressure, not perfection',
+          'Verbalise your actions; crew resource management (CRM) is observed',
+          'Focus on smooth corrections rather than chasing the needles',
+        ],
+      },
+      {
+        stage: 'Panel interview',
+        what: 'A structured competency interview with airline HR and/or a captain. Covers motivation, situational judgement and English proficiency.',
+        tips: [
+          'Use STAR format (Situation, Task, Action, Result) for competency questions',
+          'Research the airline\'s fleet, routes and recent news',
+          'Prepare a concise, honest answer for "Why do you want to be a pilot?"',
+        ],
+      },
+    ],
   },
 
   'cadet-pilot': {
@@ -189,6 +234,35 @@ export const ROLES: Record<RoleSlug, RoleConfig> = {
     hasJobPosting: true,
     relatedRoles: ['diamond-grader', 'gemologist', 'jewelry-designer', 'luxury-retail'],
     relatedLocations: ['kuala-lumpur', 'petaling-jaya', 'penang'],
+    interviewTips: [
+      {
+        stage: 'Trade skill demonstration',
+        what: 'You may be asked to perform a practical bench test — setting a stone, making a simple piece, or showing solder technique.',
+        tips: [
+          'Bring your own tools if you have them; many employers appreciate personal kit',
+          'Slow and clean beats fast and sloppy — quality is what they\'re grading',
+          'Explain what you\'re doing as you work; communication matters in an atelier',
+        ],
+      },
+      {
+        stage: 'Stone & material knowledge',
+        what: 'An informal Q&A on metals (gold karat, silver, platinum), stone settings and hallmarking basics.',
+        tips: [
+          'Refresh the 4Cs (cut, colour, clarity, carat) even for bench jeweler roles',
+          'Know the common setting types: prong, bezel, pavé, channel',
+          'Honesty about gaps is valued — say "I\'m still learning X" rather than bluffing',
+        ],
+      },
+      {
+        stage: 'Culture & motivation fit',
+        what: 'A conversation with the owner or studio head about your background, why you chose the trade and where you want to grow.',
+        tips: [
+          'Show genuine passion for craft — it matters as much as skill for luxury employers',
+          'Ask about mentorship and certification support (e.g. GIA, Gem-A)',
+          'Portfolio photos or personal work samples make a strong impression',
+        ],
+      },
+    ],
   },
 
   'diamond-grader': {
@@ -311,6 +385,35 @@ export const ROLES: Record<RoleSlug, RoleConfig> = {
     hasJobPosting: true,
     relatedRoles: ['jeweler', 'diamond-grader', 'sales-executive', 'customer-service'],
     relatedLocations: ['kuala-lumpur', 'petaling-jaya', 'penang'],
+    interviewTips: [
+      {
+        stage: 'Personality & composure assessment',
+        what: 'A role-play or structured interview testing poise, communication and how you handle a demanding client scenario.',
+        tips: [
+          'Dress to the brand standard — luxury houses notice presentation before you speak',
+          'Speak clearly and warmly; tone matters as much as words in a boutique setting',
+          'Stay calm in the role-play; resolving a complaint gracefully impresses more than a perfect sale',
+        ],
+      },
+      {
+        stage: 'Product knowledge check',
+        what: 'Informal questions about the brand\'s product lines, materials and price points. Not a quiz — they want to see if you\'ve done your homework.',
+        tips: [
+          'Research the brand thoroughly: flagship products, heritage story, current campaigns',
+          'If applying to a multi-brand role, focus on the category (watches, jewellery, leather goods)',
+          'Ask insightful questions about the product — curiosity reads as passion',
+        ],
+      },
+      {
+        stage: 'Sales scenario & KPI discussion',
+        what: 'A conversation about past targets, conversion rates or a live sales exercise (approaching a cold customer).',
+        tips: [
+          'Quantify past results: "I maintained a 35% conversion rate" beats "I was good at sales"',
+          'Show empathy-first selling — luxury clients want to feel understood, not pitched',
+          'Ask what success looks like in the role in the first 90 days',
+        ],
+      },
+    ],
   },
 
   'sales-executive': {
@@ -338,6 +441,35 @@ export const ROLES: Record<RoleSlug, RoleConfig> = {
     hasJobPosting: false,
     relatedRoles: ['luxury-retail', 'customer-service', 'marketing-executive', 'admin-executive'],
     relatedLocations: ['kuala-lumpur', 'petaling-jaya', 'penang'],
+    interviewTips: [
+      {
+        stage: 'HR phone screen',
+        what: 'A 15–20 minute call to verify your background, salary expectations and basic communication skills.',
+        tips: [
+          'Be in a quiet place — background noise signals poor preparation',
+          'Have your target salary ready; hesitation on this question costs you',
+          'Ask one smart question about the role\'s KPIs before the call ends',
+        ],
+      },
+      {
+        stage: 'Sales role-play or scenario',
+        what: 'A live or case-study exercise where you pitch a product or handle an objection. Common for B2B and high-commission tracks.',
+        tips: [
+          'Lead with a discovery question before pitching — top performers listen first',
+          'Handle the objection, don\'t cave to it: "I understand — let me show you why the ROI stacks up"',
+          'Close clearly: "Shall we move forward?" — many candidates forget to ask',
+        ],
+      },
+      {
+        stage: 'KPI & track-record discussion',
+        what: 'Panel or hiring manager round focused on your past quota attainment, pipeline management and deal size.',
+        tips: [
+          'Prepare 2–3 specific deals or wins with numbers: revenue, units, percentage of quota',
+          'Explain how you built your pipeline — prospecting discipline separates top performers',
+          'Show ambition for the next level; sales managers hire for potential, not just past results',
+        ],
+      },
+    ],
   },
 
   'admin-executive': {
@@ -419,6 +551,35 @@ export const ROLES: Record<RoleSlug, RoleConfig> = {
     hasJobPosting: false,
     relatedRoles: ['graphic-designer', 'marketing-executive'],
     relatedLocations: ['kuala-lumpur', 'petaling-jaya', 'cyberjaya'],
+    interviewTips: [
+      {
+        stage: 'Portfolio & code review',
+        what: 'You\'ll be asked to walk through 1–2 past projects — architecture decisions, tech stack choices and lessons learned.',
+        tips: [
+          'Have your portfolio on GitHub or a live URL; dead links are red flags',
+          'Explain trade-offs honestly: "I chose X over Y because of the team\'s familiarity"',
+          'Show one project that went wrong and how you fixed it — resilience impresses',
+        ],
+      },
+      {
+        stage: 'Live coding / take-home task',
+        what: 'A 30–60 minute timed exercise (LeetCode-style) or a take-home task delivered over 24–48 hours.',
+        tips: [
+          'Think aloud during live sessions — interviewers assess your process, not just the answer',
+          'For take-homes: clean code beats clever code; add a README explaining your choices',
+          'Clarify ambiguous requirements before starting — senior devs ask questions first',
+        ],
+      },
+      {
+        stage: 'Culture & values fit',
+        what: 'Final round with tech lead or CTO covering collaboration style, autonomy preference and where you want to grow.',
+        tips: [
+          'Ask about the team\'s engineering culture: code reviews, on-call, deployment cadence',
+          'Show curiosity: "What\'s the biggest tech challenge the team is facing right now?"',
+          'Be honest about the kind of work you find energising — forced fit rarely lasts',
+        ],
+      },
+    ],
   },
 
   'graphic-designer': {

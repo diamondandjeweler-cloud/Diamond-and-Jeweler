@@ -1073,7 +1073,7 @@ function ReferralSection() {
 /** #5 — WhatsApp CTA (Malaysia-first contact) */
 function WhatsAppCTA() {
   // Replace WHATSAPP_NUMBER with the business WhatsApp number, e.g. 60123456789
-  const WHATSAPP_NUMBER = '60123456789' // TODO: update to real number
+  const WHATSAPP_NUMBER = '601239449333'
   const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Hi DNJ, I have a question about the platform.')}`
   return (
     <section className="py-14 px-6 bg-[#fafbff] border-t border-gray-100" aria-labelledby="contact-heading">

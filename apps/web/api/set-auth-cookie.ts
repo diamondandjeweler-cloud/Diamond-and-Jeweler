@@ -4,9 +4,24 @@
 
 export const config = { runtime: 'edge' }
 
+const ALLOWED_ORIGINS = new Set([
+  'https://diamondandjeweler.com',
+  'https://www.diamondandjeweler.com',
+])
+
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') {
     return new Response('Method Not Allowed', { status: 405 })
+  }
+
+  // Origin check — defence-in-depth against CSRF. Same-origin browser requests
+  // don't send an Origin header; cross-origin requests always do.
+  const origin = req.headers.get('origin')
+  if (origin && !ALLOWED_ORIGINS.has(origin)) {
+    return new Response(JSON.stringify({ error: 'forbidden' }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 
   let token: string | null = null

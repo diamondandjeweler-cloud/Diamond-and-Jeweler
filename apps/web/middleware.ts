@@ -204,6 +204,10 @@ async function adminGate(req: Request, pathname: string): Promise<Response | und
 }
 
 // ── F-07: Bot OG injection ────────────────────────────────────────────────────
+function escHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
 const ORIGIN = 'https://diamondandjeweler.com'
 const OG_IMAGE = `${ORIGIN}/og-image.png`
 const DEFAULT_TITLE = 'DNJ — AI-Curated Recruitment Platform Malaysia | Jobs Across Every Industry'
@@ -283,7 +287,8 @@ function resolveOg(pathname: string): { title: string; description: string } {
 function botOgResponse(pathname: string): Response {
   const { title, description } = resolveOg(pathname)
   const url = `${ORIGIN}${pathname}`
-  const html = `<!doctype html><html lang="en"><head><meta charset="UTF-8"/><title>${title}</title><meta name="description" content="${description}"/><meta property="og:type" content="website"/><meta property="og:site_name" content="DNJ"/><meta property="og:title" content="${title}"/><meta property="og:description" content="${description}"/><meta property="og:url" content="${url}"/><meta property="og:image" content="${OG_IMAGE}"/><meta property="og:image:alt" content="DNJ — AI-curated recruitment platform Malaysia"/><meta name="twitter:card" content="summary_large_image"/><meta name="twitter:title" content="${title}"/><meta name="twitter:description" content="${description}"/><meta name="twitter:image" content="${OG_IMAGE}"/><link rel="canonical" href="${url}"/></head><body><p>${title}</p><p>${description}</p></body></html>`
+  const t = escHtml(title), d = escHtml(description), u = escHtml(url)
+  const html = `<!doctype html><html lang="en"><head><meta charset="UTF-8"/><title>${t}</title><meta name="description" content="${d}"/><meta property="og:type" content="website"/><meta property="og:site_name" content="DNJ"/><meta property="og:title" content="${t}"/><meta property="og:description" content="${d}"/><meta property="og:url" content="${u}"/><meta property="og:image" content="${OG_IMAGE}"/><meta property="og:image:alt" content="DNJ — AI-curated recruitment platform Malaysia"/><meta name="twitter:card" content="summary_large_image"/><meta name="twitter:title" content="${t}"/><meta name="twitter:description" content="${d}"/><meta name="twitter:image" content="${OG_IMAGE}"/><link rel="canonical" href="${u}"/></head><body><p>${t}</p><p>${d}</p></body></html>`
   return new Response(html, {
     status: 200,
     headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=300, s-maxage=300' },

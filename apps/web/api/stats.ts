@@ -6,8 +6,9 @@
  */
 export const config = { runtime: 'edge' }
 
-const SUPABASE_URL  = process.env.VITE_SUPABASE_URL  ?? ''
-const SUPABASE_ANON = process.env.VITE_SUPABASE_ANON_KEY ?? ''
+// Try VITE_ prefix (local dev via .env.local) then bare name (Vercel server env)
+const SUPABASE_URL  = process.env.VITE_SUPABASE_URL  ?? process.env.SUPABASE_URL  ?? ''
+const SUPABASE_ANON = process.env.VITE_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY ?? ''
 
 const CORS = {
   'Access-Control-Allow-Origin': 'https://diamondandjeweler.com',

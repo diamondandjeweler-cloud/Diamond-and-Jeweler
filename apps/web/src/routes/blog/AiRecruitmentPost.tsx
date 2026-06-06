@@ -82,8 +82,8 @@ export default function AiRecruitmentPost() {
   })
 
   return (
-    <div className="min-h-screen bg-white text-[#0B1220] font-sans">
-      <header className="border-b border-gray-100">
+    <div className="min-h-screen bg-white dark:bg-[#0B1220] text-[#0B1220] dark:text-white font-sans">
+      <header className="border-b border-gray-100 dark:border-gray-700 dark:bg-[#0B1742]">
         <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2" aria-label="DNJ home">
             <span className="font-extrabold tracking-tight text-[20px]">DNJ</span>

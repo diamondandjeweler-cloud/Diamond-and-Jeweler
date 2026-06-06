@@ -28,8 +28,6 @@ export default function handler(req: Request): Response {
   const meta = PAGE_META[page] ?? PAGE_META['home']
 
   return new ImageResponse(
-    // JSX element describing the OG image layout
-    // @ts-expect-error — ImageResponse accepts React-like JSX via @vercel/og internals
     <div
       style={{
         display: 'flex',

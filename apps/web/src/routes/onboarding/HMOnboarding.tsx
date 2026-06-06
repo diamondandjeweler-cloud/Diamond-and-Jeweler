@@ -215,6 +215,8 @@ export default function HMOnboarding() {
 
   // Autosave all form state on every change — DOB intentionally excluded (never in plaintext).
   // 'basics' is intentionally included so a crash before form submit doesn't wipe fullName/jobTitle.
+  // apiMessages included: after [PROFILE_READY] wipes the draft, the autosave at mustHaves/later phases
+  // preserves the transcript so finalise() never submits empty messages on crash-and-restore.
   useEffect(() => {
     if (!draftKey || phase === 'done' || phase === 'submit') return
     try {
@@ -222,6 +224,7 @@ export default function HMOnboarding() {
       localStorage.setItem(draftKey, JSON.stringify({
         ...prev,
         phase, fullName, jobTitle,
+        ...(apiMessages.length > 1 ? { apiMessages } : {}),
         mustHaveItems,
         hmRequiresDrivingLicense, hmRequiresWeekends, hmRequiresTravel,
         hmRequiresNightShifts, hmRequiresRelocation, hmOnsiteOnly,
@@ -231,7 +234,7 @@ export default function HMOnboarding() {
       }))
     } catch { /* ignore storage errors */ }
   }, [
-    draftKey, phase, fullName, jobTitle,
+    draftKey, phase, fullName, jobTitle, apiMessages,
     mustHaveItems,
     hmRequiresDrivingLicense, hmRequiresWeekends, hmRequiresTravel,
     hmRequiresNightShifts, hmRequiresRelocation, hmOnsiteOnly,

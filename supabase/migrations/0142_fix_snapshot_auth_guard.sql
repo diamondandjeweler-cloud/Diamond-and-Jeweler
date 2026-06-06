@@ -1,47 +1,9 @@
--- 0135 — Daily admin snapshot table (item 10)
+-- 0142 — add admin permission check to take_admin_daily_snapshot()
 --
--- Stores a daily point-in-time aggregate so admins can see trends over time
--- without running expensive historical queries against live tables.
--- pg_cron writes one row at 23:00 UTC every night (07:00 MYT).
--- Data is retained for 365 days; older rows are pruned automatically.
-
-CREATE TABLE IF NOT EXISTS public.admin_daily_snapshot (
-  id          bigserial PRIMARY KEY,
-  snapshot_date date NOT NULL,
-
-  -- Platform counts
-  total_users        bigint NOT NULL DEFAULT 0,
-  total_talents      bigint NOT NULL DEFAULT 0,
-  total_hm           bigint NOT NULL DEFAULT 0,
-  total_hr           bigint NOT NULL DEFAULT 0,
-  open_talents       bigint NOT NULL DEFAULT 0,
-  active_roles       bigint NOT NULL DEFAULT 0,
-  verified_companies bigint NOT NULL DEFAULT 0,
-
-  -- Match funnel
-  total_matches      bigint NOT NULL DEFAULT 0,
-  matches_generated  bigint NOT NULL DEFAULT 0,
-  matches_hired      bigint NOT NULL DEFAULT 0,
-  matches_expired    bigint NOT NULL DEFAULT 0,
-
-  -- Revenue proxies
-  extra_match_purchases bigint NOT NULL DEFAULT 0,
-  urgent_priority_reqs  bigint NOT NULL DEFAULT 0,
-
-  created_at timestamptz NOT NULL DEFAULT now(),
-
-  UNIQUE (snapshot_date)
-);
-
-CREATE INDEX IF NOT EXISTS idx_admin_snapshot_date
-  ON public.admin_daily_snapshot (snapshot_date DESC);
-
-ALTER TABLE public.admin_daily_snapshot ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY ads_admin_all ON public.admin_daily_snapshot
-  FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
-
--- ── Snapshot function ────────────────────────────────────────────────────────
+-- The function was SECURITY DEFINER with no auth guard. Any logged-in user who
+-- discovered the RPC name could call it via PostgREST and overwrite today's
+-- snapshot data. Adding an is_admin() check at the top mirrors the RLS policy
+-- already on the underlying table.
 
 CREATE OR REPLACE FUNCTION public.take_admin_daily_snapshot()
 RETURNS void
@@ -50,6 +12,10 @@ SECURITY DEFINER
 SET search_path = public, pg_catalog
 AS $$
 BEGIN
+  IF NOT public.is_admin() THEN
+    RAISE EXCEPTION 'permission denied';
+  END IF;
+
   INSERT INTO public.admin_daily_snapshot (
     snapshot_date,
     total_users, total_talents, total_hm, total_hr,
@@ -93,21 +59,3 @@ BEGIN
   WHERE snapshot_date < current_date - INTERVAL '365 days';
 END;
 $$;
-
--- ── pg_cron: nightly at 23:00 UTC (07:00 MYT) ───────────────────────────────
-
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'admin-daily-snapshot') THEN
-    PERFORM cron.unschedule('admin-daily-snapshot');
-  END IF;
-END;
-$$;
-
-SELECT cron.schedule(
-  'admin-daily-snapshot',
-  '0 23 * * *',
-  'SELECT public.take_admin_daily_snapshot()'
-);
-
-NOTIFY pgrst, 'reload schema';

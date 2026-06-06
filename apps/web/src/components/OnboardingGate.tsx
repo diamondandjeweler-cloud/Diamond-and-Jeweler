@@ -20,6 +20,7 @@ export default function OnboardingGate({ children }: { children: ReactNode }) {
     if (profile.role === 'talent')         return <Navigate to="/onboarding/talent" replace />
     if (profile.role === 'hiring_manager') return <Navigate to="/onboarding/hm" replace />
     if (profile.role === 'hr_admin')       return <Navigate to="/onboarding/company" replace />
+    // admin and restaurant_staff have no onboarding flow — intentional pass-through
   }
 
   return <>{children}</>

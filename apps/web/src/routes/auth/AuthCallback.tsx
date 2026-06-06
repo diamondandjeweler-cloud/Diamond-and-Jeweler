@@ -78,7 +78,9 @@ export default function AuthCallback() {
       void processStoredReferral(session.user.id)
       const savedRedirect = sessionStorage.getItem('dnj.auth_redirect') ?? '/home'
       try { sessionStorage.removeItem('dnj.auth_redirect') } catch { /* tolerate */ }
-      window.location.replace(savedRedirect)
+      // Validate before replace — reject protocol-relative and external URLs.
+      const safeRedirect = isSafeRedirect(savedRedirect) ? savedRedirect : '/home'
+      window.location.replace(safeRedirect)
     })()
   }, [session, type])
 
@@ -288,6 +290,12 @@ export default function AuthCallback() {
  * string is empty in that case, so useSearchParams() never catches them.
  * Returns null for success hashes (#access_token=...) and no-hash URLs.
  */
+function isSafeRedirect(url: string): boolean {
+  if (!url || url.startsWith('//')) return false
+  if (url.startsWith('/')) return true
+  try { return new URL(url).origin === window.location.origin } catch { return false }
+}
+
 function readHashAuthError(): { code: string; description: string } | null {
   if (typeof window === 'undefined' || !window.location.hash) return null
   const p = new URLSearchParams(window.location.hash.replace(/^#/, ''))

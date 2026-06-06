@@ -214,8 +214,9 @@ export default function HMOnboarding() {
   }, [session?.user.id, draftKey])
 
   // Autosave all form state on every change — DOB intentionally excluded (never in plaintext).
+  // 'basics' is intentionally included so a crash before form submit doesn't wipe fullName/jobTitle.
   useEffect(() => {
-    if (!draftKey || phase === 'basics' || phase === 'done' || phase === 'submit') return
+    if (!draftKey || phase === 'done' || phase === 'submit') return
     try {
       const prev = JSON.parse(localStorage.getItem(draftKey) || '{}') as Record<string, unknown>
       localStorage.setItem(draftKey, JSON.stringify({
@@ -442,6 +443,7 @@ export default function HMOnboarding() {
       )
       if (!extRes.ok) throw new Error(`Profile extraction failed (${extRes.status})`)
       const extracted = await extRes.json() as {
+        error?: string
         industry: string | null
         role_type: string | null
         role_open_reason: string | null
@@ -466,6 +468,7 @@ export default function HMOnboarding() {
         required_work_authorization: string[]
         summary: string | null
       }
+      if (extracted.error) throw new Error(`Profile extraction failed: ${extracted.error}`)
 
       const { data: hmRow, error: hmErr } = await supabase.from('hiring_managers').select('id').eq('profile_id', userId).maybeSingle()
       if (hmErr) throw hmErr
@@ -923,7 +926,7 @@ export default function HMOnboarding() {
           </p>
           <input
             type="date" value={dob} onChange={(e) => { setDob(e.target.value); setDobSkipped(false) }}
-            max={new Date(Date.now() - 18 * 365 * 86400000).toISOString().slice(0, 10)}
+            max={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 18); return d.toISOString().slice(0, 10) })()}
             className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
           <div className="space-y-1">

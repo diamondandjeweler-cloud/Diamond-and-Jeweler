@@ -160,12 +160,12 @@ export default function App() {
         <Route path="/payment/mock"   element={<PaymentReturn />} />
         <Route path="/signup" element={session && profile ? <SignupLoggedIn /> : <SignUp />} />
         <Route path="/signout" element={<Signout />} />
-        <Route path="/login"  element={session && profile ? <Navigate to="/home" replace /> : <Login />} />
+        <Route path="/login"  element={session ? <Navigate to="/home" replace /> : <Login />} />
         <Route path="/password-reset" element={<PasswordReset />} />
         <Route path="/privacy" element={<PrivacyNotice />} />
         <Route path="/terms"   element={<Terms />} />
-        <Route path="/mfa/challenge" element={<MfaChallenge />} />
-        <Route path="/mfa/enroll"    element={<MfaEnroll />} />
+        <Route path="/mfa/challenge" element={<ProtectedRoute><MfaChallenge /></ProtectedRoute>} />
+        <Route path="/mfa/enroll"    element={<ProtectedRoute><MfaEnroll /></ProtectedRoute>} />
 
         {import.meta.env.DEV && <Route path="/dev/match-preview" element={<MatchPreview />} />}
 

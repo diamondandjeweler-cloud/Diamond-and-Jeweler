@@ -31,16 +31,18 @@ interface SessionState {
 function setAuthHintCookie(accessToken?: string | null) {
   try {
     const secure = location.protocol === 'https:' ? '; Secure' : ''
-    // Backwards-compat presence cookie. Older middleware bundles that
-    // haven't picked up the JWT change yet still work.
+    // Backwards-compat presence cookie — not sensitive, fine as readable JS cookie.
     document.cookie = `dnj-auth=1; Path=/; Max-Age=2592000; SameSite=Lax${secure}`
     if (accessToken) {
-      // The Supabase access token is itself a signed JWT; the edge verifies
-      // signature + exp claim with SUPABASE_JWT_SECRET.
-      // Match the access token's expiry (~1h) — supabase-js refreshes it,
-      // and the bootstrap below re-mirrors on every state change.
-      document.cookie =
-        `sb-jwt=${encodeURIComponent(accessToken)}; Path=/; Max-Age=3600; SameSite=Lax${secure}`
+      // sb-jwt carries the actual Supabase access token; set it HttpOnly via a
+      // server-side API route so JS cannot read it (prevents XSS token theft).
+      // Fire-and-forget — the cookie lands before the next navigation that
+      // triggers middleware, so timing is safe.
+      void fetch('/api/set-auth-cookie', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: accessToken }),
+      }).catch(() => { /* tolerate */ })
     }
   } catch { /* tolerate */ }
 }
@@ -49,7 +51,13 @@ function clearAuthHintCookie() {
   try {
     const secure = location.protocol === 'https:' ? '; Secure' : ''
     document.cookie = `dnj-auth=; Path=/; Max-Age=0; SameSite=Lax${secure}`
-    document.cookie = `sb-jwt=; Path=/; Max-Age=0; SameSite=Lax${secure}`
+    // Clear the HttpOnly sb-jwt via the server-side route — JS cannot directly
+    // expire an HttpOnly cookie.
+    void fetch('/api/set-auth-cookie', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: null }),
+    }).catch(() => { /* tolerate */ })
   } catch { /* tolerate */ }
 }
 
@@ -164,20 +172,24 @@ export const useSession = create<SessionState>((set) => ({
   },
 }))
 
+// Profile cache uses sessionStorage (clears on tab close) — localStorage would
+// persist PII across browser sessions, which is a PDPA compliance risk.
+// The isHM flag contains no PII so it stays in localStorage for cross-session
+// persistence (avoids false-negative "Switch to HM view" bounces on reload).
 const PROFILE_CACHE_KEY = 'dnj.profile_cache'
 const ISHM_CACHE_KEY = 'dnj.ishm_cache'
 
 function loadCachedProfile(): Profile | null {
   try {
-    const raw = localStorage.getItem(PROFILE_CACHE_KEY)
+    const raw = sessionStorage.getItem(PROFILE_CACHE_KEY)
     return raw ? (JSON.parse(raw) as Profile) : null
   } catch { return null }
 }
 
 function saveCachedProfile(profile: Profile | null) {
   try {
-    if (profile) localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile))
-    else localStorage.removeItem(PROFILE_CACHE_KEY)
+    if (profile) sessionStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile))
+    else sessionStorage.removeItem(PROFILE_CACHE_KEY)
   } catch { /* tolerate */ }
 }
 
@@ -265,7 +277,7 @@ export function bootstrapSession() {
   // event triggers another fetchProfile + fetchIsHM round-trip, which is what
   // showed up as duplicate /profiles and /hiring_managers calls in DevTools.
   let lastFetchedFor: string | null = null
-  supabase.auth.onAuthStateChange(async (event, session) => {
+  const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
     clearTimeout(watchdog)
     try {
       // F7 — only react to definitive sign-out events. supabase-js fires
@@ -385,4 +397,15 @@ export function bootstrapSession() {
       useSession.setState({ loading: false })
     }
   })
+
+  // HMR cleanup: unsubscribe the auth listener when the module is hot-replaced
+  // so the next bootstrap call starts with a clean slate instead of accumulating
+  // duplicate listeners. Production builds ignore import.meta.hot.
+  if (import.meta.hot) {
+    import.meta.hot.dispose(() => {
+      bootstrapped = false
+      visibilityRewarmWired = false
+      authSubscription.unsubscribe()
+    })
+  }
 }

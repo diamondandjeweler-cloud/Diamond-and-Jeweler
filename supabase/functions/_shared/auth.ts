@@ -91,7 +91,7 @@ export function json(body: unknown, status = 200): Response {
  * Cost is O(max(a, b)) regardless of where the first mismatch is, so an attacker
  * cannot enumerate a secret by measuring response time.
  */
-function timingSafeEqual(a: string, b: string): boolean {
+export function timingSafeEqual(a: string, b: string): boolean {
   const enc = new TextEncoder()
   const ba = enc.encode(a)
   const bb = enc.encode(b)

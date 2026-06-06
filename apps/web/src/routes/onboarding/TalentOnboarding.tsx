@@ -103,7 +103,7 @@ export default function TalentOnboarding() {
   // so analytics can group the full transcript.
   const conversationIdRef = useRef<string>(crypto.randomUUID())
   const chatInitRef = useRef(false)
-  const insertedRef = useRef(false)
+  const talentIdRef = useRef<string | null>(null)
   const draftCheckRef = useRef(false)
   const sessionId = session?.user.id
 
@@ -216,6 +216,8 @@ export default function TalentOnboarding() {
 
   // ── Autosave draft whenever key fields change ─────────────────────────────
   // DOB intentionally excluded — never persisted to localStorage in plaintext.
+  // apiMessages included so a crash between [PROFILE_READY] and finalise() can
+  // be recovered without re-running the whole chat.
   useEffect(() => {
     if (!draftKey || phase === 'basics' || phase === 'resume' || phase === 'done' || phase === 'submit') return
     try {
@@ -223,6 +225,7 @@ export default function TalentOnboarding() {
       localStorage.setItem(draftKey, JSON.stringify({
         ...prev,
         phase, fullName, phone, gender: gender || '',
+        ...(apiMessages.length > 1 ? { apiMessages } : {}),
         race, religion, languages, locationMatters, locationPostcode, openToNewField,
         dealBreakerItems, minSalaryHard,
         noWeekendWork, noDrivingLicense, noTravel, noNightShifts,
@@ -233,7 +236,7 @@ export default function TalentOnboarding() {
       }))
     } catch { /* ignore storage errors */ }
   }, [
-    draftKey, phase, fullName, phone, gender,
+    draftKey, phase, fullName, phone, gender, apiMessages,
     race, religion, languages, locationMatters, locationPostcode, openToNewField,
     dealBreakerItems, minSalaryHard,
     noWeekendWork, noDrivingLicense, noTravel, noNightShifts,
@@ -436,105 +439,150 @@ export default function TalentOnboarding() {
 
   async function finalise() {
     if (!session) return
-    if (insertedRef.current) {
-      navigate('/talent', { replace: true, state: { extractionPending: true } })
-      return
-    }
     setErr(null)
     setBusy(true)
     try {
       const userId = session.user.id
+      let talentId = talentIdRef.current
 
-      // 1. Upload files + encrypt DOB in parallel. Fast (seconds, not minutes).
-      const [resumePath, clPath, photoPath, dobEncrypted] = await Promise.all([
-        uploadPrivate('resumes', resumeFile!, userId, resumeFile!.name),
-        coverLetterFile
-          ? uploadPrivate('resumes', coverLetterFile, userId, `cover-letter-${coverLetterFile.name}`)
-          : Promise.resolve<string | null>(null),
-        uploadPrivate('talent-photos', photoFile!, userId, photoFile!.name),
-        encryptDob(dob),
-      ])
+      // Steps 1-3 and 5-6 run only on first attempt. On retry after a partial
+      // failure, talentIdRef.current is already set so we skip straight to the
+      // PII update and markOnboardingComplete (which are idempotent).
+      if (!talentId) {
+        // 1. Upload files + encrypt DOB in parallel. Fast (seconds, not minutes).
+        const [resumePath, clPath, photoPath, dobEncrypted] = await Promise.all([
+          uploadPrivate('resumes', resumeFile!, userId, resumeFile!.name),
+          coverLetterFile
+            ? uploadPrivate('resumes', coverLetterFile, userId, `cover-letter-${coverLetterFile.name}`)
+            : Promise.resolve<string | null>(null),
+          uploadPrivate('talent-photos', photoFile!, userId, photoFile!.name),
+          encryptDob(dob),
+        ])
 
-      const { data: authData } = await supabase.auth.getSession()
-      const token = authData.session?.access_token
-      if (!token) throw new Error('Not authenticated')
+        const { data: authData } = await supabase.auth.getSession()
+        const token = authData.session?.access_token
+        if (!token) throw new Error('Not authenticated')
 
-      // Best-effort: read resume as text for cross-referencing in the extract prompt.
-      // Works for plain-text and some simple PDFs; silently skipped for binary formats.
-      let resumeText: string | undefined
-      try {
-        const raw = await resumeFile!.text()
-        if (raw.length > 50 && raw.charCodeAt(0) >= 32) {
-          resumeText = raw.slice(0, 4000)
+        // Best-effort: read resume as text for cross-referencing in the extract prompt.
+        // Works for plain-text and some simple PDFs; silently skipped for binary formats.
+        let resumeText: string | undefined
+        try {
+          const raw = await resumeFile!.text()
+          if (raw.length > 50 && raw.charCodeAt(0) >= 32) {
+            resumeText = raw.slice(0, 4000)
+          }
+        } catch { /* best effort */ }
+
+        const lifeChartCharacter = gender
+          ? getLifeChartCharacter(dob, gender)
+          : null
+
+        // 2. Upsert the talents row (not insert) so that a page-refresh retry
+        //    after the ref is reset doesn't hit the profile_id UNIQUE constraint.
+        //    The async worker fills extracted fields and flips is_open_to_offers.
+        const { data: talentRow, error: insErr } = await supabase.from('talents').upsert({
+          profile_id: userId,
+          date_of_birth_encrypted: dobEncrypted,
+          gender: gender || null,
+          life_chart_character: lifeChartCharacter,
+          location_matters: locationMatters === true,
+          location_postcode: locationMatters && locationPostcode.trim() ? locationPostcode.trim() : null,
+          open_to_new_field: openToNewField,
+          interview_answers: { transcript: apiMessages },
+          race: race || null,
+          religion: religion || null,
+          languages,
+          uses_lunar_calendar: computeUsesLunarCalendar(race, religion, languages),
+          is_open_to_offers: false,
+          extraction_status: 'pending',
+          photo_url: photoPath,
+          deal_breakers: {
+            items: dealBreakerItems,
+            min_salary_hard: minSalaryHard,
+            no_weekend_work: noWeekendWork,
+            no_driving_license: noDrivingLicense,
+            no_travel: noTravel,
+            no_night_shifts: noNightShifts,
+            no_own_car: noOwnCar,
+            remote_only: remoteOnly,
+            no_relocation: noRelocation,
+            no_overtime: noOvertime,
+            no_commission_only: noCommissionOnly,
+          },
+          // ── 0112 structured matching extras ───────────────────────────────
+          skills,
+          languages_proficiency: languagesProficiency.length > 0
+            ? languagesProficiency
+            : languages.map((code) => ({ code, level: 'conversational' as const })),
+          available_shifts: availableShifts,
+          available_days_per_week: availableDaysPerWeek === '' ? null : availableDaysPerWeek,
+          environment_preferences: environmentPreferences,
+          candidate_types: candidateTypes,
+          priority_concerns_text: priorityConcernsText.trim() || null,
+          priority_concerns_atoms: priorityConcernsAtoms,
+        }, { onConflict: 'profile_id' }).select('id').single()
+        if (insErr) throw insErr
+        talentIdRef.current = talentRow.id
+        talentId = talentRow.id
+
+        // 3. Best-effort metadata writes. Don't block on these.
+        const docRows = [
+          { talent_id: talentId, doc_type: 'resume', storage_path: resumePath, file_name: resumeFile!.name, purge_after: null },
+          ...(clPath ? [{ talent_id: talentId, doc_type: 'cover_letter', storage_path: clPath, file_name: coverLetterFile!.name, purge_after: null }] : []),
+        ]
+        supabase.from('talent_documents').insert(docRows).then(() => { /* best-effort */ })
+        supabase.from('profiles')
+          .update({ interview_transcript: null })
+          .eq('id', userId)
+          .then(() => { /* best-effort */ })
+
+        // 5a. If the talent typed non-negotiables but didn't preview, run extraction
+        //     now and persist atoms. Best-effort; matcher works without atoms too.
+        if (priorityConcernsText.trim() && priorityConcernsAtoms.length === 0) {
+          void callFunction('extract-non-negotiables', {
+            side: 'talent',
+            text: priorityConcernsText.trim(),
+            talent_id: talentId,
+          }).catch(() => { /* best effort */ })
         }
-      } catch { /* best effort */ }
 
-      const lifeChartCharacter = gender
-        ? getLifeChartCharacter(dob, gender)
-        : null
+        // 5. Kick the async extraction. Fire-and-forget — keepalive ensures it
+        //    survives the navigation away from this page.
+        try {
+          await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/enqueue-talent-extraction`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ talent_id: talentId, messages: apiMessages, resume_text: resumeText }),
+              keepalive: true,
+            },
+          )
+        } catch (enqueueErr) {
+          // Non-fatal: retry-stuck-extractions cron will pick it up.
+          console.warn('[onboarding] enqueue-talent-extraction failed, will retry via cron:', enqueueErr)
+        }
 
-      // 2. Insert the talents row WITHOUT extracted fields. The async worker
-      //    fills those in and flips is_open_to_offers=true on completion.
-      //    Hidden from matching until then via the existing partial indexes.
-      const { data: talentRow, error: insErr } = await supabase.from('talents').insert({
-        profile_id: userId,
-        date_of_birth_encrypted: dobEncrypted,
-        gender: gender || null,
-        life_chart_character: lifeChartCharacter,
-        location_matters: locationMatters === true,
-        location_postcode: locationMatters && locationPostcode.trim() ? locationPostcode.trim() : null,
-        open_to_new_field: openToNewField,
-        interview_answers: { transcript: apiMessages },
-        race: race || null,
-        religion: religion || null,
-        languages,
-        uses_lunar_calendar: computeUsesLunarCalendar(race, religion, languages),
-        is_open_to_offers: false,
-        extraction_status: 'pending',
-        photo_url: photoPath,
-        deal_breakers: {
-          items: dealBreakerItems,
-          min_salary_hard: minSalaryHard,
-          no_weekend_work: noWeekendWork,
-          no_driving_license: noDrivingLicense,
-          no_travel: noTravel,
-          no_night_shifts: noNightShifts,
-          no_own_car: noOwnCar,
-          remote_only: remoteOnly,
-          no_relocation: noRelocation,
-          no_overtime: noOvertime,
-          no_commission_only: noCommissionOnly,
-        },
-        // ── 0112 structured matching extras ───────────────────────────────
-        skills,
-        languages_proficiency: languagesProficiency.length > 0
-          ? languagesProficiency
-          : languages.map((code) => ({ code, level: 'conversational' as const })),
-        available_shifts: availableShifts,
-        available_days_per_week: availableDaysPerWeek === '' ? null : availableDaysPerWeek,
-        environment_preferences: environmentPreferences,
-        candidate_types: candidateTypes,
-        priority_concerns_text: priorityConcernsText.trim() || null,
-        priority_concerns_atoms: priorityConcernsAtoms,
-      }).select('id').single()
-      if (insErr) throw insErr
-      // Mark as inserted before any further work — protects against retry / refresh
-      // hitting the talents.profile_id UNIQUE constraint and looping the user.
-      insertedRef.current = true
-      const talentId: string = talentRow.id
+        // 6. Referral processing — best-effort.
+        try {
+          const code = localStorage.getItem('bole.referral_code') ?? sessionStorage.getItem('bole.referral_code')
+          if (code) {
+            fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-referral`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ referral_code: code, referred_user_id: userId }),
+                keepalive: true,
+              },
+            ).catch(() => { /* best effort */ })
+            localStorage.removeItem('bole.referral_code')
+            sessionStorage.removeItem('bole.referral_code')
+          }
+        } catch { /* best effort */ }
+      }
 
-      // 3. Best-effort metadata writes. Don't block on these.
-      const docRows = [
-        { talent_id: talentId, doc_type: 'resume', storage_path: resumePath, file_name: resumeFile!.name, purge_after: null },
-        ...(clPath ? [{ talent_id: talentId, doc_type: 'cover_letter', storage_path: clPath, file_name: coverLetterFile!.name, purge_after: null }] : []),
-      ]
-      supabase.from('talent_documents').insert(docRows).then(() => { /* best-effort */ })
-      supabase.from('profiles')
-        .update({ interview_transcript: null })
-        .eq('id', userId)
-        .then(() => { /* best-effort */ })
-
-      // 4. PII update — must succeed.
+      // 4. PII update — must succeed. Runs on both first attempt and retry.
       const { error: profErr } = await supabase
         .from('profiles')
         .update({ full_name: fullName.trim(), phone: phone.trim() })
@@ -542,51 +590,6 @@ export default function TalentOnboarding() {
       if (profErr) throw profErr
 
       await markOnboardingComplete(userId)
-
-      // 5a. If the talent typed non-negotiables but didn't preview, run extraction
-      //     now and persist atoms. Best-effort; matcher works without atoms too.
-      if (priorityConcernsText.trim() && priorityConcernsAtoms.length === 0) {
-        void callFunction('extract-non-negotiables', {
-          side: 'talent',
-          text: priorityConcernsText.trim(),
-          talent_id: talentId,
-        }).catch(() => { /* best effort */ })
-      }
-
-      // 5. Kick the async extraction. Fire-and-forget — keepalive ensures it
-      //    survives the navigation away from this page.
-      try {
-        await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/enqueue-talent-extraction`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ talent_id: talentId, messages: apiMessages, resume_text: resumeText }),
-            keepalive: true,
-          },
-        )
-      } catch (enqueueErr) {
-        // Non-fatal: retry-stuck-extractions cron will pick it up.
-        console.warn('[onboarding] enqueue-talent-extraction failed, will retry via cron:', enqueueErr)
-      }
-
-      // 6. Referral processing — best-effort.
-      try {
-        const code = localStorage.getItem('bole.referral_code') ?? sessionStorage.getItem('bole.referral_code')
-        if (code) {
-          fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-referral`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-              body: JSON.stringify({ referral_code: code, referred_user_id: userId }),
-              keepalive: true,
-            },
-          ).catch(() => { /* best effort */ })
-          localStorage.removeItem('bole.referral_code')
-          sessionStorage.removeItem('bole.referral_code')
-        }
-      } catch { /* best effort */ }
 
       if (draftKey) localStorage.removeItem(draftKey)
 
@@ -799,7 +802,7 @@ export default function TalentOnboarding() {
             type="date"
             value={dob}
             onChange={(e) => setDob(e.target.value)}
-            max={new Date(Date.now() - 18 * 365.25 * 86400000).toISOString().slice(0, 10)}
+            max={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 18); return d.toISOString().slice(0, 10) })()}
             data-dob-invalid={showErr(dobValid) ? 'true' : undefined}
             className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 ${inputErrCls(dobValid)}`}
           />
@@ -982,8 +985,8 @@ export default function TalentOnboarding() {
               // Server-side belt: also enforce 18+ here in case max attribute is bypassed.
               if (dob) {
                 const dobMs = new Date(dob).getTime()
-                const eighteenYrsAgoMs = Date.now() - 18 * 365.25 * 86400000
-                if (dobMs > eighteenYrsAgoMs) {
+                const minAgeDate = new Date(); minAgeDate.setFullYear(minAgeDate.getFullYear() - 18)
+                if (dobMs > minAgeDate.getTime()) {
                   setErr('You must be at least 18 years old to use DNJ.')
                   return
                 }
@@ -1251,6 +1254,7 @@ export default function TalentOnboarding() {
             file={photoFile}
             onChange={setPhotoFile}
             hint="JPG or PNG, max 2 MB. Used on your candidate profile."
+            maxBytes={2 * 1024 * 1024}
             required
           />
           <FileRow
@@ -1258,6 +1262,7 @@ export default function TalentOnboarding() {
             accept="application/pdf,.doc,.docx"
             file={resumeFile}
             onChange={setResumeFile}
+            maxBytes={10 * 1024 * 1024}
             required
           />
           <FileRow
@@ -1265,6 +1270,7 @@ export default function TalentOnboarding() {
             accept="application/pdf,.doc,.docx"
             file={coverLetterFile}
             onChange={setCoverLetterFile}
+            maxBytes={10 * 1024 * 1024}
           />
           <p className="text-xs text-ink-500 italic">
             Note: We do not require NRIC or passport scans. An optional Identity-Verification
@@ -1453,6 +1459,7 @@ function FileRow({
   onChange,
   required,
   hint,
+  maxBytes,
 }: {
   label: string
   accept: string
@@ -1460,8 +1467,10 @@ function FileRow({
   onChange: (f: File | null) => void
   required?: boolean
   hint?: string
+  maxBytes?: number
 }) {
   const inputId = useId()
+  const [sizeErr, setSizeErr] = useState<string | null>(null)
   return (
     <label htmlFor={inputId} className="block border border-dashed border-ink-300 rounded-lg p-3 hover:border-ink-400 transition cursor-pointer bg-white">
 
@@ -1482,8 +1491,8 @@ function FileRow({
             {label}
             {required && <span className="text-red-500 ml-0.5">*</span>}
           </div>
-          <div className="text-xs text-ink-500 truncate">
-            {file ? file.name : (hint ?? 'No file selected')}
+          <div className={`text-xs truncate ${sizeErr ? 'text-red-600' : 'text-ink-500'}`}>
+            {sizeErr ?? (file ? file.name : (hint ?? 'No file selected'))}
           </div>
         </div>
         <span className="btn-secondary btn-sm pointer-events-none shrink-0">Choose</span>
@@ -1492,7 +1501,17 @@ function FileRow({
         id={inputId}
         type="file"
         accept={accept}
-        onChange={(e) => onChange(e.target.files?.[0] ?? null)}
+        onChange={(e) => {
+          const f = e.target.files?.[0] ?? null
+          if (f && maxBytes && f.size > maxBytes) {
+            setSizeErr(`File too large — max ${Math.round(maxBytes / 1024 / 1024)} MB`)
+            e.target.value = ''
+            onChange(null)
+            return
+          }
+          setSizeErr(null)
+          onChange(f)
+        }}
         className="sr-only"
       />
     </label>

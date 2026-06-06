@@ -193,6 +193,14 @@ GRANT EXECUTE ON FUNCTION public.get_admin_kpis_fast() TO authenticated;
 -- via the SECURITY DEFINER bypass below.  We directly call the underlying
 -- REFRESH + UPDATE instead of the RPC to avoid the is_admin() gate.
 
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'refresh-admin-kpis-mv') THEN
+    PERFORM cron.unschedule('refresh-admin-kpis-mv');
+  END IF;
+END;
+$$;
+
 SELECT cron.schedule(
   'refresh-admin-kpis-mv',
   '*/2 * * * *',

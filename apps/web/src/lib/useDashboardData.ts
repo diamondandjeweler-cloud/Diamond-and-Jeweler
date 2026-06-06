@@ -64,6 +64,14 @@ export function useDashboardData<T>(
     let cancelled = false
     const timeouts: ReturnType<typeof setTimeout>[] = []
 
+    // Hydrate from cache when userId was undefined on the first render
+    // (session hydration race). The functional update form avoids overwriting
+    // fresh data that may have arrived since the effect last ran.
+    if (!noCache && userId != null) {
+      const snap = readDashCache<T>(surface, userId)
+      if (snap != null) setData((d) => d ?? snap)
+    }
+
     async function runOnce(attempt: number): Promise<void> {
       try {
         setLoading(true)

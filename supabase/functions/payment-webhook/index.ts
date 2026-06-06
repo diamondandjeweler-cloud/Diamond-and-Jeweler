@@ -20,6 +20,7 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { webhookCorsHeaders as corsHeaders, handleWebhookOptions as handleOptions } from '../_shared/cors.ts'
 import { adminClient } from '../_shared/supabase.ts'
+import { timingSafeEqual } from '../_shared/auth.ts'
 
 serve(async (req) => {
   const pre = handleOptions(req); if (pre) return pre
@@ -119,23 +120,21 @@ serve(async (req) => {
   if (updErr) return new Response(updErr.message, { status: 500, headers: corsHeaders })
   if (!flipped || flipped.length === 0) return new Response('OK (already paid)', { status: 200, headers: corsHeaders })
 
-  // Increment quota counter.
+  // Increment quota counter atomically (UPDATE col = col + qty) to prevent
+  // a read-modify-write race when two different purchases for the same role
+  // or talent are paid concurrently.
   if (purchase.match_type === 'hm_extra' && purchase.role_id) {
-    const { data: role } = await db.from('roles')
-      .select('extra_matches_used').eq('id', purchase.role_id).maybeSingle()
-    if (role) {
-      await db.from('roles')
-        .update({ extra_matches_used: (role.extra_matches_used ?? 0) + purchase.quantity })
-        .eq('id', purchase.role_id)
-    }
+    await db.rpc('increment_extra_matches_used', {
+      p_table: 'roles',
+      p_id: purchase.role_id,
+      p_qty: purchase.quantity,
+    })
   } else if (purchase.match_type === 'talent_extra' && purchase.talent_id) {
-    const { data: t } = await db.from('talents')
-      .select('extra_matches_used').eq('id', purchase.talent_id).maybeSingle()
-    if (t) {
-      await db.from('talents')
-        .update({ extra_matches_used: (t.extra_matches_used ?? 0) + purchase.quantity })
-        .eq('id', purchase.talent_id)
-    }
+    await db.rpc('increment_extra_matches_used', {
+      p_table: 'talents',
+      p_id: purchase.talent_id,
+      p_qty: purchase.quantity,
+    })
   }
 
   const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -191,7 +190,7 @@ async function verifyBillplzSignature(
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('')
 
-  return computed === signature.toLowerCase()
+  return timingSafeEqual(computed, signature.toLowerCase())
 }
 
 /**

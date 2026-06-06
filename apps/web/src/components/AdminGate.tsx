@@ -7,12 +7,12 @@ import { supabase } from '../lib/supabase'
 
 type AalState = 'loading' | 'aal2' | 'need_challenge' | 'need_enroll'
 
-// Test-domain bypass: when VITE_BYPASS_ADMIN_MFA=true (dev / CI only), admin
-// accounts under @dnj-test.my skip the TOTP gate so automated smoke tests can
-// drive the admin console without a human relaying codes.
-// Production builds leave this unset → false → MFA always enforced.
-// To verify MFA enforcement in staging, set VITE_BYPASS_ADMIN_MFA=false.
-const BYPASS_ADMIN_MFA = import.meta.env.VITE_BYPASS_ADMIN_MFA === 'true'
+// Test-domain bypass: when VITE_BYPASS_ADMIN_MFA=true AND running a dev build,
+// admin accounts under @dnj-test.my skip the TOTP gate so automated smoke
+// tests can drive the admin console without a human relaying codes.
+// The import.meta.env.DEV guard ensures this can never activate in a prod
+// bundle even if the env var is accidentally set to "true" in production.
+const BYPASS_ADMIN_MFA = import.meta.env.DEV && import.meta.env.VITE_BYPASS_ADMIN_MFA === 'true'
 function isTestAdmin(email: string | undefined | null): boolean {
   return BYPASS_ADMIN_MFA && !!email && email.toLowerCase().endsWith('@dnj-test.my')
 }

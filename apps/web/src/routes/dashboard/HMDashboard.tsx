@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../state/useSession'
@@ -118,6 +118,8 @@ export default function HMDashboard() {
   const [unlockingRoleId, setUnlockingRoleId] = useState<string | null>(null)
   const [redeemingRoleId, setRedeemingRoleId] = useState<string | null>(null)
   const [unlockMsg, setUnlockMsg] = useState<{ roleId: string; tone: 'green' | 'red'; text: string } | null>(null)
+  const reloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => () => { if (reloadTimerRef.current !== null) clearTimeout(reloadTimerRef.current) }, [])
   const [urgentRoleId, setUrgentRoleId] = useState<string | null>(null)
   const [urgentBusy, setUrgentBusy] = useState(false)
   const [urgentMsg, setUrgentMsg] = useState<{ tone: 'green' | 'amber' | 'red'; text: React.ReactNode } | null>(null)
@@ -135,6 +137,7 @@ export default function HMDashboard() {
   const [hmHasDob, setHmHasDob] = useState<boolean | null>(null)
   const [showAddDobModal, setShowAddDobModal] = useState(false)
   const [onboardingDraftRole, setOnboardingDraftRole] = useState<{ id: string; title: string; industry: string | null; salary_min: number | null; salary_max: number | null; work_arrangement: string | null; required_traits: string[] } | null>(null)
+  const loadingRef = useRef(false)
 
   // Interview flow state
   const [roundsByMatch, setRoundsByMatch] = useState<Record<string, InterviewRound[]>>({})
@@ -148,11 +151,12 @@ export default function HMDashboard() {
 
   const loadRounds = useCallback(async (matchIds: string[]) => {
     if (matchIds.length === 0) return
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('interview_rounds')
       .select('id, match_id, round_number, scheduled_at, interview_url, status, hm_notes')
       .in('match_id', matchIds)
       .order('round_number', { ascending: true })
+    if (error) { setErr(error.message); return }
     if (!data) return
     const grouped: Record<string, InterviewRound[]> = {}
     for (const r of data) {
@@ -164,11 +168,12 @@ export default function HMDashboard() {
 
   const loadProposals = useCallback(async (matchIds: string[]) => {
     if (matchIds.length === 0) return
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('interview_proposals')
       .select('id, match_id, round_number, slot_1_at, slot_2_at, slot_3_at, status, picked_slot, decline_reason, created_at')
       .in('match_id', matchIds)
       .order('created_at', { ascending: false })
+    if (error) { setErr(error.message); return }
     if (!data) return
     const grouped: Record<string, InterviewProposal[]> = {}
     for (const p of data) {
@@ -205,6 +210,7 @@ export default function HMDashboard() {
         if (!cancelled) { setCandidates([]); setRoleCount(0) }
         setLoading(false); return
       }
+      loadingRef.current = true
       watchdog = setTimeout(() => {
         if (cancelled) return
         console.error('[hm-dashboard] load watchdog tripped — a Supabase query stalled')
@@ -400,27 +406,34 @@ export default function HMDashboard() {
           setRoleCount((cur) => cur ?? 0)
           setLoading(false)
         }
+      } finally {
+        loadingRef.current = false
       }
     }
-    void load()
-
-    const channel = supabase
-      .channel(`hm-matches-${userId ?? 'anon'}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, (payload) => {
-        const next = payload.new as { id: string; role_id?: string; status?: string } | null
-        const prev = payload.old as { id: string; role_id?: string } | null
-        const touched = next?.role_id ?? prev?.role_id
-        if (!touched || !hmRoleIds.includes(touched)) return
-        if (payload.eventType === 'DELETE') setCandidates((xs) => (xs ?? []).filter((c) => c.id !== prev?.id))
-        else if (payload.eventType === 'UPDATE' && next) setCandidates((xs) => (xs ?? []).map((c) => (c.id === next.id ? { ...c, ...next } : c)))
-        else if (payload.eventType === 'INSERT') void load()
-      })
-      .subscribe()
+    // Subscribe AFTER load() resolves so hmRoleIds is populated and we can
+    // set a server-side filter — avoids leaking match events across tenants.
+    let channel: ReturnType<typeof supabase.channel> | null = null
+    void load().then(() => {
+      if (cancelled || hmRoleIds.length === 0) return
+      channel = supabase
+        .channel(`hm-matches-${userId ?? 'anon'}`)
+        .on('postgres_changes', {
+          event: '*', schema: 'public', table: 'matches',
+          filter: `role_id=in.(${hmRoleIds.join(',')})`,
+        }, (payload) => {
+          const next = payload.new as { id: string; role_id?: string; status?: string } | null
+          const prev = payload.old as { id: string; role_id?: string } | null
+          if (payload.eventType === 'DELETE') setCandidates((xs) => (xs ?? []).filter((c) => c.id !== prev?.id))
+          else if (payload.eventType === 'UPDATE' && next) setCandidates((xs) => (xs ?? []).map((c) => (c.id === next.id ? { ...c, ...next } : c)))
+          else if (payload.eventType === 'INSERT') { if (!loadingRef.current) void load() }
+        })
+        .subscribe()
+    })
 
     return () => {
       cancelled = true
       if (watchdog) clearTimeout(watchdog)
-      void supabase.removeChannel(channel)
+      if (channel) void supabase.removeChannel(channel)
     }
   }, [userId, loadRounds, loadProposals, loadPreviews])
 
@@ -502,7 +515,7 @@ export default function HMDashboard() {
       setPointsBalance((p) => (p == null ? p : p - POINTS_PER_EXTRA))
       setRoleExtras((prev) => prev.map((r) => r.id === roleId ? { ...r, extraUsed: r.extraUsed + 1 } : r))
       // Refresh the dashboard so the new match appears once match-generate finishes.
-      setTimeout(() => { window.location.reload() }, 1500)
+      reloadTimerRef.current = setTimeout(() => { window.location.reload() }, 1500)
     } catch (e) {
       console.error('[redeem-points] failed', e)
       setUnlockMsg({ roleId, tone: 'red', text: e instanceof Error ? e.message : 'Failed to redeem points' })

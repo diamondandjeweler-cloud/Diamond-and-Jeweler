@@ -15,11 +15,18 @@ precacheAndRoute(self.__WB_MANIFEST)
 cleanupOutdatedCaches()
 
 // SPA navigation fallback — serve index.html for all navigation requests
-// except API/auth/static-file endpoints (same deny-list as the old generateSW config).
+// except API/auth/static-file endpoints and security-critical app routes.
+// Excluding /admin, /talent, /hm, /hr ensures those routes always hit the
+// network after a deploy instead of getting a stale cached shell.
 const navigationHandler = createHandlerBoundToURL('/index.html')
 registerRoute(
   new NavigationRoute(navigationHandler, {
-    denylist: [/^\/api\//, /^\/auth\/callback/, /\.(?:xml|txt|json|map)$/],
+    denylist: [
+      /^\/api\//,
+      /^\/auth\/callback/,
+      /\.(?:xml|txt|json|map)$/,
+      /^\/(admin|talent|hm|hr)(\/|$)/,
+    ],
   })
 )
 
@@ -76,6 +83,15 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const url = (event.notification.data as { url: string }).url
-  event.waitUntil(self.clients.openWindow(url))
+  const rawUrl = (event.notification.data as { url?: unknown }).url
+  // Validate same-origin before opening — a malicious push payload must not
+  // be able to navigate the user to an arbitrary external URL.
+  let safeUrl = '/home'
+  try {
+    const parsed = new URL(String(rawUrl ?? '/home'), self.location.origin)
+    if (parsed.origin === self.location.origin) {
+      safeUrl = parsed.pathname + parsed.search + parsed.hash
+    }
+  } catch { /* keep /home fallback */ }
+  event.waitUntil(self.clients.openWindow(safeUrl))
 })

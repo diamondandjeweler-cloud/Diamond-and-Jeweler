@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
@@ -61,8 +61,10 @@ export default function EditRole() {
 
   const [loading, setLoading] = useState(true)
   const [row, setRow] = useState<RoleRow | null>(null)
+  const originalRowRef = useRef<RoleRow | null>(null)
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const savingRef = useRef(false)
   const [nudge, setNudge] = useState<NudgeRow | null>(null)
   const [appliedKinds, setAppliedKinds] = useState<Set<string>>(new Set())
 
@@ -75,16 +77,15 @@ export default function EditRole() {
         .select('id, hiring_manager_id, title, description, department, location, work_arrangement, experience_level, salary_min, salary_max, required_traits, status, from_onboarding')
         .eq('id', id).single()
       if (cancelled) return
-      if (error) setErr(error.message)
-      else {
-        // Ownership check
-        const { data: hm } = await supabase.from('hiring_managers')
-          .select('id').eq('id', data.hiring_manager_id).eq('profile_id', session.user.id).maybeSingle()
-        if (!hm) {
-          setErr('You are not the owner of this role.')
-        } else {
-          setRow(data as RoleRow)
-        }
+      if (error) { setErr(error.message); return }
+      // Ownership check
+      const { data: hm } = await supabase.from('hiring_managers')
+        .select('id').eq('id', data.hiring_manager_id).eq('profile_id', session.user.id).maybeSingle()
+      if (!hm) {
+        setErr('You are not the owner of this role.')
+      } else {
+        setRow(data as RoleRow)
+        originalRowRef.current = data as RoleRow
       }
 
       // Stale-loop nudge banner: pull most recent open nudge for this role.
@@ -104,7 +105,7 @@ export default function EditRole() {
 
   async function save(e: React.FormEvent) {
     e.preventDefault()
-    if (!row) return
+    if (!row || savingRef.current) return
     setErr(null)
     if ((row.salary_min ?? 0) > (row.salary_max ?? 0)) {
       setErr('Salary min must be ≤ max.')
@@ -114,11 +115,13 @@ export default function EditRole() {
       setErr('Pick at least one trait.')
       return
     }
+    savingRef.current = true
     setBusy(true)
 
     // Re-moderate if the text fields the classifier looks at have changed.
-    const { data: original } = await supabase.from('roles')
-      .select('title, description, industry, department').eq('id', row.id).single()
+    // Use the snapshot from initial load — a fresh SELECT would be a TOCTOU
+    // race (another session could modify the row between our read and write).
+    const original = originalRowRef.current
     const textChanged = !!original && (
       original.title !== row.title ||
       (original.description ?? null) !== (row.description ?? null) ||
@@ -138,7 +141,7 @@ export default function EditRole() {
       required_traits: row.required_traits,
       ...(isDraft ? { status: 'active' } : {}),
     }).eq('id', row.id)
-    if (error) { setBusy(false); setErr(error.message); return }
+    if (error) { setBusy(false); savingRef.current = false; setErr(error.message); return }
 
     void callFunction('moderate-role', { role_id: row.id, force: textChanged || isDraft }).catch(() => {})
     if (isDraft) void callFunction('match-generate', { role_id: row.id }).catch(() => {})
@@ -154,6 +157,7 @@ export default function EditRole() {
     }
 
     setBusy(false)
+    savingRef.current = false
     navigate('/hm/roles', { replace: true })
   }
 

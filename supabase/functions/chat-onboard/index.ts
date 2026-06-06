@@ -371,11 +371,24 @@ serve(async (req) => {
   let body: Body = {}
   try { body = await req.json() } catch { /* tolerate empty */ }
 
-  const messages: Message[] = Array.isArray(body.messages) ? body.messages : []
-  if (messages.length === 0) {
+  const rawMessages: Message[] = Array.isArray(body.messages) ? body.messages : []
+  if (rawMessages.length === 0) {
     return new Response(JSON.stringify({ error: 'No messages provided' }), {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
+  }
+
+  // Cap message count and total content to prevent cost-abuse via oversized histories.
+  // Last 50 messages, each trimmed to 4 000 chars, total ≤ 32 000 chars.
+  const MAX_MESSAGES = 50
+  const MAX_CONTENT_CHARS = 32_000
+  const messages: Message[] = []
+  let totalChars = 0
+  for (const m of rawMessages.slice(-MAX_MESSAGES)) {
+    const content = String(m.content ?? '').slice(0, 4_000)
+    if (totalChars + content.length > MAX_CONTENT_CHARS) break
+    totalChars += content.length
+    messages.push({ role: m.role, content })
   }
 
   // Logging context — log the user's latest turn before invoking the AI.

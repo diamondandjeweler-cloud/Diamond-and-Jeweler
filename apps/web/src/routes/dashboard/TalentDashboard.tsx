@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../state/useSession'
@@ -108,6 +108,8 @@ export default function TalentDashboard() {
   const [profileExpiresAt, setProfileExpiresAt] = useState<string | null>(null)
   const [reviving, setReviving] = useState(false)
   const [reviveStep, setReviveStep] = useState<'idle' | 'confirm'>('idle')
+  const reloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => () => { if (reloadTimerRef.current !== null) clearTimeout(reloadTimerRef.current) }, [])
   const [talentReputation, setTalentReputation] = useState<{ reputation_score: number | null; feedback_volume: number; phs_show_rate: number | null; phs_accept_rate: number | null } | null>(null)
   const [profileGaps, setProfileGaps] = useState<string[]>([])
   const [talentFeedbackState, setTalentFeedbackState] = useState<Record<string, { rating: number; outcome: string; freeText: string; saving: boolean; saved: boolean; pointsAwarded?: number }>>({})
@@ -119,11 +121,12 @@ export default function TalentDashboard() {
 
   const loadRounds = useCallback(async (matchIds: string[]) => {
     if (matchIds.length === 0) return
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('interview_rounds')
       .select('id, match_id, round_number, scheduled_at, interview_url, status')
       .in('match_id', matchIds)
       .order('round_number', { ascending: true })
+    if (error) { setErr(error.message); return }
     if (!data) return
     const grouped: Record<string, InterviewRound[]> = {}
     for (const r of data) {
@@ -135,11 +138,12 @@ export default function TalentDashboard() {
 
   const loadProposals = useCallback(async (matchIds: string[]) => {
     if (matchIds.length === 0) return
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('interview_proposals')
       .select('id, match_id, round_number, slot_1_at, slot_2_at, slot_3_at, status, picked_slot, created_at')
       .in('match_id', matchIds)
       .order('created_at', { ascending: false })
+    if (error) { setErr(error.message); return }
     if (!data) return
     const grouped: Record<string, InterviewProposal[]> = {}
     for (const p of data) {
@@ -285,36 +289,39 @@ export default function TalentDashboard() {
         if (!cancelled) setLoading(false)
       }
     }
-    void load()
-
-    const channel = supabase
-      .channel(`talent-matches-${userId ?? 'anon'}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches', filter: talentId ? `talent_id=eq.${talentId}` : undefined }, (payload) => {
-        if (!talentId) return
-        const next = payload.new as MatchRow & { talent_id?: string } | null
-        const prev = payload.old as MatchRow & { talent_id?: string } | null
-        if (next?.talent_id !== talentId && prev?.talent_id !== talentId) return
-        setMatches((xs) => {
-          const cur = xs ?? []
-          if (payload.eventType === 'DELETE') return cur.filter((m) => m.id !== prev?.id)
-          if (payload.eventType === 'INSERT' && next) return [next, ...cur]
-          if (payload.eventType === 'UPDATE' && next) return cur.map((m) => (m.id === next.id ? { ...m, ...next } : m))
-          return cur
+    // Subscribe AFTER load() resolves so talentId is known and we can set a
+    // server-side filter — avoids broadcasting all matches rows to every user.
+    let channel: ReturnType<typeof supabase.channel> | null = null
+    void load().then(() => {
+      if (cancelled || !talentId) return
+      channel = supabase
+        .channel(`talent-matches-${userId ?? 'anon'}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'matches', filter: `talent_id=eq.${talentId}` }, (payload) => {
+          const next = payload.new as MatchRow & { talent_id?: string } | null
+          const prev = payload.old as MatchRow & { talent_id?: string } | null
+          if (next?.talent_id !== talentId && prev?.talent_id !== talentId) return
+          setMatches((xs) => {
+            const cur = xs ?? []
+            if (payload.eventType === 'DELETE') return cur.filter((m) => m.id !== prev?.id)
+            if (payload.eventType === 'INSERT' && next) return [next, ...cur]
+            if (payload.eventType === 'UPDATE' && next) return cur.map((m) => (m.id === next.id ? { ...m, ...next } : m))
+            return cur
+          })
         })
-      })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'interview_rounds' }, (payload) => {
-        const round = payload.new as InterviewRound & { match_id: string }
-        // Only apply if this round belongs to one of our matches (client-side guard;
-        // Supabase Realtime does not support `in` filters so we filter here)
-        setRoundsByMatch((prev) => {
-          if (!(round.match_id in prev) && !Object.keys(prev).includes(round.match_id)) return prev
-          const existing = prev[round.match_id] ?? []
-          return { ...prev, [round.match_id]: [...existing, round] }
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'interview_rounds' }, (payload) => {
+          const round = payload.new as InterviewRound & { match_id: string }
+          // Only apply if this round belongs to one of our matches (client-side guard;
+          // Supabase Realtime does not support `in` filters so we filter here)
+          setRoundsByMatch((prev) => {
+            if (!(round.match_id in prev) && !Object.keys(prev).includes(round.match_id)) return prev
+            const existing = prev[round.match_id] ?? []
+            return { ...prev, [round.match_id]: [...existing, round] }
+          })
         })
-      })
-      .subscribe()
+        .subscribe()
+    })
 
-    return () => { cancelled = true; void supabase.removeChannel(channel) }
+    return () => { cancelled = true; if (channel) void supabase.removeChannel(channel) }
   }, [userId, loadRounds, loadProposals])
 
   // Poll the talents row while extraction is in flight so the banner clears
@@ -395,7 +402,7 @@ export default function TalentDashboard() {
       setUnlockMsg({ tone: 'green', text: `Redeemed ${POINTS_PER_EXTRA} Diamond Points — your extra offer is being surfaced now.` })
       setPointsBalance((p) => (p == null ? p : p - POINTS_PER_EXTRA))
       setExtraUsed((u) => u + 1)
-      setTimeout(() => { window.location.reload() }, 1500)
+      reloadTimerRef.current = setTimeout(() => { window.location.reload() }, 1500)
     } catch (e) {
       console.error('[redeem-points] failed', e)
       setUnlockMsg({ tone: 'red', text: e instanceof Error ? e.message : 'Failed to redeem points' })
@@ -538,20 +545,25 @@ export default function TalentDashboard() {
   }
 
   async function respond(id: string, next: 'accepted_by_talent' | 'declined_by_talent') {
+    setActionBusy(`${id}:${next}`)
     const current = matches?.find((m) => m.id === id)
     setMatches((ms) => (ms ?? []).map((m) => (m.id === id ? { ...m, status: next } : m)))
-    const { error } = await supabase.from('matches').update({
-      status: next,
-      viewed_at: new Date().toISOString(),
-      accepted_at: next === 'accepted_by_talent' ? new Date().toISOString() : null,
-    }).eq('id', id)
-    if (error) {
-      setErr(error.message)
-      setMatches((ms) => (ms ?? []).map((m) => (m.id === id ? { ...m, status: current?.status ?? 'generated' } : m)))
-      return
+    try {
+      const { error } = await supabase.from('matches').update({
+        status: next,
+        viewed_at: new Date().toISOString(),
+        accepted_at: next === 'accepted_by_talent' ? new Date().toISOString() : null,
+      }).eq('id', id)
+      if (error) {
+        setErr(error.message)
+        setMatches((ms) => (ms ?? []).map((m) => (m.id === id ? { ...m, status: current?.status ?? 'generated' } : m)))
+        return
+      }
+      const event_type = next === 'accepted_by_talent' ? 'accept_interview' : 'reject_with_reason'
+      try { await callFunction('award-points', { event_type, match_id: id }) } catch { /* tolerate */ }
+    } finally {
+      setActionBusy(null)
     }
-    const event_type = next === 'accepted_by_talent' ? 'accept_interview' : 'reject_with_reason'
-    try { await callFunction('award-points', { event_type, match_id: id }) } catch { /* tolerate */ }
   }
 
   // Shell renders immediately — individual data sections handle their own
@@ -1000,8 +1012,8 @@ function OfferCard({
           {/* Stage 1: new offers — accept/decline */}
           {['generated', 'viewed'].includes(m.status) && (
             <div className="flex gap-2 flex-wrap">
-              <Button onClick={() => respond(m.id, 'accepted_by_talent')} size="sm">Accept</Button>
-              <Button onClick={() => respond(m.id, 'declined_by_talent')} size="sm" variant="secondary">Decline</Button>
+              <Button onClick={() => respond(m.id, 'accepted_by_talent')} disabled={actionBusy !== null} loading={actionBusy === `${m.id}:accepted_by_talent`} size="sm">Accept</Button>
+              <Button onClick={() => respond(m.id, 'declined_by_talent')} disabled={actionBusy !== null} loading={actionBusy === `${m.id}:declined_by_talent`} size="sm" variant="secondary">Decline</Button>
             </div>
           )}
 

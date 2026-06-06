@@ -12,6 +12,7 @@
  */
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { adminClient } from '../_shared/supabase.ts'
+import { timingSafeEqual } from '../_shared/auth.ts'
 
 import { webhookCorsHeaders as corsHeaders } from '../_shared/cors.ts'
 
@@ -42,7 +43,7 @@ serve(async (req) => {
   const sigBytes = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(signedContent))
   const computed = 'v1,' + btoa(String.fromCharCode(...new Uint8Array(sigBytes)))
   const supplied = svixSignature.split(' ').find(s => s.startsWith('v1,'))
-  if (!supplied || computed !== supplied) {
+  if (!supplied || !timingSafeEqual(computed, supplied)) {
     return new Response('Invalid signature', { status: 401 })
   }
 

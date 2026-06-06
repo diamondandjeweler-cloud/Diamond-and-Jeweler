@@ -95,6 +95,7 @@ export default function PostRole() {
   const [cloudSaved, setCloudSaved] = useState(false)
   const [dbDraftOffer, setDbDraftOffer] = useState<{ data: Record<string, unknown>; updatedAt: string } | null>(null)
   const didMount = useRef(false)
+  const submittingRef = useRef(false)
   const DRAFT_KEY = 'hm_role_draft'
 
   function collectDraft() {
@@ -345,10 +346,11 @@ export default function PostRole() {
     if (!hmId) return
     setDbDraftSaving(true)
     try {
-      await supabase.from('job_posting_drafts').upsert(
+      const { error } = await supabase.from('job_posting_drafts').upsert(
         { hm_id: hmId, draft_data: collectDraft() },
         { onConflict: 'hm_id' }
       )
+      if (error) throw error
       setCloudSaved(true)
       setTimeout(() => setCloudSaved(false), 2000)
     } catch { /* tolerate */ }
@@ -357,11 +359,13 @@ export default function PostRole() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
+    if (submittingRef.current) return
     setErr(null)
     if (!hmId) { setErr('No hiring manager profile found.'); return }
     if (requiredTraits.length === 0) { setErr('Pick at least one required trait.'); return }
     if (salaryMin > salaryMax) { setErr('Salary min must be less than or equal to max.'); return }
 
+    submittingRef.current = true
     setBusy(true)
     // Use a client-generated ID so we can verify whether the INSERT committed
     // even if the network response arrives after our timeout.
@@ -473,7 +477,7 @@ export default function PostRole() {
         return
       }
       setErr(e instanceof Error ? e.message : String(e))
-    } finally { setBusy(false) }
+    } finally { setBusy(false); submittingRef.current = false }
   }
 
   if (loading) {

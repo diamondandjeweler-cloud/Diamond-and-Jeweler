@@ -12,8 +12,9 @@
 //      + Supabase RLS; this gate just confirms the caller is an
 //      authenticated user with a non-expired token.
 
-const WINDOW_MS = 60_000   // 1 minute
-const MAX_REQS  = 100       // per IP per window
+const WINDOW_MS   = 60_000   // 1 minute
+const MAX_REQS    = 100       // per IP per window
+const MAX_BUCKETS = 10_000    // hard cap — prevents unbounded memory growth under DDoS
 
 interface Bucket { count: number; windowStart: number }
 const buckets = new Map<string, Bucket>()
@@ -32,11 +33,22 @@ function rateLimit(ip: string): { allowed: boolean; remaining: number } {
 
 let evictCounter = 0
 function maybeEvict() {
-  if (++evictCounter < 500) return
+  // Run time-based eviction every 500 requests OR immediately if the map
+  // has grown past the hard cap — whichever comes first.
+  if (++evictCounter < 500 && buckets.size <= MAX_BUCKETS) return
   evictCounter = 0
   const cutoff = Date.now() - WINDOW_MS
   for (const [ip, b] of buckets) {
     if (b.windowStart < cutoff) buckets.delete(ip)
+  }
+  // If still over cap after time-based sweep, evict the oldest entries.
+  if (buckets.size > MAX_BUCKETS) {
+    const excess = buckets.size - MAX_BUCKETS
+    let n = 0
+    for (const ip of buckets.keys()) {
+      if (n++ >= excess) break
+      buckets.delete(ip)
+    }
   }
 }
 

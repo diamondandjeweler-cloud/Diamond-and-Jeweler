@@ -87,7 +87,7 @@ export default function AddHmDobModal({ hmId, profileId, onSaved, onCancel }: Pr
           type="date"
           value={dob}
           onChange={(e) => setDob(e.target.value)}
-          max={new Date(Date.now() - 18 * 365 * 86400000).toISOString().slice(0, 10)}
+          max={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 18); return d.toISOString().slice(0, 10) })()}
           className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
         <div className="space-y-1">

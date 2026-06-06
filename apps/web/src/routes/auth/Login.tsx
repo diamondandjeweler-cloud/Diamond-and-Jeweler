@@ -24,7 +24,8 @@ export default function Login() {
   const isHiringManager = roleParam === 'hiring_manager'
   const isHiring = isHRAdmin || isHiringManager
   const isReauth = params.get('reauth') === '1'
-  const redirectTo = params.get('next') ?? params.get('from') ?? (location.state as { from?: string } | null)?.from ?? '/home'
+  const rawRedirect = params.get('next') ?? params.get('from') ?? (location.state as { from?: string } | null)?.from ?? '/home'
+  const redirectTo = isSafeRedirect(rawRedirect) ? rawRedirect : '/home'
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -227,6 +228,12 @@ export default function Login() {
     </AuthShell>
     </>
   )
+}
+
+function isSafeRedirect(url: string): boolean {
+  if (!url || url.startsWith('//')) return false
+  if (url.startsWith('/')) return true
+  try { return new URL(url).origin === window.location.origin } catch { return false }
 }
 
 function GoogleIcon() {

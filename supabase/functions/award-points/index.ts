@@ -78,6 +78,11 @@ serve(async (req) => {
     if (auth.role !== 'admin') {
       const isParticipant = talentProfileId === auth.userId || hmProfileId === auth.userId
       if (!isParticipant) return json({ error: 'Not a participant of this match' }, 403)
+      // Prevent talent from calling interviewer_rejects to self-credit: this
+      // event type is a consolation award initiated by the HM, not the talent.
+      if (event_type === 'interviewer_rejects' && talentProfileId === auth.userId) {
+        return json({ error: 'Only the interviewer can award this event type' }, 403)
+      }
     }
   }
 

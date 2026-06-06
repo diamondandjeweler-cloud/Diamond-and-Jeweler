@@ -2,7 +2,7 @@ import { Component, type ReactNode } from 'react'
 import * as Sentry from '@sentry/react'
 
 interface Props { children: ReactNode }
-interface State { err: Error | null }
+interface State { err: Error | null; reloading: boolean }
 
 // Stale chunk after deploy: when a user has the previous bundle's index loaded
 // in their tab and Vercel has rolled out a new build, the old index references
@@ -23,9 +23,9 @@ function looksLikeStaleChunk(err: Error): boolean {
 const RELOAD_FLAG = 'dnj.errorboundary.reloaded'
 
 export default class ErrorBoundary extends Component<Props, State> {
-  state: State = { err: null }
+  state: State = { err: null, reloading: false }
 
-  static getDerivedStateFromError(err: Error) {
+  static getDerivedStateFromError(err: Error): State {
     // Auto-recover from stale-chunk-after-deploy by reloading exactly once.
     // The sessionStorage flag prevents an infinite reload loop if the underlying
     // problem isn't a stale chunk (in which case we surface the error UI).
@@ -34,7 +34,10 @@ export default class ErrorBoundary extends Component<Props, State> {
         if (!sessionStorage.getItem(RELOAD_FLAG)) {
           sessionStorage.setItem(RELOAD_FLAG, '1')
           window.location.reload()
-          return { err: null }
+          // Return `reloading: true` so we render null (blank) while the
+          // reload is in flight, instead of briefly flashing the error screen
+          // or attempting to re-render broken children.
+          return { err: null, reloading: true }
         }
       } catch { /* tolerate quota / sandboxed iframe */ }
     } else {
@@ -42,7 +45,7 @@ export default class ErrorBoundary extends Component<Props, State> {
       // chunk on this tab still gets one auto-reload.
       try { sessionStorage.removeItem(RELOAD_FLAG) } catch { /* tolerate */ }
     }
-    return { err }
+    return { err, reloading: false }
   }
 
   componentDidCatch(err: Error, info: unknown) {
@@ -51,6 +54,8 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   render() {
+    // Blank screen while the page is reloading to avoid flashing broken UI.
+    if (this.state.reloading) return null
     if (this.state.err) {
       return (
         <div className="min-h-screen flex items-center justify-center p-4 bg-ink-50">

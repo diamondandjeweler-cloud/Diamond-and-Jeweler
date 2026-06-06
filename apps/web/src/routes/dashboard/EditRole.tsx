@@ -79,9 +79,11 @@ export default function EditRole() {
       if (cancelled) return
       if (error) { setErr(error.message); return }
       // Ownership check
-      const { data: hm } = await supabase.from('hiring_managers')
+      const { data: hm, error: hmErr } = await supabase.from('hiring_managers')
         .select('id').eq('id', data.hiring_manager_id).eq('profile_id', session.user.id).maybeSingle()
-      if (!hm) {
+      if (hmErr) {
+        setErr(hmErr.message)
+      } else if (!hm) {
         setErr('You are not the owner of this role.')
       } else {
         setRow(data as RoleRow)

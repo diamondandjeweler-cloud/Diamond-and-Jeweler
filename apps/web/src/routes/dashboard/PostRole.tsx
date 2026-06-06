@@ -331,7 +331,8 @@ export default function PostRole() {
       .select('draft_data, updated_at')
       .eq('hm_id', hmId)
       .maybeSingle()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) return // tolerate — user simply won't see the restore banner
         if (data?.draft_data) {
           setDbDraftOffer({ data: data.draft_data as Record<string, unknown>, updatedAt: data.updated_at })
         }

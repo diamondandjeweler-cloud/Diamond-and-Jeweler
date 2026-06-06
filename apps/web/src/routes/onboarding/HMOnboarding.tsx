@@ -544,36 +544,43 @@ export default function HMOnboarding() {
         })
         .eq('id', hmRow.id)
       if (updateErr) throw updateErr
-      updatedRef.current = true
 
       const { error: profErr } = await supabase.from('profiles').update({ full_name: fullName.trim() }).eq('id', userId)
       if (profErr) throw profErr
 
-      // Auto-create a draft role from chat data so the HM doesn't re-enter everything
+      // Auto-create a draft role from chat data so the HM doesn't re-enter everything.
+      // Only insert if no paused onboarding draft already exists (idempotent on retry).
       if (extracted.role_type) {
-        const workArr = (() => {
-          const w = (extracted.work_arrangement_offered ?? '').toLowerCase()
-          if (w.includes('remote')) return 'remote'
-          if (w.includes('hybrid')) return 'hybrid'
-          return 'onsite'
-        })()
-        await supabase.from('roles').insert({
-          hiring_manager_id: hmRow.id,
-          title: extracted.role_type,
-          industry: extracted.industry ?? null,
-          salary_min: extracted.salary_offer_min ?? null,
-          salary_max: extracted.salary_offer_max ?? null,
-          work_arrangement: workArr,
-          required_traits: extracted.required_traits ?? [],
-          eligibility_work_auth: extracted.required_work_authorization?.length ? extracted.required_work_authorization : [],
-          status: 'paused',
-          from_onboarding: true,
-        })
+        const { data: existingDraft } = await supabase.from('roles')
+          .select('id').eq('hiring_manager_id', hmRow.id).eq('from_onboarding', true).eq('status', 'paused').maybeSingle()
+        if (!existingDraft) {
+          const workArr = (() => {
+            const w = (extracted.work_arrangement_offered ?? '').toLowerCase()
+            if (w.includes('remote')) return 'remote'
+            if (w.includes('hybrid')) return 'hybrid'
+            return 'onsite'
+          })()
+          await supabase.from('roles').insert({
+            hiring_manager_id: hmRow.id,
+            title: extracted.role_type,
+            industry: extracted.industry ?? null,
+            salary_min: extracted.salary_offer_min ?? null,
+            salary_max: extracted.salary_offer_max ?? null,
+            work_arrangement: workArr,
+            required_traits: extracted.required_traits ?? [],
+            eligibility_work_auth: extracted.required_work_authorization?.length ? extracted.required_work_authorization : [],
+            status: 'paused',
+            from_onboarding: true,
+          })
+        }
       }
 
       await markOnboardingComplete(userId)
       await refresh()
       if (draftKey) try { localStorage.removeItem(draftKey) } catch { /* ignore */ }
+      // Mark complete only after ALL steps succeed so a retry never shortcuts
+      // past profiles.update / markOnboardingComplete (mirrors TalentOnboarding fix).
+      updatedRef.current = true
       setPhase('done')
       setTimeout(() => navigate('/hm', { replace: true }), 1400)
     } catch (e) {

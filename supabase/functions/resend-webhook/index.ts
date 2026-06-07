@@ -46,6 +46,11 @@ serve(async (req) => {
   if (!supplied || !timingSafeEqual(computed, supplied)) {
     return new Response('Invalid signature', { status: 401 })
   }
+  // Reject replayed webhooks — svix-timestamp is in the HMAC but never age-checked.
+  const tsSeconds = parseInt(svixTimestamp, 10)
+  if (!Number.isFinite(tsSeconds) || Math.abs(Date.now() / 1000 - tsSeconds) > 300) {
+    return new Response('Webhook timestamp out of range', { status: 401 })
+  }
 
   const event = JSON.parse(rawBody) as ResendEvent
   return await handleEvent(event)

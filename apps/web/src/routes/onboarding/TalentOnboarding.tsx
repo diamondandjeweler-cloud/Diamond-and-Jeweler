@@ -51,6 +51,8 @@ export default function TalentOnboarding() {
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const abortCtrlRef = useRef<AbortController | null>(null)
+  // Abort any in-flight SSE stream when the component unmounts.
+  useEffect(() => () => { abortCtrlRef.current?.abort() }, [])
   const chatInputRef = useRef<HTMLTextAreaElement>(null)
   const [dob, setDob] = useState('')
   const [gender, setGender] = useState<Gender | ''>('')
@@ -355,7 +357,9 @@ export default function TalentOnboarding() {
             const evt = JSON.parse(raw)
             if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
               accumulated += evt.delta.text
-              const display = accumulated.replace('[PROFILE_READY]', '').trimEnd()
+              const display = accumulated.includes('[PROFILE_READY]')
+                ? accumulated.replace('[PROFILE_READY]', '').trimEnd()
+                : accumulated.replace(/\[PROFILE_$/, '').trimEnd()
               setLog((l) =>
                 l.map((m) => (m.id === boId ? { ...m, content: display, typing: false } : m)),
               )

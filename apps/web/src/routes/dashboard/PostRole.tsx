@@ -191,7 +191,7 @@ export default function PostRole() {
       const { data: hm, error } = await supabase
         .from('hiring_managers').select('id').eq('profile_id', userId).maybeSingle()
       if (cancelled) return
-      if (error) setErr(error.message)
+      if (error) { setErr(error.message); setLoading(false); return }
       setHmId(hm?.id ?? null)
 
       // Edit mode: load the existing role and pre-fill every form field.

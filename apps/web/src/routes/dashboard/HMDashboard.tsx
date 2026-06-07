@@ -229,9 +229,7 @@ export default function HMDashboard() {
         supabase.from('profiles').select('points').eq('id', userId).maybeSingle(),
       ])
       if (!hm) {
-        // User has no hiring_managers row yet (HR who hasn't self-added,
-        // or partial onboarding). Settle to empty so the dashboard shows
-        // the post-a-role empty state instead of indefinite skeletons.
+        if (watchdog) { clearTimeout(watchdog); watchdog = null }
         if (!cancelled) { setCandidates([]); setRoleCount(0) }
         setLoading(false); return
       }
@@ -423,6 +421,14 @@ export default function HMDashboard() {
         }, (payload) => {
           const next = payload.new as { id: string; role_id?: string; status?: string } | null
           const prev = payload.old as { id: string; role_id?: string } | null
+          const touched = next?.role_id ?? prev?.role_id
+          if (!touched) return
+          if (!hmRoleIds.includes(touched)) {
+            // Unknown role_id — a new role was created after the initial load.
+            // Re-run load() to pick it up and refresh the full candidate list.
+            if (payload.eventType === 'INSERT') void load()
+            return
+          }
           if (payload.eventType === 'DELETE') setCandidates((xs) => (xs ?? []).filter((c) => c.id !== prev?.id))
           else if (payload.eventType === 'UPDATE' && next) setCandidates((xs) => (xs ?? []).map((c) => (c.id === next.id ? { ...c, ...next } : c)))
           else if (payload.eventType === 'INSERT') { if (!loadingRef.current) void load() }

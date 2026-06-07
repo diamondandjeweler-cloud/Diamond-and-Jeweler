@@ -21,12 +21,11 @@ export async function callFunction<T = unknown>(
     // so the caller sees the actual message instead of the generic Supabase one.
     const ctx = (error as unknown as { context?: Response }).context
     if (ctx && typeof ctx.json === 'function') {
-      try {
-        const parsed = await ctx.json() as { error?: string; message?: string }
+      let parsed: { error?: string; message?: string } | null = null
+      try { parsed = await ctx.json() as { error?: string; message?: string } } catch { /* non-JSON body — ignore */ }
+      if (parsed) {
         const msg = parsed.error ?? parsed.message
         if (msg) throw new Error(msg)
-      } catch (inner) {
-        if (inner instanceof Error && inner.message !== error.message) throw inner
       }
     }
     throw error

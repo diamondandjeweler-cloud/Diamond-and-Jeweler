@@ -166,12 +166,6 @@ async function adminGate(req: Request, pathname: string): Promise<Response | und
 
   const token = readCookie(req, 'sb-jwt')
   if (!token) {
-    // No JWT cookie at all — fall back to the legacy presence cookie. Drive-by
-    // visitors with no session at all still get a 302; users mid-rollout who
-    // have dnj-auth=1 but not sb-jwt yet get through to the SPA, where
-    // useSession will mirror the access_token to sb-jwt on next state change.
-    const legacy = /(?:^|;\s*)dnj-auth=1(?:;|$)/.test(req.headers.get('cookie') ?? '')
-    if (legacy) return undefined
     return redirect('no_jwt')
   }
 

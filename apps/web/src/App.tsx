@@ -158,7 +158,7 @@ export default function App() {
         <Route path="/onboarding/company/verify" element={<CompanyVerify />} />
         <Route path="/payment/return" element={<PaymentReturn />} />
         <Route path="/payment/mock"   element={<PaymentReturn />} />
-        <Route path="/signup" element={session && profile ? <SignupLoggedIn /> : <SignUp />} />
+        <Route path="/signup" element={loading ? <RouteSkeleton /> : session && profile ? <SignupLoggedIn /> : <SignUp />} />
         <Route path="/signout" element={<Signout />} />
         <Route path="/login"  element={session ? <Navigate to="/home" replace /> : <Login />} />
         <Route path="/password-reset" element={<PasswordReset />} />

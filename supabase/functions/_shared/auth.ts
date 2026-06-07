@@ -114,12 +114,18 @@ export function requireServiceRole(req: Request): Response | undefined {
   if (!isServiceRoleJwt(token)) return json({ error: 'forbidden' }, 403)
 }
 
-/**
- * Decode a JWT (no signature verification — that's the gateway's job) and
- * return true iff the role claim is service_role and the token has not expired.
- * Returns false for malformed JWTs or non-service-role tokens.
- */
 function isServiceRoleJwt(token: string): boolean {
+  // Primary: constant-time comparison against the actual service-role key.
+  // Works for both legacy HS256 JWTs and new opaque sb_secret_* keys.
+  // This check is safe even when verify_jwt=false is set on the function.
+  try {
+    const svcKey = (typeof Deno !== 'undefined'
+      ? (Deno as unknown as { env: { get(k: string): string | undefined } }).env.get('SUPABASE_SERVICE_ROLE_KEY')
+      : undefined) ?? ''
+    if (svcKey && timingSafeEqual(token, svcKey)) return true
+  } catch { /* env not available in test context */ }
+
+  // Fallback: decode JWT and trust the role claim (gateway-verified path only).
   const parts = token.split('.')
   if (parts.length !== 3) return false
   try {

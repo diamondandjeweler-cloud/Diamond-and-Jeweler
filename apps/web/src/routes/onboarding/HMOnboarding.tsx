@@ -47,6 +47,8 @@ export default function HMOnboarding() {
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const abortCtrlRef = useRef<AbortController | null>(null)
+  // Abort any in-flight SSE stream when the component unmounts.
+  useEffect(() => () => { abortCtrlRef.current?.abort() }, [])
   const chatInputRef = useRef<HTMLTextAreaElement>(null)
 
   // DOB + consent
@@ -348,7 +350,9 @@ export default function HMOnboarding() {
             const evt = JSON.parse(raw)
             if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
               accumulated += evt.delta.text
-              const display = accumulated.replace('[PROFILE_READY]', '').trimEnd()
+              const display = accumulated.includes('[PROFILE_READY]')
+                ? accumulated.replace('[PROFILE_READY]', '').trimEnd()
+                : accumulated.replace(/\[PROFILE_$/, '').trimEnd()
               setLog((l) => l.map((m) => (m.id === boId ? { ...m, content: display, typing: false } : m)))
             }
             if (evt.type === 'message_stop') break outer
@@ -1035,7 +1039,7 @@ export default function HMOnboarding() {
             Build my hiring profile
           </Button>
           <button
-            type="button" onClick={() => setPhase('dob')}
+            type="button" onClick={() => { setErr(null); setPhase('dob') }}
             className="w-full text-xs text-ink-400 hover:text-ink-600 py-1"
           >← Go back and change something</button>
         </div>
@@ -1048,7 +1052,14 @@ export default function HMOnboarding() {
           {err ? (
             <>
               <Alert tone="red">{err}</Alert>
-              <Button onClick={() => setPhase('dob')} className="w-full">Back</Button>
+              <Button onClick={() => void finalise()} loading={busy} className="w-full">
+                Retry
+              </Button>
+              <button
+                type="button"
+                onClick={() => { setErr(null); setPhase('review') }}
+                className="w-full text-xs text-ink-400 hover:text-ink-600 py-1"
+              >← Back to review</button>
             </>
           ) : (
             <p className="text-sm text-ink-500 py-3 animate-pulse">Building your hiring profile…</p>

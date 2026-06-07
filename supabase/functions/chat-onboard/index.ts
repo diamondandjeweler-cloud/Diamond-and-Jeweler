@@ -358,16 +358,6 @@ serve(async (req) => {
   const auth = await authenticate(req, { requiredRoles: ['talent', 'hiring_manager', 'admin'] })
   if (auth instanceof Response) return auth
 
-  // Rate limit: 30 messages / user / hour (tunable via system_config.chat_rate_limit_per_hour).
-  const db = adminClient()
-  const { data: rl } = await db.rpc('check_and_increment_chat_rate', { p_user_id: auth.userId }).maybeSingle()
-  if (rl && !rl.allowed) {
-    return new Response(
-      JSON.stringify({ error: `Rate limit exceeded: ${rl.count}/${rl.limit_val} messages this hour. Please wait before sending more.` }),
-      { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '3600' } },
-    )
-  }
-
   let body: Body = {}
   try { body = await req.json() } catch { /* tolerate empty */ }
 
@@ -389,6 +379,20 @@ serve(async (req) => {
     if (totalChars + content.length > MAX_CONTENT_CHARS) break
     totalChars += content.length
     messages.push({ role: m.role, content })
+  }
+
+  // Rate limit: 30 messages / user / hour. Checked after body validation so
+  // malformed/empty requests do not burn quota. Service-role callers are exempt
+  // (avoids FK violation on the sentinel UUID and prevents false test failures).
+  if (!auth.isServiceRole) {
+    const db = adminClient()
+    const { data: rl } = await db.rpc('check_and_increment_chat_rate', { p_user_id: auth.userId }).maybeSingle()
+    if (rl && !rl.allowed) {
+      return new Response(
+        JSON.stringify({ error: `Rate limit exceeded: ${rl.count}/${rl.limit_val} messages this hour. Please wait before sending more.` }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '3600' } },
+      )
+    }
   }
 
   // Logging context — log the user's latest turn before invoking the AI.
@@ -472,10 +476,13 @@ Blend this naturally with your personalised summary of what you heard from them.
     model: string,
     provider: string,
     label: string,
+    outerSignal?: AbortSignal,
   ): Promise<Response | null> {
     const msgs = [{ role: 'system', content: systemPrompt }, ...messages]
     const ac = new AbortController()
     const t = setTimeout(() => ac.abort(), 28_000)
+    // If the outer chain budget has already fired, abort immediately.
+    outerSignal?.addEventListener('abort', () => ac.abort())
     let upstream: Response
     try {
       upstream = await fetch(url, {
@@ -499,23 +506,28 @@ Blend this naturally with your personalised summary of what you heard from them.
     })
   }
 
+  // Single chain-wide budget controller — keeps total provider-chain wall-clock
+  // under the Supabase 150-second platform limit regardless of individual timeouts.
+  const chainAc = new AbortController()
+  const chainTimeout = setTimeout(() => chainAc.abort(), 140_000)
+
   // ── 1–5. Groq ×5 ─────────────────────────────────────────────────────────
   for (const [key, label] of [[groqKey,'Groq-1'],[groqKey2,'Groq-2'],[groqKey3,'Groq-3'],[groqKey4,'Groq-4'],[groqKey5,'Groq-5']] as const) {
     if (key) {
-      const res = await tryOpenAICompatible('https://api.groq.com/openai/v1/chat/completions', `Bearer ${key}`, 'llama-3.3-70b-versatile', 'groq', label)
+      const res = await tryOpenAICompatible('https://api.groq.com/openai/v1/chat/completions', `Bearer ${key}`, 'llama-3.3-70b-versatile', 'groq', label, chainAc.signal)
       if (res) return res
     }
   }
 
   // ── 6. Gemini Flash ───────────────────────────────────────────────────────
   if (geminiKey) {
-    const res = await tryOpenAICompatible('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', `Bearer ${geminiKey}`, 'gemini-2.0-flash', 'gemini', 'Gemini')
+    const res = await tryOpenAICompatible('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', `Bearer ${geminiKey}`, 'gemini-2.0-flash', 'gemini', 'Gemini', chainAc.signal)
     if (res) return res
   }
 
   // ── 7. OpenAI GPT-4o-mini ─────────────────────────────────────────────────
   if (openaiKey) {
-    const res = await tryOpenAICompatible('https://api.openai.com/v1/chat/completions', `Bearer ${openaiKey}`, 'gpt-4o-mini', 'openai', 'OpenAI')
+    const res = await tryOpenAICompatible('https://api.openai.com/v1/chat/completions', `Bearer ${openaiKey}`, 'gpt-4o-mini', 'openai', 'OpenAI', chainAc.signal)
     if (res) return res
   }
 
@@ -523,6 +535,8 @@ Blend this naturally with your personalised summary of what you heard from them.
   if (anthropicKey) {
     const ac = new AbortController()
     const t = setTimeout(() => ac.abort(), 28_000)
+    // If the outer chain budget has already fired, abort immediately.
+    chainAc.signal.addEventListener('abort', () => ac.abort())
     const ANTHROPIC_MODEL = 'claude-sonnet-4-6'
     try {
       const upstream = await fetch('https://api.anthropic.com/v1/messages', {
@@ -563,10 +577,12 @@ Blend this naturally with your personalised summary of what you heard from them.
       'meta-llama/llama-3.3-70b-instruct:free',
       'openrouter',
       'OpenRouter',
+      chainAc.signal,
     )
     if (res) return res
   }
 
+  clearTimeout(chainTimeout)
   return new Response(JSON.stringify({ error: 'No AI provider available. Set GROQ_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, or OPENROUTER_API_KEY as Supabase secrets.' }), {
     status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })

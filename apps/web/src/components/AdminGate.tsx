@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { useSession } from '../state/useSession'
+import { clearAdminVerified, isAdminVerificationFresh, markAdminVerified } from '../lib/adminReauth'
 import LoadingSpinner from './LoadingSpinner'
 import { supabase } from '../lib/supabase'
 
@@ -42,6 +43,14 @@ export default function AdminGate({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (loading || !profile || profile.role !== 'admin') return
     if (isTestAdmin(profile.email)) { setAal('aal2'); writeCachedAal('aal2'); return }
+    // Reauth window: force fresh MFA challenge if the admin has been idle >30 min,
+    // even if the AAL cache says 'aal2'. Closes the dead-code gap in the reauth window.
+    if (!isAdminVerificationFresh()) {
+      clearAdminVerified()
+      sessionStorage.removeItem('dnj.admin_aal_state')
+      setAal('need_challenge')
+      return
+    }
     // Already verified earlier in this tab — don't re-check.
     if (readCachedAal() === 'aal2') { setAal('aal2'); return }
     let cancelled = false
@@ -56,6 +65,7 @@ export default function AdminGate({ children }: { children: ReactNode }) {
       if (!data) { setAal('need_challenge'); return }
 
       if (data.currentLevel === 'aal2') {
+        markAdminVerified()
         setAal('aal2')
         writeCachedAal('aal2')
         return
@@ -69,7 +79,7 @@ export default function AdminGate({ children }: { children: ReactNode }) {
       const isOAuth = ((data.currentAuthenticationMethods ?? []) as any[]).some(
         (m: any) => (typeof m === 'string' ? m : m?.method) === 'oauth',
       )
-      if (isOAuth) { setAal('aal2'); writeCachedAal('aal2'); return }
+      if (isOAuth) { markAdminVerified(); setAal('aal2'); writeCachedAal('aal2'); return }
 
       // AAL1 via password — check if a verified TOTP factor exists
       const { data: factors } = await supabase.auth.mfa.listFactors()

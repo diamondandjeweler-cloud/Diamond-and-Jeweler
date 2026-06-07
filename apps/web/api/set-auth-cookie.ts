@@ -39,7 +39,7 @@ export default async function handler(req: Request): Promise<Response> {
   const secureFlag = isSecure ? '; Secure' : ''
 
   const cookie = token
-    ? `sb-jwt=${encodeURIComponent(token)}; Path=/; HttpOnly${secureFlag}; SameSite=Lax; Max-Age=3600`
+    ? `sb-jwt=${encodeURIComponent(token)}; Path=/; HttpOnly${secureFlag}; SameSite=Lax; Max-Age=604800`
     : `sb-jwt=; Path=/; HttpOnly${secureFlag}; SameSite=Lax; Max-Age=0`
 
   return new Response(JSON.stringify({ ok: true }), {

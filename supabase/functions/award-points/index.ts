@@ -60,6 +60,11 @@ serve(async (req) => {
   if (!match_id && !idempotency_key) {
     return json({ error: 'Either match_id or idempotency_key required' }, 400)
   }
+  // end_review must be tied to a real match — caller-supplied idempotency keys
+  // with no match_id would allow unlimited self-crediting with fresh UUIDs.
+  if (event_type === 'end_review' && !match_id) {
+    return json({ error: 'end_review requires match_id to verify participation' }, 400)
+  }
 
   const db = adminClient()
 

@@ -110,6 +110,8 @@ export default function TalentDashboard() {
   const [reviveStep, setReviveStep] = useState<'idle' | 'confirm'>('idle')
   const reloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => () => { if (reloadTimerRef.current !== null) clearTimeout(reloadTimerRef.current) }, [])
+  const mountedRef = useRef(true)
+  useEffect(() => () => { mountedRef.current = false }, [])
   const [talentReputation, setTalentReputation] = useState<{ reputation_score: number | null; feedback_volume: number; phs_show_rate: number | null; phs_accept_rate: number | null } | null>(null)
   const [profileGaps, setProfileGaps] = useState<string[]>([])
   const [talentFeedbackState, setTalentFeedbackState] = useState<Record<string, { rating: number; outcome: string; freeText: string; saving: boolean; saved: boolean; pointsAwarded?: number }>>({})
@@ -128,13 +130,14 @@ export default function TalentDashboard() {
       .order('round_number', { ascending: true })
     if (error) { setErr(error.message); return }
     if (!data) return
+    if (!mountedRef.current) return
     const grouped: Record<string, InterviewRound[]> = {}
     for (const r of data) {
       if (!grouped[r.match_id]) grouped[r.match_id] = []
       grouped[r.match_id].push(r as InterviewRound)
     }
     setRoundsByMatch((prev) => ({ ...prev, ...grouped }))
-  }, [])
+  }, [mountedRef])
 
   const loadProposals = useCallback(async (matchIds: string[]) => {
     if (matchIds.length === 0) return
@@ -145,13 +148,14 @@ export default function TalentDashboard() {
       .order('created_at', { ascending: false })
     if (error) { setErr(error.message); return }
     if (!data) return
+    if (!mountedRef.current) return
     const grouped: Record<string, InterviewProposal[]> = {}
     for (const p of data) {
       if (!grouped[p.match_id]) grouped[p.match_id] = []
       grouped[p.match_id].push(p as InterviewProposal)
     }
     setProposalsByMatch((prev) => ({ ...prev, ...grouped }))
-  }, [])
+  }, [mountedRef])
 
   // Key on user.id, not the session object. supabase-js mints a fresh session
   // object on every TOKEN_REFRESHED event (~hourly), and the old [session] dep
@@ -200,6 +204,7 @@ export default function TalentDashboard() {
           })
           return
         }
+        if (cancelled) return
         setExtractionStatus((talent as unknown as { extraction_status: string | null }).extraction_status ?? 'complete')
         talentId = talent.id
         setExtraUsed(talent.extra_matches_used ?? 0)
@@ -307,6 +312,17 @@ export default function TalentDashboard() {
             if (payload.eventType === 'UPDATE' && next) return cur.map((m) => (m.id === next.id ? { ...m, ...next } : m))
             return cur
           })
+          // Clear saved feedback when match status changes so the submit button
+          // can reappear if the user wants to leave a fresh rating for the new stage.
+          if (payload.eventType === 'UPDATE' && next?.id) {
+            setTalentFeedbackState((s) => {
+              const entry = s[next.id]
+              if (!entry?.saved) return s  // only reset if feedback was already saved
+              const copy = { ...s }
+              delete copy[next.id]
+              return copy
+            })
+          }
         })
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'interview_rounds' }, (payload) => {
           const round = payload.new as InterviewRound & { match_id: string }
@@ -478,7 +494,11 @@ export default function TalentDashboard() {
           if (updated) setMatches((ms) => (ms ?? []).map((m) => (m.id === matchId ? (updated as unknown as MatchRow) : m)))
         })
     } catch (e) {
-      if (prev) setMatches((ms) => (ms ?? []).map((m) => (m.id === matchId ? prev : m)))
+      if (prev) setMatches((ms) => (ms ?? []).map((m) => {
+        if (m.id !== matchId) return m
+        // Only revert if the status is still the optimistically-set value.
+        return (nextStatus && m.status === nextStatus) ? prev : m
+      }))
       setErr(e instanceof Error ? e.message : `Action failed: ${action}`)
     } finally {
       setActionBusy(null)
@@ -554,9 +574,15 @@ export default function TalentDashboard() {
         viewed_at: new Date().toISOString(),
         accepted_at: next === 'accepted_by_talent' ? new Date().toISOString() : null,
       }).eq('id', id)
+      if (!mountedRef.current) return
       if (error) {
         setErr(error.message)
-        setMatches((ms) => (ms ?? []).map((m) => (m.id === id ? { ...m, status: current?.status ?? 'generated' } : m)))
+        setMatches((ms) => (ms ?? []).map((m) => {
+          if (m.id !== id) return m
+          // Only revert if the status is still the value we optimistically set;
+          // a concurrent realtime UPDATE may have arrived with a newer status.
+          return m.status === next ? { ...m, status: current?.status ?? 'generated' } : m
+        }))
         return
       }
       const event_type = next === 'accepted_by_talent' ? 'accept_interview' : 'reject_with_reason'

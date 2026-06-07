@@ -62,6 +62,7 @@ export default function EditRole() {
   const [loading, setLoading] = useState(true)
   const [row, setRow] = useState<RoleRow | null>(null)
   const originalRowRef = useRef<RoleRow | null>(null)
+  const rowRef = useRef<RoleRow | null>(null)
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const savingRef = useRef(false)
@@ -77,7 +78,7 @@ export default function EditRole() {
         .select('id, hiring_manager_id, title, description, department, location, work_arrangement, experience_level, salary_min, salary_max, required_traits, status, from_onboarding')
         .eq('id', id).single()
       if (cancelled) return
-      if (error) { setErr(error.message); return }
+      if (error) { setErr(error.message); setLoading(false); return }
       // Ownership check
       const { data: hm, error: hmErr } = await supabase.from('hiring_managers')
         .select('id').eq('id', data.hiring_manager_id).eq('profile_id', session.user.id).maybeSingle()
@@ -88,6 +89,7 @@ export default function EditRole() {
       } else {
         setRow(data as RoleRow)
         originalRowRef.current = data as RoleRow
+        rowRef.current = data as RoleRow
       }
 
       // Stale-loop nudge banner: pull most recent open nudge for this role.
@@ -107,13 +109,16 @@ export default function EditRole() {
 
   async function save(e: React.FormEvent) {
     e.preventDefault()
-    if (!row || savingRef.current) return
+    // Use the ref for the latest value — covers the race where applyGap and
+    // save fire in the same render cycle before React has re-rendered.
+    const currentRow = rowRef.current ?? row
+    if (!currentRow || savingRef.current) return
     setErr(null)
-    if ((row.salary_min ?? 0) > (row.salary_max ?? 0)) {
+    if ((currentRow.salary_min ?? 0) > (currentRow.salary_max ?? 0)) {
       setErr('Salary min must be ≤ max.')
       return
     }
-    if (row.required_traits.length === 0) {
+    if (currentRow.required_traits.length === 0) {
       setErr('Pick at least one trait.')
       return
     }
@@ -125,28 +130,28 @@ export default function EditRole() {
     // race (another session could modify the row between our read and write).
     const original = originalRowRef.current
     const textChanged = !!original && (
-      original.title !== row.title ||
-      (original.description ?? null) !== (row.description ?? null) ||
-      (original.department ?? null) !== (row.department ?? null)
+      original.title !== currentRow.title ||
+      (original.description ?? null) !== (currentRow.description ?? null) ||
+      (original.department ?? null) !== (currentRow.department ?? null)
     )
 
-    const isDraft = row.status === 'paused' && row.from_onboarding
+    const isDraft = currentRow.status === 'paused' && currentRow.from_onboarding
     const { error } = await supabase.from('roles').update({
-      title: row.title,
-      description: row.description,
-      department: row.department,
-      location: row.location,
-      work_arrangement: row.work_arrangement,
-      experience_level: row.experience_level,
-      salary_min: row.salary_min,
-      salary_max: row.salary_max,
-      required_traits: row.required_traits,
+      title: currentRow.title,
+      description: currentRow.description,
+      department: currentRow.department,
+      location: currentRow.location,
+      work_arrangement: currentRow.work_arrangement,
+      experience_level: currentRow.experience_level,
+      salary_min: currentRow.salary_min,
+      salary_max: currentRow.salary_max,
+      required_traits: currentRow.required_traits,
       ...(isDraft ? { status: 'active' } : {}),
-    }).eq('id', row.id)
+    }).eq('id', currentRow.id)
     if (error) { setBusy(false); savingRef.current = false; setErr(error.message); return }
 
-    void callFunction('moderate-role', { role_id: row.id, force: textChanged || isDraft }).catch(() => {})
-    if (isDraft) void callFunction('match-generate', { role_id: row.id }).catch(() => {})
+    void callFunction('moderate-role', { role_id: currentRow.id, force: textChanged || isDraft }).catch(() => {})
+    if (isDraft) void callFunction('match-generate', { role_id: currentRow.id }).catch(() => {})
 
     // Record the HM's response to the stale-loop nudge so we can close the loop.
     if (nudge) {
@@ -166,9 +171,11 @@ export default function EditRole() {
   function applyGap(g: GapItem) {
     if (!row) return
     if (g.kind === 'salary_below_median' && typeof g.suggest_max === 'number') {
-      setRow({ ...row, salary_max: g.suggest_max })
+      const updated = { ...row, salary_max: g.suggest_max }
+      setRow(updated); rowRef.current = updated
     } else if (g.kind === 'arrangement_stricter_than_peers' && g.suggest === 'hybrid') {
-      setRow({ ...row, work_arrangement: 'hybrid' })
+      const updated = { ...row, work_arrangement: 'hybrid' as RoleRow['work_arrangement'] }
+      setRow(updated); rowRef.current = updated
     }
     setAppliedKinds(prev => new Set(prev).add(g.kind))
   }

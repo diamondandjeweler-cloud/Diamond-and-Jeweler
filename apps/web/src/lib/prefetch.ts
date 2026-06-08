@@ -26,15 +26,15 @@ const ric = (cb: () => void): number => {
   return window.setTimeout(cb, 1500)
 }
 
-let prefetched = false
+let lastPrefetchedRole: string | null = null
 
 /**
  * Trigger prefetch of the user's likely-next-route chunk. Called once the
  * session is hydrated; no-op on subsequent calls in the same tab.
  */
 export function prefetchRoleHome(role: Role | null | undefined) {
-  if (prefetched || !role) return
-  prefetched = true
+  if (!role || lastPrefetchedRole === role) return
+  lastPrefetchedRole = role
 
   ric(() => {
     try {

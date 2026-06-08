@@ -89,6 +89,7 @@ export default function Pricing() {
           <nav className="flex items-center gap-5 text-sm" aria-label="Site navigation">
             <Link to="/careers" className="text-gray-600 dark:text-gray-400 hover:text-[#0B1220] dark:hover:text-white">Jobs</Link>
             <Link to="/about" className="text-gray-600 dark:text-gray-400 hover:text-[#0B1220] dark:hover:text-white">About</Link>
+            <Link to="/careers/urgent-hiring-malaysia-2026" className="text-gray-600 dark:text-gray-400 hover:text-[#0B1220] dark:hover:text-white">Blog</Link>
             <Link to="/start/talent" className="text-[#1B2A6B] dark:text-[#a6b6ff] font-semibold underline underline-offset-4">
               Apply now
             </Link>
@@ -247,6 +248,8 @@ export default function Pricing() {
           <Link to="/careers" className="hover:text-[#0B1220] dark:hover:text-white">Jobs</Link>
           <span aria-hidden>·</span>
           <Link to="/about" className="hover:text-[#0B1220] dark:hover:text-white">About</Link>
+          <span aria-hidden>·</span>
+          <Link to="/careers/urgent-hiring-malaysia-2026" className="hover:text-[#0B1220] dark:hover:text-white">Blog</Link>
           <span aria-hidden>·</span>
           <Link to="/privacy" className="hover:text-[#0B1220] dark:hover:text-white">Privacy</Link>
           <span aria-hidden>·</span>

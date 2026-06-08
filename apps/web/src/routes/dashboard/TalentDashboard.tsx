@@ -373,6 +373,7 @@ export default function TalentDashboard() {
     setReviving(true); setErr(null)
     try {
       const { data: t } = await supabase.from('talents').select('id').eq('profile_id', session.user.id).maybeSingle()
+      if (!mountedRef.current) return
       if (!t) return
       const newExpiry = new Date(Date.now() + 45 * 86400000).toISOString()
       const { error } = await supabase.from('talents').update({
@@ -380,13 +381,15 @@ export default function TalentDashboard() {
         is_open_to_offers: true,
         ghost_score: 0,
       }).eq('id', t.id)
+      if (!mountedRef.current) return
       if (error) throw error
       setProfileExpiresAt(newExpiry)
       setReviveStep('idle')
     } catch (e) {
+      if (!mountedRef.current) return
       setErr(e instanceof Error ? e.message : 'Failed to revive profile')
     } finally {
-      setReviving(false)
+      if (mountedRef.current) setReviving(false)
     }
   }
 
@@ -415,14 +418,16 @@ export default function TalentDashboard() {
     setRedeemingExtra(true)
     try {
       await callFunction<{ message: string; cost: number }>('redeem-points', { target_type: 'talent' })
+      if (!mountedRef.current) return
       setUnlockMsg({ tone: 'green', text: `Redeemed ${POINTS_PER_EXTRA} Diamond Points — your extra offer is being surfaced now.` })
       setPointsBalance((p) => (p == null ? p : p - POINTS_PER_EXTRA))
       setExtraUsed((u) => u + 1)
       reloadTimerRef.current = setTimeout(() => { window.location.reload() }, 1500)
     } catch (e) {
       console.error('[redeem-points] failed', e)
+      if (!mountedRef.current) return
       setUnlockMsg({ tone: 'red', text: e instanceof Error ? e.message : 'Failed to redeem points' })
-    } finally { setRedeemingExtra(false) }
+    } finally { if (mountedRef.current) setRedeemingExtra(false) }
   }
 
   async function handleUrgentJobSearch() {
@@ -451,6 +456,7 @@ export default function TalentDashboard() {
         result: { kind: 'role'; role: { id: string; title: string; description: string | null; salary_min: number | null; salary_max: number | null; location: string | null; work_arrangement: string | null } } | null
         message?: string
       }>('urgent-priority-search', { request_type: 'find_job' })
+      if (!mountedRef.current) return
       if (typeof res.balance_after === 'number') setPointsBalance(res.balance_after)
       if (!res.result) {
         setUrgentMsg({ tone: 'amber', text: res.message ?? 'No matching open role right now.' })
@@ -462,8 +468,9 @@ export default function TalentDashboard() {
         })
       }
     } catch (e) {
+      if (!mountedRef.current) return
       setUrgentMsg({ tone: 'red', text: e instanceof Error ? e.message : 'Urgent search failed.' })
-    } finally { setUrgentBusy(false) }
+    } finally { if (mountedRef.current) setUrgentBusy(false) }
   }
 
   async function doAction(matchId: string, action: string) {
@@ -539,9 +546,10 @@ export default function TalentDashboard() {
       })
       await loadProposals([matchId])
     } catch (e) {
+      if (!mountedRef.current) return
       setErr(e instanceof Error ? e.message : 'Could not decline the proposal')
     } finally {
-      setActionBusy(null)
+      if (mountedRef.current) setActionBusy(null)
     }
   }
 
@@ -594,7 +602,7 @@ export default function TalentDashboard() {
       const event_type = next === 'accepted_by_talent' ? 'accept_interview' : 'reject_with_reason'
       try { await callFunction('award-points', { event_type, match_id: id }) } catch { /* tolerate */ }
     } finally {
-      setActionBusy(null)
+      if (mountedRef.current) setActionBusy(null)
     }
   }
 

@@ -106,9 +106,8 @@ export default function ConsentGate({ children }: { children: ReactNode }) {
     )
   }
 
-  // restaurant_staff bypass — they're internal users, not subject to the
-  // PDPA recruitment-consent flow.
-  if (profile.role === 'restaurant_staff') return <>{children}</>
+  // System admins do not go through the user-facing PDPA consent flow.
+  if (profile.role === 'admin') return <>{children}</>
 
   if (currentLegal === 'pending') return <LoadingSpinner full />
 

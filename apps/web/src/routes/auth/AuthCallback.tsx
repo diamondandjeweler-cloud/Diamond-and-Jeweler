@@ -304,10 +304,16 @@ function readHashAuthError(): { code: string; description: string } | null {
   return { code, description: (p.get('error_description') ?? '').replace(/\+/g, ' ') }
 }
 
+const ALLOWED_SIGNUP_ROLES = ['talent', 'hiring_manager', 'hr_admin']
+
 async function applyStoredRole(userId: string) {
   try {
     const storedRole = localStorage.getItem('dnj.signup_role')
     if (!storedRole) return
+    if (!ALLOWED_SIGNUP_ROLES.includes(storedRole)) {
+      localStorage.removeItem('dnj.signup_role')
+      return
+    }
     const { data: existing } = await supabase.from('profiles').select('role').eq('id', userId).single()
     // Only override if the profile has no role or still has the trigger's default 'talent' role.
     // (The trigger always inserts 'talent' as default, so we must overwrite it for hr_admin signups.)

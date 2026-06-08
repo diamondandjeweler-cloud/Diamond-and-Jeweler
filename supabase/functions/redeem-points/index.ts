@@ -51,13 +51,6 @@ serve(async (req) => {
     .eq('key', 'points_per_extra_match').maybeSingle()
   const cost = typeof costCfg?.value === 'number' ? costCfg.value : 21
 
-  // Balance.
-  const { data: prof } = await db.from('profiles').select('points').eq('id', auth.userId).maybeSingle()
-  const balance = prof?.points ?? 0
-  if (balance < cost) {
-    return json({ error: `Need ${cost} points; you have ${balance}`, balance, cost }, 400)
-  }
-
   // Resolve target + verify ownership + read current quota.
   let roleId: string | null = null
   let talentId: string | null = null

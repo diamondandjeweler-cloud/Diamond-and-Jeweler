@@ -51,8 +51,12 @@ export default function TalentOnboarding() {
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const abortCtrlRef = useRef<AbortController | null>(null)
-  // Abort any in-flight SSE stream when the component unmounts.
-  useEffect(() => () => { abortCtrlRef.current?.abort() }, [])
+  const phaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Abort any in-flight SSE stream and clear any pending phase timer when the component unmounts.
+  useEffect(() => () => {
+    abortCtrlRef.current?.abort()
+    if (phaseTimerRef.current !== null) clearTimeout(phaseTimerRef.current)
+  }, [])
   const chatInputRef = useRef<HTMLTextAreaElement>(null)
   const [dob, setDob] = useState('')
   const [gender, setGender] = useState<Gender | ''>('')
@@ -403,7 +407,7 @@ export default function TalentOnboarding() {
               "Two more quick things — your date of birth (encrypted, never shown to employers) and your documents. Then you're all set.",
           },
         ])
-        setTimeout(() => setPhase('dob'), 600)
+        phaseTimerRef.current = setTimeout(() => setPhase('dob'), 600)
       }
     } catch (err) {
       const isAbort = err instanceof Error && err.name === 'AbortError'
@@ -449,19 +453,22 @@ export default function TalentOnboarding() {
       const userId = session.user.id
       let talentId = talentIdRef.current
 
-      // Steps 1-3 and 5-6 run only on first attempt. On retry after a partial
+      // Always re-upload files when they are present so that a retry after a
+      // partial failure (where talentIdRef is already set) picks up any new
+      // files the user may have chosen by going back to the docs phase.
+      const [resumePath, clPath, photoPath, dobEncrypted] = await Promise.all([
+        resumeFile ? uploadPrivate('resumes', resumeFile, userId, resumeFile.name) : Promise.resolve<string | null>(null),
+        coverLetterFile
+          ? uploadPrivate('resumes', coverLetterFile, userId, `cover-letter-${coverLetterFile.name}`)
+          : Promise.resolve<string | null>(null),
+        photoFile ? uploadPrivate('talent-photos', photoFile, userId, photoFile.name) : Promise.resolve<string | null>(null),
+        encryptDob(dob),
+      ])
+
+      // Steps 2-3 and 5-6 run only on first attempt. On retry after a partial
       // failure, talentIdRef.current is already set so we skip straight to the
       // PII update and markOnboardingComplete (which are idempotent).
       if (!talentId) {
-        // 1. Upload files + encrypt DOB in parallel. Fast (seconds, not minutes).
-        const [resumePath, clPath, photoPath, dobEncrypted] = await Promise.all([
-          uploadPrivate('resumes', resumeFile!, userId, resumeFile!.name),
-          coverLetterFile
-            ? uploadPrivate('resumes', coverLetterFile, userId, `cover-letter-${coverLetterFile.name}`)
-            : Promise.resolve<string | null>(null),
-          uploadPrivate('talent-photos', photoFile!, userId, photoFile!.name),
-          encryptDob(dob),
-        ])
 
         const { data: authData } = await supabase.auth.getSession()
         const token = authData.session?.access_token
@@ -1024,6 +1031,8 @@ export default function TalentOnboarding() {
             const result = await callFunction<{ deal_breakers: Record<string, boolean> }>('extract-deal-breakers', {
               items: dealBreakerItems, party: 'talent',
             })
+            // Skip state updates if the user has already navigated away from this phase.
+            if (phase !== 'dealbreakers') return
             const db = result?.deal_breakers ?? {}
             if (db.no_travel)         setNoTravel(true)
             if (db.no_night_shifts)   setNoNightShifts(true)
@@ -1360,6 +1369,11 @@ export default function TalentOnboarding() {
               <Button onClick={() => void finalise()} loading={busy} className="w-full">
                 Retry
               </Button>
+              <button
+                type="button"
+                onClick={() => { setErr(null); setPhase('review') }}
+                className="w-full text-xs text-ink-400 hover:text-ink-600 py-1"
+              >← Back to review</button>
             </>
           ) : (
             <>

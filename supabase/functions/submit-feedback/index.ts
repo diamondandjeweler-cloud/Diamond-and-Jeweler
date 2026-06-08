@@ -76,6 +76,16 @@ serve(async (req) => {
     roles: { hiring_managers: { id: string } }
   }).roles.hiring_managers.id
 
+  // Role–from_party consistency: prevent cross-role feedback spoofing.
+  if (auth.role !== 'admin') {
+    if (body.from_party === 'hm' && auth.role !== 'hiring_manager') {
+      return json({ error: 'Forbidden: only hiring_manager can submit as hm' }, 403)
+    }
+    if (body.from_party === 'talent' && auth.role !== 'talent') {
+      return json({ error: 'Forbidden: only talent can submit as talent' }, 403)
+    }
+  }
+
   // Auth gate: 'hm' submissions must come from the HM of this match's role;
   //            'talent' submissions from the talent on this match.
   if (auth.role !== 'admin') {

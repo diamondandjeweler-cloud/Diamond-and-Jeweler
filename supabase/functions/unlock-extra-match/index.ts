@@ -41,6 +41,15 @@ serve(async (req) => {
     return json({ error: 'match_type must be hm_extra or talent_extra' }, 400)
   }
 
+  // Cross-role guard: talent callers may never request hm_extra purchases and
+  // HM callers may never request talent_extra purchases.
+  if (body.match_type === 'hm_extra' && auth.role === 'talent') {
+    return json({ error: 'Forbidden: talent cannot purchase hm_extra matches' }, 403)
+  }
+  if (body.match_type === 'talent_extra' && auth.role === 'hiring_manager') {
+    return json({ error: 'Forbidden: hiring_manager cannot purchase talent_extra matches' }, 403)
+  }
+
   const db = adminClient()
 
   // Resolve target + ownership + current quota.

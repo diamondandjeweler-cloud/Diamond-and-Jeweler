@@ -6,6 +6,7 @@ import { supabase, siteUrl } from '../../lib/supabase'
 import AuthShell from '../../components/AuthShell'
 import { Button, Input, PasswordInput, Alert } from '../../components/ui'
 import { markAdminVerified } from '../../lib/adminReauth'
+import { useSession } from '../../state/useSession'
 import Turnstile from '../../components/Turnstile'
 import { useSeo } from '../../lib/useSeo'
 import { logAuthFailure } from '../../lib/authTelemetry'
@@ -131,7 +132,7 @@ export default function Login() {
       return
     }
     clearFailures()
-    markAdminVerified()
+    if (useSession.getState().profile?.role === 'admin') markAdminVerified()
     navigate(redirectTo, { replace: true })
   }
 

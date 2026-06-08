@@ -299,7 +299,7 @@ async function tryConsultBooking(args: {
   if (['paid', 'scheduled', 'completed'].includes(booking.status)) return true
 
   if (!paid) {
-    await db.from('consult_bookings').update({ status: 'cancelled' }).eq('id', booking.id)
+    await db.from('consult_bookings').update({ status: 'cancelled' }).eq('id', booking.id).eq('status', 'pending')
     return true
   }
 

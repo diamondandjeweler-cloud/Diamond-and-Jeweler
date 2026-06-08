@@ -38,7 +38,7 @@ function writeCachedAal(v: AalState) {
 export default function AdminGate({ children }: { children: ReactNode }) {
   const { loading, profile } = useSession()
   const location = useLocation()
-  const [aal, setAal] = useState<AalState>(() => readCachedAal() ?? 'loading')
+  const [aal, setAal] = useState<AalState>('loading')
 
   useEffect(() => {
     if (loading || !profile || profile.role !== 'admin') return

@@ -316,6 +316,7 @@ export default function Careers() {
             <span className="text-[10px] tracking-[0.22em] text-gray-500 dark:text-gray-400">DIAMOND &amp; JEWELER</span>
           </Link>
           <nav aria-label="Primary" className="flex items-center gap-5 text-sm">
+            <Link to="/pricing" className="text-gray-600 dark:text-gray-400 hover:text-[#0B1220] dark:hover:text-white">Pricing</Link>
             <Link to="/about" className="text-gray-600 dark:text-gray-400 hover:text-[#0B1220] dark:hover:text-white">About</Link>
             <Link to="/careers/urgent-hiring-malaysia-2026" className="text-gray-600 dark:text-gray-400 hover:text-[#0B1220] dark:hover:text-white">Blog</Link>
             <Link to="/start/talent" className="text-[#1B2A6B] dark:text-[#a6b6ff] font-semibold underline underline-offset-4">

@@ -58,6 +58,7 @@ export default function MfaChallenge() {
       ])
       if (error) { setErr(error.message); setCode(''); return }
       markAdminVerified()
+      try { sessionStorage.setItem('dnj.admin_aal_state', 'aal2') } catch { /* tolerate */ }
       navigate(redirectTo, { replace: true })
     } catch (e) {
       setErr((e as Error).message)

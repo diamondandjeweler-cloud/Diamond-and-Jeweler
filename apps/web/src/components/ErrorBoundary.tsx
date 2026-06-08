@@ -29,11 +29,13 @@ export default class ErrorBoundary extends Component<Props, State> {
     // Auto-recover from stale-chunk-after-deploy by reloading exactly once.
     // The sessionStorage flag prevents an infinite reload loop if the underlying
     // problem isn't a stale chunk (in which case we surface the error UI).
+    // NOTE: window.location.reload() is NOT called here — getDerivedStateFromError
+    // is a pure static method and React 18 concurrent mode may invoke it multiple
+    // times during a single render pass. The reload is deferred to componentDidUpdate.
     if (looksLikeStaleChunk(err)) {
       try {
         if (!sessionStorage.getItem(RELOAD_FLAG)) {
           sessionStorage.setItem(RELOAD_FLAG, '1')
-          window.location.reload()
           // Return `reloading: true` so we render null (blank) while the
           // reload is in flight, instead of briefly flashing the error screen
           // or attempting to re-render broken children.
@@ -48,9 +50,23 @@ export default class ErrorBoundary extends Component<Props, State> {
     return { err, reloading: false }
   }
 
+  componentDidUpdate() {
+    // Perform the reload here (a committed lifecycle method, not the render phase)
+    // so it fires exactly once after React has committed the reloading state.
+    if (this.state.reloading) window.location.reload()
+  }
+
   componentDidCatch(err: Error, info: unknown) {
     console.error('ErrorBoundary caught:', err, info)
     Sentry.captureException(err, { extra: { componentStack: info } })
+    // If the page is in a sandboxed iframe or navigation is blocked,
+    // window.location.reload() is silently swallowed and the blank screen persists.
+    // Fall back to showing the error UI after 3 seconds if reload hasn't fired.
+    if (this.state.reloading) {
+      setTimeout(() => {
+        if (this.state.reloading) this.setState({ err, reloading: false })
+      }, 3000)
+    }
   }
 
   render() {

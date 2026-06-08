@@ -46,6 +46,8 @@ type NotifyType =
   | 'offer_made_notify' | 'offer_accepted' | 'offer_declined'
   | 'growth_opportunity'
   | 'stale_loop_role_nudge' | 'stale_loop_talent_nudge'
+  | 'interview_proposed' | 'interview_proposal_accepted' | 'interview_proposal_declined'
+  | 'extra_match_paid' | 'points_purchased' | 'consult_paid'
 
 interface Payload {
   user_id: string
@@ -548,6 +550,48 @@ function compose(
           `<p>${T.greet} ${safeFirst},</p>` +
           `<p>${T.line1Html}</p>` +
           `<p style="color:#666;font-size:12px;">${T.warn}</p>`,
+      }
+    }
+    case 'interview_proposed': {
+      return {
+        subject: 'Interview times proposed',
+        body: 'The hiring manager has proposed interview times for you. Log in to pick your slot.',
+        html: 'The hiring manager has proposed interview times for you. Log in to pick your slot.',
+      }
+    }
+    case 'interview_proposal_accepted': {
+      return {
+        subject: 'Interview slot confirmed',
+        body: 'The candidate has confirmed an interview time. Check your calendar.',
+        html: 'The candidate has confirmed an interview time. Check your calendar.',
+      }
+    }
+    case 'interview_proposal_declined': {
+      return {
+        subject: 'Interview proposal declined',
+        body: 'The candidate has declined the proposed interview times. You may propose new times.',
+        html: 'The candidate has declined the proposed interview times. You may propose new times.',
+      }
+    }
+    case 'extra_match_paid': {
+      return {
+        subject: 'Extra match unlocked',
+        body: 'Payment received. Your extra match slot has been unlocked.',
+        html: 'Payment received. Your extra match slot has been unlocked.',
+      }
+    }
+    case 'points_purchased': {
+      return {
+        subject: 'Diamond Points added',
+        body: 'Payment received. Your Diamond Points have been added to your account.',
+        html: 'Payment received. Your Diamond Points have been added to your account.',
+      }
+    }
+    case 'consult_paid': {
+      return {
+        subject: 'Consultation booking confirmed',
+        body: "Payment received. Your consultation has been booked. We'll be in touch soon.",
+        html: "Payment received. Your consultation has been booked. We'll be in touch soon.",
       }
     }
   }

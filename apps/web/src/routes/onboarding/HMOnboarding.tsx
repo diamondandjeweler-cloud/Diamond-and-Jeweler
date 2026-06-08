@@ -47,8 +47,12 @@ export default function HMOnboarding() {
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const abortCtrlRef = useRef<AbortController | null>(null)
-  // Abort any in-flight SSE stream when the component unmounts.
-  useEffect(() => () => { abortCtrlRef.current?.abort() }, [])
+  const phaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Abort any in-flight SSE stream and clear any pending phase timer when the component unmounts.
+  useEffect(() => () => {
+    abortCtrlRef.current?.abort()
+    if (phaseTimerRef.current !== null) clearTimeout(phaseTimerRef.current)
+  }, [])
   const chatInputRef = useRef<HTMLTextAreaElement>(null)
 
   // DOB + consent
@@ -94,6 +98,7 @@ export default function HMOnboarding() {
   useEffect(() => {
     if (!session?.user.id) return
     const userId = session.user.id
+    let mounted = true
 
     async function preflight() {
       const { data: hmRow } = await supabase
@@ -132,7 +137,7 @@ export default function HMOnboarding() {
             return // healed
           }
         }
-        setHmMissing(true) // no company at all — show error
+        if (mounted) setHmMissing(true) // no company at all — show error
         return
       }
 
@@ -145,6 +150,7 @@ export default function HMOnboarding() {
     }
 
     void preflight()
+    return () => { mounted = false }
   }, [session?.user.id])
 
   useEffect(() => {
@@ -158,6 +164,7 @@ export default function HMOnboarding() {
   const conversationIdRef = useRef<string>(crypto.randomUUID())
   const chatInitRef = useRef(false)
   const updatedRef = useRef(false)
+  const inFlightRef = useRef(false)
   const draftCheckRef = useRef(false)
   const draftKey = session ? `dnj.hm-onboard.${session.user.id}` : null
 
@@ -385,7 +392,7 @@ export default function HMOnboarding() {
           id: nextId(), from: 'system',
           content: "Almost done — a few quick questions about the role requirements and your background, then you're all set.",
         }])
-        setTimeout(() => setPhase('mustHaves'), 600)
+        phaseTimerRef.current = setTimeout(() => setPhase('mustHaves'), 600)
       }
     } catch (err) {
       const isAbort = err instanceof Error && err.name === 'AbortError'
@@ -418,6 +425,8 @@ export default function HMOnboarding() {
   async function finalise() {
     if (!session) return
     if (updatedRef.current) { navigate('/hm', { replace: true }); return }
+    if (inFlightRef.current) return  // synchronous guard — prevents double-submit from rapid clicks
+    inFlightRef.current = true
     setErr(null)
     setBusy(true)
     try {
@@ -590,6 +599,7 @@ export default function HMOnboarding() {
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e))
     } finally {
+      inFlightRef.current = false
       setBusy(false)
     }
   }

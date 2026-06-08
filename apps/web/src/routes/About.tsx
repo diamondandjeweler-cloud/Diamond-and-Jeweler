@@ -63,6 +63,7 @@ export default function About() {
           </Link>
           <nav className="flex items-center gap-5 text-sm" aria-label="Site navigation">
             <Link to="/careers" className="text-gray-600 dark:text-gray-400 hover:text-[#0B1220] dark:hover:text-white">Jobs</Link>
+            <Link to="/pricing" className="text-gray-600 dark:text-gray-400 hover:text-[#0B1220] dark:hover:text-white">Pricing</Link>
             <Link to="/careers/urgent-hiring-malaysia-2026" className="text-gray-600 dark:text-gray-400 hover:text-[#0B1220] dark:hover:text-white">Blog</Link>
             <Link to="/start/talent" className="text-[#1B2A6B] dark:text-[#a6b6ff] font-semibold underline underline-offset-4">
               Apply now

@@ -414,30 +414,42 @@ export default function HMDashboard() {
     // Subscribe AFTER load() resolves so hmRoleIds is populated and we can
     // set a server-side filter — avoids leaking match events across tenants.
     let channel: ReturnType<typeof supabase.channel> | null = null
-    void load().then(() => {
+
+    function subscribeMatches() {
       if (cancelled || hmRoleIds.length === 0) return
       channel = supabase
-        .channel(`hm-matches-${userId ?? 'anon'}`)
+        .channel(`hm-matches-${userId ?? 'anon'}-${Date.now()}`)
         .on('postgres_changes', {
           event: '*', schema: 'public', table: 'matches',
           filter: `role_id=in.(${hmRoleIds.join(',')})`,
-        }, (payload) => {
-          const next = payload.new as { id: string; role_id?: string; status?: string } | null
-          const prev = payload.old as { id: string; role_id?: string } | null
-          const touched = next?.role_id ?? prev?.role_id
-          if (!touched) return
-          if (!hmRoleIds.includes(touched)) {
-            // Unknown role_id — a new role was created after the initial load.
-            // Re-run load() to pick it up and refresh the full candidate list.
-            if (payload.eventType === 'INSERT') void load()
-            return
-          }
-          if (payload.eventType === 'DELETE') setCandidates((xs) => (xs ?? []).filter((c) => c.id !== prev?.id))
-          else if (payload.eventType === 'UPDATE' && next) setCandidates((xs) => (xs ?? []).map((c) => (c.id === next.id ? { ...c, ...next } : c)))
-          else if (payload.eventType === 'INSERT') { if (!loadingRef.current) void load() }
-        })
+        }, handleMatchChange)
         .subscribe()
-    })
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    function handleMatchChange(payload: any) {
+      const next = payload.new as { id: string; role_id?: string; status?: string } | null
+      const prev = payload.old as { id: string; role_id?: string } | null
+      const touched = next?.role_id ?? prev?.role_id
+      if (!touched) return
+      if (!hmRoleIds.includes(touched)) {
+        // Unknown role_id — a new role was created after the initial load.
+        // Re-run load() to pick it up, then resubscribe with the updated
+        // hmRoleIds so the filter stays current.
+        if (payload.eventType === 'INSERT') {
+          void load().then(() => {
+            if (channel) { void supabase.removeChannel(channel); channel = null }
+            subscribeMatches()
+          })
+        }
+        return
+      }
+      if (payload.eventType === 'DELETE') setCandidates((xs) => (xs ?? []).filter((c) => c.id !== prev?.id))
+      else if (payload.eventType === 'UPDATE' && next) setCandidates((xs) => (xs ?? []).map((c) => (c.id === next.id ? { ...c, ...next } : c)))
+      else if (payload.eventType === 'INSERT') { if (!loadingRef.current) void load() }
+    }
+
+    void load().then(() => subscribeMatches())
 
     return () => {
       cancelled = true
@@ -572,6 +584,7 @@ export default function HMDashboard() {
     // legal from the HM's perspective regardless of which they pick first.
     if (prevStatus === 'generated') {
       const { error: viewErr } = await supabase.from('matches').update({ status: 'viewed' }).eq('id', id)
+      if (!mountedRef.current) return
       if (viewErr) {
         setErr(viewErr.message)
         if (prevStatus) setCandidates((cs) => (cs ?? []).map((c) => (c.id === id ? { ...c, status: prevStatus } : c)))
@@ -584,6 +597,7 @@ export default function HMDashboard() {
       status: next,
       invited_at: next === 'invited_by_manager' ? new Date().toISOString() : null,
     }).eq('id', id)
+    if (!mountedRef.current) return
     if (error) {
       setErr(error.message)
       if (prevStatus) {

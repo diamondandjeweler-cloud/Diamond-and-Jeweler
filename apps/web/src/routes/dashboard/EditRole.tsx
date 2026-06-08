@@ -58,6 +58,11 @@ export default function EditRole() {
   const navigate = useNavigate()
   const [search] = useSearchParams()
   const nudgeMode = search.get('nudge') === 'stale_3d'
+  // Only auto-activate a paused onboarding draft when the caller explicitly
+  // passes ?activate=1 (e.g. PostRole's "Review & activate" path).
+  // The plain "Edit" link in MyRoles never passes this param, so manually-
+  // paused onboarding roles are never silently reactivated by a save.
+  const activateMode = search.get('activate') === '1'
 
   const [loading, setLoading] = useState(true)
   const [row, setRow] = useState<RoleRow | null>(null)
@@ -91,6 +96,8 @@ export default function EditRole() {
         originalRowRef.current = data as RoleRow
         rowRef.current = data as RoleRow
       }
+
+      if (hmErr || !hm) { setLoading(false); return }
 
       // Stale-loop nudge banner: pull most recent open nudge for this role.
       if (nudgeMode) {
@@ -135,7 +142,7 @@ export default function EditRole() {
       (original.department ?? null) !== (currentRow.department ?? null)
     )
 
-    const isDraft = currentRow.status === 'paused' && currentRow.from_onboarding
+    const isDraft = activateMode && currentRow.status === 'paused' && currentRow.from_onboarding
     const { error } = await supabase.from('roles').update({
       title: currentRow.title,
       description: currentRow.description,
@@ -169,12 +176,13 @@ export default function EditRole() {
   }
 
   function applyGap(g: GapItem) {
-    if (!row) return
+    const base = rowRef.current ?? row
+    if (!base) return
     if (g.kind === 'salary_below_median' && typeof g.suggest_max === 'number') {
-      const updated = { ...row, salary_max: g.suggest_max }
+      const updated = { ...base, salary_max: g.suggest_max }
       setRow(updated); rowRef.current = updated
     } else if (g.kind === 'arrangement_stricter_than_peers' && g.suggest === 'hybrid') {
-      const updated = { ...row, work_arrangement: 'hybrid' as RoleRow['work_arrangement'] }
+      const updated = { ...base, work_arrangement: 'hybrid' as RoleRow['work_arrangement'] }
       setRow(updated); rowRef.current = updated
     }
     setAppliedKinds(prev => new Set(prev).add(g.kind))
@@ -237,7 +245,7 @@ export default function EditRole() {
     <div className="max-w-2xl mx-auto">
       <div className="bg-white border rounded-lg p-6">
         <h1 className="text-2xl font-bold mb-2">Edit role</h1>
-        {r.from_onboarding && r.status === 'paused' ? (
+        {activateMode && r.from_onboarding && r.status === 'paused' ? (
           <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2 mb-4">
             This role was pre-filled from your onboarding answers. Review the details below, then click <strong>Activate role</strong> to start receiving candidates.
           </p>
@@ -365,7 +373,7 @@ export default function EditRole() {
             </button>
             <button type="submit" disabled={busy}
               className="bg-brand-600 text-white px-4 py-2 rounded hover:bg-brand-700 disabled:bg-gray-300">
-              {busy ? 'Saving…' : r.from_onboarding && r.status === 'paused' ? 'Activate role' : 'Save changes'}
+              {busy ? 'Saving…' : activateMode && r.from_onboarding && r.status === 'paused' ? 'Activate role' : 'Save changes'}
             </button>
           </div>
         </form>

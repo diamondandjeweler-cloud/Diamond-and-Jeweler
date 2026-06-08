@@ -174,9 +174,10 @@ async function adminGate(req: Request, pathname: string): Promise<Response | und
   if (secret) {
     const result = await verifyJwt(token, secret)
     if (result.ok) return undefined
-    // Don't 302 immediately on bad sig — fall through to introspection so
-    // a key rotation that hasn't propagated yet doesn't lock anyone out.
-    if (result.reason !== 'expired' && supabaseUrl) {
+    // Fall through to introspection for ANY verification failure (including
+    // expired) — the cookie may be stale while Supabase has already issued
+    // a new token the browser hasn't mirrored to the cookie yet.
+    if (supabaseUrl) {
       const intro = await introspectToken(token, supabaseUrl)
       if (intro.ok) return undefined
     }

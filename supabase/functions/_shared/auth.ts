@@ -115,28 +115,14 @@ export function requireServiceRole(req: Request): Response | undefined {
 }
 
 function isServiceRoleJwt(token: string): boolean {
-  // Primary: constant-time comparison against the actual service-role key.
-  // Works for both legacy HS256 JWTs and new opaque sb_secret_* keys.
-  // This check is safe even when verify_jwt=false is set on the function.
+  // Constant-time comparison against the actual service-role key.
+  // If the key env var is absent, fail closed — never trust an unverified JWT claim.
   try {
     const svcKey = (typeof Deno !== 'undefined'
       ? (Deno as unknown as { env: { get(k: string): string | undefined } }).env.get('SUPABASE_SERVICE_ROLE_KEY')
       : undefined) ?? ''
-    if (svcKey && timingSafeEqual(token, svcKey)) return true
-  } catch { /* env not available in test context */ }
-
-  // Fallback: decode JWT and trust the role claim (gateway-verified path only).
-  const parts = token.split('.')
-  if (parts.length !== 3) return false
-  try {
-    const pad = (s: string) => s + '='.repeat((4 - s.length % 4) % 4)
-    const payload = JSON.parse(atob(pad(parts[1].replace(/-/g, '+').replace(/_/g, '/')))) as {
-      role?: unknown
-      exp?: unknown
-    }
-    if (payload.role !== 'service_role') return false
-    if (typeof payload.exp === 'number' && payload.exp * 1000 <= Date.now()) return false
-    return true
+    if (!svcKey) return false
+    return timingSafeEqual(token, svcKey)
   } catch {
     return false
   }

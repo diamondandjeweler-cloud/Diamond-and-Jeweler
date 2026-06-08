@@ -227,7 +227,11 @@ export default function EditRole() {
   }
 
   const r = row
-  const set = <K extends keyof RoleRow>(k: K, v: RoleRow[K]) => setRow({ ...r, [k]: v })
+  const set = <K extends keyof RoleRow>(k: K, v: RoleRow[K]) => {
+    const updated = { ...r, [k]: v }
+    setRow(updated)
+    rowRef.current = updated
+  }
 
   return (
     <div className="max-w-2xl mx-auto">

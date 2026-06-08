@@ -192,22 +192,37 @@ serve(async (req) => {
           ? proposal.slot_2_at
           : proposal.slot_3_at
 
-      const token = crypto.randomUUID()
-      const meetUrl = `https://meet.jit.si/DNJ-${token}`
-
-      const { data: round, error: rErr } = await db
+      // Idempotency: if a round with this number already exists for this match,
+      // skip the insert — this is a retry of a previously-partial request.
+      const { data: existingRound } = await db
         .from('interview_rounds')
-        .insert({
-          match_id,
-          round_number: proposal.round_number,
-          scheduled_at: chosenAt,
-          interview_url: meetUrl,
-          interview_token: token,
-          status: 'scheduled',
-        })
         .select('id, round_number, scheduled_at, interview_url, interview_token')
-        .single()
-      if (rErr) return json({ error: rErr.message }, 500)
+        .eq('match_id', match_id)
+        .eq('round_number', proposal.round_number)
+        .maybeSingle()
+
+      let round: { id: string; round_number: number; scheduled_at: string; interview_url: string; interview_token: string }
+      if (existingRound) {
+        round = existingRound
+      } else {
+        const token = crypto.randomUUID()
+        const meetUrl = `https://meet.jit.si/DNJ-${token}`
+
+        const { data: newRound, error: rErr } = await db
+          .from('interview_rounds')
+          .insert({
+            match_id,
+            round_number: proposal.round_number,
+            scheduled_at: chosenAt,
+            interview_url: meetUrl,
+            interview_token: token,
+            status: 'scheduled',
+          })
+          .select('id, round_number, scheduled_at, interview_url, interview_token')
+          .single()
+        if (rErr) return json({ error: rErr.message }, 500)
+        round = newRound
+      }
 
       const { error: upPropErr } = await db
         .from('interview_proposals')
@@ -231,7 +246,7 @@ serve(async (req) => {
       void callNotify(hmProfileId, 'interview_proposal_accepted', {
         round_number: proposal.round_number,
         scheduled_at: chosenAt,
-        interview_url: meetUrl,
+        interview_url: round.interview_url,
         role_title: roleTitle,
         company_name: companyName,
       })
@@ -300,6 +315,17 @@ serve(async (req) => {
     case 'complete_round': {
       if (!isHM && !isAdmin) return json({ error: 'Only the hiring manager can complete rounds' }, 403)
       if (!body.round_id) return json({ error: 'round_id required' }, 400)
+
+      // Validate that the round is in 'scheduled' status before marking complete.
+      const { data: roundCheck } = await db
+        .from('interview_rounds')
+        .select('status')
+        .eq('id', body.round_id)
+        .maybeSingle()
+      if (!roundCheck) return json({ error: 'Round not found' }, 404)
+      if (roundCheck.status !== 'scheduled') {
+        return json({ error: `Cannot complete a round with status '${roundCheck.status}'` }, 422)
+      }
 
       const update: Record<string, unknown> = { status: 'completed' }
       if (body.hm_notes) update.hm_notes = body.hm_notes

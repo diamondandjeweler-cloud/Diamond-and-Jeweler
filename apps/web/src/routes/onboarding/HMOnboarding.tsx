@@ -352,7 +352,7 @@ export default function HMOnboarding() {
               accumulated += evt.delta.text
               const display = accumulated.includes('[PROFILE_READY]')
                 ? accumulated.replace('[PROFILE_READY]', '').trimEnd()
-                : accumulated.replace(/\[PROFILE_$/, '').trimEnd()
+                : accumulated.replace(/\[PROFILE_[A-Z_\]]*$/, '').trimEnd()
               setLog((l) => l.map((m) => (m.id === boId ? { ...m, content: display, typing: false } : m)))
             }
             if (evt.type === 'message_stop') break outer

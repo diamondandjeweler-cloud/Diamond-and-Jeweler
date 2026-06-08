@@ -120,6 +120,8 @@ export default function HMDashboard() {
   const [unlockMsg, setUnlockMsg] = useState<{ roleId: string; tone: 'green' | 'red'; text: string } | null>(null)
   const reloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => () => { if (reloadTimerRef.current !== null) clearTimeout(reloadTimerRef.current) }, [])
+  const mountedRef = useRef(true)
+  useEffect(() => () => { mountedRef.current = false }, [])
   const [urgentRoleId, setUrgentRoleId] = useState<string | null>(null)
   const [urgentBusy, setUrgentBusy] = useState(false)
   const [urgentMsg, setUrgentMsg] = useState<{ tone: 'green' | 'amber' | 'red'; text: React.ReactNode } | null>(null)
@@ -190,6 +192,7 @@ export default function HMDashboard() {
       const row = Array.isArray(data) ? data[0] : data
       return [id, (row ?? { display_name: null, photo_url: null, privacy_mode: null }) as ProfilePreview] as const
     }))
+    if (!mountedRef.current) return
     setPreviewByMatch((prev) => {
       const next = { ...prev }
       for (const [id, p] of results) next[id] = p
@@ -469,6 +472,7 @@ export default function HMDashboard() {
         result: { kind: 'match'; match_id: string; talent_id: string; compatibility_score: number | null } | null
         message?: string
       }>('urgent-priority-search', { request_type: 'find_worker', role_id: roleId })
+      if (!mountedRef.current) return
       if (typeof res.balance_after === 'number') setPointsBalance(res.balance_after)
       if (!res.result) {
         setUrgentMsg({ tone: 'amber', text: res.message ?? 'No candidate found right now.' })
@@ -479,9 +483,10 @@ export default function HMDashboard() {
         })
       }
     } catch (e) {
+      if (!mountedRef.current) return
       setUrgentMsg({ tone: 'red', text: e instanceof Error ? e.message : 'Urgent search failed.' })
     } finally {
-      setUrgentBusy(false); setUrgentRoleId(null)
+      if (mountedRef.current) { setUrgentBusy(false); setUrgentRoleId(null) }
     }
   }
 
@@ -629,6 +634,7 @@ export default function HMDashboard() {
     }
     try {
       await callFunction('interview-action', { action, match_id: matchId, ...extra })
+      if (!mountedRef.current) return
       // Reconcile the canonical row + rounds in the background. Don't block
       // actionBusy clearing on these — realtime usually catches it first.
       void supabase
@@ -642,10 +648,11 @@ export default function HMDashboard() {
       void loadRounds([matchId])
       void loadProposals([matchId])
     } catch (e) {
+      if (!mountedRef.current) return
       if (prev) setCandidates((cs) => (cs ?? []).map((c) => (c.id === matchId ? prev : c)))
       setErr(e instanceof Error ? e.message : `Action failed: ${action}`)
     } finally {
-      setActionBusy(null)
+      if (mountedRef.current) setActionBusy(null)
     }
   }
 
@@ -657,10 +664,12 @@ export default function HMDashboard() {
     setErr(null)
     try {
       const { data, error } = await supabase.rpc('get_talent_contact', { p_match_id: matchId })
+      if (!mountedRef.current) return
       if (error) { setErr(error.message); return }
       const row = Array.isArray(data) ? data[0] : data
       setContactByMatch((prev) => ({ ...prev, [matchId]: row ?? null }))
     } catch (e) {
+      if (!mountedRef.current) return
       setErr(e instanceof Error ? e.message : 'Could not retrieve contact')
     }
   }
@@ -678,12 +687,14 @@ export default function HMDashboard() {
         ...(fb.outcome && { outcome: fb.outcome }),
         ...(fb.freeText.trim() && { free_text: fb.freeText.trim() }),
       })
+      if (!mountedRef.current) return
       setFeedbackState((s) => ({
         ...s,
         [matchId]: { ...s[matchId], saving: false, saved: true, pointsAwarded: result?.points_awarded ?? 0 },
       }))
       if ((result?.points_awarded ?? 0) > 0) setPointsBalance((prev) => (prev ?? 0) + result.points_awarded)
     } catch (e) {
+      if (!mountedRef.current) return
       setFeedbackState((s) => ({ ...s, [matchId]: { ...s[matchId], saving: false } }))
       setErr(e instanceof Error ? e.message : 'Failed to save feedback')
     }
@@ -703,12 +714,13 @@ export default function HMDashboard() {
     setLinkBusy(true)
     try {
       await callFunction('link-hm', { request_id: linkRequest.id, action })
+      if (!mountedRef.current) return
       setLinkRequest(null)
       if (action === 'accept') window.location.reload()
     } catch (e) {
       setErr(formatError(e))
     }
-    setLinkBusy(false)
+    if (mountedRef.current) setLinkBusy(false)
   }
 
   return (

@@ -37,8 +37,8 @@ export default function RoleGate({ allow, alsoAllowHRwithHM, children }: Props) 
     void useSession.getState().refreshIsHM().finally(() => {
       if (!cancelled) setHmCheckDone(true)
     })
-    // Safety valve — never wait forever.
-    const t = setTimeout(() => { if (!cancelled) setHmCheckDone(true) }, 8000)
+    // Safety valve — never wait forever. 15 s covers Supabase cold-start latency.
+    const t = setTimeout(() => { if (!cancelled) setHmCheckDone(true) }, 15000)
     return () => { cancelled = true; clearTimeout(t) }
   }, [needsHMCheck, isHM])
 
@@ -51,7 +51,10 @@ export default function RoleGate({ allow, alsoAllowHRwithHM, children }: Props) 
   }
 
   const allowedByRole = allow.includes(profile.role)
-  const allowedByHM = !!alsoAllowHRwithHM && profile.role === 'hr_admin' && isHM
+  // Re-read isHM from the store at render time so we catch the case where
+  // refreshIsHM resolved and updated the store AFTER the last render.
+  const liveIsHM = useSession.getState().isHM
+  const allowedByHM = !!alsoAllowHRwithHM && profile.role === 'hr_admin' && (isHM || liveIsHM)
   if (allowedByRole || allowedByHM) return <>{children}</>
 
   // Still potentially allowed via isHM, but the confirmation check hasn't

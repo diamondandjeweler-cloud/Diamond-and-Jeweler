@@ -94,7 +94,14 @@ export function consentSatisfiesVersion(consentVersion: string | null | undefine
   if (!currentLegal) return true  // can't compare → fail open (don't block users on a config blip)
   const userV = normaliseLegalVersion(consentVersion)
   if (!userV) return false
-  return userV === currentLegal
+  // Parse major.minor from both versions (strip 'v' prefix, ignore language suffixes).
+  const parse = (v: string) => {
+    const m = v.replace(/^v/, '').split('.')
+    return { major: parseInt(m[0] ?? '0', 10), minor: parseInt(m[1] ?? '0', 10) }
+  }
+  const user = parse(userV)
+  const current = parse(currentLegal)
+  return user.major > current.major || (user.major === current.major && user.minor >= current.minor)
 }
 
 /** Clear the cache (used after a successful re-consent). */

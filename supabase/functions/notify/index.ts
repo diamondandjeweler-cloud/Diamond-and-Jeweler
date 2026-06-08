@@ -24,7 +24,7 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { Resend } from 'npm:resend@3.2.0'
 import { handleOptions } from '../_shared/cors.ts'
-import { authenticate, json } from '../_shared/auth.ts'
+import { requireServiceRole, json } from '../_shared/auth.ts'
 import { adminClient } from '../_shared/supabase.ts'
 import { logAudit, extractIp } from '../_shared/audit.ts'
 
@@ -57,8 +57,9 @@ serve(async (req) => {
   const pre = handleOptions(req); if (pre) return pre
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
 
-  const auth = await authenticate(req, { requiredRoles: ['admin'] })
-  if (auth instanceof Response) return auth
+  // notify is an internal-only function — only service-role machine callers allowed.
+  const denied = requireServiceRole(req)
+  if (denied) return denied
 
   const payload = (await req.json().catch(() => ({}))) as Partial<Payload>
   if (!payload.user_id || !payload.type) {

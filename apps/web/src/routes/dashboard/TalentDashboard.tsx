@@ -128,9 +128,9 @@ export default function TalentDashboard() {
       .select('id, match_id, round_number, scheduled_at, interview_url, status')
       .in('match_id', matchIds)
       .order('round_number', { ascending: true })
+    if (!mountedRef.current) return
     if (error) { setErr(error.message); return }
     if (!data) return
-    if (!mountedRef.current) return
     const grouped: Record<string, InterviewRound[]> = {}
     for (const r of data) {
       if (!grouped[r.match_id]) grouped[r.match_id] = []
@@ -146,9 +146,9 @@ export default function TalentDashboard() {
       .select('id, match_id, round_number, slot_1_at, slot_2_at, slot_3_at, status, picked_slot, created_at')
       .in('match_id', matchIds)
       .order('created_at', { ascending: false })
+    if (!mountedRef.current) return
     if (error) { setErr(error.message); return }
     if (!data) return
-    if (!mountedRef.current) return
     const grouped: Record<string, InterviewProposal[]> = {}
     for (const p of data) {
       if (!grouped[p.match_id]) grouped[p.match_id] = []
@@ -491,9 +491,11 @@ export default function TalentDashboard() {
         .eq('id', matchId)
         .maybeSingle()
         .then(({ data: updated }) => {
+          if (!mountedRef.current) return
           if (updated) setMatches((ms) => (ms ?? []).map((m) => (m.id === matchId ? (updated as unknown as MatchRow) : m)))
         })
     } catch (e) {
+      if (!mountedRef.current) return
       if (prev) setMatches((ms) => (ms ?? []).map((m) => {
         if (m.id !== matchId) return m
         // Only revert if the status is still the optimistically-set value.
@@ -501,7 +503,7 @@ export default function TalentDashboard() {
       }))
       setErr(e instanceof Error ? e.message : `Action failed: ${action}`)
     } finally {
-      setActionBusy(null)
+      if (mountedRef.current) setActionBusy(null)
     }
   }
 
@@ -516,11 +518,13 @@ export default function TalentDashboard() {
         picked_slot: slot,
       })
       await Promise.all([loadRounds([matchId]), loadProposals([matchId])])
+      if (!mountedRef.current) return
       setMatches((ms) => (ms ?? []).map((m) => (m.id === matchId ? { ...m, status: 'interview_scheduled' } : m)))
     } catch (e) {
+      if (!mountedRef.current) return
       setErr(e instanceof Error ? e.message : 'Could not confirm the interview slot')
     } finally {
-      setActionBusy(null)
+      if (mountedRef.current) setActionBusy(null)
     }
   }
 
@@ -554,11 +558,13 @@ export default function TalentDashboard() {
         ...(fb.outcome && { outcome: fb.outcome }),
         ...(fb.freeText.trim() && { free_text: fb.freeText.trim() }),
       })
+      if (!mountedRef.current) return
       setTalentFeedbackState((s) => ({
         ...s,
         [matchId]: { ...s[matchId], saving: false, saved: true, pointsAwarded: result?.points_awarded ?? 0 },
       }))
     } catch (e) {
+      if (!mountedRef.current) return
       setTalentFeedbackState((s) => ({ ...s, [matchId]: { ...s[matchId], saving: false } }))
       setErr(e instanceof Error ? e.message : 'Failed to save feedback')
     }

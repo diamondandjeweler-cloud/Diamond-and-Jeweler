@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase'
 import { useSession } from '../../state/useSession'
+import { markAdminVerified } from '../../lib/adminReauth'
 import AuthShell from '../../components/AuthShell'
 import { Button, Input, Alert } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
@@ -56,6 +57,7 @@ export default function MfaChallenge() {
         timeout,
       ])
       if (error) { setErr(error.message); setCode(''); return }
+      markAdminVerified()
       navigate(redirectTo, { replace: true })
     } catch (e) {
       setErr((e as Error).message)

@@ -359,7 +359,7 @@ export default function TalentOnboarding() {
               accumulated += evt.delta.text
               const display = accumulated.includes('[PROFILE_READY]')
                 ? accumulated.replace('[PROFILE_READY]', '').trimEnd()
-                : accumulated.replace(/\[PROFILE_$/, '').trimEnd()
+                : accumulated.replace(/\[PROFILE_[A-Z_\]]*$/, '').trimEnd()
               setLog((l) =>
                 l.map((m) => (m.id === boId ? { ...m, content: display, typing: false } : m)),
               )
@@ -1342,7 +1342,7 @@ export default function TalentOnboarding() {
           </Button>
           <button
             type="button"
-            onClick={() => setPhase('docs')}
+            onClick={() => { setErr(null); setPhase('docs') }}
             className="w-full text-xs text-ink-400 hover:text-ink-600 py-1"
           >
             ← Go back and change something

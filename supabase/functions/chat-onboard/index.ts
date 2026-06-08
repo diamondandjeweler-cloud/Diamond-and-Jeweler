@@ -515,20 +515,20 @@ Blend this naturally with your personalised summary of what you heard from them.
   for (const [key, label] of [[groqKey,'Groq-1'],[groqKey2,'Groq-2'],[groqKey3,'Groq-3'],[groqKey4,'Groq-4'],[groqKey5,'Groq-5']] as const) {
     if (key) {
       const res = await tryOpenAICompatible('https://api.groq.com/openai/v1/chat/completions', `Bearer ${key}`, 'llama-3.3-70b-versatile', 'groq', label, chainAc.signal)
-      if (res) return res
+      if (res) { clearTimeout(chainTimeout); return res }
     }
   }
 
   // ── 6. Gemini Flash ───────────────────────────────────────────────────────
   if (geminiKey) {
     const res = await tryOpenAICompatible('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', `Bearer ${geminiKey}`, 'gemini-2.0-flash', 'gemini', 'Gemini', chainAc.signal)
-    if (res) return res
+    if (res) { clearTimeout(chainTimeout); return res }
   }
 
   // ── 7. OpenAI GPT-4o-mini ─────────────────────────────────────────────────
   if (openaiKey) {
     const res = await tryOpenAICompatible('https://api.openai.com/v1/chat/completions', `Bearer ${openaiKey}`, 'gpt-4o-mini', 'openai', 'OpenAI', chainAc.signal)
-    if (res) return res
+    if (res) { clearTimeout(chainTimeout); return res }
   }
 
   // ── 8. Anthropic (Claude Sonnet) — backup ─────────────────────────────────
@@ -557,6 +557,7 @@ Blend this naturally with your personalised summary of what you heard from them.
       })
       clearTimeout(t)
       if (upstream.ok) {
+        clearTimeout(chainTimeout)
         return new Response(teeAnthropic(upstream.body!, logCtx, ANTHROPIC_MODEL), {
           headers: { ...corsHeaders, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' },
         })
@@ -579,7 +580,7 @@ Blend this naturally with your personalised summary of what you heard from them.
       'OpenRouter',
       chainAc.signal,
     )
-    if (res) return res
+    if (res) { clearTimeout(chainTimeout); return res }
   }
 
   clearTimeout(chainTimeout)

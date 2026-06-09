@@ -52,7 +52,13 @@ serve(async (req) => {
     return new Response('Webhook timestamp out of range', { status: 401 })
   }
 
-  const event = JSON.parse(rawBody) as ResendEvent
+  let event: ResendEvent
+  try {
+    event = JSON.parse(rawBody) as ResendEvent
+  } catch {
+    console.error('resend-webhook: invalid JSON body — rejecting with 400 to stop Resend retries')
+    return new Response('Invalid JSON', { status: 400 })
+  }
   return await handleEvent(event)
 })
 

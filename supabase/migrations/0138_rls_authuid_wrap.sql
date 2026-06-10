@@ -346,3 +346,10 @@ ALTER POLICY "rst_all_authenticated" ON restaurant.stock_take_line
 ALTER POLICY "rst_all_authenticated" ON restaurant.waiter_section
   USING (((select auth.role()) = 'authenticated'::text))
   WITH CHECK (((select auth.role()) = 'authenticated'::text));
+
+
+-- Straggler not caught by the initial pg_policies sweep (likely added between
+-- snapshot and apply). Wrapped manually for completeness.
+ALTER POLICY "Users manage own subscriptions" ON public.push_subscriptions
+  USING (((select auth.uid()) = user_id))
+  WITH CHECK (((select auth.uid()) = user_id));

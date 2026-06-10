@@ -1,0 +1,22 @@
+-- ============================================================================
+-- 0140 — Drop confirmed-duplicate indexes
+--
+-- Audit item #7 from the 2026-06-04 perf review. Only drops indexes that
+-- are PROVABLY redundant — same table, same key columns, same index method,
+-- no distinguishing WHERE clause. Verified via pg_index.indkey comparison.
+--
+-- Decision rule:
+--   - True duplicates → drop the one with fewer idx_scans in pg_stat_user_indexes
+--   - Partial-vs-full or different-WHERE indexes → kept (they serve distinct
+--     query shapes and the planner picks between them)
+--
+-- Confirmed duplicate dropped here:
+--   nn_atom_embeddings.(owner_type, owner_id) — two identical btree indexes,
+--   `_v2` saw 3× more scans (21 vs 7) so the original is dropped.
+--
+-- NOT dropped (false positives from the audit):
+--   profiles.id partial (banned vs ghost) — different WHERE clauses
+--   profiles.email full vs partial (email_bounced=false) — different selectivity
+-- ============================================================================
+
+DROP INDEX IF EXISTS public.idx_nn_atom_embed_owner;

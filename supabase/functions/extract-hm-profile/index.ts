@@ -11,6 +11,8 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { corsHeaders, handleOptions } from '../_shared/cors.ts'
 import { authenticate } from '../_shared/auth.ts'
+import { adminClient } from '../_shared/supabase.ts'
+import { enforceRateLimit, RateLimitError } from '../_shared/ratelimit.ts'
 
 interface Message { role: 'user' | 'assistant'; content: string }
 interface Body { messages?: Message[] }
@@ -120,6 +122,17 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: 'No messages provided' }), {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
+  }
+
+  try {
+    await enforceRateLimit(adminClient(), 'extract-hm-profile:' + auth.userId, 20, 3600)
+  } catch (e) {
+    if (e instanceof RateLimitError) {
+      return new Response(JSON.stringify({ error: 'Too many requests. Please try again later.' }), {
+        status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    throw e
   }
 
   const transcript = messages

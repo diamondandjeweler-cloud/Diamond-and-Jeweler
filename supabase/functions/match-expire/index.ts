@@ -135,7 +135,10 @@ serve(async (req) => {
   if (expErr) return json({ error: expErr.message }, 500)
 
   const expiredCount = expired?.length ?? 0
-  if (expiredCount === 0) return json({ expired: 0, regenerated: 0, warned, reminded })
+  if (expiredCount === 0) {
+    await heartbeat(db)
+    return json({ expired: 0, regenerated: 0, warned, reminded })
+  }
 
   await db.from('match_history').insert(
     (expired ?? []).map((m) => ({
@@ -219,5 +222,16 @@ serve(async (req) => {
     }
   }
 
+  await heartbeat(db)
   return json({ expired: expiredCount, regenerated, warned, reminded })
 })
+
+// Best-effort cron heartbeat; never let it break the job.
+async function heartbeat(db: ReturnType<typeof adminClient>) {
+  try {
+    await db.from('cron_heartbeat').upsert(
+      { job_name: 'match-expire', last_run_at: new Date().toISOString() },
+      { onConflict: 'job_name' },
+    )
+  } catch { /* non-fatal */ }
+}

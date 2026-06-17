@@ -10,6 +10,8 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { corsHeaders, handleOptions } from '../_shared/cors.ts'
 import { authenticate, json } from '../_shared/auth.ts'
+import { adminClient } from '../_shared/supabase.ts'
+import { enforceRateLimit, RateLimitError } from '../_shared/ratelimit.ts'
 
 interface Body {
   title?: string
@@ -51,6 +53,16 @@ serve(async (req) => {
   const title = body.title?.trim()
   if (!title) return json({ error: 'Missing role title' }, 400)
   if (title.length > 200) return json({ error: 'Title too long' }, 400)
+
+  // Per-user rate limit (20 req/hour) before the external-LLM call.
+  try {
+    await enforceRateLimit(adminClient(), 'draft-role-description:' + auth.userId, 20, 3600)
+  } catch (e) {
+    if (e instanceof RateLimitError) {
+      return json({ error: 'Too many requests. Please try again later.' }, 429)
+    }
+    throw e
+  }
 
   const sys = SYSTEM_PROMPT
   const usr = userPrompt({ ...body, title })

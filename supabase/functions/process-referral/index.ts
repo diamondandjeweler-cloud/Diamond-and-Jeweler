@@ -32,7 +32,11 @@ serve(async (req) => {
   let body: Body = {}
   try { body = (await req.json()) as Body } catch { /* tolerate */ }
   const code = body.referral_code?.trim().toUpperCase()
-  const refereeId = body.referred_user_id ?? auth.userId
+  // Only a service-role caller (cron / inter-function) may name an arbitrary
+  // referee. For a user JWT, the referee is ALWAYS the authenticated caller —
+  // otherwise a holder of a permanent profile code could farm points against
+  // arbitrary victim UUIDs (the profile-code path has no email match to stop it).
+  const refereeId = (auth.isServiceRole && body.referred_user_id) ? body.referred_user_id : auth.userId
   if (!code || !refereeId) return json({ error: 'Missing referral_code or referred_user_id' }, 400)
 
   const db = adminClient()

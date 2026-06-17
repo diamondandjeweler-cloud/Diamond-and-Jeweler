@@ -71,11 +71,18 @@ serve(async (req) => {
   }
 
   const db = adminClient()
-  const table = body.purchase_type === 'extra_match' ? 'extra_match_purchases' : 'point_purchases'
+  const isPoints = body.purchase_type === 'points'
+  const table = isPoints ? 'point_purchases' : 'extra_match_purchases'
+
+  // point_purchases carries a `points` column (the credited amount); the
+  // extra_match_purchases table does not, so only request it for points refunds.
+  const selectCols = isPoints
+    ? 'id, payment_intent_id, payment_status, user_id, points'
+    : 'id, payment_intent_id, payment_status, user_id'
 
   const { data: purchase, error: lookupErr } = await db
     .from(table)
-    .select('id, payment_intent_id, payment_status, user_id')
+    .select(selectCols)
     .eq('id', body.purchase_id)
     .maybeSingle()
   if (lookupErr) return json({ error: 'Purchase lookup failed', detail: lookupErr.message }, 500)
@@ -107,6 +114,38 @@ serve(async (req) => {
     }, 500)
   }
 
+  // Claw back the Diamond Points credited at purchase time (mirrors the
+  // award_points credit in payment-webhook tryPointPurchase). award_points
+  // floors the balance at 0, and the idempotency_key makes retries safe.
+  // Non-fatal: if this fails, the refund itself still stands.
+  let pointsWarning: string | undefined
+  if (isPoints) {
+    const creditedPoints = (purchase as { points?: number }).points ?? 0
+
+    // Cheap best-effort balance check so finance can review if the user has
+    // already spent some of the refunded points (claw-back still proceeds).
+    if (creditedPoints > 0) {
+      const { data: prof } = await db
+        .from('profiles')
+        .select('points')
+        .eq('id', purchase.user_id)
+        .maybeSingle()
+      const currentBalance = (prof as { points?: number } | null)?.points
+      if (typeof currentBalance === 'number' && currentBalance < creditedPoints) {
+        pointsWarning = `User balance (${currentBalance}) is below the refunded points (${creditedPoints}); some were already spent — clawback floored at 0, please review.`
+      }
+    }
+
+    const { error: clawErr } = await db.rpc('award_points', {
+      p_user_id: purchase.user_id,
+      p_delta: -creditedPoints,
+      p_reason: 'points_refund',
+      p_reference: { purchase_id: purchase.id, refunded_by: auth.userId },
+      p_idempotency_key: `refund:${purchase.id}`,
+    })
+    if (clawErr) console.error('points_refund: award_points clawback failed', purchase.id, clawErr)
+  }
+
   await logAudit({
     actorId: auth.userId,
     actorRole: 'admin',
@@ -125,5 +164,9 @@ serve(async (req) => {
     },
   })
 
-  return json({ refunded: true, billplz_status: refund.status })
+  return json({
+    refunded: true,
+    billplz_status: refund.status,
+    ...(pointsWarning ? { warning: pointsWarning } : {}),
+  })
 })

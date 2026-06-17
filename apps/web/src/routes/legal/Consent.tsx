@@ -46,16 +46,18 @@ export default function Consent() {
   const isReConsent = !!profile?.consent_version
 
   const baseVersion = versions.find((x) => x.language === 'en') ?? versions[0]
-  // Talent and hiring side agree to the same legal waiver, but the
-  // *visible* "what data we collect" bullets are role-specific. Hiring users
-  // don't upload NRIC/DOB/résumé, so showing them talent-side language was
-  // both misleading and a lawyer-flag. We keep the same consent_version row
-  // (so the DB record is unchanged) but swap the rendered body for the
-  // hiring side. Falls back to the original copy for talents.
+  // Talent and hiring side give the same consent, but the *visible*
+  // "what data we collect" bullets are role-specific. Hiring users don't
+  // upload NRIC/DOB/résumé, so showing them talent-side language was both
+  // misleading and a lawyer-flag. We keep the same consent_version row (so
+  // the DB record is unchanged) but swap the rendered body per role. The
+  // talent side renders talentBody() rather than the raw fetched body_md so
+  // the UI never surfaces the proprietary matching internals — even before
+  // the neutralising migration (0145) lands on this environment.
   const isHiring = profile?.role === 'hr_admin' || profile?.role === 'hiring_manager'
   const v: ConsentVersion | undefined = baseVersion ? {
     ...baseVersion,
-    body_md: isHiring ? hiringBody('en') : baseVersion.body_md,
+    body_md: isHiring ? hiringBody('en') : talentBody('en'),
   } : undefined
 
   const submit = async () => {
@@ -185,6 +187,62 @@ export default function Consent() {
   )
 }
 
+// Talent-side consent body. Mirrors hiringBody() but with talent-specific
+// data bullets. Neutral by design: never surfaces the proprietary matching
+// internals on a user-visible surface. This is the canonical talent copy and
+// matches the body seeded by migration 0145 (consent_versions v1.1-en).
+function talentBody(lang: 'en' | 'ms' | 'zh'): string {
+  if (lang === 'ms') {
+    return `# Persetujuan Pemprosesan Data (Pihak Calon)
+
+Saya yang bertandatangan, memberikan **persetujuan jelas** kepada DNJ ("Platform") untuk mengumpul, menyimpan, dan memproses data berikut:
+
+- Nama penuh, e-mel, nombor telefon
+- Nombor Kad Pengenalan (NRIC) / pasport
+- Tarikh lahir
+- Resume dan sejarah pekerjaan
+- Jawapan temuduga dan keutamaan pekerjaan
+
+Saya faham bahawa Platform menggunakan **algoritma padanan dipacu AI** yang menganalisis profil saya untuk menentukan keserasian dengan majikan yang berpotensi. Kaedah algoritma adalah rahsia perdagangan dan tidak akan didedahkan kepada saya.
+
+Saya bersetuju bahawa data saya boleh dikongsi dengan majikan yang berpotensi semata-mata untuk tujuan padanan pengambilan pekerja.
+
+**Saya mengakui bahawa saya telah membaca dan memahami persetujuan ini.**`
+  }
+  if (lang === 'zh') {
+    return `# 数据处理同意书（候选方）
+
+本人在此向 DNJ（"平台"）明确同意收集、存储和处理以下数据：
+
+- 全名、电邮、电话号码
+- 身份证（NRIC）/ 护照号码
+- 出生日期
+- 简历与就业经历
+- 面试回答与工作偏好
+
+本人理解平台使用**AI 驱动的匹配算法**分析本人资料以确定与潜在雇主的兼容性。该算法方法属商业机密，不会向本人披露。
+
+本人同意本人数据可与潜在雇主共享，仅用于招聘匹配。
+
+**本人确认已阅读并理解本同意书。**`
+  }
+  return `# Data Processing Consent (Candidate side)
+
+I, the undersigned, give my **explicit consent** to DNJ ("the Platform") to collect, store, and process the following data:
+
+- Full name, email, phone number
+- National Registration Identity Card (NRIC) / Passport number
+- Date of birth
+- Resume and employment history
+- Interview answers and job preferences
+
+I understand that the Platform uses a **proprietary AI-powered matching algorithm** that analyses my profile to determine compatibility with potential employers. The exact methodology is a trade secret and will not be disclosed to me.
+
+I agree that my data may be shared with potential employers solely for recruitment matching.
+
+**I acknowledge that I have read and understood this consent.**`
+}
+
 function hiringBody(lang: 'en' | 'ms' | 'zh'): string {
   if (lang === 'ms') {
     return `# Persetujuan Pemprosesan Data dan Penepian Tuntutan (Pihak Pengambilan Pekerja)
@@ -224,7 +282,11 @@ Saya menepikan apa-apa hak untuk membuat tuntutan terhadap Platform di bawah Akt
 
 **本人确认已阅读并理解本同意书及豁免条款。**`
   }
-  return `# Data Processing Consent and Waiver (Hiring side)
+  // DRAFT — pending Malaysian legal review (AUDIT.md R6)
+  // The previous "Waiver of Claims" paragraph purported to waive the user's
+  // PDPA 2010 statutory rights, which is likely unenforceable under Malaysian
+  // law. Removed pending counsel review. No replacement guarantee is asserted.
+  return `# Data Processing Consent (Hiring side)
 
 I, the undersigned, give my **explicit consent** to DNJ ("the Platform") to collect, store, and process the following data:
 
@@ -236,11 +298,7 @@ I understand that the Platform uses a **proprietary AI-powered matching algorith
 
 I agree that company data may be shared with potential candidates solely for recruitment matching.
 
-## Waiver of Claims
-
-I hereby waive any and all rights to bring a claim or legal action against the Platform, its owners, employees, or affiliates under the Personal Data Protection Act 2010 (PDPA) or any other Malaysian law for any loss, damage, or grievance arising from the collection, processing, or use of company data as described above, except where such loss or damage results from gross negligence or willful misconduct of the Platform.
-
-**I acknowledge that I have read and understood this consent and waiver.**`
+**I acknowledge that I have read and understood this consent.**`
 }
 
 function simpleMarkdown(md: string): string {

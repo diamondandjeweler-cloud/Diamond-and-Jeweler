@@ -47,6 +47,18 @@ serve(async (req) => {
   // (service_role is allowed past decrypt_dob's gate).
   const userId = request.user_id
 
+  // Explicit, user-safe match projection. NEVER `select('*')` here: the
+  // role-side branch returns rows for OTHER talents, and the raw row carries
+  // proprietary scoring internals (life_chart_score, internal_reasoning,
+  // compatibility/tag/culture scores, force-match rationale). PDPA exports may
+  // only contain user-appropriate fields; the sanitised `public_reasoning`
+  // column is the user-facing explanation and is safe to include.
+  const MATCH_EXPORT_COLUMNS =
+    'id, role_id, talent_id, status, public_reasoning, application_summary, ' +
+    'is_extra_match, is_urgent, viewed_at, accepted_at, invited_at, ' +
+    'interview_completed_at, offer_made_at, expires_at, refresh_count, ' +
+    'created_at, updated_at'
+
   const [
     profileRes, talentRes, hmRes, matchesRes, notifsRes,
     userTagsRes, consentRes, dsrsRes, waitlistRes, interviewsRes,
@@ -54,7 +66,7 @@ serve(async (req) => {
     db.from('profiles').select('*').eq('id', userId).maybeSingle(),
     db.from('talents').select('*').eq('profile_id', userId).maybeSingle(),
     db.from('hiring_managers').select('*').eq('profile_id', userId).maybeSingle(),
-    db.from('matches').select('*').or(
+    db.from('matches').select(MATCH_EXPORT_COLUMNS).or(
       // talent-side matches
       `talent_id.in.(${await resolveIds(db, 'talents', userId)}),role_id.in.(${await resolveRoleIds(db, userId)})`,
     ),

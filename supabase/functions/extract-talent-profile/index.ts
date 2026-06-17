@@ -14,6 +14,8 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { corsHeaders, handleOptions } from '../_shared/cors.ts'
 import { authenticate } from '../_shared/auth.ts'
+import { adminClient } from '../_shared/supabase.ts'
+import { enforceRateLimit, RateLimitError } from '../_shared/ratelimit.ts'
 import {
   ExtractionError,
   runExtraction,
@@ -40,6 +42,18 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: 'No messages provided' }), {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
+  }
+
+  // Per-user rate limit (20 req/hour) before the external-LLM call.
+  try {
+    await enforceRateLimit(adminClient(), 'extract-talent-profile:' + auth.userId, 20, 3600)
+  } catch (e) {
+    if (e instanceof RateLimitError) {
+      return new Response(JSON.stringify({ error: 'rate_limited' }), {
+        status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    throw e
   }
 
   try {

@@ -19,7 +19,7 @@ milestone only makes the schema real so subsequent milestones can build on it.
 
 - 22 tables with correct FKs, indexes, `updated_at` triggers
 - `public.is_admin()` helper, granted to `authenticated`
-- Real DOB encryption via **pgsodium** + named key `bole_dob_key`
+- Real DOB encryption via **pgcrypto** (`pgp_sym_encrypt`) with the passphrase in Supabase Vault secret `bole_dob_passphrase` (see `supabase/migrations/0013_dob_encryption_pgcrypto.sql`; the original pgsodium approach was dropped because pgsodium is locked down on Supabase cloud)
 - `encrypt_dob(text)` / `decrypt_dob(bytea)` functions — decrypt gated to admin + service_role
 - Row Level Security on every table with per-role policies
 - Three private storage buckets with path-based RLS: `ic-documents`, `resumes`, `business-licenses`

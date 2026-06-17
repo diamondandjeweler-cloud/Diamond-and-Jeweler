@@ -17,6 +17,7 @@ import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { corsHeaders, handleOptions } from '../_shared/cors.ts'
 import { authenticate } from '../_shared/auth.ts'
 import { adminClient } from '../_shared/supabase.ts'
+import { enforceRateLimit, RateLimitError } from '../_shared/ratelimit.ts'
 
 interface Body { free_text?: string; stage?: string; from_party?: string; match_id?: string }
 
@@ -72,6 +73,19 @@ serve(async (req) => {
       feedback_tags: {},
       theme: 'Insufficient detail',
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+  }
+
+  // Per-user rate limit (20 req/hour) before the external-LLM call.
+  // Fails open on limiter outage (see _shared/ratelimit.ts).
+  try {
+    await enforceRateLimit(adminClient(), 'extract-feedback-tags:' + auth.userId, 20, 3600)
+  } catch (e) {
+    if (e instanceof RateLimitError) {
+      return new Response(JSON.stringify({ error: 'Rate limit exceeded. Try again later.' }), {
+        status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    throw e
   }
 
   const result = await callExtractionAI(buildPrompt(text, body.from_party ?? 'hm', body.stage ?? 'interview'))

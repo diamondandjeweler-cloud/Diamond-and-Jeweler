@@ -16,20 +16,18 @@ Items from the 2026-05-04 pre-launch audit that need a human (legal review, vend
 
 ---
 
-## Sentry + analytics not installed
+## Sentry installed; analytics vendor still pending
 
-**Status:** not installed; vendor choice pending.
+**Status:** ✅ Sentry DONE. Analytics vendor choice still pending (not a launch blocker).
 
-**Recommendation:** Sentry for error tracking, Plausible for analytics (PDPA-friendly, no consent friction), or GA4 if you need GA's reach (then gate behind `CookieBanner` accept).
+**Sentry:** `@sentry/react` is installed (see `apps/web/package.json`) and initialized in `apps/web/src/main.tsx` — `Sentry.init({ dsn: import.meta.env.VITE_SENTRY_DSN, ... })` is wired behind `requestIdleCallback` so it never blocks first paint, and only runs when `VITE_SENTRY_DSN` is set. Set `VITE_SENTRY_DSN` in the Vercel Production env to turn it on.
 
-**To install:**
+**Analytics (still optional, not blocking):**
 1. Decide vendor.
-2. Sentry: `npm i @sentry/react @sentry/vite-plugin`. Init in `main.tsx` before `ReactDOM.createRoot`. Add `VITE_SENTRY_DSN` to Vercel env.
-3. Plausible: add `<script defer data-domain="diamondandjeweler.com" src="https://plausible.io/js/script.js">` to `index.html`. Zero JS bundle cost.
-4. GA4: gate the GA snippet behind a `useEffect` in `App.tsx` that reads consent from `useSession`/`profile.consent_version`.
-5. Wire Sentry into the consent retry in `Consent.tsx` so the final-failure branch reports.
+2. Plausible: add `<script defer data-domain="diamondandjeweler.com" src="https://plausible.io/js/script.js">` to `index.html`. Zero JS bundle cost.
+3. GA4: gate the GA snippet behind a `useEffect` in `App.tsx` that reads consent from `useSession`/`profile.consent_version`.
 
-**Why not auto-installed:** vendor choice has product/legal implications — Plausible avoids consent gating entirely, GA needs it.
+**Why analytics is not auto-installed:** vendor choice has product/legal implications — Plausible avoids consent gating entirely, GA needs it.
 
 ---
 

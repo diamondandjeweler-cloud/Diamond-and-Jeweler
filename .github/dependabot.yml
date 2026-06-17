@@ -1,0 +1,15 @@
+version: 2
+updates:
+  # Frontend npm dependencies live in the apps/web workspace.
+  - package-ecosystem: npm
+    directory: /apps/web
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+
+  # Keep GitHub Actions (CI workflow + composite actions) up to date.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10

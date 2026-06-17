@@ -130,5 +130,13 @@ serve(async (req) => {
     metadata: results,
   })
 
+  // Best-effort cron heartbeat; never let it break the job.
+  try {
+    await db.from('cron_heartbeat').upsert(
+      { job_name: 'data-retention', last_run_at: new Date().toISOString() },
+      { onConflict: 'job_name' },
+    )
+  } catch { /* non-fatal */ }
+
   return json(results)
 })

@@ -10,9 +10,9 @@ in this repo into a live, operating platform.
 | Item | Who | Lead time |
 |---|---|---|
 | Supabase project (Singapore) | You | 5 min |
-| Migrations 0001–0005 run + seed | You | 5 min |
+| All migrations pushed (`supabase db push`) + seed | You | 5 min |
 | Admin user seeded, elevated | You | 2 min |
-| Edge Functions deployed + secrets | You | 20 min |
+| All Edge Functions deployed + secrets | You | 20 min |
 | SSM entity name + number | You → me | blocks privacy notice |
 | Resend account + API key | You | 10 min + DNS lead |
 | Vercel account | You | 5 min |
@@ -29,19 +29,24 @@ and config they consume.
    (Singapore)**).
 2. Note the **project URL**, **anon key**, **service-role key**
    (Settings → API).
-3. In SQL editor, run migrations in order:
+3. Apply **all** migrations under `supabase/migrations/` at once with the CLI
+   (do not hand-run individual files — there are well over a hundred and the
+   order is encoded in the filenames):
+   ```bash
+   supabase link --project-ref YOUR-PROJECT-REF
+   supabase db push
    ```
-   supabase/migrations/0001_schema.sql
-   supabase/migrations/0002_helpers.sql
-   supabase/migrations/0003_rls.sql
-   supabase/migrations/0004_storage.sql
-   supabase/migrations/0005_cron.sql
-   ```
-4. Run `supabase/seed.sql`.
-5. Set Vault secrets for the cron jobs:
+4. Run `supabase/seed.sql` (SQL editor, or `psql` against the connection string).
+5. Set Vault secrets for the cron jobs (required — without these every cron job
+   is a silent no-op, see `supabase/migrations/0005_cron.sql`):
    ```sql
    select vault.create_secret('https://YOUR-PROJECT.supabase.co', 'supabase_url');
    select vault.create_secret('YOUR-SERVICE-ROLE-KEY',            'service_role_key');
+   ```
+   Verify both secrets landed:
+   ```sql
+   select count(*) from vault.decrypted_secrets
+   where name in ('supabase_url', 'service_role_key');  -- expect 2
    ```
 6. Authentication → Users → invite `diamondandjeweler@gmail.com`, set password.
 7. Back in SQL editor:
@@ -68,12 +73,13 @@ npm install -g supabase
 supabase login
 supabase link --project-ref YOUR-PROJECT-REF
 
-# Deploy all five
-supabase functions deploy match-generate
-supabase functions deploy match-expire
-supabase functions deploy notify
-supabase functions deploy invite-hm
-supabase functions deploy data-retention
+# Deploy every function under supabase/functions/ (skip the _shared lib dir).
+# This stays correct as functions are added — no hand-maintained list.
+for d in supabase/functions/*/; do
+  name=$(basename "$d")
+  [ "$name" = "_shared" ] && continue
+  supabase functions deploy "$name"
+done
 
 # Set secrets (matches supabase/functions/_shared/*)
 supabase secrets set \
@@ -85,12 +91,31 @@ supabase secrets set \
   SITE_URL=http://localhost:3000    # change to https://diamondandjeweler.com after DNS
 ```
 
-Verify cron schedules exist:
+---
+
+## 2a. Post-deploy verification checklist
+
+Run these immediately after migrations + functions are deployed:
 
 ```sql
+-- Vault secrets present (else cron is a silent no-op):
+select count(*) from vault.decrypted_secrets
+where name in ('supabase_url', 'service_role_key');  -- expect 2
+
+-- Cron schedules registered + active:
 select jobname, schedule, active from cron.job;
--- expect: bole-match-expire-every-6h, bole-data-retention-daily
+-- expect (active = t): bole-match-expire-every-6h, bole-data-retention-daily
+
+-- DOB encryption round-trips (pgcrypto + Vault):
+select public.decrypt_dob(public.encrypt_dob('1990-05-15'));  -- → 1990-05-15
 ```
+
+- [ ] `supabase db push` reported every migration applied (no pending diff).
+- [ ] `supabase functions list` shows every directory under `supabase/functions/`
+      (except `_shared`) as deployed.
+- [ ] Vault secret count is **2** (query above).
+- [ ] Both cron jobs are `active = t`.
+- [ ] DOB encrypt/decrypt round-trip returns the original date.
 
 ---
 

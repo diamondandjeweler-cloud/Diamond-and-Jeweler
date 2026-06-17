@@ -1,0 +1,21 @@
+-- ============================================================================
+-- 0149 — drop dead compute_life_chart_score() stub + its stale grant
+--
+-- AUDIT D4: public.compute_life_chart_score(date, date) is a dead stub with
+--           ZERO callers anywhere in the repo. It was first defined in
+--           0008_life_chart_function.sql:17 (body returns NULL) and re-created
+--           in 0021_phase2_full_features.sql:86 as a fake zodiac/lunar-parity
+--           stub. The live match path computes life_chart_score in the
+--           edge function (supabase/functions/_shared/match-core.ts) — nothing
+--           ever invokes this SQL function via rpc() or from any other SQL
+--           object.
+--
+--           The function was SECURITY DEFINER and 0008:82 granted EXECUTE to
+--           `authenticated` ("for interactive debugging") — a grant that was
+--           never revoked. Dropping the function retires that stale grant.
+--
+-- Both 0008 and 0021 define the identical single signature (date, date), so a
+-- single DROP ... IF EXISTS covers it. Idempotent.
+-- ============================================================================
+
+DROP FUNCTION IF EXISTS public.compute_life_chart_score(date, date);

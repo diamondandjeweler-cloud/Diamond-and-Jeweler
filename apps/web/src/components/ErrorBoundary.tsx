@@ -82,7 +82,11 @@ export default class ErrorBoundary extends Component<Props, State> {
               </svg>
             </div>
             <h1 className="font-display text-xl text-ink-900 mb-2">Something went wrong</h1>
-            <p className="text-ink-600 text-sm mb-5 break-words">{this.state.err.message}</p>
+            <p className="text-ink-600 text-sm mb-5 break-words">
+              {import.meta.env.DEV
+                ? this.state.err.message
+                : 'An unexpected error occurred. Please try again.'}
+            </p>
             <button
               onClick={() => window.location.assign('/')}
               className="btn-primary"

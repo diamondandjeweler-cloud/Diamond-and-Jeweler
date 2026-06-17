@@ -110,20 +110,34 @@ serve(async (req) => {
     return json({ error: 'Extra match quota exhausted', used, cap }, 400)
   }
 
-  // Deduct points with an idempotency key derived from the current `used` value.
-  // A double-click from the UI sees the same key and is rejected as already-spent.
+  // Deduct points with a balance check + an idempotency key derived from the
+  // current `used` value. The RPC is idempotent on the key, so a double-click
+  // from the UI replays the same key and is not double-charged.
   const idempotencyKey = `redeem:${targetType}:${roleId ?? talentId}:${used}`
 
-  const { data: awarded, error: awardErr } = await db.rpc('award_points', {
+  const { data: redeemResult, error: redeemErr } = await db.rpc('redeem_points_for', {
     p_user_id: auth.userId,
-    p_delta: -cost,
+    p_cost: cost,
     p_reason: 'redeem_extra_match',
-    p_reference: { target_type: targetType, role_id: roleId, talent_id: talentId, used_before: used },
     p_idempotency_key: idempotencyKey,
   })
-  if (awardErr) return json({ error: awardErr.message }, 500)
-  if (awarded === 0) {
-    return json({ error: 'Already redeemed for this slot — refresh and try again', already: true }, 409)
+  if (redeemErr) {
+    // P0001 with 'insufficient_points' = balance too low → 402 Payment Required.
+    if (redeemErr.code === 'P0001' || (redeemErr.message ?? '').includes('insufficient_points')) {
+      return json({ error: 'Insufficient points' }, 402)
+    }
+    return json({ error: redeemErr.message }, 500)
+  }
+
+  // redeem_points_for returns -1 on an idempotency replay (same key already
+  // charged). Short-circuit so a double-click does NOT bump the quota again or
+  // fire a second (free) extra match. A real redemption returns the new balance
+  // (>= 0), so a balance landing exactly on 0 is NOT mistaken for a replay.
+  if (redeemResult === -1) {
+    return json(
+      { message: 'Already redeemed', already: true, target_type: targetType, role_id: roleId, talent_id: talentId },
+      409,
+    )
   }
 
   // Bump quota counter.

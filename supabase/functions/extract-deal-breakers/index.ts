@@ -17,6 +17,8 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { corsHeaders, handleOptions } from '../_shared/cors.ts'
 import { authenticate, json } from '../_shared/auth.ts'
+import { adminClient } from '../_shared/supabase.ts'
+import { enforceRateLimit, RateLimitError } from '../_shared/ratelimit.ts'
 
 interface Body { items?: string[]; party?: 'talent' | 'hm' }
 
@@ -81,6 +83,13 @@ serve(async (req) => {
 
   const auth = await authenticate(req, { requiredRoles: ['talent', 'hiring_manager', 'admin'] })
   if (auth instanceof Response) return auth
+
+  try {
+    await enforceRateLimit(adminClient(), 'extract-deal-breakers:' + auth.userId, 20, 3600)
+  } catch (e) {
+    if (e instanceof RateLimitError) return json({ error: 'Rate limit exceeded. Try again later.' }, 429)
+    throw e
+  }
 
   let body: Body = {}
   try { body = await req.json() } catch { /* empty */ }

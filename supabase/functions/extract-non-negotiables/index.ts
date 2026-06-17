@@ -22,6 +22,7 @@ import {
   buildExtractionPrompt, validateAtoms, deriveLegacyPatches, type Atom,
 } from '../_shared/non-negotiables.ts'
 import { embedMany, toPgVectorLiteral } from '../_shared/embeddings.ts'
+import { enforceRateLimit, RateLimitError } from '../_shared/ratelimit.ts'
 
 interface Body {
   side?: 'hm' | 'talent'
@@ -54,6 +55,18 @@ serve(async (req) => {
     return json({ error: 'Text too long; keep under 4000 characters.' }, 400)
   }
 
+  const db = adminClient()
+
+  // Per-user rate limit (20 req/hour) before invoking the external LLM.
+  try {
+    await enforceRateLimit(db, 'extract-non-negotiables:' + auth.userId, 20, 3600)
+  } catch (e) {
+    if (e instanceof RateLimitError) {
+      return json({ error: 'Rate limit exceeded; try again later.' }, 429)
+    }
+    throw e
+  }
+
   const raw = await callExtractionAI(buildExtractionPrompt(text, side))
   if (raw instanceof Response) return raw
 
@@ -61,7 +74,6 @@ serve(async (req) => {
 
   // Persist when an id is provided.
   let persisted = false
-  const db = adminClient()
   if (side === 'hm' && body.role_id) {
     // Verify caller owns the role (or is admin).
     if (auth.role !== 'admin') {

@@ -1,0 +1,57 @@
+# Known / grandfathered duplicate 4-digit migration number prefixes.
+#
+# Generated from the migration tree as it stood when the duplicate-prefix CI
+# gate was introduced. These are LEGACY duplicates that already shipped — the
+# gate must NOT red-fail on them. The gate fails only on NEW duplicate prefixes
+# that are not listed here.
+#
+# Format: one migration filename per line (the .sql files that share a 4-digit
+# prefix with at least one sibling). Blank lines and lines starting with '#'
+# are ignored. To intentionally accept a future duplicate, add its filename
+# here in the same PR.
+0025_restaurant_phase3b.sql
+0025_restaurant_state_machine.sql
+0026_restaurant_phase3c.sql
+0026_restaurant_tax_tips_terminal.sql
+0027_restaurant_loyalty_fix.sql
+0027_restaurant_routing_expo.sql
+0028_restaurant_event_forecasting_offline.sql
+0028_restaurant_track_grant.sql
+0059_companies_insert_policy_fix.sql
+0059_phase3_pdpa_v2.sql
+0065_floating_hm.sql
+0065_peak_age_window.sql
+0068_bazi_security_hardening.sql
+0068_richer_onboarding_fields.sql
+0069_experience_education_weights.sql
+0069_prevent_role_self_promotion.sql
+0070_expanded_profile_fields.sql
+0070_state_machine_audit_fixes.sql
+0071_hm_demographics_hiring_details.sql
+0071_management_urgency_work_arrangement.sql
+0080_chat_rate_limit.sql
+0080_profiles_select_hr_for_hms.sql
+0090_audit_critical_events.sql
+0090_role_moderation.sql
+0091_ic_path_column_lockdown.sql
+0091_lifechart_diversity_v2.sql
+0092_fix_get_life_chart_bucket.sql
+0092_talents_ic_columns_strict.sql
+0094_audit_constraint_and_null_actor_fix.sql
+0094_legal_v3.sql
+0100_admin_kpis_rpc.sql
+0100_canonicalize_test_role_traits.sql
+0102_cold_start_dedupe.sql
+0102_reset_malformed_derived_tags.sql
+0104_admin_matches_rpc.sql
+0104_cold_start_queue_allow_superseded.sql
+0105_admin_audit_log_rpc.sql
+0105_restore_ic_column_lockdown.sql
+0105_talents_admin_update.sql
+0109_career_nudge_rpc.sql
+0109_matches_status_cancelled_noshow.sql
+0139_fix_admin_update_self.sql
+0139_security_hardening.sql
+0139_talents_deal_breakers_generated_cols.sql
+0140_drop_duplicate_indexes.sql
+0140_rls_talent_documents_select.sql

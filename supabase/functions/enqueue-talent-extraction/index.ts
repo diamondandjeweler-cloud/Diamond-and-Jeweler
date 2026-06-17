@@ -28,6 +28,7 @@ import {
   type ExtractedProfile,
 } from '../_shared/talent-extraction.ts'
 import { matchForRole, MatchError } from '../_shared/match-core.ts'
+import { enforceRateLimit, RateLimitError } from '../_shared/ratelimit.ts'
 
 interface Body {
   talent_id?: string
@@ -54,6 +55,15 @@ serve(async (req) => {
   if (!talentId) return json({ error: 'talent_id required' }, 400)
 
   const db = adminClient()
+
+  // Per-user rate limit before any LLM extraction work is enqueued.
+  // Fails open on limiter outage (see _shared/ratelimit.ts).
+  try {
+    await enforceRateLimit(db, 'enqueue-talent-extraction:' + auth.userId, 20, 3600)
+  } catch (e) {
+    if (e instanceof RateLimitError) return json({ error: 'rate_limited' }, 429)
+    throw e
+  }
 
   // Verify ownership + load transcript from the row when not provided in body.
   // The retry-from-profile path sends just { talent_id } and relies on the

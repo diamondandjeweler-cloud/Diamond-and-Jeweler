@@ -209,6 +209,32 @@ export default function Terms() {
         </p>
       </Section>
 
+      {/* DRAFT — pending Malaysian legal review (AUDIT.md R6) */}
+      <Section title="12. User Content Licence">
+        <p>
+          You keep ownership of everything you upload — your resume, profile details,
+          answers, and any other content you submit (&ldquo;Your Content&rdquo;). We do not
+          claim ownership of Your Content.
+        </p>
+        <p>
+          To run the matching service for you, you grant DNJ a <strong>limited, revocable,
+          worldwide, royalty-free licence</strong> to host, store, copy, display, and
+          process Your Content. This licence exists <strong>solely so that we can provide
+          the matching service</strong> — for example, surfacing your profile to relevant
+          companies, generating compatibility signals, and operating the platform&rsquo;s
+          AI-powered matching. We do not use Your Content for any other purpose, and we do
+          not sell it.
+        </p>
+        <p>
+          The licence <strong>ends when you delete the relevant content or close your
+          account</strong> via the{' '}
+          <Link to="/data-requests" className="text-brand-600 underline">Data Requests</Link>{' '}
+          page, except where a backup, log, or legal-retention obligation requires us to
+          keep a copy for a limited period, as described in our Privacy Policy and as
+          required by the Personal Data Protection Act 2010.
+        </p>
+      </Section>
+
       {!copy.legalReviewed && (
         <>
           <hr className="my-8" />

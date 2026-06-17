@@ -102,3 +102,117 @@ jobs:
             test -s "$f" || { echo "empty migration: $f"; exit 1; }
           done
           echo "✓ $(ls *.sql | wc -l) migration file(s) present"
+
+      - name: No NEW duplicate migration number prefixes
+        run: |
+          set -euo pipefail
+          cd supabase/migrations
+          allow=.known-duplicates
+          # Filenames that share a 4-digit prefix with at least one sibling,
+          # in the current tree (this is the same metric the allow-list captures).
+          current_dups=$(ls *.sql \
+            | sed -E 's/^([0-9]{4})_.*/\1/' \
+            | sort | uniq -d \
+            | while read -r p; do ls "${p}"_*.sql; done \
+            | sort)
+          # The grandfathered set: non-comment, non-blank lines from the allow-list.
+          if [ -f "$allow" ]; then
+            allowed=$(grep -vE '^\s*(#|$)' "$allow" | sort)
+          else
+            allowed=""
+          fi
+          # Anything duplicated today that is NOT in the allow-list is a NEW dup.
+          new_dups=$(comm -23 <(printf '%s\n' "$current_dups") <(printf '%s\n' "$allowed"))
+          if [ -n "$new_dups" ]; then
+            echo "✗ NEW duplicate migration number prefix(es) detected:"
+            echo "$new_dups" | sed 's/^/    /'
+            echo ""
+            echo "Renumber the new migration to a unique 4-digit prefix, or — if the"
+            echo "duplicate is intentional — add its filename to"
+            echo "supabase/migrations/.known-duplicates in the same PR."
+            exit 1
+          fi
+          echo "✓ no new duplicate migration prefixes (legacy duplicates allow-listed)"
+
+  db-apply:
+    name: Migrations — apply to ephemeral Postgres
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      # Apply EVERY migration to a throwaway local Supabase Postgres so a broken
+      # or non-idempotent migration fails CI instead of production. The official
+      # CLI's `db start` boots the local stack (Docker is preinstalled on the
+      # GitHub ubuntu-latest runner) and `db reset` re-runs all migrations from
+      # scratch against it. If the full stack ever proves too heavy/flaky for the
+      # runner, the lighter fallbacks are `supabase db lint` or a psql dry-run
+      # against a bare `postgres:15` service — kept here as a documented option.
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start local Supabase stack
+        run: supabase start
+      - name: Apply all migrations (reset re-runs every migration)
+        run: supabase db reset
+      - name: Lint migrated schema
+        run: supabase db lint --level warning
+      - name: Stop local stack
+        if: always()
+        run: supabase stop --no-backup
+
+  secrecy:
+    name: Secrecy — no BaZi terms in user-visible text
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Grep user-visible surfaces for forbidden terms
+        run: |
+          set -euo pipefail
+          # Forbidden user-visible terms (case-insensitive): bazi / 八字 /
+          # life chart / life-chart / fortune. Scope = the React JSX surfaces
+          # (apps/web/src/**/*.tsx) plus the DSR export Edge Function. Internal
+          # code identifiers / comments are allowed, so we drop lines that are:
+          #   - import statements (path/identifier mentions), and
+          #   - the known code-identifier spellings (camelCase / snake_case /
+          #     PascalCase forms of lifeChartCharacter, life_chart_character, etc.)
+          # which are columns/helpers, not user-facing copy.
+          pattern='bazi|八字|life[ -]?chart|fortune'
+          files=$( { find apps/web/src -type f -name '*.tsx'; \
+                     find supabase/functions/dsr-export -type f -name '*.ts'; } 2>/dev/null )
+          hits=$(grep -inE "$pattern" $files 2>/dev/null \
+            | grep -viE '^[^:]+:[0-9]+:[[:space:]]*import' \
+            | grep -viE 'lifeChartCharacter|LifeChartCharacter|life_chart_character|life_chart_bucket' \
+            || true)
+          if [ -n "$hits" ]; then
+            echo "✗ Forbidden secrecy term(s) found on user-visible surface(s):"
+            echo "$hits" | sed 's/^/    /'
+            echo ""
+            echo "These words must never appear in UI text, consent, exports, or"
+            echo "notifications. Use neutral copy ('AI-powered matching',"
+            echo "'compatibility signal'). Internal code identifiers/columns are"
+            echo "fine — if this is a false positive on an identifier, refine the"
+            echo "allow filter in .github/workflows/ci.yml."
+            exit 1
+          fi
+          echo "✓ no forbidden secrecy terms on user-visible surfaces"
+
+  security:
+    name: Security — dependency + secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - name: npm audit (high+), non-blocking
+        working-directory: apps/web
+        run: npm audit --audit-level=high || true
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,7 +1,8 @@
 /**
  * process-match-queue — batch queue worker
  *
- * Invoked by a cron trigger (every minute or on demand via service-role POST).
+ * Invoked by pg_cron job bole-process-match-queue-every-1m (or on demand via
+ * service-role POST).
  * Imports matchForRole directly from _shared/match-core — no HTTP hop, no
  * network round-trip to match-generate, no code duplication.
  *
@@ -40,7 +41,10 @@ serve(async (req) => {
   if (claimErr) return respond({ error: `Claim failed: ${claimErr.message}` }, 500)
 
   const items = (claimed ?? []) as { id: number; role_id: string; retry_count: number }[]
-  if (items.length === 0) return respond({ processed: 0, succeeded: 0, failed: 0, message: 'Queue empty' })
+  if (items.length === 0) {
+    await heartbeat(db)
+    return respond({ processed: 0, succeeded: 0, failed: 0, message: 'Queue empty' })
+  }
 
   console.log(`[process-match-queue] claimed ${items.length} items`)
 
@@ -70,8 +74,19 @@ serve(async (req) => {
   }
 
   console.log(`[process-match-queue] done succeeded=${succeeded} failed=${failed}`)
+  await heartbeat(db)
   return respond({ processed: items.length, succeeded, failed })
 })
+
+// Best-effort cron heartbeat; never let it break the job.
+async function heartbeat(db: ReturnType<typeof adminClient>) {
+  try {
+    await db.from('cron_heartbeat').upsert(
+      { job_name: 'process-match-queue', last_run_at: new Date().toISOString() },
+      { onConflict: 'job_name' },
+    )
+  } catch { /* non-fatal */ }
+}
 
 function respond(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {

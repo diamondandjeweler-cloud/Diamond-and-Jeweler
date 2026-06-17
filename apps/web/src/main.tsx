@@ -1,10 +1,8 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
-import { SWRConfig } from 'swr'
 import App from './App'
 import ErrorBoundary from './components/ErrorBoundary'
-import { swrConfig, swrLocalStorageProvider } from './lib/swr'
 import { bootstrapSession } from './state/useSession'
 import { getCurrentLegalVersion } from './lib/legalVersion'
 import './index.css'
@@ -52,11 +50,9 @@ function removeAppShell() {
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <SWRConfig value={{ ...swrConfig, provider: swrLocalStorageProvider }}>
-        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <App />
-        </BrowserRouter>
-      </SWRConfig>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <App />
+      </BrowserRouter>
     </ErrorBoundary>
   </React.StrictMode>,
 )

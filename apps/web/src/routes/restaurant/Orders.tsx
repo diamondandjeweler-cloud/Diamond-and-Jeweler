@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Alert, Badge, Button, Card, CardBody, EmptyState, Spinner } from '../../components/ui'
-import ManagerPin from '../../components/ManagerPin'
+import ManagerPin from './ManagerPin'
 import { useRestaurant } from '../../lib/restaurant/context'
 import {
   listOrders, listOrderItems, listMenuItems, listTables, listPaymentsForOrder,

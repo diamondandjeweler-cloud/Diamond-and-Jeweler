@@ -17,6 +17,7 @@ import Login from './routes/auth/Login'
 import { LOCATION_SLUGS, HIRE_SLUGS } from './data/silo-data'
 import PwaInstallBanner from './components/PwaInstallBanner'
 import { useDarkMode } from './lib/useDarkMode'
+import type { RestaurantRole } from './types/db'
 
 const Start            = lazy(() => import('./routes/Start'))
 const About            = lazy(() => import('./routes/About'))
@@ -70,9 +71,24 @@ const NotFound         = lazy(() => import('./routes/NotFound'))
 const Pricing          = lazy(() => import('./routes/Pricing'))
 const MatchPreview     = lazy(() => import('./routes/dev/MatchPreview'))
 
-// Restaurant OS — own chunk per page; heavy and rarely all visited together.
-// Hard-disabled in production by default. Set VITE_ENABLE_RESTAURANT=true to surface.
+// ===========================================================================
+// RESTAURANT OS SEAM — everything restaurant-specific lives behind this single
+// flag. The Restaurant OS is a separate module bolted onto the recruitment
+// CORE; nothing above this line should reference it. Toggling
+// VITE_ENABLE_RESTAURANT off (the production default) removes every restaurant
+// route below without affecting recruitment routing.
+//
+// `RestaurantRole` ('restaurant_staff') is owned by this module — see
+// types/db.ts. Core routing uses RecruitmentRole only.
+//
+// Own chunk per page; heavy and rarely all visited together.
+// ---------------------------------------------------------------------------
 const RESTAURANT_ENABLED = import.meta.env.VITE_ENABLE_RESTAURANT === 'true'
+
+// Role that, in addition to 'admin', may access the Restaurant OS shell.
+// Sourced from the restaurant role seam so this string is not hard-coded into
+// the recruitment routing below.
+const RESTAURANT_ROLE: RestaurantRole = 'restaurant_staff'
 
 const GuestMenu        = lazy(() => import('./routes/restaurant/GuestMenu'))
 const RestaurantLayout = lazy(() => import('./routes/restaurant/RestaurantLayout'))
@@ -94,6 +110,9 @@ const Shifts           = lazy(() => import('./routes/restaurant/Shifts'))
 const Branches         = lazy(() => import('./routes/restaurant/Branches'))
 const Reports          = lazy(() => import('./routes/restaurant/Reports'))
 const RestaurantAdmin  = lazy(() => import('./routes/restaurant/Admin'))
+// ===========================================================================
+// END RESTAURANT OS SEAM (imports)
+// ===========================================================================
 
 export default function App() {
   useDarkMode()
@@ -213,10 +232,13 @@ export default function App() {
           <Route path="/consult" element={<Consult />} />
           <Route path="/consult/return" element={<Consult />} />
 
-          {/* Restaurant OS — gated to admin and restaurant_staff only.
-              Hidden in production unless VITE_ENABLE_RESTAURANT=true. */}
+          {/* === RESTAURANT OS SEAM (routes) ===
+              Gated to admin + the restaurant role only. Hidden in production
+              unless VITE_ENABLE_RESTAURANT=true. The restaurant role string is
+              sourced from RESTAURANT_ROLE (restaurant seam) so recruitment
+              routing never hard-codes 'restaurant_staff'. */}
           {RESTAURANT_ENABLED && (
-            <Route path="/restaurant" element={<RoleGate allow={['admin', 'restaurant_staff']}><RestaurantLayout /></RoleGate>}>
+            <Route path="/restaurant" element={<RoleGate allow={['admin', RESTAURANT_ROLE]}><RestaurantLayout /></RoleGate>}>
               <Route index element={<RestaurantHome />} />
               <Route path="kiosk"      element={<Kiosk />} />
               <Route path="orders"     element={<Orders />} />
@@ -270,15 +292,20 @@ function RoleHome() {
   const { profile } = useSession()
   if (!profile) return <Navigate to="/" replace />
 
-  if (!profile.onboarding_complete && profile.role !== 'admin' && profile.role !== 'restaurant_staff') {
+  // The restaurant role has no recruitment onboarding flow — skip the gate.
+  // (admin is the other no-onboarding role; both are seam exceptions.)
+  const isRestaurantRole = profile.role === RESTAURANT_ROLE
+  if (!profile.onboarding_complete && profile.role !== 'admin' && !isRestaurantRole) {
     if (profile.role === 'talent')         return <Navigate to="/onboarding/talent" replace />
     if (profile.role === 'hiring_manager') return <Navigate to="/onboarding/hm" replace />
     if (profile.role === 'hr_admin')       return <Navigate to="/onboarding/company" replace />
   }
+  // Recruitment-core role homes.
   if (profile.role === 'talent')            return <Navigate to="/talent" replace />
   if (profile.role === 'hiring_manager')   return <Navigate to="/hm" replace />
   if (profile.role === 'hr_admin')         return <Navigate to="/hr" replace />
   if (profile.role === 'admin')            return <Navigate to="/admin" replace />
-  if (profile.role === 'restaurant_staff' && RESTAURANT_ENABLED) return <Navigate to="/restaurant" replace />
+  // === RESTAURANT OS SEAM (role home) — only when the module is enabled. ===
+  if (isRestaurantRole && RESTAURANT_ENABLED) return <Navigate to="/restaurant" replace />
   return <Navigate to="/" replace />
 }

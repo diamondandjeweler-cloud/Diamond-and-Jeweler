@@ -3,6 +3,7 @@ import { useSession } from '../state/useSession'
 import NotificationBell from './NotificationBell'
 import SupportForm from './SupportForm'
 import DarkModeToggle from './DarkModeToggle'
+import LanguageSwitcher from './LanguageSwitcher'
 
 export default function Layout() {
   const { profile, signOut, isHM } = useSession()
@@ -56,6 +57,7 @@ export default function Layout() {
           </div>
 
           <div className="flex items-center gap-3" aria-label="User navigation">
+            <LanguageSwitcher />
             <DarkModeToggle />
 {profile?.role === 'talent' && profile?.points != null && (
               <Link to="/points" className="hidden sm:inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-accent-500/10 text-accent-600 ring-1 ring-accent-500/20 hover:bg-accent-500/15">

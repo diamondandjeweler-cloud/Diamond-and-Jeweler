@@ -1,4 +1,26 @@
-export type Role = 'talent' | 'hiring_manager' | 'hr_admin' | 'admin' | 'restaurant_staff'
+// ---------------------------------------------------------------------------
+// Role seam — keep the recruitment CORE decoupled from the Restaurant OS.
+//
+// `RecruitmentRole` is the set of roles the recruitment platform owns. Core
+// code (matching, onboarding, dashboards) should reference THIS type so the
+// restaurant module can be removed without touching it.
+//
+// `RestaurantRole` belongs to the flag-gated Restaurant OS (see App.tsx, the
+// VITE_ENABLE_RESTAURANT seam). Restaurant code references `RestaurantRole` /
+// `AppRole`.
+//
+// `AppRole` is the union actually stored in `profiles.role`, shared by code
+// that has to handle either world (Profile, RoleGate).
+//
+// `Role` is retained as an alias of `AppRole` so existing imports keep working
+// (e.g. components/RoleGate.tsx) without a cascade rename.
+// ---------------------------------------------------------------------------
+export type RecruitmentRole = 'talent' | 'hiring_manager' | 'hr_admin' | 'admin'
+export type RestaurantRole = 'restaurant_staff'
+export type AppRole = RecruitmentRole | RestaurantRole
+
+/** @deprecated prefer RecruitmentRole (core) or AppRole (shared/restaurant). */
+export type Role = AppRole
 
 export interface Profile {
   id: string
@@ -6,7 +28,7 @@ export interface Profile {
   full_name: string
   display_name: string | null
   phone: string | null
-  role: Role
+  role: AppRole
   consents: Record<string, unknown>
   is_banned: boolean
   ghost_score: number

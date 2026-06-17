@@ -215,13 +215,13 @@ export default function Landing() {
           href="#landing-main"
           className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-[#0B1220] text-white px-3 py-2 rounded z-50 text-sm"
         >
-          Skip to main content
+          {t('landing.skipToMain')}
         </a>
         <BackgroundDecor />
 
         {/* Top Bar */}
         <header className="relative z-10 px-6 md:px-12 pt-4 pb-2 flex items-center justify-between flex-shrink-0">
-          <Link to="/" className="flex items-center gap-3" aria-label="DNJ home">
+          <Link to="/" className="flex items-center gap-3" aria-label={t('landing.brandHomeAria')}>
             <BrandMark />
             <div className="leading-none">
               <div className="font-sans font-extrabold text-[26px] tracking-tight text-[#0B1220]">DNJ</div>
@@ -230,11 +230,11 @@ export default function Landing() {
           </Link>
 
           {/* Primary navigation — visible on md+ */}
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600" aria-label="Site navigation">
-            <Link to="/careers" className="hover:text-[#0B1220] transition-colors">Jobs</Link>
-            <Link to="/pricing" className="hover:text-[#0B1220] transition-colors">Pricing</Link>
-            <Link to="/about" className="hover:text-[#0B1220] transition-colors">About</Link>
-            <Link to="/careers/urgent-hiring-malaysia-2026" className="hover:text-[#0B1220] transition-colors">Blog</Link>
+          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600" aria-label={t('landing.navAria')}>
+            <Link to="/careers" className="hover:text-[#0B1220] transition-colors">{t('landing.navJobs')}</Link>
+            <Link to="/pricing" className="hover:text-[#0B1220] transition-colors">{t('landing.navPricing')}</Link>
+            <Link to="/about" className="hover:text-[#0B1220] transition-colors">{t('landing.navAbout')}</Link>
+            <Link to="/careers/urgent-hiring-malaysia-2026" className="hover:text-[#0B1220] transition-colors">{t('landing.navBlog')}</Link>
           </nav>
 
           <div className="flex items-center gap-3">
@@ -264,8 +264,8 @@ export default function Landing() {
               <span className="h-px w-8 bg-gradient-to-l from-transparent to-[#a6b6ff]" />
             </div>
             <p className="text-gray-600 text-[14px] md:text-[15px] leading-snug">
-              <span className="block">AI-curated recruitment for every industry in Malaysia.</span>
-              <span className="block">Three matches, zero noise.</span>
+              <span className="block">{t('landing.subtitleLine1')}</span>
+              <span className="block">{t('landing.subtitleLine2')}</span>
             </p>
           </div>
 
@@ -305,13 +305,13 @@ export default function Landing() {
         {/* Footer — text-xs (12px) for accessibility; includes Blog link */}
         <footer className="relative z-10 pt-2 pb-3 text-center text-xs text-gray-500 flex-shrink-0 flex flex-col items-center gap-1">
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5">
-            <Link to="/about" className="hover:text-[#0B1220]">About</Link>
+            <Link to="/about" className="hover:text-[#0B1220]">{t('landing.navAbout')}</Link>
             <span aria-hidden>·</span>
-            <Link to="/careers" className="hover:text-[#0B1220]">Jobs</Link>
+            <Link to="/careers" className="hover:text-[#0B1220]">{t('landing.navJobs')}</Link>
             <span aria-hidden>·</span>
-            <Link to="/pricing" className="hover:text-[#0B1220]">Pricing</Link>
+            <Link to="/pricing" className="hover:text-[#0B1220]">{t('landing.navPricing')}</Link>
             <span aria-hidden>·</span>
-            <Link to="/careers/urgent-hiring-malaysia-2026" className="hover:text-[#0B1220]">Blog</Link>
+            <Link to="/careers/urgent-hiring-malaysia-2026" className="hover:text-[#0B1220]">{t('landing.navBlog')}</Link>
             <span aria-hidden>·</span>
             <Link to="/privacy" className="hover:text-[#0B1220]">{t('footer.privacy')}</Link>
             <span aria-hidden>·</span>
@@ -433,11 +433,12 @@ function DecisionCard({
 }
 
 function OrDivider() {
+  const { t } = useTranslation()
   return (
     <div className="absolute inset-0 hidden md:flex items-center justify-center pointer-events-none">
       <div className="flex flex-col items-center gap-2">
         <div className="h-12 w-px bg-gradient-to-b from-transparent to-gray-300" />
-        <span className="text-[10px] font-medium tracking-[0.2em] text-gray-400 uppercase">or</span>
+        <span className="text-[10px] font-medium tracking-[0.2em] text-gray-400 uppercase">{t('landing.or')}</span>
         <div className="h-12 w-px bg-gradient-to-b from-gray-300 to-transparent" />
       </div>
     </div>

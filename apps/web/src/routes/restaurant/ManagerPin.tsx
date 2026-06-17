@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { supabase } from '../lib/supabase'
-import { Alert, Button } from './ui'
+import { supabase } from '../../lib/supabase'
+import { Alert, Button } from '../../components/ui'
 
 /**
  * Modal that gates a sensitive op (void, refund, override, variance) behind
  * a manager PIN. Resolves with the manager's employee_id on success and logs
  * a manager_approval row.
+ *
+ * Restaurant-OS only — lives under routes/restaurant/ alongside its callers
+ * (Cashier, Orders). Not part of the shared recruitment-core component set.
  *
  * Usage:
  *   <ManagerPin open={x} branchId={b} action="void_item" reason="Customer changed mind"

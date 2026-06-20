@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation, Trans } from 'react-i18next'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { uploadPrivate } from '../../lib/storage'
@@ -8,6 +9,7 @@ import { markOnboardingComplete } from '../../lib/api'
 type UserType = 'hr_admin' | 'hiring_manager'
 
 export default function CompanyRegister() {
+  const { t } = useTranslation()
   const { session, profile, refresh } = useSession()
   const navigate = useNavigate()
 
@@ -36,7 +38,7 @@ export default function CompanyRegister() {
     try {
       const { data: { session: currentSession } } = await supabase.auth.getSession()
       if (!currentSession) {
-        setErr('Your session has expired. Please sign in again.')
+        setErr(t('companyRegister.errSessionExpired'))
         setBusy(false)
         navigate('/login', { replace: true })
         return
@@ -45,7 +47,7 @@ export default function CompanyRegister() {
 
       const timeout = <T,>(ms: number, label: string) =>
         new Promise<T>((_, reject) =>
-          setTimeout(() => reject(new Error(`${label} timed out. Please check your internet and try again.`)), ms),
+          setTimeout(() => reject(new Error(t('companyRegister.errTimedOut', { label }))), ms),
         )
 
       // Upload license only if provided (always optional now)
@@ -54,7 +56,7 @@ export default function CompanyRegister() {
         setStep('uploading')
         licensePath = await Promise.race([
           uploadPrivate('business-licenses', licenseFile, userId, licenseFile.name),
-          timeout<string>(45000, 'File upload'),
+          timeout<string>(45000, t('companyRegister.opFileUpload')),
         ])
       }
 
@@ -76,7 +78,7 @@ export default function CompanyRegister() {
           primary_hr_email: profile?.email ?? session!.user.email!,
           created_by: userId,
         }).select('id').single(),
-        timeout<{ data: { id: string } | null; error: unknown }>(15000, 'Save'),
+        timeout<{ data: { id: string } | null; error: unknown }>(15000, t('companyRegister.opSave')),
       ])
       if (error) throw error
 
@@ -117,16 +119,19 @@ export default function CompanyRegister() {
           <div className="flex items-center gap-3 mb-4">
             <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-lg font-bold">✓</div>
             <div>
-              <h1 className="text-xl font-bold">Company profile created</h1>
-              <p className="text-sm text-gray-500">Pending verification</p>
+              <h1 className="text-xl font-bold">{t('companyRegister.doneTitle')}</h1>
+              <p className="text-sm text-gray-500">{t('companyRegister.donePending')}</p>
             </div>
           </div>
           <p className="text-sm text-gray-700 mb-4">
-            Your company <strong>{name}</strong> is registered. To post roles you need your HR Admin
-            or company secretary to complete verification by uploading the SSM registration and business license.
+            <Trans
+              i18nKey="companyRegister.doneBody"
+              values={{ name }}
+              components={{ strong: <strong /> }}
+            />
           </p>
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
-            <p className="text-xs font-semibold text-amber-800 mb-2">Share this verification link with your HR Admin:</p>
+            <p className="text-xs font-semibold text-amber-800 mb-2">{t('companyRegister.doneShareLabel')}</p>
             <div className="flex gap-2 items-center">
               <input
                 readOnly
@@ -138,19 +143,18 @@ export default function CompanyRegister() {
                 onClick={() => navigator.clipboard.writeText(verifyUrl)}
                 className="text-xs px-3 py-1.5 rounded bg-amber-600 text-white hover:bg-amber-700 whitespace-nowrap"
               >
-                Copy
+                {t('common.copy')}
               </button>
             </div>
             <p className="text-xs text-amber-700 mt-2">
-              Your HR Admin opens this link, logs in, and uploads the SSM certificate + business license.
-              Roles can go live only after admin verification.
+              {t('companyRegister.doneShareHint')}
             </p>
           </div>
           <button
             onClick={async () => { await refresh(); navigate('/hr', { replace: true }) }}
             className="w-full bg-brand-600 text-white px-4 py-2 rounded hover:bg-brand-700"
           >
-            Go to my dashboard
+            {t('companyRegister.goToDashboard')}
           </button>
         </div>
       </div>
@@ -160,9 +164,9 @@ export default function CompanyRegister() {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="bg-white border rounded-lg p-6">
-        <h1 className="text-2xl font-bold mb-1">Register your company</h1>
+        <h1 className="text-2xl font-bold mb-1">{t('companyRegister.title')}</h1>
         <p className="text-sm text-gray-500 mb-5">
-          We verify every company before roles go live. An admin will approve within 1 business day.
+          {t('companyRegister.subtitle')}
         </p>
 
         {/* Role toggle */}
@@ -176,7 +180,7 @@ export default function CompanyRegister() {
                 : 'bg-white text-gray-600 hover:bg-gray-50'
             }`}
           >
-            I'm an HR Admin / Company Owner
+            {t('companyRegister.roleHrAdmin')}
           </button>
           <button
             type="button"
@@ -187,57 +191,56 @@ export default function CompanyRegister() {
                 : 'bg-white text-gray-600 hover:bg-gray-50'
             }`}
           >
-            I'm a Hiring Manager
+            {t('companyRegister.roleHm')}
           </button>
         </div>
 
         {isHM && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 mb-4 text-sm text-blue-800">
-            As a Hiring Manager you can skip the SSM number and license upload — your HR Admin
-            will complete company verification. You'll get a shareable link after registration.
+            {t('companyRegister.hmNotice')}
           </div>
         )}
 
         <form onSubmit={onSubmit} className="space-y-4">
-          <Text label="Company name" value={name} onChange={setName} required />
+          <Text label={t('companyRegister.companyName')} value={name} onChange={setName} required />
 
           {!isHM && (
             <Text
-              label="SSM registration number"
+              label={t('companyRegister.ssmNumber')}
               value={regNo}
               onChange={setRegNo}
               required
-              hint="Your Suruhanjanya Syarikat Malaysia company number."
+              hint={t('companyRegister.ssmHint')}
             />
           )}
 
-          <Text label="Website" value={website} onChange={setWebsite} />
+          <Text label={t('companyRegister.website')} value={website} onChange={setWebsite} />
 
           <div>
-            <label htmlFor="company-size" className="block text-sm mb-1">Company type</label>
+            <label htmlFor="company-size" className="block text-sm mb-1">{t('companyRegister.companyType')}</label>
             <select
               id="company-size"
               value={size}
               onChange={(e) => setSize(e.target.value as typeof size)}
               className="w-full border rounded px-3 py-2"
             >
-              <option value="">Prefer not to say</option>
-              <option value="startup">Startup</option>
-              <option value="sme">SME (Small / Medium Enterprise)</option>
-              <option value="mnc">MNC (Multinational)</option>
-              <option value="enterprise">Large Enterprise</option>
-              <option value="govt">Government / GLC</option>
-              <option value="ngo">NGO / Non-profit</option>
+              <option value="">{t('companyRegister.sizePreferNot')}</option>
+              <option value="startup">{t('companyRegister.sizeStartup')}</option>
+              <option value="sme">{t('companyRegister.sizeSme')}</option>
+              <option value="mnc">{t('companyRegister.sizeMnc')}</option>
+              <option value="enterprise">{t('companyRegister.sizeEnterprise')}</option>
+              <option value="govt">{t('companyRegister.sizeGovt')}</option>
+              <option value="ngo">{t('companyRegister.sizeNgo')}</option>
             </select>
           </div>
 
-          <Text label="Industry" value={industry} onChange={setIndustry} />
+          <Text label={t('companyRegister.industry')} value={industry} onChange={setIndustry} />
 
           {!isHM && (
             <div>
               <label htmlFor="company-license-file" className="block text-sm mb-1">
-                Business license
-                <span className="ml-2 text-xs font-normal text-gray-400">(optional — required for verification)</span>
+                {t('companyRegister.businessLicense')}
+                <span className="ml-2 text-xs font-normal text-gray-400">{t('companyRegister.licenseOptional')}</span>
               </label>
               <input
                 id="company-license-file"
@@ -247,11 +250,10 @@ export default function CompanyRegister() {
                 className="block w-full text-sm"
               />
               <p className="mt-1 text-xs text-gray-500">
-                PDF or image. Max 5 MB. Stored privately; only admins can view.
-                You can submit now and upload later — verification won't complete until it's provided.
+                {t('companyRegister.licenseHint')}
               </p>
               {licenseFile && (
-                <p className="mt-1 text-xs text-gray-600">Selected: {licenseFile.name}</p>
+                <p className="mt-1 text-xs text-gray-600">{t('companyRegister.licenseSelected', { fileName: licenseFile.name })}</p>
               )}
             </div>
           )}
@@ -260,12 +262,12 @@ export default function CompanyRegister() {
 
           {!busy && !name && (
             <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
-              Company name is required.
+              {t('companyRegister.errNameRequired')}
             </p>
           )}
           {!busy && !isHM && name && !regNo && (
             <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
-              SSM registration number is required for HR Admin registration.
+              {t('companyRegister.errSsmRequired')}
             </p>
           )}
 
@@ -274,9 +276,9 @@ export default function CompanyRegister() {
             disabled={!canSubmit}
             className="w-full bg-brand-600 text-white px-4 py-2 rounded hover:bg-brand-700 disabled:bg-gray-300"
           >
-            {step === 'uploading' ? 'Uploading file…'
-              : step === 'saving' ? 'Saving…'
-              : 'Register company'}
+            {step === 'uploading' ? t('companyRegister.submitUploading')
+              : step === 'saving' ? t('companyRegister.submitSaving')
+              : t('companyRegister.submit')}
           </button>
         </form>
       </div>

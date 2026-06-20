@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation, Trans } from 'react-i18next'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { useSeo } from '../../lib/useSeo'
@@ -55,7 +56,8 @@ interface OpenRoleRow {
 type HRTab = 'scheduling' | 'link-hms'
 
 export default function HRDashboard() {
-  useSeo({ title: 'Scheduling', noindex: true })
+  const { t } = useTranslation()
+  useSeo({ title: t('hrDash.seoTitle'), noindex: true })
   const navigate = useNavigate()
   const { session, refreshIsHM } = useSession()
   const userId = session?.user.id
@@ -93,7 +95,7 @@ export default function HRDashboard() {
     // Timeout: keep loading=true so the empty-data state never renders.
     // The retry UI (below) replaces the spinner when this fires.
     const loadTimeout = setTimeout(() => {
-      if (!cancelled) setErr('Taking too long — tap Retry to try again.')
+      if (!cancelled) setErr(t('hrDash.errTimeout'))
     }, 20000)
     async function load() {
       if (!userId || !userEmail) { clearTimeout(loadTimeout); setLoading(false); return }
@@ -262,7 +264,7 @@ export default function HRDashboard() {
     }
     void load()
     return () => { cancelled = true; clearTimeout(loadTimeout) }
-  }, [userId, userEmail, loadRetry])
+  }, [userId, userEmail, loadRetry, t])
 
   async function completeInterview(interviewId: string, matchId: string, hired: boolean) {
     const { error: iErr } = await supabase.from('interviews').update({ status: 'completed' }).eq('id', interviewId)
@@ -275,7 +277,7 @@ export default function HRDashboard() {
   }
 
   async function scheduleInterview(matchId: string) {
-    if (!scheduledAt) { setErr('Pick a date and time'); return }
+    if (!scheduledAt) { setErr(t('hrDash.errPickDateTime')); return }
     const { error: iErr } = await supabase.from('interviews').insert({
       match_id: matchId, scheduled_at: new Date(scheduledAt).toISOString(),
       format, status: 'scheduled',
@@ -335,7 +337,7 @@ export default function HRDashboard() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
         <p className="text-sm text-ink-500">{err}</p>
-        <Button onClick={() => { setErr(null); setLoadRetry((r) => r + 1) }}>Retry</Button>
+        <Button onClick={() => { setErr(null); setLoadRetry((r) => r + 1) }}>{t('hrDash.retry')}</Button>
       </div>
     )
   }
@@ -345,23 +347,23 @@ export default function HRDashboard() {
   return (
     <div>
       <PageHeader
-        title="HR dashboard"
-        description="Manage interview scheduling and your hiring manager team."
+        title={t('hrDash.pageTitle')}
+        description={t('hrDash.pageDescription')}
       />
 
       {/* Tab bar */}
       <div className="flex gap-1 border-b border-ink-200 mb-8 overflow-x-auto">
-        {(['scheduling', 'link-hms'] as HRTab[]).map((t) => (
+        {(['scheduling', 'link-hms'] as HRTab[]).map((tab) => (
           <button
-            key={t}
-            onClick={() => setHrTab(t)}
+            key={tab}
+            onClick={() => setHrTab(tab)}
             className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-              hrTab === t
+              hrTab === tab
                 ? 'border-brand-600 text-brand-700'
                 : 'border-transparent text-ink-500 hover:text-ink-800'
             }`}
           >
-            {t === 'scheduling' ? 'Scheduling' : 'Link HMs'}
+            {tab === 'scheduling' ? t('hrDash.tabScheduling') : t('hrDash.tabLinkHms')}
           </button>
         ))}
       </div>
@@ -372,30 +374,31 @@ export default function HRDashboard() {
       {justSelfRegistered && (
         <div className="mb-6">
           <Alert tone="green">
-            You&apos;re now a hiring manager too.{' '}
-            <Link to="/onboarding/hm" className="underline font-medium">
-              Complete your leadership profile
-            </Link>{' '}
-            to unlock smarter candidate matching, or jump straight to{' '}
-            <Link to="/hm/post-role" className="underline font-medium">posting a role</Link>.
+            <Trans
+              i18nKey="hrDash.selfHmBanner"
+              components={{
+                profileLink: <Link to="/onboarding/hm" className="underline font-medium" />,
+                postRoleLink: <Link to="/hm/post-role" className="underline font-medium" />,
+              }}
+            />
           </Alert>
         </div>
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
         <Stat
-          label="To schedule"
+          label={t('hrDash.statToSchedule')}
           value={pending == null ? <Skeleton width={40} height={28} /> : pending.length}
           tone={(pending?.length ?? 0) > 0 ? 'brand' : 'default'}
         />
         <Stat
-          label="Upcoming interviews"
+          label={t('hrDash.statUpcoming')}
           value={scheduled == null ? <Skeleton width={40} height={28} /> : scheduled.length}
         />
         <Stat
-          label="Outcomes pending"
+          label={t('hrDash.statOutcomesPending')}
           value={outcomesPending == null ? <Skeleton width={40} height={28} /> : outcomesPending}
-          hint={(outcomesPending ?? 0) > 0 ? 'Awaiting feedback' : undefined}
+          hint={(outcomesPending ?? 0) > 0 ? t('hrDash.statAwaitingFeedback') : undefined}
           tone={(outcomesPending ?? 0) > 0 ? 'brand' : 'default'}
         />
       </div>
@@ -405,10 +408,10 @@ export default function HRDashboard() {
       {/* Your hiring managers */}
       <section className="mb-10">
         <SectionHeader
-          title="Your hiring managers"
-          subtitle="They define what each role on their team needs."
+          title={t('hrDash.hmSectionTitle')}
+          subtitle={t('hrDash.hmSectionSubtitle')}
           count={hms?.length}
-          action={<Link to="/hr/invite" className="btn-primary btn-sm">Invite a hiring manager</Link>}
+          action={<Link to="/hr/invite" className="btn-primary btn-sm">{t('hrDash.inviteHm')}</Link>}
         />
         {hms == null ? (
           // Pre-fetch: show skeleton rows with the same footprint as the
@@ -429,9 +432,9 @@ export default function HRDashboard() {
         ) : hms.length === 0 ? (
           <Card>
             <EmptyState
-              title="No hiring managers yet"
-              description="Let hiring managers create the vacancy — they work with the role every day and know the right fit better than anyone else. They are the jewelers who shape the diamond."
-              action={<Link to="/hr/invite" className="btn-primary">Invite your first hiring manager</Link>}
+              title={t('hrDash.hmEmptyTitle')}
+              description={t('hrDash.hmEmptyDesc')}
+              action={<Link to="/hr/invite" className="btn-primary">{t('hrDash.inviteFirstHm')}</Link>}
             />
           </Card>
         ) : (
@@ -442,17 +445,17 @@ export default function HRDashboard() {
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="font-display text-base text-ink-900">
-                        {h.is_self ? 'You' : h.full_name}
+                        {h.is_self ? t('hrDash.you') : h.full_name}
                       </h3>
                     </div>
                     <div className="text-xs text-ink-500 mt-0.5">
-                      {h.job_title} · {h.role_count} {h.role_count === 1 ? 'open role' : 'open roles'}
+                      {h.job_title} · {t('hrDash.openRoleCount', { count: h.role_count })}
                     </div>
                   </div>
                   {h.is_self && (
                     <div className="flex gap-2">
                       <Button size="sm" variant="secondary" onClick={() => navigate('/hm')}>
-                        Switch to HM view
+                        {t('hrDash.switchToHmView')}
                       </Button>
                     </div>
                   )}
@@ -464,13 +467,13 @@ export default function HRDashboard() {
 
         {!isSelfHM && (
           <div className="mt-3 flex items-center gap-2 text-sm text-ink-600">
-            <span>Are you also the hiring manager for your team?</span>
+            <span>{t('hrDash.alsoHmPrompt')}</span>
             <button
               type="button"
               className="underline text-brand-700 hover:text-brand-800 font-medium"
               onClick={() => { setAddMeErr(null); setAddMeOpen(true) }}
             >
-              + Add me as a hiring manager
+              {t('hrDash.addMeAsHm')}
             </button>
           </div>
         )}
@@ -479,8 +482,8 @@ export default function HRDashboard() {
       {/* Open roles */}
       <section className="mb-10">
         <SectionHeader
-          title="Open roles"
-          subtitle="Posted by your hiring managers. Read-only — they own role content."
+          title={t('hrDash.openRolesTitle')}
+          subtitle={t('hrDash.openRolesSubtitle')}
           count={openRoles?.length}
         />
         {openRoles == null ? (
@@ -497,10 +500,10 @@ export default function HRDashboard() {
         ) : openRoles.length === 0 ? (
           <Card>
             <EmptyState
-              title="No open roles yet"
+              title={t('hrDash.openRolesEmptyTitle')}
               description={(hms?.length ?? 0) === 0
-                ? 'Once you invite hiring managers, the roles they post will appear here.'
-                : 'Your hiring managers haven’t posted any roles yet.'}
+                ? t('hrDash.openRolesEmptyNoHm')
+                : t('hrDash.openRolesEmptyNoRoles')}
             />
           </Card>
         ) : (
@@ -522,14 +525,14 @@ export default function HRDashboard() {
       {/* Scheduling (existing logic) */}
       <section>
         <SectionHeader
-          title="Schedule interviews"
-          subtitle="When a hiring manager invites a candidate, schedule the interview here."
+          title={t('hrDash.scheduleInterviewsTitle')}
+          subtitle={t('hrDash.scheduleInterviewsSubtitle')}
           count={(pending?.length ?? 0) + (scheduled?.length ?? 0)}
         />
 
       {(scheduled?.length ?? 0) > 0 && (
         <section className="mb-8">
-          <SubHeader title="Upcoming interviews" count={scheduled!.length} />
+          <SubHeader title={t('hrDash.upcomingInterviews')} count={scheduled!.length} />
           <div className="space-y-3">
             {scheduled!.map((s) => (
               <Card key={s.interview_id}>
@@ -537,18 +540,18 @@ export default function HRDashboard() {
                   <div>
                     <h3 className="font-display text-lg text-ink-900">{s.role_title}</h3>
                     <div className="text-xs text-ink-500 mt-0.5">
-                      Candidate ·{' '}
+                      {t('hrDash.candidate')} ·{' '}
                       {s.scheduled_at
                         ? new Date(s.scheduled_at).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur', dateStyle: 'medium', timeStyle: 'short' })
                         : '—'}
                       {' · '}
-                      <span className="capitalize">{s.format}</span>
+                      <span>{s.format ? t(`hrDash.format.${s.format}`, { defaultValue: s.format }) : '—'}</span>
                     </div>
                   </div>
                   <div className="flex gap-2 flex-wrap items-center">
                     {s.meeting_url ? (
                       <a href={s.meeting_url} target="_blank" rel="noopener noreferrer" className="btn-brand btn-sm">
-                        Join meeting{s.meeting_provider ? ` · ${s.meeting_provider}` : ''}
+                        {t('hrDash.joinMeeting')}{s.meeting_provider ? ` · ${s.meeting_provider}` : ''}
                       </a>
                     ) : (
                       <Button size="sm" variant="secondary" onClick={async () => {
@@ -565,10 +568,10 @@ export default function HRDashboard() {
                         } catch (e) {
                           setErr((e as Error).message)
                         }
-                      }}>Create meeting link</Button>
+                      }}>{t('hrDash.createMeetingLink')}</Button>
                     )}
-                    <Button size="sm" onClick={() => void completeInterview(s.interview_id, s.match_id, true)}>Mark hired</Button>
-                    <Button size="sm" variant="secondary" onClick={() => void completeInterview(s.interview_id, s.match_id, false)}>Not hired</Button>
+                    <Button size="sm" onClick={() => void completeInterview(s.interview_id, s.match_id, true)}>{t('hrDash.markHired')}</Button>
+                    <Button size="sm" variant="secondary" onClick={() => void completeInterview(s.interview_id, s.match_id, false)}>{t('hrDash.notHired')}</Button>
                   </div>
                 </div>
               </Card>
@@ -578,7 +581,7 @@ export default function HRDashboard() {
       )}
 
       <section>
-        <SubHeader title="Awaiting your scheduling" count={pending?.length ?? 0} />
+        <SubHeader title={t('hrDash.awaitingScheduling')} count={pending?.length ?? 0} />
         {pending == null ? (
           <div className="space-y-3">
             {[0, 1].map((i) => (
@@ -596,8 +599,8 @@ export default function HRDashboard() {
         ) : pending.length === 0 ? (
           <Card>
             <EmptyState
-              title="Nothing to schedule"
-              description="When a hiring manager invites a candidate, it will appear here for you to propose a time."
+              title={t('hrDash.nothingToSchedule')}
+              description={t('hrDash.nothingToScheduleDesc')}
             />
           </Card>
         ) : (
@@ -609,25 +612,25 @@ export default function HRDashboard() {
                     <div>
                       <h3 className="font-display text-lg text-ink-900">{p.roles?.title}</h3>
                       <div className="text-xs text-ink-500 mt-0.5 flex items-center gap-2">
-                        <span>Candidate</span>
-                        <Badge tone="green">{Math.round(p.compatibility_score ?? 0)}% match</Badge>
+                        <span>{t('hrDash.candidate')}</span>
+                        <Badge tone="green">{t('hrDash.percentMatch', { pct: Math.round(p.compatibility_score ?? 0) })}</Badge>
                       </div>
                     </div>
                     {schedulingId !== p.id && (
-                      <Button size="sm" onClick={() => setSchedulingId(p.id)}>Schedule interview</Button>
+                      <Button size="sm" onClick={() => setSchedulingId(p.id)}>{t('hrDash.scheduleInterview')}</Button>
                     )}
                   </div>
                   {schedulingId === p.id && (
                     <div className="mt-5 grid md:grid-cols-3 gap-3 pt-5 border-t border-ink-100">
-                      <Input label="Date & time" type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} />
-                      <Select label="Format" value={format} onChange={(e) => setFormat(e.target.value as typeof format)}>
-                        <option value="video">Video</option>
-                        <option value="phone">Phone</option>
-                        <option value="in_person">In person</option>
+                      <Input label={t('hrDash.dateTimeLabel')} type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} />
+                      <Select label={t('hrDash.formatLabel')} value={format} onChange={(e) => setFormat(e.target.value as typeof format)}>
+                        <option value="video">{t('hrDash.format.video')}</option>
+                        <option value="phone">{t('hrDash.format.phone')}</option>
+                        <option value="in_person">{t('hrDash.format.in_person')}</option>
                       </Select>
                       <div className="flex items-end gap-2">
-                        <Button onClick={() => void scheduleInterview(p.id)} className="flex-1">Confirm</Button>
-                        <Button variant="secondary" onClick={() => { setSchedulingId(null); setScheduledAt('') }}>Cancel</Button>
+                        <Button onClick={() => void scheduleInterview(p.id)} className="flex-1">{t('hrDash.confirm')}</Button>
+                        <Button variant="secondary" onClick={() => { setSchedulingId(null); setScheduledAt('') }}>{t('common.cancel')}</Button>
                       </div>
                     </div>
                   )}
@@ -649,18 +652,17 @@ export default function HRDashboard() {
         >
           <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
             <h2 id="add-me-hm-title" className="text-xl font-semibold text-ink-900">
-              Add yourself as a hiring manager
+              {t('hrDash.addMeModalTitle')}
             </h2>
             <p className="text-sm text-ink-700">
-              You&apos;ll be added to your company&apos;s hiring-manager list and able to post roles directly.
-              You can complete the leadership profile (used for matching) right after.
+              {t('hrDash.addMeModalBody')}
             </p>
             <form onSubmit={submitAddMe} className="space-y-4">
               <Input
-                label="Your job title"
+                label={t('hrDash.jobTitleLabel')}
                 value={addMeJobTitle}
                 onChange={(e) => setAddMeJobTitle(e.target.value)}
-                placeholder="e.g. Founder, Engineering Manager"
+                placeholder={t('hrDash.jobTitlePlaceholder')}
                 required
                 // Modal opens with this as the only field; focusing it is the expected behaviour.
                 // eslint-disable-next-line jsx-a11y/no-autofocus
@@ -669,10 +671,10 @@ export default function HRDashboard() {
               {addMeErr && <Alert tone="red">{addMeErr}</Alert>}
               <div className="flex gap-2 justify-end pt-2">
                 <Button type="button" variant="secondary" onClick={() => setAddMeOpen(false)} disabled={addMeBusy}>
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
                 <Button type="submit" loading={addMeBusy} disabled={!addMeJobTitle.trim()}>
-                  Add me
+                  {t('hrDash.addMeButton')}
                 </Button>
               </div>
             </form>

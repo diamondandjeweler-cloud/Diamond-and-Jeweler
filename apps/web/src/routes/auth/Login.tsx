@@ -12,11 +12,11 @@ import { useSeo } from '../../lib/useSeo'
 import { logAuthFailure } from '../../lib/authTelemetry'
 
 export default function Login() {
-  useSeo({
-    title: 'Sign in',
-    description: 'Sign in to your DNJ account to view your curated matches, manage your profile, or post new roles.',
-  })
   const { t } = useTranslation()
+  useSeo({
+    title: t('login.seoTitle'),
+    description: t('login.seoDescription'),
+  })
   const navigate = useNavigate()
   const location = useLocation()
   const [params] = useSearchParams()
@@ -108,7 +108,7 @@ export default function Login() {
     if (rlData?.locked) {
       setBusy(false)
       const mins = Math.ceil((rlData.retry_after_seconds ?? 900) / 60)
-      setErr(`Too many failed attempts. Please try again in ${mins} minute${mins === 1 ? '' : 's'}.`)
+      setErr(t('login.tooManyAttempts', { count: mins }))
       return
     }
 
@@ -140,10 +140,10 @@ export default function Login() {
     e.preventDefault()
     setErr(null)
     if (isLockedOut()) {
-      setErr(`Too many failed attempts. Please try again in ${lockoutMinutesLeft()} minute${lockoutMinutesLeft() === 1 ? '' : 's'}.`)
+      setErr(t('login.tooManyAttempts', { count: lockoutMinutesLeft() }))
       return
     }
-    if (!email || !password) { setErr('Please enter your email and password.'); return }
+    if (!email || !password) { setErr(t('login.enterEmailPassword')); return }
     if (!captchaToken) {
       // Token not in yet — queue submit instead of bouncing the user.
       queuedRef.current = true
@@ -213,7 +213,7 @@ export default function Login() {
           />
           {err && <Alert tone="red">{err}</Alert>}
           {turnstileBlocked && !err && (
-            <Alert tone="red">Security check failed. If you&apos;ve had multiple failed login attempts, please wait 15 minutes and try again.</Alert>
+            <Alert tone="red">{t('login.securityCheckFailed')}</Alert>
           )}
           {waitingForCaptcha && !err && !turnstileBlocked && (
             <Alert tone="amber">{t('auth.verifyingHuman')}</Alert>

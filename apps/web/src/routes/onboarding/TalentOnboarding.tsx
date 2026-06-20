@@ -13,6 +13,7 @@
  * They are never forwarded to the chat-onboard Edge Function or any external AI.
  */
 import { useEffect, useId, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
@@ -34,12 +35,12 @@ type Phase = 'basics' | 'chat' | 'dob' | 'dealbreakers' | 'extras' | 'docs' | 'r
 
 interface ApiMessage { role: 'user' | 'assistant'; content: string }
 
-const BO_GREETING =
-  "Hey there! I'm DNJ, your career buddy. Let's keep this easy — just a few quick questions to get a feel for what you're after. Nothing heavy, I promise.\n\nTo kick things off: what kind of role are you hoping to land next? Even a rough idea works perfectly."
-
 export default function TalentOnboarding() {
+  const { t } = useTranslation()
   const { session, refresh } = useSession()
   const navigate = useNavigate()
+
+  const BO_GREETING = t('talentOnboard.boGreeting')
 
   const [phase, setPhase] = useState<Phase>('basics')
   const [switching, setSwitching] = useState(false)
@@ -268,7 +269,7 @@ export default function TalentOnboarding() {
       await refresh()
       navigate('/onboarding/hm')
     } catch (e) {
-      setSwitchErr(e instanceof Error ? e.message : 'Switch failed. Please try again.')
+      setSwitchErr(e instanceof Error ? e.message : t('talentOnboard.switchFailed'))
       setSwitching(false)
     }
   }
@@ -322,7 +323,7 @@ export default function TalentOnboarding() {
       warnTimer = setTimeout(() => {
         setLog((l) => [...l, {
           id: warnMsgId, from: 'system',
-          content: "AI is taking longer than usual — if this doesn't resolve, please refresh the page to continue.",
+          content: t('talentOnboard.aiSlowWarning'),
         }])
       }, 10_000)
 
@@ -403,8 +404,7 @@ export default function TalentOnboarding() {
           {
             id: nextId(),
             from: 'system',
-            content:
-              "Two more quick things — your date of birth (encrypted, never shown to employers) and your documents. Then you're all set.",
+            content: t('talentOnboard.chatDoneMessage'),
           },
         ])
         phaseTimerRef.current = setTimeout(() => setPhase('dob'), 600)
@@ -426,7 +426,7 @@ export default function TalentOnboarding() {
           .then(() => {})
         setLog((l) => [
           ...l.map((m) => m.id === boId ? { ...m, typing: false } : m),
-          { id: nextId(), from: 'system', content: 'Progress saved. Feel free to continue whenever you\'re ready.' },
+          { id: nextId(), from: 'system', content: t('talentOnboard.progressSaved') },
         ])
       } else if (isAbort) {
         setLog((l) => l.map((m) => m.id === boId ? { ...m, content: '', typing: false } : m))
@@ -434,7 +434,7 @@ export default function TalentOnboarding() {
         setLog((l) =>
           l.map((m) =>
             m.id === boId
-              ? { ...m, content: 'Something went wrong. Please try again.', typing: false }
+              ? { ...m, content: t('talentOnboard.chatError'), typing: false }
               : m,
           ),
         )
@@ -627,15 +627,15 @@ export default function TalentOnboarding() {
       const nextPhase: Phase = chatDone ? (dobFilled ? 'docs' : 'dob') : 'chat'
       return (
         <div className="space-y-3">
-          <p className="text-sm text-ink-700 font-medium">Welcome back — here's your progress:</p>
+          <p className="text-sm text-ink-700 font-medium">{t('talentOnboard.resumeProgressIntro')}</p>
           <div className="space-y-1.5">
-            <ProgressStep label="Name & contact" done={!!fullName} />
-            <ProgressStep label="Chat with DNJ" done={chatDone} active={!chatDone} />
-            <ProgressStep label="Background & date of birth" done={dobFilled} active={chatDone && !dobFilled} />
-            <ProgressStep label="Documents" done={false} active={dobFilled} />
+            <ProgressStep label={t('talentOnboard.stepNameContact')} done={!!fullName} doneLabel={t('talentOnboard.stepDone')} nextLabel={t('talentOnboard.stepNext')} />
+            <ProgressStep label={t('talentOnboard.stepChat')} done={chatDone} active={!chatDone} doneLabel={t('talentOnboard.stepDone')} nextLabel={t('talentOnboard.stepNext')} />
+            <ProgressStep label={t('talentOnboard.stepBackgroundDob')} done={dobFilled} active={chatDone && !dobFilled} doneLabel={t('talentOnboard.stepDone')} nextLabel={t('talentOnboard.stepNext')} />
+            <ProgressStep label={t('talentOnboard.stepDocuments')} done={false} active={dobFilled} doneLabel={t('talentOnboard.stepDone')} nextLabel={t('talentOnboard.stepNext')} />
           </div>
           <Button onClick={() => setPhase(nextPhase)} className="w-full mt-2" size="lg">
-            Continue where I left off
+            {t('talentOnboard.continueWhereLeftOff')}
           </Button>
           <button
             type="button"
@@ -650,7 +650,7 @@ export default function TalentOnboarding() {
               chatInitRef.current = false
             }}
           >
-            Start over instead
+            {t('talentOnboard.startOver')}
           </button>
         </div>
       )
@@ -669,16 +669,16 @@ export default function TalentOnboarding() {
           className="space-y-3"
         >
           <p className="text-sm text-ink-600">
-            Before we start — just your name and a contact number. These stay on our servers and are never shared with AI systems.
+            {t('talentOnboard.basicsIntro')}
           </p>
           <div>
-            <label htmlFor="talent-onboard-full-name" className="block text-sm font-medium text-ink-700 mb-1">Full name</label>
+            <label htmlFor="talent-onboard-full-name" className="block text-sm font-medium text-ink-700 mb-1">{t('common.fullName')}</label>
             <input
               id="talent-onboard-full-name"
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              placeholder="Your full name"
+              placeholder={t('talentOnboard.fullNamePlaceholder')}
               // First wizard field; intentional focus on entry.
               // eslint-disable-next-line jsx-a11y/no-autofocus
               autoFocus
@@ -686,13 +686,13 @@ export default function TalentOnboarding() {
             />
           </div>
           <div>
-            <label htmlFor="talent-onboard-phone" className="block text-sm font-medium text-ink-700 mb-1">Phone number</label>
+            <label htmlFor="talent-onboard-phone" className="block text-sm font-medium text-ink-700 mb-1">{t('common.phone')}</label>
             <input
               id="talent-onboard-phone"
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="+60 12-345 6789"
+              placeholder={t('talentOnboard.phonePlaceholder')}
               className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
@@ -702,7 +702,7 @@ export default function TalentOnboarding() {
             className="w-full"
             size="lg"
           >
-            Continue to chat with DNJ
+            {t('talentOnboard.continueToChat')}
           </Button>
           <div className="text-center pt-1">
             <button
@@ -711,7 +711,7 @@ export default function TalentOnboarding() {
               disabled={switching}
               className="text-xs text-ink-400 hover:text-ink-600 underline"
             >
-              {switching ? 'Switching…' : 'Hiring instead? Switch to a hiring account'}
+              {switching ? t('talentOnboard.switching') : t('talentOnboard.switchToHiring')}
             </button>
             {switchErr && <p className="text-xs text-red-600 mt-1">{switchErr}</p>}
           </div>
@@ -737,8 +737,8 @@ export default function TalentOnboarding() {
             }}
             placeholder={
               isStreaming
-                ? 'Typing…'
-                : 'Type your message… (Shift + Enter for new line)'
+                ? t('talentOnboard.chatTyping')
+                : t('talentOnboard.chatPlaceholder')
             }
             rows={2}
             disabled={isStreaming}
@@ -754,7 +754,7 @@ export default function TalentOnboarding() {
               variant="secondary"
               onClick={() => abortCtrlRef.current?.abort()}
             >
-              Stop
+              {t('talentOnboard.stop')}
             </Button>
           ) : (
             <Button
@@ -762,7 +762,7 @@ export default function TalentOnboarding() {
               disabled={!input.trim()}
               size="sm"
             >
-              Send
+              {t('common.send')}
             </Button>
           )}
         </form>
@@ -782,14 +782,14 @@ export default function TalentOnboarding() {
       const showErr = (valid: boolean) => dobAttempted && !valid
 
       const missingFields: string[] = []
-      if (!dobValid) missingFields.push('Date of birth')
-      if (!genderValid) missingFields.push('Gender')
-      if (!raceValid) missingFields.push('Race / ethnicity')
-      if (!religionValid) missingFields.push('Religion')
-      if (!languagesValid) missingFields.push('At least one language')
-      if (!locationMattersValid) missingFields.push('Whether commute distance matters')
-      if (locationMatters === true && !postcodeValid) missingFields.push('5-digit postcode')
-      if (!dobConsentValid) missingFields.push('Consent to share date of birth')
+      if (!dobValid) missingFields.push(t('talentOnboard.fieldDob'))
+      if (!genderValid) missingFields.push(t('talentOnboard.fieldGender'))
+      if (!raceValid) missingFields.push(t('talentOnboard.fieldRace'))
+      if (!religionValid) missingFields.push(t('talentOnboard.fieldReligion'))
+      if (!languagesValid) missingFields.push(t('talentOnboard.fieldLanguage'))
+      if (!locationMattersValid) missingFields.push(t('talentOnboard.fieldCommute'))
+      if (locationMatters === true && !postcodeValid) missingFields.push(t('talentOnboard.fieldPostcode'))
+      if (!dobConsentValid) missingFields.push(t('talentOnboard.fieldDobConsent'))
 
       const allValid = missingFields.length === 0
 
@@ -801,13 +801,11 @@ export default function TalentOnboarding() {
       return (
         <div className="space-y-3">
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900">
-            <strong>Date of birth is required.</strong> We use it to find roles where you&apos;ll
-            thrive at this stage of your career. Without it we cannot produce matches and the
-            platform serves no purpose for you. DOB is encrypted at rest and is{' '}
-            <strong>never shown</strong> to employers or other users.
+            <strong>{t('talentOnboard.dobRequiredLead')}</strong> {t('talentOnboard.dobRequiredBody')}{' '}
+            <strong>{t('talentOnboard.dobNeverShown')}</strong> {t('talentOnboard.dobRequiredTail')}
           </div>
           <p className="text-xs text-ink-500">
-            You must be <strong>18 or older</strong> to use DNJ.
+            {t('talentOnboard.ageRequirementLead')} <strong>{t('talentOnboard.ageRequirementBold')}</strong> {t('talentOnboard.ageRequirementTail')}
           </p>
           <input
             type="date"
@@ -819,7 +817,7 @@ export default function TalentOnboarding() {
           />
           <div className="space-y-1" data-dob-invalid={showErr(genderValid) ? 'true' : undefined}>
             <p className={`text-sm ${showErr(genderValid) ? 'text-red-600 font-medium' : 'text-ink-600'}`}>
-              Gender:{showErr(genderValid) && <span className="ml-1 text-xs">(required)</span>}
+              {t('talentOnboard.genderLabel')}{showErr(genderValid) && <span className="ml-1 text-xs">{t('talentOnboard.requiredParen')}</span>}
             </p>
             <div className={`grid grid-cols-2 gap-2 ${ringWrap(genderValid)}`}>
               <button
@@ -827,70 +825,75 @@ export default function TalentOnboarding() {
                 onClick={() => setGender('male')}
                 className={`border rounded-lg px-3 py-2 text-sm ${gender === 'male' ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 text-ink-700 hover:bg-ink-50'}`}
               >
-                Male
+                {t('talentOnboard.male')}
               </button>
               <button
                 type="button"
                 onClick={() => setGender('female')}
                 className={`border rounded-lg px-3 py-2 text-sm ${gender === 'female' ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 text-ink-700 hover:bg-ink-50'}`}
               >
-                Female
+                {t('talentOnboard.female')}
               </button>
             </div>
           </div>
           <div className="space-y-1" data-dob-invalid={showErr(raceValid) ? 'true' : undefined}>
             <p className={`text-sm ${showErr(raceValid) ? 'text-red-600 font-medium' : 'text-ink-600'}`}>
-              Race / ethnicity:{showErr(raceValid) && <span className="ml-1 text-xs">(required)</span>}
+              {t('talentOnboard.raceLabel')}{showErr(raceValid) && <span className="ml-1 text-xs">{t('talentOnboard.requiredParen')}</span>}
             </p>
             <div className={`grid grid-cols-2 gap-2 ${ringWrap(raceValid)}`}>
-              {(['Malay', 'Chinese', 'Indian', 'Others'] as const).map((r) => (
+              {([
+                { value: 'malay', label: t('talentOnboard.raceMalay') },
+                { value: 'chinese', label: t('talentOnboard.raceChinese') },
+                { value: 'indian', label: t('talentOnboard.raceIndian') },
+                { value: 'others', label: t('talentOnboard.raceOthers') },
+              ] as const).map((r) => (
                 <button
-                  key={r}
+                  key={r.value}
                   type="button"
-                  onClick={() => setRace(r.toLowerCase())}
-                  className={`border rounded-lg px-3 py-2 text-sm ${race === r.toLowerCase() ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 text-ink-700 hover:bg-ink-50'}`}
+                  onClick={() => setRace(r.value)}
+                  className={`border rounded-lg px-3 py-2 text-sm ${race === r.value ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 text-ink-700 hover:bg-ink-50'}`}
                 >
-                  {r}
+                  {r.label}
                 </button>
               ))}
             </div>
           </div>
           <div className="space-y-1" data-dob-invalid={showErr(religionValid) ? 'true' : undefined}>
             <p className={`text-sm ${showErr(religionValid) ? 'text-red-600 font-medium' : 'text-ink-600'}`}>
-              Religion:{showErr(religionValid) && <span className="ml-1 text-xs">(required)</span>}
+              {t('talentOnboard.religionLabel')}{showErr(religionValid) && <span className="ml-1 text-xs">{t('talentOnboard.requiredParen')}</span>}
             </p>
             <select
               value={religion}
               onChange={(e) => setReligion(e.target.value)}
               className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white ${inputErrCls(religionValid)}`}
             >
-              <option value="">Select...</option>
-              <option value="islam">Islam</option>
-              <option value="christianity">Christianity</option>
-              <option value="buddhism">Buddhism</option>
-              <option value="hinduism">Hinduism</option>
-              <option value="taoism">Taoism</option>
-              <option value="chinese_folk">Chinese Folk Religion</option>
-              <option value="no_religion">No religion / Atheist</option>
-              <option value="others">Others</option>
+              <option value="">{t('talentOnboard.selectPlaceholder')}</option>
+              <option value="islam">{t('talentOnboard.religionIslam')}</option>
+              <option value="christianity">{t('talentOnboard.religionChristianity')}</option>
+              <option value="buddhism">{t('talentOnboard.religionBuddhism')}</option>
+              <option value="hinduism">{t('talentOnboard.religionHinduism')}</option>
+              <option value="taoism">{t('talentOnboard.religionTaoism')}</option>
+              <option value="chinese_folk">{t('talentOnboard.religionChineseFolk')}</option>
+              <option value="no_religion">{t('talentOnboard.religionNone')}</option>
+              <option value="others">{t('talentOnboard.religionOthers')}</option>
             </select>
           </div>
           <div className="space-y-1" data-dob-invalid={showErr(languagesValid) ? 'true' : undefined}>
             <p className={`text-sm ${showErr(languagesValid) ? 'text-red-600 font-medium' : 'text-ink-600'}`}>
-              Languages you can speak (select all that apply):
-              {showErr(languagesValid) && <span className="ml-1 text-xs">(pick at least one)</span>}
+              {t('talentOnboard.languagesLabel')}
+              {showErr(languagesValid) && <span className="ml-1 text-xs">{t('talentOnboard.pickAtLeastOne')}</span>}
             </p>
             <div className={`flex flex-wrap gap-2 ${ringWrap(languagesValid)}`}>
               {[
-                { value: 'english', label: 'English' },
-                { value: 'bahasa_malaysia', label: 'Bahasa Malaysia' },
-                { value: 'mandarin', label: 'Mandarin' },
-                { value: 'cantonese', label: 'Cantonese' },
-                { value: 'hokkien', label: 'Hokkien' },
-                { value: 'hakka', label: 'Hakka' },
-                { value: 'teochew', label: 'Teochew' },
-                { value: 'tamil', label: 'Tamil' },
-                { value: 'others', label: 'Others' },
+                { value: 'english', label: t('talentOnboard.langEnglish') },
+                { value: 'bahasa_malaysia', label: t('talentOnboard.langBahasaMalaysia') },
+                { value: 'mandarin', label: t('talentOnboard.langMandarin') },
+                { value: 'cantonese', label: t('talentOnboard.langCantonese') },
+                { value: 'hokkien', label: t('talentOnboard.langHokkien') },
+                { value: 'hakka', label: t('talentOnboard.langHakka') },
+                { value: 'teochew', label: t('talentOnboard.langTeochew') },
+                { value: 'tamil', label: t('talentOnboard.langTamil') },
+                { value: 'others', label: t('talentOnboard.langOthers') },
               ].map(({ value, label }) => {
                 const active = languages.includes(value)
                 return (
@@ -911,8 +914,8 @@ export default function TalentOnboarding() {
             data-dob-invalid={showErr(locationMattersValid) || (locationMatters === true && showErr(postcodeValid)) ? 'true' : undefined}
           >
             <p className={`text-sm ${showErr(locationMattersValid) ? 'text-red-600 font-medium' : 'text-ink-600'}`}>
-              Does commute distance matter to you?
-              {showErr(locationMattersValid) && <span className="ml-1 text-xs">(required)</span>}
+              {t('talentOnboard.commuteQuestion')}
+              {showErr(locationMattersValid) && <span className="ml-1 text-xs">{t('talentOnboard.requiredParen')}</span>}
             </p>
             <div className={`grid grid-cols-2 gap-2 ${ringWrap(locationMattersValid)}`}>
               <button
@@ -920,14 +923,14 @@ export default function TalentOnboarding() {
                 onClick={() => setLocationMatters(true)}
                 className={`border rounded-lg px-3 py-2 text-sm ${locationMatters === true ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 text-ink-700 hover:bg-ink-50'}`}
               >
-                Yes — keep nearby
+                {t('talentOnboard.commuteYes')}
               </button>
               <button
                 type="button"
                 onClick={() => { setLocationMatters(false); setLocationPostcode('') }}
                 className={`border rounded-lg px-3 py-2 text-sm ${locationMatters === false ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 text-ink-700 hover:bg-ink-50'}`}
               >
-                No, I can travel
+                {t('talentOnboard.commuteNo')}
               </button>
             </div>
             {locationMatters === true && (
@@ -938,12 +941,12 @@ export default function TalentOnboarding() {
                 maxLength={5}
                 value={locationPostcode}
                 onChange={(e) => setLocationPostcode(e.target.value.replace(/[^0-9]/g, ''))}
-                placeholder="Your 5-digit postcode (e.g. 50450)"
+                placeholder={t('talentOnboard.postcodePlaceholder')}
                 className={`w-full border rounded-lg px-3 py-2 text-sm mt-2 focus:outline-none focus:ring-2 focus:ring-brand-500 ${inputErrCls(postcodeValid)}`}
               />
             )}
             {locationMatters === true && showErr(postcodeValid) && (
-              <p className="text-xs text-red-600 mt-1">Please enter your 5-digit postcode.</p>
+              <p className="text-xs text-red-600 mt-1">{t('talentOnboard.postcodeError')}</p>
             )}
           </div>
           <label htmlFor="talent-onboard-open-new-field" className="flex items-start gap-2 text-sm cursor-pointer">
@@ -955,9 +958,9 @@ export default function TalentOnboarding() {
               className="mt-0.5"
             />
             <span>
-              <span className="font-medium text-ink-900">I&apos;m open to trying a new field.</span>
+              <span className="font-medium text-ink-900">{t('talentOnboard.openNewFieldLabel')}</span>
               <span className="block text-xs text-ink-500 mt-0.5">
-                We&apos;ll surface part-time / gig / internship roles outside your background. Full-time roles still favour your past experience.
+                {t('talentOnboard.openNewFieldHint')}
               </span>
             </span>
           </label>
@@ -968,16 +971,16 @@ export default function TalentOnboarding() {
             <Consent
               checked={dobConsent}
               onChange={setDobConsent}
-              label="I agree to share my date of birth with DNJ to help find roles where I'll thrive. Encrypted and never shown to employers."
+              label={t('talentOnboard.dobConsentLabel')}
               required
             />
             {showErr(dobConsentValid) && (
-              <p className="text-xs text-red-600 mt-1">Please tick the box to continue.</p>
+              <p className="text-xs text-red-600 mt-1">{t('talentOnboard.tickToContinue')}</p>
             )}
           </div>
           {dobAttempted && !allValid && (
             <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2.5 text-xs text-red-900">
-              <p className="font-semibold mb-1">Please fill in the following to continue:</p>
+              <p className="font-semibold mb-1">{t('talentOnboard.fillToContinue')}</p>
               <ul className="list-disc list-inside space-y-0.5">
                 {missingFields.map((m) => <li key={m}>{m}</li>)}
               </ul>
@@ -998,7 +1001,7 @@ export default function TalentOnboarding() {
                 const dobMs = new Date(dob).getTime()
                 const minAgeDate = new Date(); minAgeDate.setFullYear(minAgeDate.getFullYear() - 18)
                 if (dobMs > minAgeDate.getTime()) {
-                  setErr('You must be at least 18 years old to use DNJ.')
+                  setErr(t('talentOnboard.age18Error'))
                   return
                 }
               }
@@ -1008,7 +1011,7 @@ export default function TalentOnboarding() {
             className="w-full"
             size="lg"
           >
-            Continue
+            {t('common.continue')}
           </Button>
           {err && <Alert tone="red">{err}</Alert>}
         </div>
@@ -1048,13 +1051,12 @@ export default function TalentOnboarding() {
       return (
         <div className="space-y-4">
           <p className="text-sm text-ink-600 leading-relaxed">
-            Tell us your non-negotiables — things you will <strong>not</strong> compromise on.
-            Roles that conflict with these will be filtered out automatically.
+            {t('talentOnboard.dealBreakersIntroLead')} <strong>{t('talentOnboard.dealBreakersIntroBold')}</strong> {t('talentOnboard.dealBreakersIntroTail')}
           </p>
 
           {/* Quick structured toggles — machine-verified hard filters */}
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-ink-500 uppercase tracking-wide">Quick filters (auto-enforced)</p>
+            <p className="text-xs font-semibold text-ink-500 uppercase tracking-wide">{t('talentOnboard.quickFiltersHeader')}</p>
             <label className="flex items-center gap-3 border border-ink-200 rounded-lg px-3 py-2.5 cursor-pointer hover:bg-ink-50 transition-colors">
               <input
                 type="checkbox"
@@ -1062,7 +1064,7 @@ export default function TalentOnboarding() {
                 onChange={(e) => setNoWeekendWork(e.target.checked)}
                 className="h-4 w-4 rounded border-ink-300 accent-brand-500"
               />
-              <span className="text-sm text-ink-800">I cannot work weekends</span>
+              <span className="text-sm text-ink-800">{t('talentOnboard.dbNoWeekend')}</span>
             </label>
             <label className="flex items-center gap-3 border border-ink-200 rounded-lg px-3 py-2.5 cursor-pointer hover:bg-ink-50 transition-colors">
               <input
@@ -1071,16 +1073,16 @@ export default function TalentOnboarding() {
                 onChange={(e) => setNoDrivingLicense(e.target.checked)}
                 className="h-4 w-4 rounded border-ink-300 accent-brand-500"
               />
-              <span className="text-sm text-ink-800">I do not have a driving licence</span>
+              <span className="text-sm text-ink-800">{t('talentOnboard.dbNoLicence')}</span>
             </label>
             {[
-              { state: noTravel,         setter: setNoTravel,         label: 'I cannot travel for work' },
-              { state: noNightShifts,    setter: setNoNightShifts,    label: 'I cannot work night shifts' },
-              { state: noOwnCar,         setter: setNoOwnCar,         label: "I don't have my own car / transport" },
-              { state: remoteOnly,       setter: setRemoteOnly,       label: 'Remote or hybrid only — no full-time office' },
-              { state: noRelocation,     setter: setNoRelocation,     label: 'I cannot relocate' },
-              { state: noOvertime,       setter: setNoOvertime,       label: 'No overtime — strict working hours only' },
-              { state: noCommissionOnly, setter: setNoCommissionOnly, label: 'No commission-only or variable-pay-only roles' },
+              { state: noTravel,         setter: setNoTravel,         label: t('talentOnboard.dbNoTravel') },
+              { state: noNightShifts,    setter: setNoNightShifts,    label: t('talentOnboard.dbNoNightShifts') },
+              { state: noOwnCar,         setter: setNoOwnCar,         label: t('talentOnboard.dbNoOwnCar') },
+              { state: remoteOnly,       setter: setRemoteOnly,       label: t('talentOnboard.dbRemoteOnly') },
+              { state: noRelocation,     setter: setNoRelocation,     label: t('talentOnboard.dbNoRelocation') },
+              { state: noOvertime,       setter: setNoOvertime,       label: t('talentOnboard.dbNoOvertime') },
+              { state: noCommissionOnly, setter: setNoCommissionOnly, label: t('talentOnboard.dbNoCommissionOnly') },
             ].map(({ state, setter, label }) => (
               <label key={label} className="flex items-center gap-3 border border-ink-200 rounded-lg px-3 py-2.5 cursor-pointer hover:bg-ink-50 transition-colors">
                 <input
@@ -1093,7 +1095,7 @@ export default function TalentOnboarding() {
               </label>
             ))}
             <div className="border border-ink-200 rounded-lg px-3 py-2.5">
-              <label htmlFor="talent-onboard-min-salary" className="block text-sm text-ink-800 mb-1.5">Minimum salary I will accept (RM / month)</label>
+              <label htmlFor="talent-onboard-min-salary" className="block text-sm text-ink-800 mb-1.5">{t('talentOnboard.minSalaryLabel')}</label>
               <div className="flex items-center gap-2">
                 <input
                   id="talent-onboard-min-salary"
@@ -1102,7 +1104,7 @@ export default function TalentOnboarding() {
                   step={100}
                   value={minSalaryHard ?? ''}
                   onChange={(e) => setMinSalaryHard(e.target.value === '' ? null : Math.max(0, parseInt(e.target.value, 10) || 0))}
-                  placeholder="e.g. 4000  (leave blank if flexible)"
+                  placeholder={t('talentOnboard.minSalaryPlaceholder')}
                   className="flex-1 border border-ink-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
                 {minSalaryHard != null && (
@@ -1110,7 +1112,7 @@ export default function TalentOnboarding() {
                     type="button"
                     onClick={() => setMinSalaryHard(null)}
                     className="text-ink-400 hover:text-red-500 text-base leading-none"
-                    aria-label="Clear"
+                    aria-label={t('talentOnboard.clear')}
                   >×</button>
                 )}
               </div>
@@ -1119,15 +1121,15 @@ export default function TalentOnboarding() {
 
           {/* Free-text additional requirements */}
           <div>
-            <p className="text-xs font-semibold text-ink-500 uppercase tracking-wide mb-2">Anything else (optional)</p>
-            <p className="text-xs text-ink-400 mb-2">e.g. "Must be hybrid or remote", "No night shifts", "Company must provide transport"</p>
+            <p className="text-xs font-semibold text-ink-500 uppercase tracking-wide mb-2">{t('talentOnboard.anythingElseHeader')}</p>
+            <p className="text-xs text-ink-400 mb-2">{t('talentOnboard.anythingElseHint')}</p>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={dealBreakerInput}
                 onChange={(e) => setDealBreakerInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addItem() } }}
-                placeholder="Type a requirement and press Enter or Add"
+                placeholder={t('talentOnboard.requirementPlaceholder')}
                 className="flex-1 border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
               <button
@@ -1136,7 +1138,7 @@ export default function TalentOnboarding() {
                 disabled={!dealBreakerInput.trim()}
                 className="px-4 py-2 rounded-lg text-sm font-medium bg-brand-500 text-white disabled:opacity-40 hover:bg-brand-600 transition-colors shrink-0"
               >
-                Add
+                {t('talentOnboard.add')}
               </button>
             </div>
           </div>
@@ -1152,7 +1154,7 @@ export default function TalentOnboarding() {
                     type="button"
                     onClick={() => setDealBreakerItems((prev) => prev.filter((i) => i !== item))}
                     className="text-ink-400 hover:text-red-500 transition-colors shrink-0 text-base leading-none"
-                    aria-label="Remove"
+                    aria-label={t('talentOnboard.remove')}
                   >
                     ×
                   </button>
@@ -1162,7 +1164,7 @@ export default function TalentOnboarding() {
           )}
 
           {!hasAnyDealBreaker && (
-            <p className="text-xs text-ink-400 text-center py-1">No non-negotiables set — you can skip this if you're flexible.</p>
+            <p className="text-xs text-ink-400 text-center py-1">{t('talentOnboard.noDealBreakers')}</p>
           )}
 
           <Button
@@ -1170,7 +1172,7 @@ export default function TalentOnboarding() {
             className="w-full"
             size="lg"
           >
-            {hasAnyDealBreaker ? 'Continue' : "Skip — I'm flexible"}
+            {hasAnyDealBreaker ? t('common.continue') : t('talentOnboard.skipFlexible')}
           </Button>
         </div>
       )
@@ -1180,35 +1182,35 @@ export default function TalentOnboarding() {
       return (
         <div className="space-y-6">
           <p className="text-sm text-ink-600 leading-relaxed">
-            A few more details so we can surface the right roles. All optional — skip anything that doesn&apos;t apply.
+            {t('talentOnboard.extrasIntro')}
           </p>
 
           <SkillChipInput
-            label="Your skills"
-            hint="Tag the skills you've actually used at work. Up to 20."
+            label={t('talentOnboard.skillsLabel')}
+            hint={t('talentOnboard.skillsHint')}
             value={skills}
             onChange={setSkills}
             max={20}
           />
 
           <LanguageRequirement
-            label="Languages you speak"
-            hint="Pick a level so we don't match you to roles that need a level you don't have."
+            label={t('talentOnboard.langProficiencyLabel')}
+            hint={t('talentOnboard.langProficiencyHint')}
             value={languagesProficiency.length > 0 ? languagesProficiency : languages.map((code) => ({ code, level: 'conversational' as const }))}
             onChange={setLanguagesProficiency}
             side="talent"
           />
 
           <OpenToSelect
-            label="I identify as"
-            hint="Tick any that apply — helps employers find you for roles open to your stage."
+            label={t('talentOnboard.identifyAsLabel')}
+            hint={t('talentOnboard.identifyAsHint')}
             value={candidateTypes}
             onChange={setCandidateTypes}
             side="talent"
           />
 
           <div className="space-y-2">
-            <div className="field-label">Days per week I&apos;m available</div>
+            <div className="field-label">{t('talentOnboard.daysPerWeekLabel')}</div>
             <input
               type="number"
               min={1}
@@ -1218,7 +1220,7 @@ export default function TalentOnboarding() {
                 const n = parseInt(e.target.value, 10)
                 setAvailableDaysPerWeek(Number.isFinite(n) ? Math.max(1, Math.min(7, n)) : '')
               }}
-              placeholder="e.g. 5"
+              placeholder={t('talentOnboard.daysPerWeekPlaceholder')}
               className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
@@ -1226,8 +1228,8 @@ export default function TalentOnboarding() {
           <AvailableShifts value={availableShifts} onChange={setAvailableShifts} />
 
           <EnvironmentFlags
-            label="Environments I&apos;m OK with"
-            hint="Tick what you can tolerate. Leave blank if you have no strong preferences."
+            label={t('talentOnboard.environmentsLabel')}
+            hint={t('talentOnboard.environmentsHint')}
             value={environmentPreferences}
             onChange={setEnvironmentPreferences}
           />
@@ -1249,7 +1251,7 @@ export default function TalentOnboarding() {
             className="w-full"
             size="lg"
           >
-            Continue
+            {t('common.continue')}
           </Button>
         </div>
       )
@@ -1259,35 +1261,43 @@ export default function TalentOnboarding() {
       return (
         <div className="space-y-3">
           <p className="text-sm text-ink-600">
-            Last step — upload your documents. Only you and verified employers can see these.
+            {t('talentOnboard.docsIntro')}
           </p>
           <FileRow
-            label="Passport-size photo"
+            label={t('talentOnboard.photoLabel')}
             accept="image/jpeg,image/png,image/webp"
             file={photoFile}
             onChange={setPhotoFile}
-            hint="JPG or PNG, max 2 MB. Used on your candidate profile."
+            hint={t('talentOnboard.photoHint')}
             maxBytes={2 * 1024 * 1024}
             required
+            chooseLabel={t('talentOnboard.choose')}
+            noFileLabel={t('talentOnboard.noFileSelected')}
+            tooLargeLabel={(mb) => t('talentOnboard.fileTooLarge', { mb })}
           />
           <FileRow
-            label="Résumé (PDF or Word)"
+            label={t('talentOnboard.resumeLabel')}
             accept="application/pdf,.doc,.docx"
             file={resumeFile}
             onChange={setResumeFile}
             maxBytes={10 * 1024 * 1024}
             required
+            chooseLabel={t('talentOnboard.choose')}
+            noFileLabel={t('talentOnboard.noFileSelected')}
+            tooLargeLabel={(mb) => t('talentOnboard.fileTooLarge', { mb })}
           />
           <FileRow
-            label="Cover letter (optional)"
+            label={t('talentOnboard.coverLetterLabel')}
             accept="application/pdf,.doc,.docx"
             file={coverLetterFile}
             onChange={setCoverLetterFile}
             maxBytes={10 * 1024 * 1024}
+            chooseLabel={t('talentOnboard.choose')}
+            noFileLabel={t('talentOnboard.noFileSelected')}
+            tooLargeLabel={(mb) => t('talentOnboard.fileTooLarge', { mb })}
           />
           <p className="text-xs text-ink-500 italic">
-            Note: We do not require NRIC or passport scans. An optional Identity-Verification
-            Badge will be available later.
+            {t('talentOnboard.nricNote')}
           </p>
           {err && <Alert tone="red">{err}</Alert>}
           <Button
@@ -1296,7 +1306,7 @@ export default function TalentOnboarding() {
             className="w-full"
             size="lg"
           >
-            Review &amp; confirm
+            {t('talentOnboard.reviewConfirm')}
           </Button>
         </div>
       )
@@ -1304,41 +1314,41 @@ export default function TalentOnboarding() {
 
     if (phase === 'review') {
       const activeConstraints = [
-        noWeekendWork && 'No weekend work',
-        noDrivingLicense && 'No driving licence required',
-        noTravel && 'No travel',
-        noNightShifts && 'No night shifts',
-        noOwnCar && 'No own car required',
-        remoteOnly && 'Remote / hybrid only',
-        noRelocation && 'No relocation',
-        noOvertime && 'No overtime',
-        noCommissionOnly && 'No commission-only pay',
+        noWeekendWork && t('talentOnboard.constraintNoWeekend'),
+        noDrivingLicense && t('talentOnboard.constraintNoLicence'),
+        noTravel && t('talentOnboard.constraintNoTravel'),
+        noNightShifts && t('talentOnboard.constraintNoNightShifts'),
+        noOwnCar && t('talentOnboard.constraintNoOwnCar'),
+        remoteOnly && t('talentOnboard.constraintRemoteOnly'),
+        noRelocation && t('talentOnboard.constraintNoRelocation'),
+        noOvertime && t('talentOnboard.constraintNoOvertime'),
+        noCommissionOnly && t('talentOnboard.constraintNoCommissionOnly'),
       ].filter(Boolean) as string[]
 
       return (
         <div className="space-y-4">
           <p className="text-sm text-ink-600 leading-relaxed">
-            Here's what we've captured. Take a moment to review — when you click <strong>Build my profile</strong> we'll save it right away and finish analysing in the background.
+            {t('talentOnboard.reviewIntroLead')} <strong>{t('talentOnboard.buildMyProfile')}</strong> {t('talentOnboard.reviewIntroTail')}
           </p>
 
-          <ReviewRow label="Chat" value="Completed ✓" ok />
-          <ReviewRow label="Date of birth" value={dob ? `${dob} (encrypted)` : '—'} ok={!!dob} />
-          <ReviewRow label="Gender" value={gender || '—'} ok={!!gender} />
-          <ReviewRow label="Race" value={race || '—'} ok={!!race} />
-          <ReviewRow label="Religion" value={religion || '—'} ok={!!religion} />
-          <ReviewRow label="Languages" value={languages.length > 0 ? languages.join(', ') : '—'} ok={languages.length > 0} />
-          <ReviewRow label="Location" value={locationMatters === true ? `Postcode ${locationPostcode}` : locationMatters === false ? 'Flexible' : '—'} ok={locationMatters !== null} />
+          <ReviewRow label={t('talentOnboard.reviewChat')} value={t('talentOnboard.reviewCompleted')} ok />
+          <ReviewRow label={t('talentOnboard.reviewDob')} value={dob ? t('talentOnboard.reviewDobValue', { dob }) : '—'} ok={!!dob} />
+          <ReviewRow label={t('talentOnboard.reviewGender')} value={gender || '—'} ok={!!gender} />
+          <ReviewRow label={t('talentOnboard.reviewRace')} value={race || '—'} ok={!!race} />
+          <ReviewRow label={t('talentOnboard.reviewReligion')} value={religion || '—'} ok={!!religion} />
+          <ReviewRow label={t('talentOnboard.reviewLanguages')} value={languages.length > 0 ? languages.join(', ') : '—'} ok={languages.length > 0} />
+          <ReviewRow label={t('talentOnboard.reviewLocation')} value={locationMatters === true ? t('talentOnboard.reviewPostcode', { postcode: locationPostcode }) : locationMatters === false ? t('talentOnboard.reviewFlexible') : '—'} ok={locationMatters !== null} />
           <ReviewRow
-            label="Hard constraints"
-            value={activeConstraints.length > 0 ? activeConstraints.join(' · ') : 'None set'}
+            label={t('talentOnboard.reviewHardConstraints')}
+            value={activeConstraints.length > 0 ? activeConstraints.join(' · ') : t('talentOnboard.reviewNoneSet')}
             ok
           />
           {minSalaryHard != null && (
-            <ReviewRow label="Minimum salary" value={`RM ${minSalaryHard.toLocaleString()} / month`} ok />
+            <ReviewRow label={t('talentOnboard.reviewMinSalary')} value={t('talentOnboard.reviewMinSalaryValue', { amount: minSalaryHard.toLocaleString() })} ok />
           )}
-          <ReviewRow label="Photo" value={photoFile?.name ?? '—'} ok={!!photoFile} />
-          <ReviewRow label="Résumé" value={resumeFile?.name ?? '—'} ok={!!resumeFile} />
-          {coverLetterFile && <ReviewRow label="Cover letter" value={coverLetterFile.name} ok />}
+          <ReviewRow label={t('talentOnboard.reviewPhoto')} value={photoFile?.name ?? '—'} ok={!!photoFile} />
+          <ReviewRow label={t('talentOnboard.reviewResume')} value={resumeFile?.name ?? '—'} ok={!!resumeFile} />
+          {coverLetterFile && <ReviewRow label={t('talentOnboard.reviewCoverLetter')} value={coverLetterFile.name} ok />}
 
           {err && <Alert tone="red">{err}</Alert>}
           <Button
@@ -1347,14 +1357,14 @@ export default function TalentOnboarding() {
             className="w-full"
             size="lg"
           >
-            Build my profile
+            {t('talentOnboard.buildMyProfile')}
           </Button>
           <button
             type="button"
             onClick={() => { setErr(null); setPhase('docs') }}
             className="w-full text-xs text-ink-400 hover:text-ink-600 py-1"
           >
-            ← Go back and change something
+            {t('talentOnboard.goBackChange')}
           </button>
         </div>
       )
@@ -1367,13 +1377,13 @@ export default function TalentOnboarding() {
             <>
               <Alert tone="red">{err}</Alert>
               <Button onClick={() => void finalise()} loading={busy} className="w-full">
-                Retry
+                {t('talentOnboard.retry')}
               </Button>
               <button
                 type="button"
                 onClick={() => { setErr(null); setPhase('review') }}
                 className="w-full text-xs text-ink-400 hover:text-ink-600 py-1"
-              >← Back to review</button>
+              >{t('talentOnboard.backToReview')}</button>
             </>
           ) : (
             <>
@@ -1383,9 +1393,9 @@ export default function TalentOnboarding() {
                   <path className="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
               </div>
-              <p className="text-base font-medium text-ink-800">Saving your profile…</p>
+              <p className="text-base font-medium text-ink-800">{t('talentOnboard.savingProfile')}</p>
               <p className="text-sm text-ink-500 leading-relaxed max-w-xs mx-auto">
-                Just a few seconds — uploading your files and locking in your answers. Our AI will finish your summary in the background.
+                {t('talentOnboard.savingProfileHint')}
               </p>
             </>
           )}
@@ -1397,15 +1407,15 @@ export default function TalentOnboarding() {
   })()
 
   const headline =
-    phase === 'resume'       ? 'Welcome back' :
-    phase === 'basics'       ? 'About you' :
-    phase === 'chat'         ? 'Chat with DNJ' :
-    phase === 'dob'          ? 'About you' :
-    phase === 'dealbreakers' ? 'Your non-negotiables' :
-    phase === 'extras'       ? 'A bit more about you' :
-    phase === 'docs'         ? 'Your documents' :
-    phase === 'review'       ? 'Review your profile' :
-    phase === 'submit' || phase === 'done' ? 'Finishing up…' : ''
+    phase === 'resume'       ? t('talentOnboard.headlineWelcomeBack') :
+    phase === 'basics'       ? t('talentOnboard.headlineAboutYou') :
+    phase === 'chat'         ? t('talentOnboard.headlineChat') :
+    phase === 'dob'          ? t('talentOnboard.headlineAboutYou') :
+    phase === 'dealbreakers' ? t('talentOnboard.headlineNonNegotiables') :
+    phase === 'extras'       ? t('talentOnboard.headlineMoreAboutYou') :
+    phase === 'docs'         ? t('talentOnboard.headlineDocuments') :
+    phase === 'review'       ? t('talentOnboard.headlineReview') :
+    phase === 'submit' || phase === 'done' ? t('talentOnboard.headlineFinishing') : ''
 
   const progressPct =
     phase === 'resume'       ? 10 :
@@ -1420,9 +1430,9 @@ export default function TalentOnboarding() {
 
   const DiamondPointsInfo = phase === 'basics' ? (
     <div className="mb-4 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-900">
-      <span className="font-semibold">You get 3 free matches.</span>{' '}
-      Earn Diamond Points by giving feedback, completing interviews, and referring friends — or buy more.
-      {' '}<span className="font-semibold">21 Diamond Points = 1 extra match.</span>
+      <span className="font-semibold">{t('talentOnboard.freeMatchesBold')}</span>{' '}
+      {t('talentOnboard.freeMatchesBody')}
+      {' '}<span className="font-semibold">{t('talentOnboard.freeMatchesRate')}</span>
     </div>
   ) : null
 
@@ -1443,7 +1453,7 @@ export default function TalentOnboarding() {
 
 // ── ProgressStep ─────────────────────────────────────────────────────────────
 
-function ProgressStep({ label, done, active }: { label: string; done?: boolean; active?: boolean }) {
+function ProgressStep({ label, done, active, doneLabel, nextLabel }: { label: string; done?: boolean; active?: boolean; doneLabel: string; nextLabel: string }) {
   return (
     <div className={`flex items-center gap-3 px-3 py-2 rounded-lg border transition-colors ${
       active ? 'bg-brand-50 border-brand-200' : 'border-transparent'
@@ -1462,8 +1472,8 @@ function ProgressStep({ label, done, active }: { label: string; done?: boolean; 
       <span className={`text-sm flex-1 ${done ? 'text-emerald-700' : active ? 'text-brand-700 font-medium' : 'text-ink-500'}`}>
         {label}
       </span>
-      {done && <span className="text-xs text-emerald-600 font-medium">Done ✓</span>}
-      {active && <span className="text-xs text-brand-600 font-medium">Next →</span>}
+      {done && <span className="text-xs text-emerald-600 font-medium">{doneLabel}</span>}
+      {active && <span className="text-xs text-brand-600 font-medium">{nextLabel}</span>}
     </div>
   )
 }
@@ -1478,6 +1488,9 @@ function FileRow({
   required,
   hint,
   maxBytes,
+  chooseLabel,
+  noFileLabel,
+  tooLargeLabel,
 }: {
   label: string
   accept: string
@@ -1486,6 +1499,9 @@ function FileRow({
   required?: boolean
   hint?: string
   maxBytes?: number
+  chooseLabel: string
+  noFileLabel: string
+  tooLargeLabel: (mb: number) => string
 }) {
   const inputId = useId()
   const [sizeErr, setSizeErr] = useState<string | null>(null)
@@ -1510,10 +1526,10 @@ function FileRow({
             {required && <span className="text-red-500 ml-0.5">*</span>}
           </div>
           <div className={`text-xs truncate ${sizeErr ? 'text-red-600' : 'text-ink-500'}`}>
-            {sizeErr ?? (file ? file.name : (hint ?? 'No file selected'))}
+            {sizeErr ?? (file ? file.name : (hint ?? noFileLabel))}
           </div>
         </div>
-        <span className="btn-secondary btn-sm pointer-events-none shrink-0">Choose</span>
+        <span className="btn-secondary btn-sm pointer-events-none shrink-0">{chooseLabel}</span>
       </div>
       <input
         id={inputId}
@@ -1522,7 +1538,7 @@ function FileRow({
         onChange={(e) => {
           const f = e.target.files?.[0] ?? null
           if (f && maxBytes && f.size > maxBytes) {
-            setSizeErr(`File too large — max ${Math.round(maxBytes / 1024 / 1024)} MB`)
+            setSizeErr(tooLargeLabel(Math.round(maxBytes / 1024 / 1024)))
             e.target.value = ''
             onChange(null)
             return

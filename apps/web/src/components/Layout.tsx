@@ -1,4 +1,6 @@
 import { Link, Outlet, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { useSession } from '../state/useSession'
 import NotificationBell from './NotificationBell'
 import SupportForm from './SupportForm'
@@ -8,8 +10,9 @@ import LanguageSwitcher from './LanguageSwitcher'
 export default function Layout() {
   const { profile, signOut, isHM } = useSession()
   const { pathname } = useLocation()
+  const { t } = useTranslation()
 
-  const navItems = navForRole(profile?.role, pathname, { isHM })
+  const navItems = navForRole(profile?.role, pathname, t, { isHM })
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-[#0B1220] text-ink-900 dark:text-white">
@@ -17,7 +20,7 @@ export default function Layout() {
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-ink-900 text-white px-3 py-2 rounded z-50 text-sm"
       >
-        Skip to main content
+        {t('landing.skipToMain')}
       </a>
 
       <header className="app-shell-header dark:bg-[#0B1742] dark:border-gray-700" role="banner">
@@ -25,7 +28,7 @@ export default function Layout() {
           <div className="flex items-center gap-8">
             <Link
               to="/home"
-              aria-label="DNJ home"
+              aria-label={t('landing.brandHomeAria')}
               className="flex items-center gap-2.5 group"
             >
               <Logo />
@@ -33,7 +36,7 @@ export default function Layout() {
             </Link>
 
             {navItems.length > 0 && (
-              <nav className="hidden md:flex items-center gap-1" aria-label="Primary">
+              <nav className="hidden md:flex items-center gap-1" aria-label={t('nav.primaryAria')}>
                 {navItems.map((n) => (
                   <Link
                     key={n.href}
@@ -56,13 +59,13 @@ export default function Layout() {
             )}
           </div>
 
-          <div className="flex items-center gap-3" aria-label="User navigation">
+          <div className="flex items-center gap-3" aria-label={t('nav.userNavAria')}>
             <LanguageSwitcher />
             <DarkModeToggle />
 {profile?.role === 'talent' && profile?.points != null && (
               <Link to="/points" className="hidden sm:inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-accent-500/10 text-accent-600 ring-1 ring-accent-500/20 hover:bg-accent-500/15">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.5L12 16.9 5.8 21.4l2.4-7.5L2 9.4h7.6L12 2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>
-                {profile.points} Diamond Points
+                {t('nav.pointsPill', { points: profile.points })}
               </Link>
             )}
             <NotificationBell />
@@ -80,13 +83,13 @@ export default function Layout() {
               onClick={() => void signOut()}
               className="btn-ghost btn-sm"
             >
-              Sign out
+              {t('common.signOut')}
             </button>
           </div>
         </div>
 
         {navItems.length > 0 && (
-          <nav className="md:hidden border-t border-ink-100 overflow-x-auto bg-white/80 backdrop-blur" aria-label="Primary mobile" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+          <nav className="md:hidden border-t border-ink-100 overflow-x-auto bg-white/80 backdrop-blur" aria-label={t('nav.primaryMobileAria')} style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
             <div className="flex gap-1 px-4 py-2 whitespace-nowrap">
               {navItems.map((n) => (
                 <Link
@@ -119,7 +122,7 @@ export default function Layout() {
         <div className="max-w-7xl mx-auto px-4 md:px-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-ink-500">
           <div className="flex items-center gap-2">
             <Logo small />
-            <span>© 2026 DNJ · Curated recruitment for Malaysia</span>
+            <span>{t('footer.copyright')}</span>
           </div>
           {/* F20 — footer link tap targets bumped to 44×24 minimum (WCAG 2.2 AA).
               Adds vertical padding without changing the visual line. */}
@@ -128,19 +131,19 @@ export default function Layout() {
               to="/privacy"
               className="hover:text-ink-900 transition-colors inline-flex items-center min-h-[44px] px-2 -mx-2"
             >
-              Privacy
+              {t('footer.privacy')}
             </Link>
             <Link
               to="/terms"
               className="hover:text-ink-900 transition-colors inline-flex items-center min-h-[44px] px-2 -mx-2"
             >
-              Terms
+              {t('footer.terms')}
             </Link>
             <Link
               to="/data-requests"
               className="hover:text-ink-900 transition-colors inline-flex items-center min-h-[44px] px-2 -mx-2"
             >
-              Data requests
+              {t('footer.dataRequests')}
             </Link>
           </div>
         </div>
@@ -149,45 +152,45 @@ export default function Layout() {
   )
 }
 
-function navForRole(role: string | undefined, pathname: string, opts: { isHM?: boolean } = {}) {
+function navForRole(role: string | undefined, pathname: string, t: TFunction, opts: { isHM?: boolean } = {}) {
   const linkFor = (href: string, label: string, badge?: string, end = false) => ({
     href, label, badge,
     active: pathname === href || (!end && href !== '/home' && pathname.startsWith(href)),
   })
   const restaurantEnabled = import.meta.env.VITE_ENABLE_RESTAURANT === 'true'
-  const restaurant = linkFor('/restaurant', 'Restaurant', 'DEV')
+  const restaurant = linkFor('/restaurant', t('nav.restaurant'), 'DEV')
   if (role === 'talent') return [
-    linkFor('/talent', 'My offers', undefined, true),
-    linkFor('/talent/profile', 'Profile'),
+    linkFor('/talent', t('nav.myOffers'), undefined, true),
+    linkFor('/talent/profile', t('nav.profile')),
   ]
   if (role === 'hiring_manager') return [
-    linkFor('/hm', 'Candidates'),
-    linkFor('/hm/roles', 'My roles'),
-    linkFor('/hm/post-role', 'Post role'),
-    linkFor('/hm/company', 'Company'),
-    linkFor('/hm/settings', 'Settings'),
-    linkFor('/hm/account', 'Account'),
+    linkFor('/hm', t('nav.candidates')),
+    linkFor('/hm/roles', t('nav.myRoles')),
+    linkFor('/hm/post-role', t('nav.postRole')),
+    linkFor('/hm/company', t('nav.company')),
+    linkFor('/hm/settings', t('nav.settings')),
+    linkFor('/hm/account', t('nav.account')),
   ]
   if (role === 'hr_admin') {
     const base = [
-      linkFor('/hr', 'Scheduling'),
-      linkFor('/hr/invite', 'Invite HM'),
+      linkFor('/hr', t('nav.scheduling')),
+      linkFor('/hr/invite', t('nav.inviteHm')),
     ]
     // Small-company case: HR self-registered as HM. Surface HM workspace
     // alongside the HR nav so they can switch contexts without URL gymnastics.
     if (opts.isHM) {
       return [
         ...base,
-        linkFor('/hm', 'Candidates (HM)'),
-        linkFor('/hm/roles', 'My roles'),
-        linkFor('/hm/post-role', 'Post role'),
+        linkFor('/hm', t('nav.candidatesHm')),
+        linkFor('/hm/roles', t('nav.myRoles')),
+        linkFor('/hm/post-role', t('nav.postRole')),
       ]
     }
     return base
   }
   if (role === 'admin') return restaurantEnabled
-    ? [linkFor('/admin', 'Admin'), restaurant]
-    : [linkFor('/admin', 'Admin')]
+    ? [linkFor('/admin', t('nav.admin')), restaurant]
+    : [linkFor('/admin', t('nav.admin'))]
   if (role === 'restaurant_staff' && restaurantEnabled) return [restaurant]
   return []
 }

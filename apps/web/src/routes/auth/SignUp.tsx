@@ -9,11 +9,11 @@ import Turnstile from '../../components/Turnstile'
 import { useSeo } from '../../lib/useSeo'
 
 export default function SignUp() {
-  useSeo({
-    title: 'Create account',
-    description: "Join DNJ — Malaysia's curated recruitment platform. Three matches, zero noise.",
-  })
   const { t } = useTranslation()
+  useSeo({
+    title: t('signup.seoTitle'),
+    description: t('signup.seoDescription'),
+  })
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const referralCode = (params.get('ref') ?? '').toUpperCase().slice(0, 16)
@@ -46,11 +46,11 @@ export default function SignUp() {
     && consents.dob && consents.tos && !!captchaToken
 
   function getBlockReason(): string | null {
-    if (fullName.length <= 1) return 'Please enter your full name.'
-    if (email.length <= 3) return 'Please enter a valid email address.'
+    if (fullName.length <= 1) return t('signup.errorFullName')
+    if (email.length <= 3) return t('signup.errorEmail')
     if (!pwOk) return t('auth.passwordWeak')
-    if (!consents.dob || !consents.tos) return 'Please accept the required consents above.'
-    if (!captchaToken) return 'Please complete the security check (or re-verify if it expired).'
+    if (!consents.dob || !consents.tos) return t('signup.errorConsents')
+    if (!captchaToken) return t('signup.errorCaptcha')
     return null
   }
 
@@ -149,7 +149,7 @@ export default function SignUp() {
       const callbackRole = role !== 'talent' ? `&role=${role}` : ''
       navigate(`/auth/callback?type=signup${callbackRole}`, { replace: true })
     } catch {
-      setErr('Network error — please check your connection and try again.')
+      setErr(t('signup.networkError'))
       setCaptchaToken(null)
     } finally {
       setBusy(false)
@@ -190,9 +190,9 @@ export default function SignUp() {
               color: isHiring ? '#3b82f6' : '#b8860b',
             }}
           >
-            Referred by code{' '}
+            {t('signup.referredByCode')}{' '}
             <span className="font-mono font-semibold">{referralCode}</span>
-            {' '}— your friend earns points when you finish onboarding.
+            {' '}{t('signup.referredByCodeTail')}
           </div>
         )}
 
@@ -255,18 +255,18 @@ export default function SignUp() {
                 <Consent
                   checked={consents.dob}
                   onChange={(v) => setConsents((c) => ({ ...c, dob: v }))}
-                  label="I consent to DNJ collecting my company and professional data to power AI-driven talent matching. All data is fully encrypted and never disclosed to third parties."
+                  label={t('signup.consentDataHr')}
                   required
                 />
                 <Consent
                   checked={consents.market}
                   onChange={(v) => setConsents((c) => ({ ...c, market: v }))}
-                  label="I consent to anonymised comparison of our compensation benchmarks against market salary data."
+                  label={t('signup.consentMarketHr')}
                 />
                 <Consent
                   checked={consents.tos}
                   onChange={(v) => setConsents((c) => ({ ...c, tos: v }))}
-                  label="I have read and agree to the Terms of Service and Privacy Notice."
+                  label={t('signup.consentTos')}
                   required
                 />
               </>
@@ -275,18 +275,18 @@ export default function SignUp() {
                 <Consent
                   checked={consents.dob}
                   onChange={(v) => setConsents((c) => ({ ...c, dob: v }))}
-                  label="I consent to DNJ collecting my professional data to power AI-driven talent matching. All data is fully encrypted and never disclosed to third parties."
+                  label={t('signup.consentDataHm')}
                   required
                 />
                 <Consent
                   checked={consents.market}
                   onChange={(v) => setConsents((c) => ({ ...c, market: v }))}
-                  label="I consent to anonymised comparison of compensation benchmarks against market salary data."
+                  label={t('signup.consentMarketHm')}
                 />
                 <Consent
                   checked={consents.tos}
                   onChange={(v) => setConsents((c) => ({ ...c, tos: v }))}
-                  label="I have read and agree to the Terms of Service and Privacy Notice."
+                  label={t('signup.consentTos')}
                   required
                 />
               </>
@@ -295,18 +295,18 @@ export default function SignUp() {
                 <Consent
                   checked={consents.dob}
                   onChange={(v) => setConsents((c) => ({ ...c, dob: v }))}
-                  label="I consent to DNJ collecting my personal data to power advanced AI-driven compatibility analysis. My data is encrypted at rest and is never disclosed to employers without my explicit consent at the offer stage."
+                  label={t('signup.consentDataTalent')}
                   required
                 />
                 <Consent
                   checked={consents.market}
                   onChange={(v) => setConsents((c) => ({ ...c, market: v }))}
-                  label="I consent to anonymised comparison of my salary expectations against market data."
+                  label={t('signup.consentMarketTalent')}
                 />
                 <Consent
                   checked={consents.tos}
                   onChange={(v) => setConsents((c) => ({ ...c, tos: v }))}
-                  label="I have read and agree to the Terms of Service and Privacy Notice."
+                  label={t('signup.consentTos')}
                   required
                 />
               </>
@@ -349,28 +349,28 @@ export default function SignUp() {
             className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4"
           >
             <div>
-              <h2 id="google-modal-title" className="text-base font-semibold text-ink-900">Before continuing with Google</h2>
-              <p className="text-xs text-ink-400 mt-1">Please review and accept the required consents to proceed.</p>
+              <h2 id="google-modal-title" className="text-base font-semibold text-ink-900">{t('signup.googleModalTitle')}</h2>
+              <p className="text-xs text-ink-400 mt-1">{t('signup.googleModalSubtitle')}</p>
             </div>
 
             <div className="space-y-3">
               {isHRAdmin ? (
                 <>
-                  <Consent checked={consents.dob} onChange={(v) => setConsents((c) => ({ ...c, dob: v }))} label="I consent to DNJ collecting my company and professional data to power AI-driven talent matching. All data is fully encrypted and never disclosed to third parties." required />
-                  <Consent checked={consents.market} onChange={(v) => setConsents((c) => ({ ...c, market: v }))} label="I consent to anonymised comparison of our compensation benchmarks against market salary data." />
-                  <Consent checked={consents.tos} onChange={(v) => setConsents((c) => ({ ...c, tos: v }))} label="I have read and agree to the Terms of Service and Privacy Notice." required />
+                  <Consent checked={consents.dob} onChange={(v) => setConsents((c) => ({ ...c, dob: v }))} label={t('signup.consentDataHr')} required />
+                  <Consent checked={consents.market} onChange={(v) => setConsents((c) => ({ ...c, market: v }))} label={t('signup.consentMarketHr')} />
+                  <Consent checked={consents.tos} onChange={(v) => setConsents((c) => ({ ...c, tos: v }))} label={t('signup.consentTos')} required />
                 </>
               ) : role === 'hiring_manager' ? (
                 <>
-                  <Consent checked={consents.dob} onChange={(v) => setConsents((c) => ({ ...c, dob: v }))} label="I consent to DNJ collecting my professional data to power AI-driven talent matching. All data is fully encrypted and never disclosed to third parties." required />
-                  <Consent checked={consents.market} onChange={(v) => setConsents((c) => ({ ...c, market: v }))} label="I consent to anonymised comparison of compensation benchmarks against market salary data." />
-                  <Consent checked={consents.tos} onChange={(v) => setConsents((c) => ({ ...c, tos: v }))} label="I have read and agree to the Terms of Service and Privacy Notice." required />
+                  <Consent checked={consents.dob} onChange={(v) => setConsents((c) => ({ ...c, dob: v }))} label={t('signup.consentDataHm')} required />
+                  <Consent checked={consents.market} onChange={(v) => setConsents((c) => ({ ...c, market: v }))} label={t('signup.consentMarketHm')} />
+                  <Consent checked={consents.tos} onChange={(v) => setConsents((c) => ({ ...c, tos: v }))} label={t('signup.consentTos')} required />
                 </>
               ) : (
                 <>
-                  <Consent checked={consents.dob} onChange={(v) => setConsents((c) => ({ ...c, dob: v }))} label="I consent to DNJ collecting my personal data to power advanced AI-driven compatibility analysis. My data is encrypted at rest and is never disclosed to employers without my explicit consent at the offer stage." required />
-                  <Consent checked={consents.market} onChange={(v) => setConsents((c) => ({ ...c, market: v }))} label="I consent to anonymised comparison of my salary expectations against market data." />
-                  <Consent checked={consents.tos} onChange={(v) => setConsents((c) => ({ ...c, tos: v }))} label="I have read and agree to the Terms of Service and Privacy Notice." required />
+                  <Consent checked={consents.dob} onChange={(v) => setConsents((c) => ({ ...c, dob: v }))} label={t('signup.consentDataTalent')} required />
+                  <Consent checked={consents.market} onChange={(v) => setConsents((c) => ({ ...c, market: v }))} label={t('signup.consentMarketTalent')} />
+                  <Consent checked={consents.tos} onChange={(v) => setConsents((c) => ({ ...c, tos: v }))} label={t('signup.consentTos')} required />
                 </>
               )}
             </div>
@@ -391,7 +391,7 @@ export default function SignUp() {
                 onClick={() => setShowGoogleModal(false)}
                 className="text-sm text-ink-400 hover:text-ink-600 text-center py-1 transition-colors"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
             </div>
           </div>

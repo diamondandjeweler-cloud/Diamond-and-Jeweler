@@ -61,20 +61,20 @@ const ACTIVE = [
   'offer_made',
 ]
 
-const TALENT_OUTCOMES = [
-  { value: '', label: 'Select outcome (optional)' },
-  { value: 'accepted_offer',      label: '✅ I accepted the offer' },
-  { value: 'offer_declined',      label: '❌ I declined the offer' },
-  { value: 'company_ghosted',     label: '👻 Company ghosted me' },
-  { value: 'passed_probation',    label: '🏆 Passed probation' },
-  { value: 'failed_probation',    label: '⚠️ Did not pass probation' },
-  { value: 'still_employed_6m',   label: '📅 Still employed at 6 months' },
-  { value: 'still_employed_1y',   label: '🎉 Still employed at 1 year' },
+const TALENT_OUTCOME_KEYS: { value: string; emoji: string; tKey: string }[] = [
+  { value: '',                  emoji: '',    tKey: 'talentDash.outcomeSelect' },
+  { value: 'accepted_offer',    emoji: '✅ ', tKey: 'talentDash.outcomeAccepted' },
+  { value: 'offer_declined',    emoji: '❌ ', tKey: 'talentDash.outcomeDeclined' },
+  { value: 'company_ghosted',   emoji: '👻 ', tKey: 'talentDash.outcomeGhosted' },
+  { value: 'passed_probation',  emoji: '🏆 ', tKey: 'talentDash.outcomePassedProbation' },
+  { value: 'failed_probation',  emoji: '⚠️ ', tKey: 'talentDash.outcomeFailedProbation' },
+  { value: 'still_employed_6m', emoji: '📅 ', tKey: 'talentDash.outcomeEmployed6m' },
+  { value: 'still_employed_1y', emoji: '🎉 ', tKey: 'talentDash.outcomeEmployed1y' },
 ]
 
 export default function TalentDashboard() {
-  useSeo({ title: 'My offers', noindex: true })
   const { t } = useTranslation()
+  useSeo({ title: t('talentDash.seoTitle'), noindex: true })
   const { session, profile } = useSession()
   const push = usePushSubscription()
   const location = useLocation()
@@ -217,20 +217,22 @@ export default function TalentDashboard() {
           phs_accept_rate: (talent as unknown as { phs_accept_rate: number | null }).phs_accept_rate ?? null,
         })
         const t2 = talent as unknown as Record<string, unknown>
+        // Push i18n keys (not raw English) — ProfileCompletenessBar runs each
+        // through t() so the chips localise.
         const gaps: string[] = []
-        if (!t2.current_employment_status)                gaps.push('Current employment status')
-        if (t2.current_salary == null)                    gaps.push('Current salary')
-        if (!t2.education_level)                          gaps.push('Education level')
-        if (!t2.work_authorization)                       gaps.push('Work authorization')
-        if (t2.expected_salary_min == null)               gaps.push('Expected salary range')
+        if (!t2.current_employment_status)                gaps.push('talentDash.gapEmploymentStatus')
+        if (t2.current_salary == null)                    gaps.push('talentDash.gapCurrentSalary')
+        if (!t2.education_level)                          gaps.push('talentDash.gapEducationLevel')
+        if (!t2.work_authorization)                       gaps.push('talentDash.gapWorkAuthorization')
+        if (t2.expected_salary_min == null)               gaps.push('talentDash.gapExpectedSalary')
         if (!Array.isArray(t2.employment_type_preferences) || (t2.employment_type_preferences as unknown[]).length === 0)
-                                                          gaps.push('Employment type preference')
-        if (!t2.preferred_management_style)               gaps.push('Management style preference')
-        if (!t2.career_goal_horizon)                      gaps.push('Career goal')
-        if (!t2.job_intention)                            gaps.push('Long-term intention')
-        if (t2.has_noncompete == null)                    gaps.push('Non-compete status')
-        if (!t2.salary_structure_preference)              gaps.push('Salary structure preference')
-        if (t2.notice_period_days == null)                gaps.push('Notice period')
+                                                          gaps.push('talentDash.gapEmploymentType')
+        if (!t2.preferred_management_style)               gaps.push('talentDash.gapManagementStyle')
+        if (!t2.career_goal_horizon)                      gaps.push('talentDash.gapCareerGoal')
+        if (!t2.job_intention)                            gaps.push('talentDash.gapLongTermIntention')
+        if (t2.has_noncompete == null)                    gaps.push('talentDash.gapNonCompete')
+        if (!t2.salary_structure_preference)              gaps.push('talentDash.gapSalaryStructure')
+        if (t2.notice_period_days == null)                gaps.push('talentDash.gapNoticePeriod')
         if (!cancelled) setProfileGaps(gaps)
 
         // Phase 2 — matches (needs talent.id) and the urgent role (needs
@@ -284,7 +286,7 @@ export default function TalentDashboard() {
         }
       } catch (e) {
         if (!cancelled) {
-          setErr(e instanceof Error ? e.message : 'Failed to load offers')
+          setErr(e instanceof Error ? e.message : t('talentDash.errLoadOffers'))
           // Failed load — settle the skeletons so the user sees the error banner
           // and the empty state instead of indefinite shimmer. The error banner
           // already explains the situation; nullable arrays would just trap.
@@ -338,7 +340,7 @@ export default function TalentDashboard() {
     })
 
     return () => { cancelled = true; if (channel) void supabase.removeChannel(channel) }
-  }, [userId, loadRounds, loadProposals])
+  }, [userId, loadRounds, loadProposals, t])
 
   // Poll the talents row while extraction is in flight so the banner clears
   // and matches start flowing once the worker finishes. Stops on terminal state.
@@ -387,7 +389,7 @@ export default function TalentDashboard() {
       setReviveStep('idle')
     } catch (e) {
       if (!mountedRef.current) return
-      setErr(e instanceof Error ? e.message : 'Failed to revive profile')
+      setErr(e instanceof Error ? e.message : t('talentDash.errReviveProfile'))
     } finally {
       if (mountedRef.current) setReviving(false)
     }
@@ -398,10 +400,10 @@ export default function TalentDashboard() {
     try {
       const res = await callFunction<{ paymentUrl: string }>('unlock-extra-match', { match_type: 'talent_extra' })
       if (res?.paymentUrl) window.location.href = res.paymentUrl
-      else setUnlockMsg({ tone: 'red', text: 'Could not start payment — no URL returned.' })
+      else setUnlockMsg({ tone: 'red', text: t('talentDash.errPaymentNoUrl') })
     } catch (e) {
       console.error('[unlock-extra-match] failed', e)
-      setUnlockMsg({ tone: 'red', text: e instanceof Error ? e.message : 'Failed to start payment' })
+      setUnlockMsg({ tone: 'red', text: e instanceof Error ? e.message : t('talentDash.errPaymentStart') })
     } finally { setUnlocking(false) }
   }
 
@@ -410,23 +412,23 @@ export default function TalentDashboard() {
     if (pointsBalance != null && pointsBalance < POINTS_PER_EXTRA) {
       setUnlockMsg({
         tone: 'red',
-        text: `Need ${POINTS_PER_EXTRA} Diamond Points (you have ${pointsBalance}). Earn more from feedback, interviews, or referrals.`,
+        text: t('talentDash.redeemNeedPoints', { cost: POINTS_PER_EXTRA, balance: pointsBalance }),
       })
       return
     }
-    if (!window.confirm(`Spend ${POINTS_PER_EXTRA} Diamond Points to unlock 1 extra offer curated for you?`)) return
+    if (!window.confirm(t('talentDash.redeemConfirm', { cost: POINTS_PER_EXTRA }))) return
     setRedeemingExtra(true)
     try {
       await callFunction<{ message: string; cost: number }>('redeem-points', { target_type: 'talent' })
       if (!mountedRef.current) return
-      setUnlockMsg({ tone: 'green', text: `Redeemed ${POINTS_PER_EXTRA} Diamond Points — your extra offer is being surfaced now.` })
+      setUnlockMsg({ tone: 'green', text: t('talentDash.redeemSuccess', { cost: POINTS_PER_EXTRA }) })
       setPointsBalance((p) => (p == null ? p : p - POINTS_PER_EXTRA))
       setExtraUsed((u) => u + 1)
       reloadTimerRef.current = setTimeout(() => { window.location.reload() }, 1500)
     } catch (e) {
       console.error('[redeem-points] failed', e)
       if (!mountedRef.current) return
-      setUnlockMsg({ tone: 'red', text: e instanceof Error ? e.message : 'Failed to redeem points' })
+      setUnlockMsg({ tone: 'red', text: e instanceof Error ? e.message : t('talentDash.errRedeemPoints') })
     } finally { if (mountedRef.current) setRedeemingExtra(false) }
   }
 
@@ -437,16 +439,16 @@ export default function TalentDashboard() {
         tone: 'amber',
         text: (
           <>
-            You need {URGENT_COST} Diamond Points (you have {pointsBalance}).{' '}
+            {t('talentDash.urgentNeedPoints', { cost: URGENT_COST, balance: pointsBalance })}{' '}
             <Link to="/points" className="font-semibold underline hover:text-ink-900">
-              Buy or earn more →
+              {t('talentDash.urgentBuyOrEarn')}
             </Link>
           </>
         ),
       })
       return
     }
-    if (!window.confirm(`Spend ${URGENT_COST} Diamond Points to instantly surface 1 top-matching open job?`)) return
+    if (!window.confirm(t('talentDash.urgentConfirm', { cost: URGENT_COST }))) return
     setUrgentBusy(true)
     try {
       const res = await callFunction<{
@@ -459,17 +461,17 @@ export default function TalentDashboard() {
       if (!mountedRef.current) return
       if (typeof res.balance_after === 'number') setPointsBalance(res.balance_after)
       if (!res.result) {
-        setUrgentMsg({ tone: 'amber', text: res.message ?? 'No matching open role right now.' })
+        setUrgentMsg({ tone: 'amber', text: res.message ?? t('talentDash.urgentNoRole') })
       } else {
         setUrgentResult({ role: res.result.role })
         setUrgentMsg({
           tone: 'green',
-          text: `Found 1 top-matching open job. Balance: ${res.balance_after} Diamond Points.`,
+          text: t('talentDash.urgentFound', { balance: res.balance_after }),
         })
       }
     } catch (e) {
       if (!mountedRef.current) return
-      setUrgentMsg({ tone: 'red', text: e instanceof Error ? e.message : 'Urgent search failed.' })
+      setUrgentMsg({ tone: 'red', text: e instanceof Error ? e.message : t('talentDash.urgentFailed') })
     } finally { if (mountedRef.current) setUrgentBusy(false) }
   }
 
@@ -508,7 +510,7 @@ export default function TalentDashboard() {
         // Only revert if the status is still the optimistically-set value.
         return (nextStatus && m.status === nextStatus) ? prev : m
       }))
-      setErr(e instanceof Error ? e.message : `Action failed: ${action}`)
+      setErr(e instanceof Error ? e.message : t('talentDash.errActionFailed'))
     } finally {
       if (mountedRef.current) setActionBusy(null)
     }
@@ -529,7 +531,7 @@ export default function TalentDashboard() {
       setMatches((ms) => (ms ?? []).map((m) => (m.id === matchId ? { ...m, status: 'interview_scheduled' } : m)))
     } catch (e) {
       if (!mountedRef.current) return
-      setErr(e instanceof Error ? e.message : 'Could not confirm the interview slot')
+      setErr(e instanceof Error ? e.message : t('talentDash.errConfirmSlot'))
     } finally {
       if (mountedRef.current) setActionBusy(null)
     }
@@ -547,7 +549,7 @@ export default function TalentDashboard() {
       await loadProposals([matchId])
     } catch (e) {
       if (!mountedRef.current) return
-      setErr(e instanceof Error ? e.message : 'Could not decline the proposal')
+      setErr(e instanceof Error ? e.message : t('talentDash.errDeclineProposal'))
     } finally {
       if (mountedRef.current) setActionBusy(null)
     }
@@ -574,7 +576,7 @@ export default function TalentDashboard() {
     } catch (e) {
       if (!mountedRef.current) return
       setTalentFeedbackState((s) => ({ ...s, [matchId]: { ...s[matchId], saving: false } }))
-      setErr(e instanceof Error ? e.message : 'Failed to save feedback')
+      setErr(e instanceof Error ? e.message : t('talentDash.errSaveFeedback'))
     }
   }
 
@@ -621,8 +623,8 @@ export default function TalentDashboard() {
     <div>
       <PageHeader
         eyebrow={profile && t('dashboard.talentGreeting', { name: getDisplayName(profile) })}
-        title="Your top opportunities"
-        description="Up to three curated matches at a time. Accept or decline — no applications needed."
+        title={t('talentDash.pageTitle')}
+        description={t('talentDash.pageDescription')}
         actions={
           <div className="flex items-center gap-2 flex-wrap">
             {push.state === 'idle' && push.vapidReady && Notification.permission !== 'denied' && (
@@ -631,25 +633,25 @@ export default function TalentDashboard() {
                 onClick={() => void push.subscribe()}
                 disabled={push.subscribing}
                 className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-brand-200 text-brand-700 hover:bg-brand-50 transition-colors disabled:opacity-60"
-                aria-label="Enable match notifications"
+                aria-label={t('talentDash.enableNotificationsAria')}
               >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                   <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
                   <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                 </svg>
-                Enable match alerts
+                {t('talentDash.enableMatchAlerts')}
               </button>
             )}
             {push.state === 'subscribed' && (
               <span className="text-xs text-green-600 font-medium flex items-center gap-1">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><polyline points="20 6 9 17 4 12" /></svg>
-                Match alerts on
+                {t('talentDash.matchAlertsOn')}
               </span>
             )}
             {push.showIosHint && (
-              <span className="text-xs text-gray-500">Add DNJ to your home screen to enable alerts on iPhone</span>
+              <span className="text-xs text-gray-500">{t('talentDash.iosHint')}</span>
             )}
-            <Link to="/talent/profile" className="btn-secondary">Edit profile</Link>
+            <Link to="/talent/profile" className="btn-secondary">{t('talentDash.editProfile')}</Link>
           </div>
         }
       />
@@ -670,9 +672,9 @@ export default function TalentDashboard() {
             <path className="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
           <div className="text-sm text-brand-900">
-            <div className="font-semibold">Your profile is being analysed</div>
+            <div className="font-semibold">{t('talentDash.analysingTitle')}</div>
             <div className="text-brand-800 mt-0.5">
-              Our AI is putting together your career summary. This usually finishes in under 2 minutes — your matches will start appearing once it's ready.
+              {t('talentDash.analysingBody')}
             </div>
           </div>
         </div>
@@ -680,28 +682,30 @@ export default function TalentDashboard() {
 
       {extractionStatus === 'failed' && (
         <div className="mb-6"><Alert tone="red">
-          We couldn't finish analysing your profile. <Link to="/talent/profile" className="underline font-semibold">Open your profile</Link> to retry.
+          {t('talentDash.analysisFailedLead')}{' '}
+          <Link to="/talent/profile" className="underline font-semibold">{t('talentDash.openYourProfile')}</Link>{' '}
+          {t('talentDash.analysisFailedTail')}
         </Alert></div>
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
         <Stat
-          label="Awaiting response"
+          label={t('talentDash.statAwaiting')}
           value={openCount == null ? <Skeleton width={40} height={28} /> : openCount}
           tone={(openCount ?? 0) > 0 ? 'brand' : 'default'}
         />
         <Stat
-          label="In progress"
+          label={t('talentDash.statInProgress')}
           value={inFlight == null ? <Skeleton width={40} height={28} /> : inFlight}
         />
         <Stat
-          label="Total active"
+          label={t('talentDash.statTotalActive')}
           value={totalActive == null ? <Skeleton width={40} height={28} /> : totalActive}
         />
         <Stat
-          label="Slots available"
+          label={t('talentDash.statSlotsAvailable')}
           value={slotsAvailable == null ? <Skeleton width={40} height={28} /> : slotsAvailable}
-          hint="We curate up to 3 at a time"
+          hint={t('talentDash.statSlotsHint')}
         />
       </div>
 
@@ -728,9 +732,9 @@ export default function TalentDashboard() {
       ) : matches.length === 0 ? (
         <Card>
           <EmptyState
-            title="Still finding your matches"
-            description="Our engine reviews new roles every hour. You'll see up to 3 offers as soon as they're ready. Pilot estimate: ~14 days."
-            action={<Link to="/talent/profile" className="btn-secondary">Refine your profile</Link>}
+            title={t('talentDash.emptyTitle')}
+            description={t('talentDash.emptyDescription')}
+            action={<Link to="/talent/profile" className="btn-secondary">{t('talentDash.refineProfile')}</Link>}
           />
         </Card>
       ) : (
@@ -764,15 +768,15 @@ export default function TalentDashboard() {
           <div className="flex items-start justify-between gap-3 mb-2">
             <div>
               <div className="text-sm font-semibold text-amber-900 mb-0.5">
-                🔥 Urgent Priority Job Search — {URGENT_COST} Diamond Points
+                {t('talentDash.urgentHeading', { cost: URGENT_COST })}
               </div>
               <p className="text-sm text-ink-600">
-                Surface 1 top-matching open role on the spot — no waiting on the queue.
+                {t('talentDash.urgentSubtitle')}
               </p>
             </div>
             {pointsBalance != null && (
               <div className="text-xs text-ink-600 whitespace-nowrap">
-                Balance: <span className="font-semibold text-ink-900">{pointsBalance} Diamond Points</span>
+                {t('talentDash.balanceLabel')} <span className="font-semibold text-ink-900">{t('talentDash.pointsValue', { n: pointsBalance })}</span>
               </div>
             )}
           </div>
@@ -782,7 +786,7 @@ export default function TalentDashboard() {
           {urgentResult && (
             <div className="mb-3 rounded-lg border-2 border-amber-300 bg-white p-4">
               <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-900">
-                🔥 Urgent Match
+                {t('talentDash.urgentMatchBadge')}
               </div>
               <div className="text-base font-semibold text-ink-900">{urgentResult.role.title}</div>
               <div className="mt-0.5 text-xs text-ink-500 flex gap-2 flex-wrap">
@@ -791,19 +795,19 @@ export default function TalentDashboard() {
               </div>
               {(urgentResult.role.salary_min || urgentResult.role.salary_max) && (
                 <div className="mt-1 text-sm text-ink-700">
-                  RM {fmt(urgentResult.role.salary_min)} – {fmt(urgentResult.role.salary_max)} <span className="text-ink-400">/ month</span>
+                  RM {fmt(urgentResult.role.salary_min)} – {fmt(urgentResult.role.salary_max)} <span className="text-ink-400">{t('talentDash.perMonth')}</span>
                 </div>
               )}
               {urgentResult.role.description && (
                 <p className="mt-2 text-sm text-ink-600 line-clamp-3">{urgentResult.role.description}</p>
               )}
               <p className="mt-3 text-xs text-ink-500">
-                Stay open to offers — if this employer's match engine surfaces you, the role will appear above as a regular match.
+                {t('talentDash.urgentStayOpen')}
               </p>
             </div>
           )}
           <Button onClick={handleUrgentJobSearch} disabled={urgentBusy}>
-            {urgentBusy ? 'Searching…' : `Urgent — ${URGENT_COST} Diamond Points`}
+            {urgentBusy ? t('talentDash.searching') : t('talentDash.urgentButton', { cost: URGENT_COST })}
           </Button>
         </div>
       </Card>
@@ -811,11 +815,13 @@ export default function TalentDashboard() {
       {(matches?.length ?? 0) >= 3 && extraUsed < 3 && (
         <Card className="mt-8 border-dashed border-accent-500">
           <div className="p-6 text-center">
-            <div className="text-sm font-medium text-ink-700 mb-1">Already looked at all three?</div>
+            <div className="text-sm font-medium text-ink-700 mb-1">{t('talentDash.extraLookedAll')}</div>
             <p className="text-sm text-ink-500 mb-4">
-              Unlock one extra offer curated for you. You have {3 - extraUsed} extra unlock{3 - extraUsed === 1 ? '' : 's'} remaining.
+              {t('talentDash.extraUnlockRemaining', { count: 3 - extraUsed })}
               <br />
-              Pay RM 9.90 or spend {POINTS_PER_EXTRA} Diamond Points{pointsBalance != null ? ` (balance: ${pointsBalance})` : ''}.
+              {pointsBalance != null
+                ? t('talentDash.extraPayOrSpendBalance', { cost: POINTS_PER_EXTRA, balance: pointsBalance })
+                : t('talentDash.extraPayOrSpend', { cost: POINTS_PER_EXTRA })}
             </p>
             <div className="flex flex-wrap items-center justify-center gap-2">
               {pointsBalance != null && pointsBalance < POINTS_PER_EXTRA ? (
@@ -823,7 +829,7 @@ export default function TalentDashboard() {
                   to="/points"
                   className="inline-flex items-center rounded-md border border-ink-200 bg-white px-3 py-1.5 text-sm font-medium text-ink-700 hover:bg-ink-50"
                 >
-                  Get {POINTS_PER_EXTRA} Diamond Points →
+                  {t('talentDash.extraGetPoints', { cost: POINTS_PER_EXTRA })}
                 </Link>
               ) : (
                 <Button
@@ -831,17 +837,17 @@ export default function TalentDashboard() {
                   onClick={handleRedeemExtraTalent}
                   disabled={unlocking || redeemingExtra}
                 >
-                  {redeemingExtra ? 'Redeeming…' : `Use ${POINTS_PER_EXTRA} Diamond Points`}
+                  {redeemingExtra ? t('talentDash.redeeming') : t('talentDash.extraUsePoints', { cost: POINTS_PER_EXTRA })}
                 </Button>
               )}
               <Button onClick={handleUnlockExtra} disabled={unlocking || redeemingExtra}>
-                {unlocking ? 'Starting payment…' : 'Unlock extra offer — RM 9.90'}
+                {unlocking ? t('talentDash.startingPayment') : t('talentDash.extraUnlockButton')}
               </Button>
             </div>
             {pointsBalance != null && pointsBalance < POINTS_PER_EXTRA && (
               <div className="mt-3 text-xs text-ink-500">
-                You have {pointsBalance} / {POINTS_PER_EXTRA} Diamond Points. Earn them from feedback (+5), interviews, and referrals (+19) — or top up on the{' '}
-                <Link to="/points" className="font-medium text-brand-700 hover:underline">wallet page</Link>.
+                {t('talentDash.extraEarnHint', { balance: pointsBalance, cost: POINTS_PER_EXTRA })}{' '}
+                <Link to="/points" className="font-medium text-brand-700 hover:underline">{t('talentDash.walletPage')}</Link>.
               </div>
             )}
             {unlockMsg && (
@@ -863,15 +869,15 @@ export default function TalentDashboard() {
             <div className="flex justify-center mb-3">
               <div className="h-14 w-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-3xl">✓</div>
             </div>
-            <h2 className="font-display text-2xl text-ink-900 mb-2">Profile saved</h2>
+            <h2 className="font-display text-2xl text-ink-900 mb-2">{t('talentDash.savedTitle')}</h2>
             <p className="text-sm text-ink-600 leading-relaxed mb-4">
-              Our AI is now analysing your conversation in the background — usually under 2 minutes. You can leave or close this tab; matches will start flowing once your summary is ready.
+              {t('talentDash.savedBody')}
             </p>
             <p className="text-xs text-ink-500 mb-5">
-              We'll only share your summary with a Hiring Manager when there's a match.
+              {t('talentDash.savedShareNote')}
             </p>
             <Button className="w-full" onClick={() => setShowJustSavedModal(false)}>
-              Got it
+              {t('talentDash.savedGotIt')}
             </Button>
           </div>
         </div>
@@ -899,6 +905,7 @@ function OfferCard({
   onFeedbackChange: (patch: Partial<{ rating: number; outcome: string; freeText: string }>) => void
   onFeedbackSubmit: () => void
 }) {
+  const { t } = useTranslation()
   const pct = Math.round(m.compatibility_score ?? 0)
   const busy = (suffix: string) => actionBusy === `${m.id}:${suffix}`
 
@@ -907,7 +914,7 @@ function OfferCard({
       <div className="p-6">
         <div className="flex justify-between items-start gap-3 mb-3">
           <div>
-            <h3 className="font-display text-xl text-ink-900 mb-0.5">{m.roles?.title ?? 'Role'}</h3>
+            <h3 className="font-display text-xl text-ink-900 mb-0.5">{m.roles?.title ?? t('talentDash.roleFallback')}</h3>
             <div className="text-xs text-ink-500 flex gap-2 flex-wrap">
               {m.roles?.location && <span>{m.roles.location}</span>}
               {m.roles?.work_arrangement && (<><span>·</span><span className="capitalize">{m.roles.work_arrangement}</span></>)}
@@ -919,7 +926,7 @@ function OfferCard({
         {(m.roles?.salary_min || m.roles?.salary_max) && (
           <div className="mb-3 text-sm text-ink-700">
             <span className="font-medium">RM {fmt(m.roles?.salary_min)} – {fmt(m.roles?.salary_max)}</span>
-            <span className="text-ink-400"> / month</span>
+            <span className="text-ink-400"> {t('talentDash.perMonth')}</span>
           </div>
         )}
 
@@ -929,7 +936,7 @@ function OfferCard({
 
         {m.application_summary && (
           <div className="mb-3 border border-brand-100 rounded-lg p-3 bg-brand-50">
-            <p className="text-xs font-semibold uppercase tracking-wide text-brand-700 mb-1">Your pitch for this role</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-brand-700 mb-1">{t('talentDash.yourPitch')}</p>
             <p className="text-sm text-ink-800 leading-relaxed whitespace-pre-line">{m.application_summary}</p>
           </div>
         )}
@@ -950,7 +957,7 @@ function OfferCard({
         {pendingProposal && (
           <div className="mt-4 border-2 border-brand-300 rounded-lg overflow-hidden bg-brand-50/60">
             <div className="bg-brand-100 px-3 py-2 text-xs font-semibold text-brand-900 uppercase tracking-wide">
-              The hiring manager proposed 3 times — pick one
+              {t('talentDash.proposalHeading')}
             </div>
             <div className="p-3 space-y-2">
               {([1, 2, 3] as const).map((slot) => {
@@ -959,8 +966,8 @@ function OfferCard({
                 return (
                   <div key={slot} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-brand-100 bg-white px-3 py-2">
                     <div className="text-sm text-ink-900">
-                      <span className="text-xs text-ink-400 mr-2">Slot {slot}</span>
-                      {new Date(at).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur', dateStyle: 'medium', timeStyle: 'short' })} MYT
+                      <span className="text-xs text-ink-400 mr-2">{t('talentDash.slotLabel', { n: slot })}</span>
+                      {new Date(at).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur', dateStyle: 'medium', timeStyle: 'short' })} {t('talentDash.myt')}
                     </div>
                     <Button
                       size="sm"
@@ -968,7 +975,7 @@ function OfferCard({
                       disabled={actionBusy !== null}
                       onClick={() => onPickSlot(slot)}
                     >
-                      Pick this time
+                      {t('talentDash.pickThisTime')}
                     </Button>
                   </div>
                 )
@@ -980,7 +987,7 @@ function OfferCard({
                 disabled={actionBusy !== null}
                 onClick={onDeclineProposal}
               >
-                None of these work — ask for new times
+                {t('talentDash.proposalNoneWork')}
               </Button>
             </div>
           </div>
@@ -990,14 +997,14 @@ function OfferCard({
         {rounds.length > 0 && (
           <div className="mt-4 border border-ink-100 rounded-lg overflow-hidden">
             <div className="bg-ink-50 px-3 py-2 text-xs font-semibold text-ink-600 uppercase tracking-wide">
-              Your interviews
+              {t('talentDash.yourInterviews')}
             </div>
             {rounds.map((r) => (
               <div key={r.id} className="flex flex-wrap items-center justify-between gap-y-1 px-3 py-2 border-t border-ink-100 first:border-t-0">
                 <div className="min-w-0 flex-1">
-                  <span className="text-xs font-medium text-ink-900">Round {r.round_number}</span>
+                  <span className="text-xs font-medium text-ink-900">{t('talentDash.roundLabel', { n: r.round_number })}</span>
                   <span className="text-xs text-ink-400 ml-2">
-                    {new Date(r.scheduled_at).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur', dateStyle: 'medium', timeStyle: 'short' })} MYT
+                    {new Date(r.scheduled_at).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur', dateStyle: 'medium', timeStyle: 'short' })} {t('talentDash.myt')}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -1009,7 +1016,7 @@ function OfferCard({
                       rel="noopener noreferrer"
                       className="text-xs px-2.5 py-1 rounded-md bg-brand-600 text-white hover:bg-brand-700 font-medium whitespace-nowrap"
                     >
-                      Join video call
+                      {t('talentDash.joinVideoCall')}
                     </a>
                   )}
                 </div>
@@ -1021,10 +1028,10 @@ function OfferCard({
         {/* Offer panel */}
         {m.status === 'offer_made' && (
           <div className="mt-4 border border-emerald-200 rounded-lg p-4 bg-emerald-50">
-            <p className="text-sm font-semibold text-emerald-900 mb-1">You have received a job offer!</p>
+            <p className="text-sm font-semibold text-emerald-900 mb-1">{t('talentDash.offerReceivedTitle')}</p>
             <p className="text-xs text-emerald-700 mb-3">
-              Congratulations — the hiring manager wants to hire you for <strong>{m.roles?.title}</strong>.
-              Accept to move forward, or decline if it's not the right fit.
+              {t('talentDash.offerCongratsLead')} <strong>{m.roles?.title ?? t('talentDash.roleFallback')}</strong>.{' '}
+              {t('talentDash.offerCongratsTail')}
             </p>
             <div className="flex gap-2 flex-wrap">
               <Button
@@ -1033,7 +1040,7 @@ function OfferCard({
                 disabled={actionBusy !== null}
                 onClick={onAcceptOffer}
               >
-                Accept offer
+                {t('talentDash.acceptOffer')}
               </Button>
               <Button
                 size="sm"
@@ -1042,7 +1049,7 @@ function OfferCard({
                 disabled={actionBusy !== null}
                 onClick={onDeclineOffer}
               >
-                Decline
+                {t('talentDash.decline')}
               </Button>
             </div>
           </div>
@@ -1052,15 +1059,15 @@ function OfferCard({
           {/* Stage 1: new offers — accept/decline */}
           {['generated', 'viewed'].includes(m.status) && (
             <div className="flex gap-2 flex-wrap">
-              <Button onClick={() => respond(m.id, 'accepted_by_talent')} disabled={actionBusy !== null} loading={actionBusy === `${m.id}:accepted_by_talent`} size="sm">Accept</Button>
-              <Button onClick={() => respond(m.id, 'declined_by_talent')} disabled={actionBusy !== null} loading={actionBusy === `${m.id}:declined_by_talent`} size="sm" variant="secondary">Decline</Button>
+              <Button onClick={() => respond(m.id, 'accepted_by_talent')} disabled={actionBusy !== null} loading={actionBusy === `${m.id}:accepted_by_talent`} size="sm">{t('talentDash.accept')}</Button>
+              <Button onClick={() => respond(m.id, 'declined_by_talent')} disabled={actionBusy !== null} loading={actionBusy === `${m.id}:declined_by_talent`} size="sm" variant="secondary">{t('talentDash.decline')}</Button>
             </div>
           )}
 
           {/* Feedback widget */}
           {['interview_completed', 'offer_made', 'hired'].includes(m.status) && (
             <div className="border border-ink-200 rounded-lg p-3 space-y-2 bg-ink-50">
-              <p className="text-xs font-semibold text-ink-700 uppercase tracking-wide">Rate this opportunity</p>
+              <p className="text-xs font-semibold text-ink-700 uppercase tracking-wide">{t('talentDash.rateOpportunity')}</p>
               <div className="flex items-center gap-1">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
@@ -1068,14 +1075,14 @@ function OfferCard({
                     type="button"
                     onClick={() => onFeedbackChange({ rating: star })}
                     className={`text-xl leading-none transition-colors ${feedbackEntry.rating >= star ? 'text-amber-400' : 'text-ink-200 hover:text-amber-300'}`}
-                    aria-label={`${star} star`}
+                    aria-label={t('talentDash.starAria', { n: star })}
                   >
                     ★
                   </button>
                 ))}
                 {feedbackEntry.rating > 0 && (
                   <span className="ml-2 text-xs text-ink-500">
-                    {['', 'Poor', 'Below average', 'Average', 'Good', 'Excellent'][feedbackEntry.rating]}
+                    {['', t('talentDash.ratePoor'), t('talentDash.rateBelowAverage'), t('talentDash.rateAverage'), t('talentDash.rateGood'), t('talentDash.rateExcellent')][feedbackEntry.rating]}
                   </span>
                 )}
               </div>
@@ -1084,18 +1091,20 @@ function OfferCard({
                 onChange={(e) => onFeedbackChange({ outcome: e.target.value })}
                 className="w-full border border-ink-200 rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 bg-white"
               >
-                {TALENT_OUTCOMES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                {TALENT_OUTCOME_KEYS.map((o) => <option key={o.value} value={o.value}>{o.emoji}{t(o.tKey)}</option>)}
               </select>
               <textarea
                 value={feedbackEntry.freeText}
                 onChange={(e) => onFeedbackChange({ freeText: e.target.value })}
-                placeholder="How was the interview experience? Your feedback improves hiring quality (optional)"
+                placeholder={t('talentDash.feedbackPlaceholder')}
                 rows={2}
                 className="w-full border border-ink-200 rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 bg-white resize-none"
               />
               {feedbackEntry.saved ? (
                 <p className="text-xs text-emerald-600 font-medium">
-                  ✓ Feedback saved{feedbackEntry.pointsAwarded ? ` — +${feedbackEntry.pointsAwarded} Diamond Points` : ''}
+                  {feedbackEntry.pointsAwarded
+                    ? t('talentDash.feedbackSavedPoints', { points: feedbackEntry.pointsAwarded })
+                    : t('talentDash.feedbackSaved')}
                 </p>
               ) : (
                 <Button
@@ -1104,7 +1113,7 @@ function OfferCard({
                   disabled={feedbackEntry.rating === 0 || feedbackEntry.saving}
                   loading={feedbackEntry.saving}
                 >
-                  Save feedback (+5 Diamond Points)
+                  {t('talentDash.saveFeedback')}
                 </Button>
               )}
             </div>
@@ -1116,23 +1125,25 @@ function OfferCard({
 }
 
 function RoundBadge({ status }: { status: InterviewRound['status'] }) {
+  const { t } = useTranslation()
   const m = {
-    scheduled: { label: 'Upcoming', tone: 'brand' as const },
-    completed: { label: 'Done',     tone: 'green' as const },
-    cancelled: { label: 'Cancelled', tone: 'gray' as const },
-    no_show:   { label: 'No-show',  tone: 'amber' as const },
+    scheduled: { label: t('talentDash.roundUpcoming'),  tone: 'brand' as const },
+    completed: { label: t('talentDash.roundDone'),      tone: 'green' as const },
+    cancelled: { label: t('talentDash.roundCancelled'), tone: 'gray' as const },
+    no_show:   { label: t('talentDash.roundNoShow'),    tone: 'amber' as const },
   }
   const { label, tone } = m[status] ?? { label: status, tone: 'gray' as const }
   return <Badge tone={tone}>{label}</Badge>
 }
 
 function CompatibilityRing({ pct }: { pct: number }) {
+  const { t } = useTranslation()
   const radius = 20
   const circ = 2 * Math.PI * radius
   const offset = circ - (pct / 100) * circ
   const tone = pct >= 75 ? 'text-emerald-600' : pct >= 50 ? 'text-accent-600' : 'text-ink-400'
   return (
-    <div className="relative shrink-0" aria-label={`Compatibility ${pct} percent`}>
+    <div className="relative shrink-0" aria-label={t('talentDash.compatibilityAria', { pct })}>
       <svg width="52" height="52" viewBox="0 0 52 52">
         <circle cx="26" cy="26" r={radius} stroke="currentColor" className="text-ink-100" strokeWidth="4" fill="none" />
         <circle
@@ -1153,18 +1164,19 @@ function CompatibilityRing({ pct }: { pct: number }) {
 }
 
 function StatusPill({ status }: { status: string }) {
+  const { t } = useTranslation()
   const m: Record<string, { label: string; tone: 'gray' | 'brand' | 'green' | 'amber' | 'red' }> = {
-    generated:            { label: 'New match',              tone: 'brand' },
-    viewed:               { label: 'Viewed',                 tone: 'gray' },
-    accepted_by_talent:   { label: 'You accepted',           tone: 'green' },
-    invited_by_manager:   { label: 'Hiring manager invited', tone: 'brand' },
-    hr_scheduling:        { label: 'HR scheduling',          tone: 'amber' },
-    interview_scheduled:  { label: 'Interview scheduled',    tone: 'green' },
-    interview_completed:  { label: 'Interview complete',     tone: 'brand' },
-    offer_made:           { label: 'Offer received!',        tone: 'green' },
-    hired:                { label: 'Hired',                  tone: 'green' },
-    cancelled:            { label: 'Cancelled',              tone: 'gray' },
-    no_show:              { label: 'No-show',                tone: 'red' },
+    generated:            { label: t('talentDash.statusNewMatch'),         tone: 'brand' },
+    viewed:               { label: t('talentDash.statusViewed'),           tone: 'gray' },
+    accepted_by_talent:   { label: t('talentDash.statusYouAccepted'),      tone: 'green' },
+    invited_by_manager:   { label: t('talentDash.statusManagerInvited'),   tone: 'brand' },
+    hr_scheduling:        { label: t('talentDash.statusHrScheduling'),     tone: 'amber' },
+    interview_scheduled:  { label: t('talentDash.statusInterviewScheduled'), tone: 'green' },
+    interview_completed:  { label: t('talentDash.statusInterviewComplete'), tone: 'brand' },
+    offer_made:           { label: t('talentDash.statusOfferReceived'),    tone: 'green' },
+    hired:                { label: t('talentDash.statusHired'),            tone: 'green' },
+    cancelled:            { label: t('talentDash.statusCancelled'),        tone: 'gray' },
+    no_show:              { label: t('talentDash.statusNoShow'),           tone: 'red' },
   }
   const entry = m[status] ?? { label: status.replace(/_/g, ' '), tone: 'gray' as const }
   return <Badge tone={entry.tone}>{entry.label}</Badge>
@@ -1180,6 +1192,7 @@ function ExpiryBanner({
   onReviveConfirm: () => void
   onReviveCancel: () => void
 }) {
+  const { t } = useTranslation()
   if (!expiresAt) return null
   const days = Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86400000)
   if (days > 10) return null
@@ -1187,50 +1200,50 @@ function ExpiryBanner({
   if (days <= 0) {
     if (reviveStep === 'confirm') return (
       <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
-        <p className="text-sm font-semibold text-red-800 mb-0.5">Before we reactivate your profile</p>
+        <p className="text-sm font-semibold text-red-800 mb-0.5">{t('talentDash.reactivateTitle')}</p>
         <p className="text-xs text-red-600 mb-3">
-          It's been a while — please confirm these details are still accurate. Matching depends on them to find the right roles.
+          {t('talentDash.reactivateBody')}
         </p>
         <ul className="text-xs text-ink-700 space-y-1 mb-4 list-disc list-inside">
-          <li>Expected salary range</li>
-          <li>Preferred job types &amp; work arrangement</li>
-          <li>Notice period &amp; availability</li>
-          <li>Long-term career intention</li>
+          <li>{t('talentDash.checkSalaryRange')}</li>
+          <li>{t('talentDash.checkJobTypes')}</li>
+          <li>{t('talentDash.checkNoticePeriod')}</li>
+          <li>{t('talentDash.checkCareerIntention')}</li>
         </ul>
         <div className="flex gap-2 flex-wrap">
-          <Button onClick={onReviveConfirm} loading={reviving} size="sm">Yes, all current — revive</Button>
-          <Link to="/talent/profile" className="btn-secondary text-xs px-3 py-1.5 rounded-md">Update first</Link>
-          <button onClick={onReviveCancel} className="text-xs text-ink-400 hover:text-ink-600 px-2">Cancel</button>
+          <Button onClick={onReviveConfirm} loading={reviving} size="sm">{t('talentDash.confirmRevive')}</Button>
+          <Link to="/talent/profile" className="btn-secondary text-xs px-3 py-1.5 rounded-md">{t('talentDash.updateFirst')}</Link>
+          <button onClick={onReviveCancel} className="text-xs text-ink-400 hover:text-ink-600 px-2">{t('talentDash.cancel')}</button>
         </div>
       </div>
     )
     return (
       <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-red-800">Your profile has expired</p>
-          <p className="text-xs text-red-600 mt-0.5">New matches are paused. Revive to start receiving opportunities again.</p>
+          <p className="text-sm font-semibold text-red-800">{t('talentDash.profileExpired')}</p>
+          <p className="text-xs text-red-600 mt-0.5">{t('talentDash.profileExpiredBody')}</p>
         </div>
-        <Button onClick={onReviveClick} loading={reviving} size="sm">Revive profile</Button>
+        <Button onClick={onReviveClick} loading={reviving} size="sm">{t('talentDash.reviveProfile')}</Button>
       </div>
     )
   }
 
   if (reviveStep === 'confirm') return (
     <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-      <p className="text-sm font-semibold text-amber-800 mb-0.5">Quick check before extending</p>
+      <p className="text-sm font-semibold text-amber-800 mb-0.5">{t('talentDash.quickCheckTitle')}</p>
       <p className="text-xs text-amber-600 mb-3">
-        Confirm these are still accurate so matching finds you the right roles.
+        {t('talentDash.quickCheckBody')}
       </p>
       <ul className="text-xs text-ink-700 space-y-1 mb-4 list-disc list-inside">
-        <li>Expected salary range</li>
-        <li>Preferred job types &amp; work arrangement</li>
-        <li>Notice period &amp; availability</li>
-        <li>Long-term career intention</li>
+        <li>{t('talentDash.checkSalaryRange')}</li>
+        <li>{t('talentDash.checkJobTypes')}</li>
+        <li>{t('talentDash.checkNoticePeriod')}</li>
+        <li>{t('talentDash.checkCareerIntention')}</li>
       </ul>
       <div className="flex gap-2 flex-wrap">
-        <Button onClick={onReviveConfirm} loading={reviving} size="sm" variant="secondary">Yes, all current — extend 45 days</Button>
-        <Link to="/talent/profile" className="btn-secondary text-xs px-3 py-1.5 rounded-md">Update first</Link>
-        <button onClick={onReviveCancel} className="text-xs text-ink-400 hover:text-ink-600 px-2">Cancel</button>
+        <Button onClick={onReviveConfirm} loading={reviving} size="sm" variant="secondary">{t('talentDash.confirmExtend')}</Button>
+        <Link to="/talent/profile" className="btn-secondary text-xs px-3 py-1.5 rounded-md">{t('talentDash.updateFirst')}</Link>
+        <button onClick={onReviveCancel} className="text-xs text-ink-400 hover:text-ink-600 px-2">{t('talentDash.cancel')}</button>
       </div>
     </div>
   )
@@ -1238,10 +1251,10 @@ function ExpiryBanner({
   return (
     <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-4">
       <div>
-        <p className="text-sm font-semibold text-amber-800">Profile expires in {days} day{days === 1 ? '' : 's'}</p>
-        <p className="text-xs text-amber-600 mt-0.5">Extend now to keep matching active.</p>
+        <p className="text-sm font-semibold text-amber-800">{t('talentDash.expiresInDays', { count: days })}</p>
+        <p className="text-xs text-amber-600 mt-0.5">{t('talentDash.extendNowBody')}</p>
       </div>
-      <Button onClick={onReviveClick} loading={reviving} size="sm" variant="secondary">Extend 45 days</Button>
+      <Button onClick={onReviveClick} loading={reviving} size="sm" variant="secondary">{t('talentDash.extend45Days')}</Button>
     </div>
   )
 }
@@ -1249,6 +1262,7 @@ function ExpiryBanner({
 function CareerHealthPanel({ reputation }: {
   reputation: { reputation_score: number | null; feedback_volume: number; phs_show_rate: number | null; phs_accept_rate: number | null }
 }) {
+  const { t } = useTranslation()
   const score = reputation.reputation_score
   const scoreTone = score == null ? 'gray' : score >= 75 ? 'green' : score >= 50 ? 'amber' : 'red'
   return (
@@ -1256,21 +1270,21 @@ function CareerHealthPanel({ reputation }: {
       <div className="p-4">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500 mb-0.5">Career health</p>
-            <p className="text-xs text-ink-400">Based on {reputation.feedback_volume} employer review{reputation.feedback_volume === 1 ? '' : 's'}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500 mb-0.5">{t('talentDash.careerHealth')}</p>
+            <p className="text-xs text-ink-400">{t('talentDash.basedOnReviews', { count: reputation.feedback_volume })}</p>
           </div>
           {score != null && <Badge tone={scoreTone as 'gray' | 'green' | 'amber' | 'brand' | 'accent' | 'red'}>{Math.round(score)} / 100</Badge>}
         </div>
         <div className="flex gap-6 flex-wrap">
           {reputation.phs_show_rate != null && (
             <div>
-              <p className="text-xs text-ink-500">Interview attendance</p>
+              <p className="text-xs text-ink-500">{t('talentDash.interviewAttendance')}</p>
               <p className="text-sm font-semibold text-ink-900">{Math.round(reputation.phs_show_rate * 100)}%</p>
             </div>
           )}
           {reputation.phs_accept_rate != null && (
             <div>
-              <p className="text-xs text-ink-500">Offer acceptance</p>
+              <p className="text-xs text-ink-500">{t('talentDash.offerAcceptance')}</p>
               <p className="text-sm font-semibold text-ink-900">{Math.round(reputation.phs_accept_rate * 100)}%</p>
             </div>
           )}
@@ -1288,6 +1302,7 @@ function fmt(v: number | null | undefined): string {
 const TOTAL_PROFILE_FIELDS = 12
 
 function ProfileCompletenessBar({ gaps }: { gaps: string[] }) {
+  const { t } = useTranslation()
   const [expanded, setExpanded] = useState(false)
   const filled = TOTAL_PROFILE_FIELDS - gaps.length
   const pct = Math.round((filled / TOTAL_PROFILE_FIELDS) * 100)
@@ -1298,13 +1313,13 @@ function ProfileCompletenessBar({ gaps }: { gaps: string[] }) {
       <div className="p-4">
         <div className="flex items-center justify-between mb-2">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Profile completeness</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">{t('talentDash.completenessTitle')}</p>
             <p className="text-xs text-ink-400 mt-0.5">
               {pct >= 80
-                ? 'Great — your profile gives employers a strong picture.'
+                ? t('talentDash.completenessHigh')
                 : pct >= 50
-                ? 'Good start — a few more details will improve your match quality.'
-                : 'Complete your profile to get better-matched opportunities.'}
+                ? t('talentDash.completenessMid')
+                : t('talentDash.completenessLow')}
             </p>
           </div>
           <span className={`text-sm font-bold ${pct >= 80 ? 'text-emerald-700' : pct >= 50 ? 'text-amber-700' : 'text-red-600'}`}>
@@ -1320,17 +1335,17 @@ function ProfileCompletenessBar({ gaps }: { gaps: string[] }) {
               onClick={() => setExpanded(!expanded)}
               className="text-xs text-brand-600 hover:text-brand-700 font-medium"
             >
-              {expanded ? 'Hide' : `${gaps.length} field${gaps.length === 1 ? '' : 's'} missing — see what to add`}
+              {expanded ? t('talentDash.hide') : t('talentDash.fieldsMissing', { count: gaps.length })}
             </button>
             {expanded && (
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {gaps.map((g) => (
                   <span key={g} className="text-xs bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full">
-                    {g}
+                    {t(g)}
                   </span>
                 ))}
                 <a href="/talent/profile" className="text-xs text-brand-600 hover:text-brand-700 underline ml-1">
-                  Update profile →
+                  {t('talentDash.updateProfile')}
                 </a>
               </div>
             )}

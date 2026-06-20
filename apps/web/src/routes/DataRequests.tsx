@@ -37,19 +37,19 @@ interface AuditRow {
   created_at: string
 }
 
-const CORRECTION_FIELDS: Array<{ field: CorrectionField; label: string; kind: 'text' | 'number' | 'bool' | 'privacy' }> = [
-  { field: 'profiles.full_name',            label: 'Full name',                 kind: 'text' },
-  { field: 'profiles.phone',                label: 'Phone number',              kind: 'text' },
-  { field: 'talents.expected_salary_min',   label: 'Expected salary (min, RM)', kind: 'number' },
-  { field: 'talents.expected_salary_max',   label: 'Expected salary (max, RM)', kind: 'number' },
-  { field: 'talents.is_open_to_offers',     label: 'Open to offers (true/false)', kind: 'bool' },
-  { field: 'talents.privacy_mode',          label: 'Privacy mode (public/anonymous/whitelist)', kind: 'privacy' },
-  { field: 'hiring_managers.job_title',     label: 'Hiring-manager job title',  kind: 'text' },
+const CORRECTION_FIELDS: Array<{ field: CorrectionField; labelKey: string; kind: 'text' | 'number' | 'bool' | 'privacy' }> = [
+  { field: 'profiles.full_name',            labelKey: 'data.fieldFullName',     kind: 'text' },
+  { field: 'profiles.phone',                labelKey: 'data.fieldPhone',        kind: 'text' },
+  { field: 'talents.expected_salary_min',   labelKey: 'data.fieldSalaryMin',    kind: 'number' },
+  { field: 'talents.expected_salary_max',   labelKey: 'data.fieldSalaryMax',    kind: 'number' },
+  { field: 'talents.is_open_to_offers',     labelKey: 'data.fieldOpenToOffers', kind: 'bool' },
+  { field: 'talents.privacy_mode',          labelKey: 'data.fieldPrivacyMode',  kind: 'privacy' },
+  { field: 'hiring_managers.job_title',     labelKey: 'data.fieldJobTitle',     kind: 'text' },
 ]
 
 export default function DataRequests() {
-  useSeo({ title: 'Your data rights', noindex: true })
   const { t } = useTranslation()
+  useSeo({ title: t('data.seoTitle'), noindex: true })
   const { session } = useSession()
   const navigate = useNavigate()
 
@@ -108,7 +108,7 @@ export default function DataRequests() {
     setErr(null)
 
     if (requestType === 'deletion' && deleteConfirm !== 'DELETE') {
-      setErr('Type DELETE in the confirmation box to proceed.')
+      setErr(t('data.errDeleteConfirm'))
       return
     }
 
@@ -119,24 +119,25 @@ export default function DataRequests() {
       for (const it of items) {
         const spec = CORRECTION_FIELDS.find((f) => f.field === it.field)
         if (!spec) continue
+        const label = t(spec.labelKey)
         const raw = it.new_value.trim()
-        if (!raw) { setErr(`Enter a value for ${spec.label}.`); return }
+        if (!raw) { setErr(t('data.errEnterValue', { field: label })); return }
         let parsed: unknown = raw
         if (spec.kind === 'number') {
           const n = Number(raw)
-          if (!Number.isFinite(n) || n < 0) { setErr(`${spec.label} must be a non-negative number.`); return }
+          if (!Number.isFinite(n) || n < 0) { setErr(t('data.errNonNegative', { field: label })); return }
           parsed = Math.round(n)
         } else if (spec.kind === 'bool') {
-          if (raw !== 'true' && raw !== 'false') { setErr(`${spec.label} must be true or false.`); return }
+          if (raw !== 'true' && raw !== 'false') { setErr(t('data.errBool', { field: label })); return }
           parsed = raw === 'true'
         } else if (spec.kind === 'privacy') {
           if (!['public', 'anonymous', 'whitelist'].includes(raw)) {
-            setErr(`${spec.label} must be public, anonymous, or whitelist.`); return
+            setErr(t('data.errPrivacy', { field: label })); return
           }
         }
         clean.push({ field: it.field, new_value: parsed as string })
       }
-      if (clean.length === 0) { setErr('Add at least one correction.'); return }
+      if (clean.length === 0) { setErr(t('data.errAtLeastOne')); return }
       correction_proposal = { items: clean }
     }
 
@@ -199,10 +200,10 @@ export default function DataRequests() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-gray-600 border-b">
-                    <th className="py-2 pr-3">Date / Time</th>
-                    <th className="pr-3">Action</th>
-                    <th className="pr-3">Resource</th>
-                    <th>By</th>
+                    <th className="py-2 pr-3">{t('data.colDateTime')}</th>
+                    <th className="pr-3">{t('data.colAction')}</th>
+                    <th className="pr-3">{t('data.colResource')}</th>
+                    <th>{t('data.colBy')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -264,23 +265,23 @@ export default function DataRequests() {
                       value={it.field}
                       onChange={(e) => setItem(idx, { field: e.target.value as CorrectionField })}
                       className="border rounded px-2 py-1.5 text-sm flex-1"
-                      aria-label={`Field for correction ${idx + 1}`}
+                      aria-label={t('data.ariaFieldForCorrection', { n: idx + 1 })}
                     >
                       {CORRECTION_FIELDS.map((f) => (
-                        <option key={f.field} value={f.field}>{f.label}</option>
+                        <option key={f.field} value={f.field}>{t(f.labelKey)}</option>
                       ))}
                     </select>
                     <input
                       value={it.new_value}
                       onChange={(e) => setItem(idx, { new_value: e.target.value })}
                       placeholder={
-                        spec?.kind === 'bool' ? 'true or false'
-                        : spec?.kind === 'number' ? 'number'
-                        : spec?.kind === 'privacy' ? 'public | anonymous | whitelist'
-                        : 'new value'
+                        spec?.kind === 'bool' ? t('data.phBool')
+                        : spec?.kind === 'number' ? t('data.phNumber')
+                        : spec?.kind === 'privacy' ? t('data.phPrivacy')
+                        : t('data.phNewValue')
                       }
                       className="border rounded px-2 py-1.5 text-sm flex-1"
-                      aria-label={`New value for correction ${idx + 1}`}
+                      aria-label={t('data.ariaNewValueForCorrection', { n: idx + 1 })}
                     />
                     {items.length > 1 && (
                       <button
@@ -295,7 +296,7 @@ export default function DataRequests() {
                 )
               })}
               <p className="text-xs text-gray-500">
-                Admin reviews each correction before it's applied. Requests outside this list require email.
+                {t('data.correctionHelp')}
               </p>
             </div>
           )}
@@ -313,15 +314,15 @@ export default function DataRequests() {
 
           {requestType === 'deletion' && (
             <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 space-y-3">
-              <p className="text-sm font-semibold text-red-800">⚠ This will permanently erase your account</p>
+              <p className="text-sm font-semibold text-red-800">{t('data.deleteWarnHeading')}</p>
               <ul className="text-xs text-red-700 list-disc ml-4 space-y-1">
-                <li>Your profile, matches, and activity are purged 30 days after the request is approved.</li>
-                <li>Any unused Diamond Points are forfeited and cannot be refunded.</li>
-                <li>Audit records required for legal compliance are retained per PDPA obligations.</li>
+                <li>{t('data.deleteWarnPurge')}</li>
+                <li>{t('data.deleteWarnPoints')}</li>
+                <li>{t('data.deleteWarnAudit')}</li>
               </ul>
               <div>
                 <label htmlFor="delete-confirm" className="block text-xs font-medium text-red-800 mb-1">
-                  Type <span className="font-mono font-bold">DELETE</span> to confirm
+                  {t('data.deleteConfirmPre')} <span className="font-mono font-bold">DELETE</span> {t('data.deleteConfirmPost')}
                 </label>
                 <input
                   id="delete-confirm"
@@ -356,10 +357,10 @@ export default function DataRequests() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-gray-600 border-b">
-                    <th className="py-2">Type</th>
-                    <th>Status</th>
-                    <th>Submitted</th>
-                    <th>Resolved</th>
+                    <th className="py-2">{t('data.colType')}</th>
+                    <th>{t('data.colStatus')}</th>
+                    <th>{t('data.colSubmitted')}</th>
+                    <th>{t('data.colResolved')}</th>
                   </tr>
                 </thead>
                 <tbody>

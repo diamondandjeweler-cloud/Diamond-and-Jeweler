@@ -24,14 +24,15 @@ import CareerNudgePanel from '../../components/CareerNudgePanel'
 import AddHmDobModal from '../../components/AddHmDobModal'
 import type { PublicReasoning, CultureComparison } from '../../types/db'
 
-const HM_OUTCOMES = [
-  { value: '', label: 'Select outcome (optional)' },
-  { value: 'great_hire',       label: '🏆 Great hire — still with us' },
-  { value: 'good_interview',   label: '✅ Good interview, no offer made' },
-  { value: 'offer_declined',   label: '🔄 Candidate declined offer' },
-  { value: 'hired_left_early', label: '⚠️ Hired but left within 3 months' },
-  { value: 'poor_interview',   label: '⬇️ Poor interview performance' },
-  { value: 'no_show',          label: '❌ No-show — did not attend' },
+type TFn = (key: string, opts?: Record<string, unknown>) => string
+const hmOutcomes = (t: TFn) => [
+  { value: '', label: t('hmDash.outcomeSelect') },
+  { value: 'great_hire',       label: t('hmDash.outcomeGreatHire') },
+  { value: 'good_interview',   label: t('hmDash.outcomeGoodInterview') },
+  { value: 'offer_declined',   label: t('hmDash.outcomeOfferDeclined') },
+  { value: 'hired_left_early', label: t('hmDash.outcomeLeftEarly') },
+  { value: 'poor_interview',   label: t('hmDash.outcomePoorInterview') },
+  { value: 'no_show',          label: t('hmDash.outcomeNoShow') },
 ]
 
 interface CandidateRow {
@@ -97,8 +98,8 @@ const ACTIVE = [
 ]
 
 export default function HMDashboard() {
-  useSeo({ title: 'Candidates', noindex: true })
   const { t } = useTranslation()
+  useSeo({ title: t('hmDash.seoTitle'), noindex: true })
   const { session, profile } = useSession()
   const userId = session?.user.id
   // Hydrate KPI counts from local snapshot so the headline numbers don't
@@ -217,7 +218,7 @@ export default function HMDashboard() {
       watchdog = setTimeout(() => {
         if (cancelled) return
         console.error('[hm-dashboard] load watchdog tripped — a Supabase query stalled')
-        setErr('Loading timed out — please refresh.')
+        setErr(t('hmDash.loadingTimedOut'))
         // Settle the data slots so the skeleton doesn't shimmer forever; the
         // error banner above will tell the user what happened.
         setCandidates((cur) => cur ?? [])
@@ -275,7 +276,7 @@ export default function HMDashboard() {
         if (!cancelled) setCompanyVerified(false)
         if (!cancelled && companyOrLink.data) {
           const co = companyOrLink.data.companies as unknown as { name: string } | null
-          setLinkRequest({ id: companyOrLink.data.id, companyName: co?.name ?? 'a company' })
+          setLinkRequest({ id: companyOrLink.data.id, companyName: co?.name ?? t('hmDash.aCompany') })
         }
       }
 
@@ -395,12 +396,12 @@ export default function HMDashboard() {
       if (watchdog) { clearTimeout(watchdog); watchdog = null }
       // If the watchdog fired but the queries ultimately resolved, the page is
       // fully loaded — clear the now-stale "timed out" banner.
-      if (!cancelled) setErr((cur) => cur === 'Loading timed out — please refresh.' ? null : cur)
+      if (!cancelled) setErr((cur) => cur === t('hmDash.loadingTimedOut') ? null : cur)
       setLoading(false)
       } catch (e) {
         if (watchdog) { clearTimeout(watchdog); watchdog = null }
         if (!cancelled) {
-          setErr(e instanceof Error ? e.message : 'Failed to load. Please refresh.')
+          setErr(e instanceof Error ? e.message : t('hmDash.loadFailed'))
           // Failed mid-load — settle skeletons so the error banner shows
           // against a stable layout instead of indefinite shimmer.
           setCandidates((cur) => cur ?? [])
@@ -465,16 +466,16 @@ export default function HMDashboard() {
         tone: 'amber',
         text: (
           <>
-            You need {URGENT_COST} Diamond Points (you have {pointsBalance}).{' '}
+            {t('hmDash.urgentNeedPoints', { cost: URGENT_COST, have: pointsBalance })}{' '}
             <Link to="/points" className="font-semibold underline hover:text-ink-900">
-              Buy or earn more →
+              {t('hmDash.buyOrEarnMore')}
             </Link>
           </>
         ),
       })
       return
     }
-    if (!window.confirm(`Spend ${URGENT_COST} Diamond Points to instantly surface 1 top candidate for this role?`)) return
+    if (!window.confirm(t('hmDash.urgentConfirm', { cost: URGENT_COST }))) return
     setUrgentRoleId(roleId); setUrgentBusy(true)
     try {
       const res = await callFunction<{
@@ -487,16 +488,16 @@ export default function HMDashboard() {
       if (!mountedRef.current) return
       if (typeof res.balance_after === 'number') setPointsBalance(res.balance_after)
       if (!res.result) {
-        setUrgentMsg({ tone: 'amber', text: res.message ?? 'No candidate found right now.' })
+        setUrgentMsg({ tone: 'amber', text: res.message ?? t('hmDash.noCandidateNow') })
       } else {
         setUrgentMsg({
           tone: 'green',
-          text: `Urgent candidate ready (${Math.round(res.result.compatibility_score ?? 0)}% match) — highlighted below. Balance: ${res.balance_after} Diamond Points.`,
+          text: t('hmDash.urgentReady', { pct: Math.round(res.result.compatibility_score ?? 0), balance: res.balance_after }),
         })
       }
     } catch (e) {
       if (!mountedRef.current) return
-      setUrgentMsg({ tone: 'red', text: e instanceof Error ? e.message : 'Urgent search failed.' })
+      setUrgentMsg({ tone: 'red', text: e instanceof Error ? e.message : t('hmDash.urgentSearchFailed') })
     } finally {
       if (mountedRef.current) { setUrgentBusy(false); setUrgentRoleId(null) }
     }
@@ -509,10 +510,10 @@ export default function HMDashboard() {
         match_type: 'hm_extra', role_id: roleId,
       })
       if (res?.paymentUrl) window.location.href = res.paymentUrl
-      else setUnlockMsg({ roleId, tone: 'red', text: 'Could not start payment — no URL returned.' })
+      else setUnlockMsg({ roleId, tone: 'red', text: t('hmDash.paymentNoUrl') })
     } catch (e) {
       console.error('[unlock-extra-match] failed', e)
-      setUnlockMsg({ roleId, tone: 'red', text: e instanceof Error ? e.message : 'Failed to start payment' })
+      setUnlockMsg({ roleId, tone: 'red', text: e instanceof Error ? e.message : t('hmDash.paymentStartFailed') })
     } finally { setUnlockingRoleId(null) }
   }
 
@@ -521,11 +522,11 @@ export default function HMDashboard() {
     if (pointsBalance != null && pointsBalance < POINTS_PER_EXTRA) {
       setUnlockMsg({
         roleId, tone: 'red',
-        text: `Need ${POINTS_PER_EXTRA} Diamond Points (you have ${pointsBalance}). Earn more from feedback, interviews, or referrals.`,
+        text: t('hmDash.redeemNeedPoints', { points: POINTS_PER_EXTRA, have: pointsBalance }),
       })
       return
     }
-    if (!window.confirm(`Spend ${POINTS_PER_EXTRA} Diamond Points to unlock 1 extra candidate for "${roleTitle}"?`)) return
+    if (!window.confirm(t('hmDash.redeemConfirm', { points: POINTS_PER_EXTRA, role: roleTitle }))) return
     setRedeemingRoleId(roleId)
     try {
       await callFunction<{ message: string; cost: number }>('redeem-points', {
@@ -533,7 +534,7 @@ export default function HMDashboard() {
       })
       setUnlockMsg({
         roleId, tone: 'green',
-        text: `Redeemed ${POINTS_PER_EXTRA} Diamond Points — your extra candidate is being surfaced now.`,
+        text: t('hmDash.redeemSuccess', { points: POINTS_PER_EXTRA }),
       })
       setPointsBalance((p) => (p == null ? p : p - POINTS_PER_EXTRA))
       setRoleExtras((prev) => prev.map((r) => r.id === roleId ? { ...r, extraUsed: r.extraUsed + 1 } : r))
@@ -541,13 +542,13 @@ export default function HMDashboard() {
       reloadTimerRef.current = setTimeout(() => { window.location.reload() }, 1500)
     } catch (e) {
       console.error('[redeem-points] failed', e)
-      setUnlockMsg({ roleId, tone: 'red', text: e instanceof Error ? e.message : 'Failed to redeem points' })
+      setUnlockMsg({ roleId, tone: 'red', text: e instanceof Error ? e.message : t('hmDash.redeemFailed') })
     } finally { setRedeemingRoleId(null) }
   }
 
   async function viewResume(matchId: string) {
     if (companyVerified === false) {
-      setErr('Résumé unlocks once your HR manager verifies the company profile (SSM + business license).')
+      setErr(t('hmDash.resumeLocked'))
       return
     }
     setActionBusy(`${matchId}:resume`)
@@ -556,10 +557,10 @@ export default function HMDashboard() {
       if (res?.signed_url) {
         window.open(res.signed_url, '_blank', 'noopener,noreferrer')
       } else {
-        setErr(res?.message ?? res?.error ?? 'Could not load résumé.')
+        setErr(res?.message ?? res?.error ?? t('hmDash.resumeLoadFailed'))
       }
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Could not load résumé.')
+      setErr(e instanceof Error ? e.message : t('hmDash.resumeLoadFailed'))
     } finally {
       setActionBusy(null)
     }
@@ -567,8 +568,8 @@ export default function HMDashboard() {
 
   async function respond(id: string, next: 'invited_by_manager' | 'declined_by_manager') {
     if (next === 'invited_by_manager' && companyVerified === false) {
-      setErr('To proceed, please ask your HR manager to upload your company SSM certificate and business license.')
-      setRespondMsg({ tone: 'red', text: 'Invite is locked until your company profile is verified by HR.' })
+      setErr(t('hmDash.askHrUpload'))
+      setRespondMsg({ tone: 'red', text: t('hmDash.inviteLocked') })
       window.setTimeout(() => setRespondMsg((m) => (m && m.tone === 'red' ? null : m)), 6000)
       return
     }
@@ -609,8 +610,8 @@ export default function HMDashboard() {
     setRespondMsg({
       tone: 'green',
       text: next === 'invited_by_manager'
-        ? 'Invitation sent — the candidate has been notified.'
-        : 'Candidate declined — they will not be contacted further for this role.',
+        ? t('hmDash.invitationSent')
+        : t('hmDash.candidateDeclined'),
     })
     setActionBusy(null)
     window.setTimeout(() => setRespondMsg((m) => (m && m.tone === 'green' ? null : m)), 4500)
@@ -620,7 +621,7 @@ export default function HMDashboard() {
 
   async function doAction(matchId: string, action: string, extra?: Record<string, unknown>) {
     if (['schedule_round', 'make_offer', 'mark_hired'].includes(action) && companyVerified === false) {
-      setErr('To proceed, please ask your HR manager to upload your company SSM certificate and business license.')
+      setErr(t('hmDash.askHrUpload'))
       return
     }
     setErr(null)
@@ -664,7 +665,7 @@ export default function HMDashboard() {
     } catch (e) {
       if (!mountedRef.current) return
       if (prev) setCandidates((cs) => (cs ?? []).map((c) => (c.id === matchId ? prev : c)))
-      setErr(e instanceof Error ? e.message : `Action failed: ${action}`)
+      setErr(e instanceof Error ? e.message : t('hmDash.actionFailed', { action }))
     } finally {
       if (mountedRef.current) setActionBusy(null)
     }
@@ -672,7 +673,7 @@ export default function HMDashboard() {
 
   async function revealContact(matchId: string) {
     if (companyVerified === false) {
-      setErr('To proceed, please ask your HR manager to upload your company SSM certificate and business license.')
+      setErr(t('hmDash.askHrUpload'))
       return
     }
     setErr(null)
@@ -684,7 +685,7 @@ export default function HMDashboard() {
       setContactByMatch((prev) => ({ ...prev, [matchId]: row ?? null }))
     } catch (e) {
       if (!mountedRef.current) return
-      setErr(e instanceof Error ? e.message : 'Could not retrieve contact')
+      setErr(e instanceof Error ? e.message : t('hmDash.contactRetrieveFailed'))
     }
   }
 
@@ -710,7 +711,7 @@ export default function HMDashboard() {
     } catch (e) {
       if (!mountedRef.current) return
       setFeedbackState((s) => ({ ...s, [matchId]: { ...s[matchId], saving: false } }))
-      setErr(e instanceof Error ? e.message : 'Failed to save feedback')
+      setErr(e instanceof Error ? e.message : t('hmDash.feedbackSaveFailed'))
     }
   }
 
@@ -744,18 +745,18 @@ export default function HMDashboard() {
         <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-blue-900">
-              {linkRequest.companyName} wants to add you to their team
+              {t('hmDash.linkRequestTitle', { company: linkRequest.companyName })}
             </p>
             <p className="text-xs text-blue-700 mt-0.5">
-              Accepting will link your profile under their company umbrella. You can still manage your own roles.
+              {t('hmDash.linkRequestBody')}
             </p>
           </div>
           <div className="flex gap-2">
             <Button size="sm" disabled={linkBusy} loading={linkBusy} onClick={() => void respondToLinkRequest('accept')}>
-              Accept
+              {t('hmDash.accept')}
             </Button>
             <Button size="sm" variant="secondary" disabled={linkBusy} onClick={() => void respondToLinkRequest('decline')}>
-              Decline
+              {t('hmDash.decline')}
             </Button>
           </div>
         </div>
@@ -763,22 +764,22 @@ export default function HMDashboard() {
 
       <PageHeader
         eyebrow={profile && t('dashboard.hmGreeting', { name: getDisplayName(profile) })}
-        title="Your candidates"
-        description="Curated shortlists for your active roles. Invite to interview or decline — up to three per role."
+        title={t('hmDash.pageTitle')}
+        description={t('hmDash.pageDescription')}
         actions={
           <>
-            <Link to="/hm/org-chart" className="btn-secondary">Org Chart Consultant</Link>
-            <Link to="/hm/roles" className="btn-secondary">My roles</Link>
-            <Link to="/hm/post-role" className="btn-primary">Post a role</Link>
+            <Link to="/hm/org-chart" className="btn-secondary">{t('hmDash.orgChartConsultant')}</Link>
+            <Link to="/hm/roles" className="btn-secondary">{t('hmDash.myRoles')}</Link>
+            <Link to="/hm/post-role" className="btn-primary">{t('hmDash.postRole')}</Link>
           </>
         }
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-        <Stat label="Active roles" value={roleCountForStat == null ? <Skeleton width={40} height={28} /> : roleCountForStat} />
-        <Stat label="Candidates" value={candidatesCount == null ? <Skeleton width={40} height={28} /> : candidatesCount} />
-        <Stat label="Awaiting you" value={actionNeeded == null ? <Skeleton width={40} height={28} /> : actionNeeded} tone={(actionNeeded ?? 0) > 0 ? 'brand' : 'default'} />
-        <Stat label="Hired (all time)" value={hiredAllTimeForStat == null ? <Skeleton width={40} height={28} /> : hiredAllTimeForStat} />
+        <Stat label={t('hmDash.statActiveRoles')} value={roleCountForStat == null ? <Skeleton width={40} height={28} /> : roleCountForStat} />
+        <Stat label={t('hmDash.statCandidates')} value={candidatesCount == null ? <Skeleton width={40} height={28} /> : candidatesCount} />
+        <Stat label={t('hmDash.statAwaitingYou')} value={actionNeeded == null ? <Skeleton width={40} height={28} /> : actionNeeded} tone={(actionNeeded ?? 0) > 0 ? 'brand' : 'default'} />
+        <Stat label={t('hmDash.statHiredAllTime')} value={hiredAllTimeForStat == null ? <Skeleton width={40} height={28} /> : hiredAllTimeForStat} />
       </div>
 
       <CareerNudgePanel side="hm" />
@@ -792,11 +793,10 @@ export default function HMDashboard() {
 
       {hmHasDob === false && (
         <div className="mb-6">
-          <Alert tone="amber" title="Add a little more about you to start matching">
-            We&apos;re missing your date of birth — without it we can&apos;t pitch you to the right
-            talent. Takes 10 seconds. Encrypted, never shown to candidates.
+          <Alert tone="amber" title={t('hmDash.dobAlertTitle')}>
+            {t('hmDash.dobAlertBody')}
             <div className="mt-2">
-              <Button size="sm" onClick={() => setShowAddDobModal(true)}>Add now</Button>
+              <Button size="sm" onClick={() => setShowAddDobModal(true)}>{t('hmDash.dobAddNow')}</Button>
             </div>
           </Alert>
         </div>
@@ -804,18 +804,17 @@ export default function HMDashboard() {
 
       {companyVerified === false && companyId && (
         <div className="mb-6">
-          <Alert tone="amber" title="Company documents pending">
-            You can post roles and review matches freely. When you&apos;re ready to contact a candidate,
-            ask your HR manager to upload your company SSM certificate and business license.{' '}
+          <Alert tone="amber" title={t('hmDash.companyPendingTitle')}>
+            {t('hmDash.companyPendingBody')}{' '}
             <a
               href={`/onboarding/company/verify?company=${companyId}`}
               className="font-semibold underline"
               target="_blank"
               rel="noreferrer"
             >
-              Share this verification link
+              {t('hmDash.companyPendingLink')}
             </a>
-            {' '}with them to get started.
+            {' '}{t('hmDash.companyPendingTail')}
           </Alert>
         </div>
       )}
@@ -823,18 +822,18 @@ export default function HMDashboard() {
       {(roleCount ?? 0) > 0 && (
         <div className="mb-6">
           <div className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-900">
-            <span className="font-semibold">Want more than 3 matches?</span>{' '}
-            Earn Diamond Points by giving feedback, completing interviews, and referring friends — or unlock an extra match instantly for RM9.90.
-            {' '}<span className="font-semibold">21 Diamond Points = 1 extra match.</span>
+            <span className="font-semibold">{t('hmDash.moreMatchesTitle')}</span>{' '}
+            {t('hmDash.moreMatchesBody')}
+            {' '}<span className="font-semibold">{t('hmDash.moreMatchesRatio')}</span>
           </div>
         </div>
       )}
 
       {waiting && (
         <div className="mb-6">
-          <Alert tone="amber" title={`Cold-start: ${waiting.roleCount === 1 ? 'one role' : `${waiting.roleCount} roles`} waiting for talents`}>
-            We're growing the pool. You'll be notified as soon as we have 3 candidates for each.
-            Estimated wait: <strong>{waiting.estimatedDays} days</strong>.
+          <Alert tone="amber" title={t('hmDash.coldStartTitle', { roles: waiting.roleCount === 1 ? t('hmDash.coldStartOneRole') : t('hmDash.coldStartManyRoles', { count: waiting.roleCount }) })}>
+            {t('hmDash.coldStartBody')}{' '}
+            <strong>{t('hmDash.coldStartEstimate', { days: waiting.estimatedDays })}</strong>.
           </Alert>
         </div>
       )}
@@ -843,14 +842,14 @@ export default function HMDashboard() {
       {schedulingFor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-            <h2 className="text-lg font-bold mb-1">Propose interview times</h2>
+            <h2 className="text-lg font-bold mb-1">{t('hmDash.proposeTimesTitle')}</h2>
             <p className="text-xs text-ink-500 mb-4">
-              Offer the candidate three time slots (MYT). They&apos;ll pick one to confirm.
+              {t('hmDash.proposeTimesHint')}
             </p>
             {[0, 1, 2].map((i) => (
               <div key={i} className="mb-3">
                 <label htmlFor={`hm-slot-${i + 1}`} className="block text-xs mb-1 text-ink-700 font-medium">
-                  Slot {i + 1}
+                  {t('hmDash.slot', { n: i + 1 })}
                 </label>
                 <input
                   id={`hm-slot-${i + 1}`}
@@ -878,10 +877,10 @@ export default function HMDashboard() {
                   })
                 }}
               >
-                Send to candidate
+                {t('hmDash.sendToCandidate')}
               </Button>
               <Button variant="secondary" onClick={() => { setSchedulingFor(null); setScheduleSlots(['', '', '']) }}>
-                Cancel
+                {t('hmDash.cancel')}
               </Button>
             </div>
           </div>
@@ -901,7 +900,7 @@ export default function HMDashboard() {
               <svg className="w-5 h-5 text-white shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path fillRule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0L3.3 9.7a1 1 0 011.4-1.4l3.3 3.3 6.8-6.8a1 1 0 011.4 0z" clipRule="evenodd" />
               </svg>
-              <span className="text-white font-semibold text-sm">Your first role is ready — pre-filled from onboarding</span>
+              <span className="text-white font-semibold text-sm">{t('hmDash.draftBannerTitle')}</span>
             </div>
             <div className="p-6">
               <h3 className="text-xl font-bold text-gray-900">{onboardingDraftRole.title}</h3>
@@ -922,14 +921,14 @@ export default function HMDashboard() {
                 </div>
               )}
               <p className="mt-4 text-sm text-gray-600">
-                Review the details, adjust anything that&apos;s off, then activate it to start receiving up to 3 curated candidates.
+                {t('hmDash.draftReviewHint')}
               </p>
               <div className="mt-5">
                 <Link
                   to={`/hm/post-role/${onboardingDraftRole.id}`}
                   className="btn-primary inline-flex items-center gap-2 text-base px-6 py-3"
                 >
-                  Review &amp; activate this role
+                  {t('hmDash.draftActivateCta')}
                   <span aria-hidden="true">→</span>
                 </Link>
               </div>
@@ -938,13 +937,13 @@ export default function HMDashboard() {
         ) : (
           <Card>
             <EmptyState
-              title={roleCount === 0 ? 'Post your first role' : oldestRoleOver24h ? 'No matches yet' : 'Curating candidates'}
+              title={roleCount === 0 ? t('hmDash.emptyPostFirstTitle') : oldestRoleOver24h ? t('hmDash.emptyNoMatchesTitle') : t('hmDash.emptyCuratingTitle')}
               description={roleCount === 0
-                ? 'Tell us about the role you want to fill and we\'ll surface up to three candidates.'
+                ? t('hmDash.emptyPostFirstDesc')
                 : oldestRoleOver24h
-                  ? 'Our engine hasn\'t found a strong fit yet. Try widening the salary range or removing one required trait — that often unlocks the match.'
-                  : 'Our engine reviews new talent every hour. You\'ll see up to 3 candidates per role as they arrive.'}
-              action={roleCount === 0 ? <Link to="/hm/post-role" className="btn-primary">Post a role</Link> : undefined}
+                  ? t('hmDash.emptyNoMatchesDesc')
+                  : t('hmDash.emptyCuratingDesc')}
+              action={roleCount === 0 ? <Link to="/hm/post-role" className="btn-primary">{t('hmDash.postRole')}</Link> : undefined}
             />
           </Card>
         )
@@ -990,15 +989,15 @@ export default function HMDashboard() {
             <div className="flex items-start justify-between gap-3 mb-2">
               <div>
                 <div className="text-sm font-semibold text-amber-900 mb-0.5">
-                  🔥 Urgent Priority Search — {URGENT_COST} Diamond Points
+                  {t('hmDash.urgentSearchTitle', { cost: URGENT_COST })}
                 </div>
                 <p className="text-sm text-ink-600">
-                  Skip the queue and surface the single best candidate for a role on the spot.
+                  {t('hmDash.urgentSearchDesc')}
                 </p>
               </div>
               {pointsBalance != null && (
                 <div className="text-xs text-ink-600 whitespace-nowrap">
-                  Balance: <span className="font-semibold text-ink-900">{pointsBalance} Diamond Points</span>
+                  {t('hmDash.balanceLabel')} <span className="font-semibold text-ink-900">{t('hmDash.pointsValue', { n: pointsBalance })}</span>
                 </div>
               )}
             </div>
@@ -1012,14 +1011,14 @@ export default function HMDashboard() {
                 <div key={r.id} className="flex flex-wrap items-center justify-between gap-3 border-t border-amber-200 pt-3 first:border-t-0 first:pt-0">
                   <div>
                     <div className="text-sm font-medium text-ink-900">{r.title}</div>
-                    <div className="text-xs text-ink-500">{r.activeCount} active candidate{r.activeCount === 1 ? '' : 's'}</div>
+                    <div className="text-xs text-ink-500">{t('hmDash.activeCandidatesCount', { count: r.activeCount })}</div>
                   </div>
                   <Button
                     size="sm"
                     onClick={() => void handleUrgentSearch(r.id)}
                     disabled={urgentBusy}
                   >
-                    {urgentBusy && urgentRoleId === r.id ? 'Searching…' : `Urgent — ${URGENT_COST} Diamond Points`}
+                    {urgentBusy && urgentRoleId === r.id ? t('hmDash.searching') : t('hmDash.urgentButton', { cost: URGENT_COST })}
                   </Button>
                 </div>
               ))}
@@ -1031,10 +1030,9 @@ export default function HMDashboard() {
       {roleExtras.some((r) => r.activeCount >= 3 && r.extraUsed < 3) && (
         <Card className="mt-8 border-dashed border-accent-500">
           <div className="p-6">
-            <div className="text-sm font-medium text-ink-900 mb-1">Need more candidates?</div>
+            <div className="text-sm font-medium text-ink-900 mb-1">{t('hmDash.needMoreTitle')}</div>
             <p className="text-sm text-ink-500 mb-4">
-              Each role fills up to 3 curated candidates for free. Unlock up to 3 more per role —
-              pay RM 9.90 or spend {POINTS_PER_EXTRA} Diamond Points{pointsBalance != null ? ` (balance: ${pointsBalance})` : ''}.
+              {t('hmDash.needMoreBody', { points: POINTS_PER_EXTRA })}{pointsBalance != null ? t('hmDash.needMoreBalance', { balance: pointsBalance }) : ''}
             </p>
             <div className="space-y-2">
               {roleExtras
@@ -1047,7 +1045,7 @@ export default function HMDashboard() {
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
                           <div className="text-sm font-medium text-ink-900">{r.title}</div>
-                          <div className="text-xs text-ink-500">{3 - r.extraUsed} extra unlock{3 - r.extraUsed === 1 ? '' : 's'} remaining</div>
+                          <div className="text-xs text-ink-500">{t('hmDash.extraUnlocksRemaining', { count: 3 - r.extraUsed })}</div>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                           {insufficientPoints ? (
@@ -1055,7 +1053,7 @@ export default function HMDashboard() {
                               to="/points"
                               className="inline-flex items-center rounded-md border border-ink-200 bg-white px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-ink-50"
                             >
-                              Get {POINTS_PER_EXTRA} Diamond Points →
+                              {t('hmDash.getPoints', { points: POINTS_PER_EXTRA })}
                             </Link>
                           ) : (
                             <Button
@@ -1064,7 +1062,7 @@ export default function HMDashboard() {
                               onClick={() => void handleRedeemExtra(r.id, r.title)}
                               disabled={busy}
                             >
-                              {redeemingRoleId === r.id ? 'Redeeming…' : `Use ${POINTS_PER_EXTRA} Diamond Points`}
+                              {redeemingRoleId === r.id ? t('hmDash.redeeming') : t('hmDash.usePoints', { points: POINTS_PER_EXTRA })}
                             </Button>
                           )}
                           <Button
@@ -1072,14 +1070,14 @@ export default function HMDashboard() {
                             onClick={() => void handleUnlockExtra(r.id)}
                             disabled={busy}
                           >
-                            {unlockingRoleId === r.id ? 'Starting payment…' : 'Unlock — RM 9.90'}
+                            {unlockingRoleId === r.id ? t('hmDash.startingPayment') : t('hmDash.unlockRm')}
                           </Button>
                         </div>
                       </div>
                       {insufficientPoints && (
                         <div className="mt-2 text-xs text-ink-500">
-                          You have {pointsBalance ?? 0} / {POINTS_PER_EXTRA} Diamond Points. Earn them from feedback (+5), interviews, and referrals (+19) — or top up on the{' '}
-                          <Link to="/points" className="font-medium text-brand-700 hover:underline">wallet page</Link>.
+                          {t('hmDash.insufficientPoints', { have: pointsBalance ?? 0, need: POINTS_PER_EXTRA })}{' '}
+                          <Link to="/points" className="font-medium text-brand-700 hover:underline">{t('hmDash.walletPage')}</Link>.
                         </div>
                       )}
                       {unlockMsg && unlockMsg.roleId === r.id && (
@@ -1138,12 +1136,13 @@ function CandidateCard({
   onFeedbackChange: (patch: Partial<{ rating: number; hired: boolean; notes: string; outcome: string; freeText: string }>) => void
   onFeedbackSubmit: () => void
 }) {
+  const { t } = useTranslation()
   // Company gate: invites + scheduling + offers + résumé reveal all require a
   // verified company (companies.verified=true). Treat null as "still loading"
   // so we don't briefly flash buttons as disabled.
   const companyLocked = companyVerified === false
   const lockTitle = companyLocked
-    ? 'Locked until your HR uploads your company SSM + business license. Use the amber banner at the top of the dashboard to share the verification link.'
+    ? t('hmDash.cardLockTitle')
     : undefined
   const verifyHref = companyId ? `/onboarding/company/verify?company=${companyId}` : null
   // Real name + photo when the talent has opted into public (or whitelist-matched) visibility;
@@ -1152,8 +1151,8 @@ function CandidateCard({
   const photoUrl = preview?.photo_url ?? null
   const displayName = realName
     ?? (row.talents?.privacy_mode === 'anonymous'
-      ? 'Anonymous candidate'
-      : 'Candidate')
+      ? t('hmDash.anonymousCandidate')
+      : t('hmDash.candidate'))
 
   const topTags = Object.entries(row.talents?.derived_tags ?? {})
     .filter(([tag, score]) => !/^\d+$/.test(tag) && typeof score === 'number' && !isNaN(score) && score > 0)
@@ -1171,7 +1170,7 @@ function CandidateCard({
       <div className="p-6">
         {isUrgent && (
           <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-900">
-            🔥 Urgent Match
+            {t('hmDash.urgentMatchBadge')}
           </div>
         )}
         <div className="flex items-start justify-between gap-3 mb-3">
@@ -1191,12 +1190,12 @@ function CandidateCard({
             )}
             <div className="min-w-0">
               <h3 className="font-display text-lg text-ink-900 mb-0.5 truncate">{displayName}</h3>
-              <p className="text-sm text-ink-500">for {row.roles?.title ?? 'role'}</p>
+              <p className="text-sm text-ink-500">{t('hmDash.forRole', { role: row.roles?.title ?? t('hmDash.roleFallback') })}</p>
             </div>
           </div>
           <Badge tone={tone}>
             <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><circle cx="5" cy="5" r="4" /></svg>
-            {pct}% match
+            {t('hmDash.pctMatch', { pct })}
           </Badge>
         </div>
 
@@ -1210,20 +1209,20 @@ function CandidateCard({
             disabled={actionBusy !== null || companyLocked}
             title={companyLocked ? lockTitle : undefined}
           >
-            📄 View résumé
+            {t('hmDash.viewResume')}
           </Button>
           {companyLocked && verifyHref && (
             <a href={verifyHref} target="_blank" rel="noreferrer" className="text-xs text-amber-700 underline">
-              Locked — verify your company first
+              {t('hmDash.lockedVerifyFirst')}
             </a>
           )}
         </div>
 
         <div className="bg-ink-50 rounded-lg p-3 mb-4 text-sm">
-          <div className="text-xs text-ink-500 uppercase tracking-wide mb-0.5">Expects</div>
+          <div className="text-xs text-ink-500 uppercase tracking-wide mb-0.5">{t('hmDash.expects')}</div>
           <div className="text-ink-900 font-medium">
             RM {fmt(row.talents?.expected_salary_min)} – {fmt(row.talents?.expected_salary_max)}
-            <span className="text-ink-400 font-normal"> / month</span>
+            <span className="text-ink-400 font-normal"> {t('hmDash.perMonth')}</span>
           </div>
         </div>
 
@@ -1242,7 +1241,7 @@ function CandidateCard({
 
         {row.application_summary && (
           <div className="mt-3 mb-3 border border-brand-100 rounded-lg p-3 bg-brand-50">
-            <p className="text-xs font-semibold uppercase tracking-wide text-brand-700 mb-1">Why hire for this role</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-brand-700 mb-1">{t('hmDash.whyHire')}</p>
             <p className="text-sm text-ink-800 leading-relaxed whitespace-pre-line">{row.application_summary}</p>
           </div>
         )}
@@ -1261,7 +1260,7 @@ function CandidateCard({
         {pendingProposal && (
           <div className="mt-4 border border-amber-200 rounded-lg overflow-hidden bg-amber-50/40">
             <div className="bg-amber-100 px-3 py-2 text-xs font-semibold text-amber-900 uppercase tracking-wide flex items-center justify-between gap-2">
-              <span>Awaiting candidate confirmation — Round {pendingProposal.round_number}</span>
+              <span>{t('hmDash.awaitingConfirmation', { round: pendingProposal.round_number })}</span>
               <Button
                 size="sm"
                 variant="secondary"
@@ -1269,13 +1268,13 @@ function CandidateCard({
                 loading={actionBusy === `${row.id}:cancel_interview_proposal`}
                 onClick={() => onCancelProposal(pendingProposal.id)}
               >
-                Withdraw
+                {t('hmDash.withdraw')}
               </Button>
             </div>
             <ul className="px-3 py-2 text-xs text-ink-700 space-y-1">
               {[pendingProposal.slot_1_at, pendingProposal.slot_2_at, pendingProposal.slot_3_at].map((at, i) => (
                 <li key={i}>
-                  <span className="text-ink-400 mr-2">Slot {i + 1}</span>
+                  <span className="text-ink-400 mr-2">{t('hmDash.slot', { n: i + 1 })}</span>
                   {new Date(at).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur', dateStyle: 'medium', timeStyle: 'short' })} MYT
                 </li>
               ))}
@@ -1287,12 +1286,12 @@ function CandidateCard({
         {rounds.length > 0 && (
           <div className="mt-4 border border-ink-100 rounded-lg overflow-hidden">
             <div className="bg-ink-50 px-3 py-2 text-xs font-semibold text-ink-600 uppercase tracking-wide">
-              Interview rounds
+              {t('hmDash.interviewRounds')}
             </div>
             {rounds.map((r) => (
               <div key={r.id} className="flex flex-wrap items-center justify-between gap-y-1 px-3 py-2 border-t border-ink-100 first:border-t-0">
                 <div className="min-w-0 flex-1">
-                  <span className="text-xs font-medium text-ink-900">Round {r.round_number}</span>
+                  <span className="text-xs font-medium text-ink-900">{t('hmDash.round', { n: r.round_number })}</span>
                   <span className="text-xs text-ink-400 ml-2">
                     {new Date(r.scheduled_at).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur', dateStyle: 'medium', timeStyle: 'short' })} MYT
                   </span>
@@ -1306,7 +1305,7 @@ function CandidateCard({
                       rel="noopener noreferrer"
                       className="text-xs text-brand-600 hover:text-brand-700 underline"
                     >
-                      Join
+                      {t('hmDash.join')}
                     </a>
                   )}
                 </div>
@@ -1318,7 +1317,7 @@ function CandidateCard({
         {/* Contact reveal — available once offer is made */}
         {['offer_made', 'hired'].includes(row.status) && (
           <div className="mt-4 border border-emerald-200 rounded-lg p-3 bg-emerald-50">
-            <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wide mb-2">Candidate contact details</p>
+            <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wide mb-2">{t('hmDash.contactDetails')}</p>
             {contact === undefined ? (
               <Button
                 size="sm"
@@ -1326,10 +1325,10 @@ function CandidateCard({
                 disabled={companyLocked}
                 title={companyLocked ? lockTitle : undefined}
               >
-                Reveal contact info
+                {t('hmDash.revealContact')}
               </Button>
             ) : contact === null ? (
-              <p className="text-xs text-red-600">Could not load contact.</p>
+              <p className="text-xs text-red-600">{t('hmDash.contactLoadFailed')}</p>
             ) : (
               <div className="space-y-1 text-sm">
                 <p className="font-medium text-ink-900">{contact.full_name}</p>
@@ -1351,7 +1350,7 @@ function CandidateCard({
                 disabled={actionBusy !== null || companyLocked}
                 title={companyLocked ? lockTitle : undefined}
               >
-                Invite to interview
+                {t('hmDash.inviteToInterview')}
               </Button>
               <Button
                 onClick={onDecline}
@@ -1360,7 +1359,7 @@ function CandidateCard({
                 loading={actionBusy === `${row.id}:decline`}
                 disabled={actionBusy !== null}
               >
-                Decline
+                {t('hmDash.decline')}
               </Button>
             </div>
           )}
@@ -1372,9 +1371,9 @@ function CandidateCard({
                 size="sm"
                 onClick={onScheduleRound}
                 disabled={schedulingFor === row.id || actionBusy !== null || !!pendingProposal || companyLocked}
-                title={companyLocked ? lockTitle : (pendingProposal ? 'Withdraw the pending proposal first to send new times.' : undefined)}
+                title={companyLocked ? lockTitle : (pendingProposal ? t('hmDash.withdrawFirstHint') : undefined)}
               >
-                {rounds.length === 0 ? 'Propose interview times' : 'Propose times for next round'}
+                {rounds.length === 0 ? t('hmDash.proposeInterviewTimes') : t('hmDash.proposeNextRound')}
               </Button>
               {row.status === 'interview_scheduled' && (
                 <Button
@@ -1384,7 +1383,7 @@ function CandidateCard({
                   disabled={actionBusy !== null}
                   onClick={onCompleteInterviews}
                 >
-                  Mark all done
+                  {t('hmDash.markAllDone')}
                 </Button>
               )}
               <Button
@@ -1394,7 +1393,7 @@ function CandidateCard({
                 disabled={actionBusy !== null}
                 onClick={onCancel}
               >
-                Cancel
+                {t('hmDash.cancel')}
               </Button>
             </div>
           )}
@@ -1409,7 +1408,7 @@ function CandidateCard({
                 title={companyLocked ? lockTitle : undefined}
                 onClick={onMakeOffer}
               >
-                Make offer
+                {t('hmDash.makeOffer')}
               </Button>
               <Button
                 size="sm"
@@ -1418,7 +1417,7 @@ function CandidateCard({
                 disabled={actionBusy !== null}
                 onClick={onCancel}
               >
-                Decline candidate
+                {t('hmDash.declineCandidate')}
               </Button>
             </div>
           )}
@@ -1433,7 +1432,7 @@ function CandidateCard({
                 title={companyLocked ? lockTitle : undefined}
                 onClick={onMarkHired}
               >
-                Confirm hired
+                {t('hmDash.confirmHired')}
               </Button>
               <Button
                 size="sm"
@@ -1442,7 +1441,7 @@ function CandidateCard({
                 disabled={actionBusy !== null}
                 onClick={onCancel}
               >
-                Cancel offer
+                {t('hmDash.cancelOffer')}
               </Button>
             </div>
           )}
@@ -1451,7 +1450,7 @@ function CandidateCard({
           {['interview_completed', 'offer_made', 'hired', 'declined_by_manager', 'declined_by_talent'].includes(row.status) && (
             <div className="border border-ink-200 rounded-lg p-3 space-y-2 bg-ink-50">
               <p className="text-xs font-semibold text-ink-700 uppercase tracking-wide">
-                Rate this match
+                {t('hmDash.rateThisMatch')}
               </p>
               <div className="flex items-center gap-1">
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -1460,14 +1459,14 @@ function CandidateCard({
                     type="button"
                     onClick={() => onFeedbackChange({ rating: star })}
                     className={`text-xl leading-none transition-colors ${feedbackEntry.rating >= star ? 'text-amber-400' : 'text-ink-200 hover:text-amber-300'}`}
-                    aria-label={`${star} star`}
+                    aria-label={t('hmDash.starAria', { count: star })}
                   >
                     ★
                   </button>
                 ))}
                 {feedbackEntry.rating > 0 && (
                   <span className="ml-2 text-xs text-ink-500">
-                    {['', 'Poor', 'Below average', 'Average', 'Good', 'Excellent'][feedbackEntry.rating]}
+                    {['', t('hmDash.ratingPoor'), t('hmDash.ratingBelowAverage'), t('hmDash.ratingAverage'), t('hmDash.ratingGood'), t('hmDash.ratingExcellent')][feedbackEntry.rating]}
                   </span>
                 )}
               </div>
@@ -1476,18 +1475,18 @@ function CandidateCard({
                 onChange={(e) => onFeedbackChange({ outcome: e.target.value })}
                 className="w-full border border-ink-200 rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 bg-white"
               >
-                {HM_OUTCOMES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                {hmOutcomes(t).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
               <textarea
                 value={feedbackEntry.freeText}
                 onChange={(e) => onFeedbackChange({ freeText: e.target.value })}
-                placeholder="What stood out? Your notes train the matching engine (optional)"
+                placeholder={t('hmDash.feedbackPlaceholder')}
                 rows={2}
                 className="w-full border border-ink-200 rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 bg-white resize-none"
               />
               {feedbackEntry.saved ? (
                 <p className="text-xs text-emerald-600 font-medium">
-                  ✓ Feedback saved{feedbackEntry.pointsAwarded ? ` — +${feedbackEntry.pointsAwarded} Diamond Points` : ' — helps improve future matches'}
+                  {feedbackEntry.pointsAwarded ? t('hmDash.feedbackSavedPoints', { points: feedbackEntry.pointsAwarded }) : t('hmDash.feedbackSavedHelps')}
                 </p>
               ) : (
                 <Button
@@ -1496,7 +1495,7 @@ function CandidateCard({
                   disabled={feedbackEntry.rating === 0 || feedbackEntry.saving}
                   loading={feedbackEntry.saving}
                 >
-                  Save feedback (+5 Diamond Points)
+                  {t('hmDash.saveFeedback')}
                 </Button>
               )}
             </div>
@@ -1508,39 +1507,42 @@ function CandidateCard({
 }
 
 function RoundBadge({ status }: { status: InterviewRound['status'] }) {
+  const { t } = useTranslation()
   const m = {
-    scheduled:  { label: 'Scheduled', tone: 'brand' as const },
-    completed:  { label: 'Done',      tone: 'green' as const },
-    cancelled:  { label: 'Cancelled', tone: 'gray' as const },
-    no_show:    { label: 'No-show',   tone: 'amber' as const },
+    scheduled:  { label: t('hmDash.roundScheduled'), tone: 'brand' as const },
+    completed:  { label: t('hmDash.roundDone'),      tone: 'green' as const },
+    cancelled:  { label: t('hmDash.roundCancelled'), tone: 'gray' as const },
+    no_show:    { label: t('hmDash.roundNoShow'),    tone: 'amber' as const },
   }
   const { label, tone } = m[status] ?? { label: status, tone: 'gray' as const }
   return <Badge tone={tone}>{label}</Badge>
 }
 
 function StatusNote({ status }: { status: string }) {
+  const { t } = useTranslation()
   const m: Record<string, { label: string; tone: 'gray' | 'brand' | 'green' | 'amber' | 'red' }> = {
-    generated:            { label: 'New candidate — awaiting your review',         tone: 'brand' },
-    viewed:               { label: 'Viewed — not yet actioned',                    tone: 'gray' },
-    accepted_by_talent:   { label: 'Talent accepted — ready for your invite',      tone: 'green' },
-    invited_by_manager:   { label: 'Invited — schedule an interview round',        tone: 'brand' },
-    hr_scheduling:        { label: 'HR is coordinating the schedule',              tone: 'amber' },
-    interview_scheduled:  { label: 'Interview scheduled — join your Jitsi link',   tone: 'brand' },
-    interview_completed:  { label: 'Interview complete — make an offer or decline', tone: 'amber' },
-    offer_made:           { label: 'Offer sent — awaiting candidate response',     tone: 'amber' },
-    hired:                { label: 'Hired',                                        tone: 'green' },
-    cancelled:            { label: 'Cancelled',                                    tone: 'gray' },
-    no_show:              { label: 'No-show',                                      tone: 'red' },
+    generated:            { label: t('hmDash.statusGenerated'),           tone: 'brand' },
+    viewed:               { label: t('hmDash.statusViewed'),              tone: 'gray' },
+    accepted_by_talent:   { label: t('hmDash.statusAcceptedByTalent'),    tone: 'green' },
+    invited_by_manager:   { label: t('hmDash.statusInvited'),             tone: 'brand' },
+    hr_scheduling:        { label: t('hmDash.statusHrScheduling'),        tone: 'amber' },
+    interview_scheduled:  { label: t('hmDash.statusInterviewScheduled'),  tone: 'brand' },
+    interview_completed:  { label: t('hmDash.statusInterviewCompleted'),  tone: 'amber' },
+    offer_made:           { label: t('hmDash.statusOfferMade'),           tone: 'amber' },
+    hired:                { label: t('hmDash.statusHired'),               tone: 'green' },
+    cancelled:            { label: t('hmDash.statusCancelled'),           tone: 'gray' },
+    no_show:              { label: t('hmDash.statusNoShow'),              tone: 'red' },
   }
   const entry = m[status] ?? { label: status.replace(/_/g, ' '), tone: 'gray' as const }
   return <Badge tone={entry.tone}>{entry.label}</Badge>
 }
 
 function CultureCompare({ comparison }: { comparison: CultureComparison }) {
+  const { t } = useTranslation()
   if (comparison.talent_top_wants.length === 0 && comparison.hm_top_offers.length === 0) return null
   return (
     <div className="mt-3 border border-ink-100 rounded-lg p-3 bg-white">
-      <p className="text-xs font-semibold uppercase tracking-wide text-ink-500 mb-2">Culture alignment</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-ink-500 mb-2">{t('hmDash.cultureAlignment')}</p>
       <div className="flex flex-wrap gap-1.5">
         {comparison.overlap.map((k) => (
           <span key={k} className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">
@@ -1555,8 +1557,8 @@ function CultureCompare({ comparison }: { comparison: CultureComparison }) {
       </div>
       {(comparison.overlap.length > 0 || comparison.talent_only.length > 0) && (
         <p className="text-xs text-ink-400 mt-1.5">
-          {comparison.overlap.length > 0 && <span className="mr-3">✓ aligned with your team</span>}
-          {comparison.talent_only.length > 0 && <span>~ talent wants this — confirm in interview</span>}
+          {comparison.overlap.length > 0 && <span className="mr-3">{t('hmDash.cultureAligned')}</span>}
+          {comparison.talent_only.length > 0 && <span>{t('hmDash.cultureTalentWants')}</span>}
         </p>
       )}
     </div>
@@ -1566,6 +1568,7 @@ function CultureCompare({ comparison }: { comparison: CultureComparison }) {
 function EmployerReputationPanel({ reputation }: {
   reputation: { reputation_score: number | null; feedback_volume: number; phs_offer_accept_rate: number | null; hm_quality_factor: number | null; hm_cancel_rate: number | null }
 }) {
+  const { t } = useTranslation()
   const score = reputation.reputation_score
   const scoreTone = score == null ? 'gray' : score >= 75 ? 'green' : score >= 50 ? 'amber' : 'red'
   const qf = reputation.hm_quality_factor
@@ -1575,40 +1578,40 @@ function EmployerReputationPanel({ reputation }: {
       <div className="p-4">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500 mb-0.5">Employer reputation</p>
-            <p className="text-xs text-ink-400">Based on {reputation.feedback_volume} talent review{reputation.feedback_volume === 1 ? '' : 's'}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500 mb-0.5">{t('hmDash.reputationTitle')}</p>
+            <p className="text-xs text-ink-400">{t('hmDash.reputationBasedOn', { count: reputation.feedback_volume })}</p>
           </div>
-          {score != null && <Badge tone={scoreTone as 'gray' | 'green' | 'amber' | 'brand' | 'accent' | 'red'}>{Math.round(score)} / 100</Badge>}
+          {score != null && <Badge tone={scoreTone as 'gray' | 'green' | 'amber' | 'brand' | 'accent' | 'red'}>{t('hmDash.scoreOutOf100', { score: Math.round(score) })}</Badge>}
         </div>
         <div className="flex gap-6 flex-wrap">
           {qf != null && (
             <div>
-              <p className="text-xs text-ink-500">Reliability score</p>
+              <p className="text-xs text-ink-500">{t('hmDash.reliabilityScore')}</p>
               <div className="flex items-center gap-1.5">
-                <p className="text-sm font-semibold text-ink-900">{(qf * 100).toFixed(0)} / 100</p>
+                <p className="text-sm font-semibold text-ink-900">{t('hmDash.scoreOutOf100', { score: (qf * 100).toFixed(0) })}</p>
                 <Badge tone={qfTone as 'gray' | 'green' | 'amber' | 'brand' | 'accent' | 'red'} className="text-xs">
-                  {qf >= 0.90 ? 'Excellent' : qf >= 0.80 ? 'Good' : 'Needs attention'}
+                  {qf >= 0.90 ? t('hmDash.reliabilityExcellent') : qf >= 0.80 ? t('hmDash.reliabilityGood') : t('hmDash.reliabilityNeedsAttention')}
                 </Badge>
               </div>
-              <p className="text-xs text-ink-400 mt-0.5">Factors into how your roles are ranked to talent</p>
+              <p className="text-xs text-ink-400 mt-0.5">{t('hmDash.reliabilityFactors')}</p>
             </div>
           )}
           {reputation.hm_cancel_rate != null && (
             <div>
-              <p className="text-xs text-ink-500">Interview cancel rate</p>
+              <p className="text-xs text-ink-500">{t('hmDash.cancelRate')}</p>
               <p className="text-sm font-semibold text-ink-900">{Math.round(reputation.hm_cancel_rate * 100)}%</p>
             </div>
           )}
           {reputation.phs_offer_accept_rate != null && (
             <div>
-              <p className="text-xs text-ink-500">Offer accept rate</p>
+              <p className="text-xs text-ink-500">{t('hmDash.offerAcceptRate')}</p>
               <p className="text-sm font-semibold text-ink-900">{Math.round(reputation.phs_offer_accept_rate * 100)}%</p>
             </div>
           )}
         </div>
         {qf != null && qf < 0.80 && (
           <div className="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
-            Your reliability score affects how your roles rank in matching. To improve it: show up to scheduled interviews, ensure JDs are accurate, and follow through on offers.
+            {t('hmDash.reliabilityImproveHint')}
           </div>
         )}
       </div>

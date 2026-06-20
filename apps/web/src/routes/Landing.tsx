@@ -337,10 +337,13 @@ export default function Landing() {
 }
 
 function PopularSearches() {
+  const { t } = useTranslation()
   // SEO-only keyword block — non-interactive plain text spans so search-engine
   // crawlers index the keyword phrases for relevance, but human users have
   // no clickable target. Wrapped in collapsed <details> so the block isn't
   // visually loud either; users can choose to expand to read.
+  // NOTE: TERMS stay literal English — they are crawler-indexed SEO keyword
+  // phrases, not translatable UI copy.
   const TERMS = [
     'Jobs near me', 'Job vacancy near me', 'Urgent hiring near me', 'Walk in interview',
     'Hiring immediately', 'Apply job online', 'Latest job vacancy', 'Part time job near me',
@@ -360,11 +363,11 @@ function PopularSearches() {
   return (
     <details className="text-[10px] text-gray-500 max-w-3xl mx-auto px-4">
       <summary className="cursor-pointer hover:text-gray-700 list-none select-none">
-        Popular searches
+        {t('landing.popularSearches')}
       </summary>
       <div
         role="list"
-        aria-label="Popular job search terms"
+        aria-label={t('landing.popularSearchesAria')}
         className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 leading-relaxed select-text"
       >
         {TERMS.map((term) => (
@@ -812,15 +815,16 @@ function Arrow() {
 
 /** Thin trust bar immediately below the hero screen */
 function TrustStrip() {
+  const { t } = useTranslation()
   const pills = [
-    { icon: '🔒', label: 'PDPA-Compliant' },
-    { icon: '🔐', label: 'End-to-End Encrypted' },
-    { icon: '✦', label: 'AI-Curated Matching', gold: true },
-    { icon: '🇲🇾', label: 'Malaysia-first platform' },
+    { icon: '🔒', label: t('landing.trustPdpa') },
+    { icon: '🔐', label: t('landing.trustEncrypted') },
+    { icon: '✦', label: t('landing.trustAiMatching'), gold: true },
+    { icon: '🇲🇾', label: t('landing.trustMalaysiaFirst') },
   ]
   return (
     <div className="bg-[#0B1742] py-3 px-6">
-      <ul className="max-w-4xl mx-auto flex flex-wrap items-center justify-center gap-x-8 gap-y-2" aria-label="Platform trust signals">
+      <ul className="max-w-4xl mx-auto flex flex-wrap items-center justify-center gap-x-8 gap-y-2" aria-label={t('landing.trustSignalsAria')}>
         {pills.map((p) => (
           <li key={p.label} className={`flex items-center gap-2 text-sm ${p.gold ? 'text-[#C9A24D] font-semibold' : 'text-white/80'}`}>
             <span aria-hidden>{p.icon}</span>
@@ -850,23 +854,24 @@ function StepArrow() {
 
 /** #7 — 60-second explainer video */
 function VideoSection() {
+  const { t } = useTranslation()
   const [playing, setPlaying] = useState(false)
   return (
     <section className="py-14 px-6 bg-white dark:bg-[#0d1528]" aria-labelledby="video-heading">
       <div className="max-w-4xl mx-auto text-center">
-        <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">Watch</p>
+        <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">{t('landing.videoEyebrow')}</p>
         <h2 id="video-heading" className="text-2xl md:text-3xl font-bold tracking-tight text-[#0B1220] dark:text-white mb-2">
-          See Bole in action — 60 seconds
+          {t('landing.videoTitle')}
         </h2>
         <p className="text-sm text-gray-500 max-w-lg mx-auto mb-8 leading-relaxed">
-          A quick look at how DNJ's AI curates your top three matches — from profile to offer.
+          {t('landing.videoSubtitle')}
         </p>
         <div className="relative w-full aspect-video max-w-4xl mx-auto rounded-2xl overflow-hidden
                         shadow-[0_8px_32px_-8px_rgba(11,23,66,0.22)] ring-2 ring-[#0B1742]/20">
           {VIDEO_URL && playing ? (
             <iframe
               src={VIDEO_URL}
-              title="DNJ — how Bole works in 60 seconds"
+              title={t('landing.videoIframeTitle')}
               className="absolute inset-0 w-full h-full"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
@@ -877,7 +882,7 @@ function VideoSection() {
               onClick={() => setPlaying(true)}
               className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-4 group"
               style={{ background: 'linear-gradient(160deg,#0B1742 0%,#0B1220 100%)' }}
-              aria-label="Play explainer video"
+              aria-label={t('landing.videoPlayAria')}
             >
               <div className="w-20 h-20 rounded-full bg-[#C9A24D]/20 border-2 border-[#C9A24D]/60
                               flex items-center justify-center group-hover:bg-[#C9A24D]/30 transition-colors">
@@ -885,7 +890,7 @@ function VideoSection() {
                   <polygon points="9,6 23,14 9,22" fill="#C9A24D" />
                 </svg>
               </div>
-              <span className="text-sm font-medium text-white/80">Click to play</span>
+              <span className="text-sm font-medium text-white/80">{t('landing.videoClickToPlay')}</span>
             </button>
           ) : (
             /* Coming-soon placeholder */
@@ -900,8 +905,8 @@ function VideoSection() {
                 </svg>
               </div>
               <div className="text-center">
-                <p className="text-sm font-semibold text-[#C9A24D]">Coming soon</p>
-                <p className="text-xs text-white/60 mt-1">60-second explainer — how Bole works</p>
+                <p className="text-sm font-semibold text-[#C9A24D]">{t('common.comingSoon')}</p>
+                <p className="text-xs text-white/60 mt-1">{t('landing.videoComingSoonHint')}</p>
               </div>
             </div>
           )}
@@ -913,16 +918,17 @@ function VideoSection() {
 
 /** #2 — How Bole works in 3 steps */
 function HowItWorksSection() {
+  const { t } = useTranslation()
   return (
     <section className="py-16 px-6 bg-white dark:bg-[#0d1528]" aria-labelledby="how-it-works-heading">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-10">
-          <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">How It Works</p>
+          <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">{t('landing.howEyebrow')}</p>
           <h2 id="how-it-works-heading" className="text-2xl md:text-3xl font-bold tracking-tight text-[#0B1220] dark:text-white">
-            Precision recruitment in three steps
+            {t('landing.howTitle')}
           </h2>
           <p className="text-gray-500 dark:text-gray-400 mt-2 max-w-lg mx-auto text-sm leading-relaxed">
-            No cold applications. No CV black hole. Complete your profile once and let Bole — our advanced AI — find the right fit.
+            {t('landing.howSubtitle')}
           </p>
         </div>
 
@@ -932,9 +938,9 @@ function HowItWorksSection() {
             <div className="w-14 h-14 rounded-full bg-[#C9A24D]/10 border border-[#C9A24D]/50 flex items-center justify-center mx-auto mb-4">
               <span className="text-[#C9A24D] font-bold text-lg leading-none">01</span>
             </div>
-            <h3 className="font-bold text-[#0B1220] dark:text-white mb-2">Complete your profile</h3>
+            <h3 className="font-bold text-[#0B1220] dark:text-white mb-2">{t('landing.howStep1Title')}</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-              Tell us your career story — skills, goals, salary expectations, culture fit. Five minutes. No resume required.
+              {t('landing.howStep1Desc')}
             </p>
           </div>
 
@@ -944,11 +950,11 @@ function HowItWorksSection() {
           <div className="flex-1 text-center rounded-2xl ring-1 ring-[#5468ef]/30 p-6 w-full shadow-[0_8px_32px_-8px_rgba(84,104,239,0.25)]"
                style={{ background: 'linear-gradient(160deg,#0B1742 0%,#0B1220 100%)' }}>
             <div className="w-14 h-14 rounded-full bg-[#C9A24D]/20 border border-[#C9A24D]/50 flex items-center justify-center mx-auto mb-4">
-              <span className="text-[#C9A24D] font-bold text-xl leading-none" aria-label="Bole character">伯</span>
+              <span className="text-[#C9A24D] font-bold text-xl leading-none" aria-label={t('landing.boleCharacterAria')}>伯</span>
             </div>
-            <h3 className="font-bold text-white mb-2">Bole scans every industry</h3>
+            <h3 className="font-bold text-white mb-2">{t('landing.howStep2Title')}</h3>
             <p className="text-sm text-white/75 leading-relaxed">
-              Our AI reads your six facets — skills, trajectory, character, working style, growth potential and culture fit — across every active role in Malaysia.
+              {t('landing.howStep2Desc')}
             </p>
           </div>
 
@@ -959,9 +965,9 @@ function HowItWorksSection() {
             <div className="w-14 h-14 rounded-full bg-[#C9A24D]/10 border border-[#C9A24D]/50 flex items-center justify-center mx-auto mb-4">
               <span className="text-[#C9A24D] font-bold text-lg leading-none">03</span>
             </div>
-            <h3 className="font-bold text-[#0B1220] dark:text-white mb-2">Receive 3 curated matches</h3>
+            <h3 className="font-bold text-[#0B1220] dark:text-white mb-2">{t('landing.howStep3Title')}</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-              Three employers. Three genuine fits. You review, decide, and connect — no applications fired into the void.
+              {t('landing.howStep3Desc')}
             </p>
           </div>
         </div>
@@ -971,9 +977,9 @@ function HowItWorksSection() {
             to="/start/talent"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#0B1742] text-white font-semibold text-sm hover:bg-[#1B2A6B] transition-colors shadow-[0_4px_14px_rgba(11,23,66,0.35)]"
           >
-            Start my profile <Arrow />
+            {t('landing.howStartProfile')} <Arrow />
           </Link>
-          <p className="text-xs text-gray-400 mt-2">Free to join · No application fees</p>
+          <p className="text-xs text-gray-400 mt-2">{t('landing.howFreeNote')}</p>
         </div>
       </div>
     </section>
@@ -982,7 +988,15 @@ function HowItWorksSection() {
 
 /** #30 — Meet Bole: the AI behind the matching */
 function BoleSection() {
-  const facets = ['Skills', 'Career trajectory', 'Character', 'Working style', 'Growth potential', 'Culture fit']
+  const { t } = useTranslation()
+  const facets = [
+    t('landing.boleFacetSkills'),
+    t('landing.boleFacetTrajectory'),
+    t('landing.boleFacetCharacter'),
+    t('landing.boleFacetWorkingStyle'),
+    t('landing.boleFacetGrowth'),
+    t('landing.boleFacetCultureFit'),
+  ]
   return (
     <section
       className="py-16 px-6"
@@ -991,26 +1005,28 @@ function BoleSection() {
     >
       <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
         <div>
-          <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-3 uppercase">Meet Bole</p>
+          <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-3 uppercase">{t('landing.boleEyebrow')}</p>
           <div className="text-[80px] font-extrabold text-[#C9A24D] leading-none mb-4" aria-hidden>伯樂</div>
           <h2 id="bole-heading" className="text-2xl md:text-3xl font-bold text-white mb-3 tracking-tight">
-            The AI that recognises your brilliance
+            {t('landing.boleTitle')}
           </h2>
           <p className="text-white/75 text-sm leading-relaxed max-w-sm">
-            Named after the legendary talent scout 伯樂 (Bole), who could spot an extraordinary horse in any crowd. Our Bole doesn't manufacture talent — it <em>recognises</em> what's already there.
+            {t('landing.boleNamedLead')}{' '}
+            <em>{t('landing.boleNamedEmphasis')}</em>{' '}
+            {t('landing.boleNamedTrail')}
           </p>
           <p className="text-white/60 text-sm leading-relaxed mt-3 max-w-sm">
-            You're already a diamond. Bole's job is to make sure the right people see it.
+            {t('landing.boleDiamondLine')}
           </p>
           <Link
             to="/about"
             className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#C9A24D] hover:text-white transition-colors"
           >
-            Read the full story <Arrow />
+            {t('landing.boleReadStory')} <Arrow />
           </Link>
         </div>
         <div>
-          <p className="text-white/50 text-xs tracking-widest uppercase mb-3">The six facets Bole reads</p>
+          <p className="text-white/50 text-xs tracking-widest uppercase mb-3">{t('landing.boleSixFacets')}</p>
           <div className="flex flex-wrap gap-2">
             {facets.map((f) => (
               <span
@@ -1022,8 +1038,8 @@ function BoleSection() {
             ))}
           </div>
           <div className="mt-6 rounded-xl bg-white/5 border border-white/10 p-4 text-sm text-white/70 leading-relaxed">
-            <span className="block text-[#C9A24D] font-semibold mb-1">Why only three matches?</span>
-            Three genuinely-aligned opportunities demand your full attention. Three hundred listings demand nothing but your time.
+            <span className="block text-[#C9A24D] font-semibold mb-1">{t('landing.boleWhyThreeTitle')}</span>
+            {t('landing.boleWhyThreeBody')}
           </div>
         </div>
       </div>
@@ -1033,27 +1049,28 @@ function BoleSection() {
 
 /** #10 — Passive talent feature: your profile works 24/7 */
 function PassiveTalentSection() {
+  const { t } = useTranslation()
   return (
     <section className="py-14 px-6 bg-white dark:bg-[#0d1528]" aria-labelledby="passive-heading">
       <div className="max-w-4xl mx-auto">
         <div className="rounded-2xl ring-1 ring-[#e8edff] dark:ring-[#1e2d52] bg-gradient-to-br from-[#fafbff] to-[#f0f4ff] dark:from-[#111827] dark:to-[#0d1528] p-8 md:p-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
           <div>
-            <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">Passive matching</p>
+            <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">{t('landing.passiveEyebrow')}</p>
             <h2 id="passive-heading" className="text-2xl font-bold tracking-tight text-[#0B1220] mb-3">
-              Your profile works while you sleep
+              {t('landing.passiveTitle')}
             </h2>
             <p className="text-sm text-gray-600 leading-relaxed">
-              You don't send applications. Bole sends you matches.
+              {t('landing.passiveLine1')}
             </p>
             <p className="text-sm text-gray-600 leading-relaxed mt-2">
-              Complete your profile once and our AI continuously scans new roles across every industry — alerting you to the right opportunity before it ever reaches the open market.
+              {t('landing.passiveLine2')}
             </p>
             <ul className="mt-4 space-y-2 text-sm text-gray-700">
               {[
-                'No daily job-board scrolling',
-                'No cold applications into the void',
-                'Early visibility into roles before they go public',
-                'Candidate confidentiality — employers see only what you share',
+                t('landing.passivePoint1'),
+                t('landing.passivePoint2'),
+                t('landing.passivePoint3'),
+                t('landing.passivePoint4'),
               ].map((point) => (
                 <li key={point} className="flex items-start gap-2">
                   <span className="text-[#C9A24D] mt-0.5 flex-shrink-0" aria-hidden>✦</span>
@@ -1065,7 +1082,7 @@ function PassiveTalentSection() {
               to="/start/talent"
               className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0B1742] text-white text-sm font-semibold hover:bg-[#1B2A6B] transition-colors"
             >
-              Join — it's free <Arrow />
+              {t('landing.passiveJoinFree')} <Arrow />
             </Link>
           </div>
           {/* Visual: a sleeping diamond / passive indicator */}
@@ -1082,7 +1099,7 @@ function PassiveTalentSection() {
               <span className="absolute inset-0 rounded-full border-2 border-[#7b8efc]/40 animate-ping" aria-hidden />
             </div>
             <div className="text-sm text-gray-500 max-w-[180px] leading-relaxed">
-              Bole scans continuously — matching happens automatically as new roles open
+              {t('landing.passiveScanCaption')}
             </div>
           </div>
         </div>
@@ -1093,23 +1110,24 @@ function PassiveTalentSection() {
 
 /** #6 + #19 — Social proof strip with live Supabase counters */
 function SocialProofStrip() {
+  const { t } = useTranslation()
   const { talentLabel, companyLabel } = usePlatformStats()
 
   const signals = [
     {
-      stat: companyLabel ?? 'Active hiring',
-      label: companyLabel ? 'companies hiring on DNJ' : 'Across every industry in Malaysia',
+      stat: companyLabel ?? t('landing.proofCompaniesStatFallback'),
+      label: companyLabel ? t('landing.proofCompaniesLabel') : t('landing.proofCompaniesLabelFallback'),
     },
     {
-      stat: talentLabel ?? '3 matches',
-      label: talentLabel ? 'talent profiles and counting' : 'Per cycle · Quality over volume',
+      stat: talentLabel ?? t('landing.proofTalentStatFallback'),
+      label: talentLabel ? t('landing.proofTalentLabel') : t('landing.proofTalentLabelFallback'),
     },
-    { stat: 'PDPA', label: 'Fully compliant · End-to-end encrypted' },
-    { stat: '~14 days', label: 'Typical first-match timeline' },
+    { stat: t('landing.proofPdpaStat'), label: t('landing.proofPdpaLabel') },
+    { stat: t('landing.proofTimelineStat'), label: t('landing.proofTimelineLabel') },
   ]
   return (
     <div className="border-y border-gray-100 dark:border-gray-800 bg-[#fafbff] dark:bg-[#0d1528] py-8 px-6">
-      <ul className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6" aria-label="Platform at a glance">
+      <ul className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6" aria-label={t('landing.proofAria')}>
         {signals.map((s) => (
           <li key={s.label} className="text-center">
             <div className="text-[#0B1742] dark:text-[#a6b6ff] font-extrabold text-xl tracking-tight">{s.stat}</div>
@@ -1123,6 +1141,7 @@ function SocialProofStrip() {
 
 /** #8 — Referral teaser */
 function ReferralSection() {
+  const { t } = useTranslation()
   return (
     <section className="py-12 px-6 bg-white" aria-labelledby="referral-heading">
       <div className="max-w-4xl mx-auto">
@@ -1130,25 +1149,25 @@ function ReferralSection() {
           className="rounded-2xl p-8 text-center"
           style={{ background: 'linear-gradient(135deg,#fffaf1 0%,#fff7e6 100%)', border: '1px solid #e9c97a' }}
         >
-          <p className="text-[#8a6420] tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">Refer & Earn</p>
+          <p className="text-[#8a6420] tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">{t('landing.referEyebrow')}</p>
           <h2 id="referral-heading" className="text-xl font-bold text-[#0B1220] mb-2">
-            Know someone brilliant? Refer them.
+            {t('landing.referTitle')}
           </h2>
           <p className="text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
-            Refer a friend to DNJ and earn platform reward points when they receive their first curated match. Every brilliant person deserves to be seen.
+            {t('landing.referBody')}
           </p>
           <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
             <Link
               to="/login"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#C9A24D] text-[#0B1220] text-sm font-bold hover:bg-[#b88c38] transition-colors"
             >
-              Refer a friend <Arrow />
+              {t('landing.referCta')} <Arrow />
             </Link>
             <Link
               to="/start/talent"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-[#C9A24D]/60 text-[#8a6420] text-sm font-semibold hover:bg-[#C9A24D]/10 transition-colors"
             >
-              Join DNJ first
+              {t('landing.referJoinFirst')}
             </Link>
           </div>
         </div>
@@ -1159,17 +1178,18 @@ function ReferralSection() {
 
 /** #5 — WhatsApp CTA (Malaysia-first contact) */
 function WhatsAppCTA() {
+  const { t } = useTranslation()
   const WHATSAPP_NUMBER = '601239449333'
-  const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Hi DNJ, I have a question about the platform.')}`
+  const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(t('landing.whatsappPrefill'))}`
   return (
     <section className="py-14 px-6 bg-[#fafbff] dark:bg-[#0d1528] border-t border-gray-100 dark:border-gray-800" aria-labelledby="contact-heading">
       <div className="max-w-4xl mx-auto text-center">
-        <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">Questions?</p>
+        <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">{t('landing.contactEyebrow')}</p>
         <h2 id="contact-heading" className="text-xl font-bold text-[#0B1220] dark:text-white mb-2">
-          We reply within 24 hours
+          {t('landing.contactTitle')}
         </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-6 leading-relaxed">
-          Reach us on WhatsApp for quick questions, or email us at{' '}
+          {t('landing.contactBodyLead')}{' '}
           <a href="mailto:support@diamondandjeweler.com" className="text-[#1B2A6B] underline underline-offset-2">
             support@diamondandjeweler.com
           </a>
@@ -1180,15 +1200,15 @@ function WhatsAppCTA() {
           rel="noopener noreferrer"
           className="inline-flex items-center gap-3 px-6 py-3 rounded-xl font-semibold text-sm text-white transition-colors"
           style={{ background: '#25D366' }}
-          aria-label="Chat with DNJ on WhatsApp"
+          aria-label={t('landing.whatsappAria')}
         >
           {/* WhatsApp icon */}
           <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
             <path d="M10 0C4.477 0 0 4.477 0 10c0 1.763.462 3.415 1.27 4.847L0 20l5.293-1.238A9.953 9.953 0 0010 20c5.523 0 10-4.477 10-10S15.523 0 10 0zm5.34 14.386c-.225.632-1.324 1.208-1.822 1.255-.497.046-1.013.233-3.396-.707-2.895-1.136-4.74-4.084-4.883-4.272-.144-.188-1.177-1.567-1.177-2.987 0-1.42.744-2.118 1.007-2.406.263-.288.576-.36.768-.36.192 0 .384.002.552.01.177.009.414-.067.648.494.24.576.816 1.99.888 2.135.072.145.12.315.024.503-.096.188-.144.303-.288.47-.144.166-.303.37-.432.498-.144.143-.294.3-.126.587.168.288.744 1.227 1.595 1.987 1.095.977 2.018 1.278 2.306 1.422.288.144.456.12.624-.072.168-.192.72-.84.912-1.128.192-.288.384-.24.648-.144.264.096 1.68.793 1.968.937.288.144.48.216.552.336.072.12.072.696-.153 1.328z"/>
           </svg>
-          Chat on WhatsApp
+          {t('landing.whatsappButton')}
         </a>
-        <p className="text-xs text-gray-400 mt-3">Mon – Fri, 9am – 6pm MYT · We also reply out-of-hours</p>
+        <p className="text-xs text-gray-400 mt-3">{t('landing.whatsappHours')}</p>
       </div>
     </section>
   )

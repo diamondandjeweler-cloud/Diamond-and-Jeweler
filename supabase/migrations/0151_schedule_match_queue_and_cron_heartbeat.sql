@@ -25,8 +25,8 @@ begin
   if exists (select 1 from cron.job where jobname = 'bole-process-match-queue-every-1m') then
     perform cron.unschedule('bole-process-match-queue-every-1m');
   end if;
-  -- Inner job body MUST use a tag distinct from the outer `do $$` block,
-  -- otherwise the first inner `$$` closes the outer block (syntax error).
+  -- The inner job body is dollar-quoted with the job tag (not the default
+  -- tag) so its delimiters never collide with this outer do-block.
   perform cron.schedule(
     'bole-process-match-queue-every-1m',
     '* * * * *',

@@ -17,7 +17,7 @@ jobs:
       run:
         working-directory: apps/web
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Set up Node.js
         uses: actions/setup-node@v5
@@ -53,7 +53,7 @@ jobs:
       run:
         working-directory: apps/web
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v5
         with:
           node-version: 20
@@ -92,7 +92,7 @@ jobs:
     name: Migrations — SQL lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Verify migration files are numbered + pair
         run: |
           set -euo pipefail
@@ -138,7 +138,7 @@ jobs:
     name: Migrations — apply to ephemeral Postgres
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       # Apply EVERY migration to a throwaway local Supabase Postgres so a broken
       # or non-idempotent migration fails CI instead of production. The official
       # CLI's `db start` boots the local stack (Docker is preinstalled on the
@@ -164,7 +164,7 @@ jobs:
     name: Secrecy — no BaZi terms in user-visible text
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Grep user-visible surfaces for forbidden terms
         run: |
           set -euo pipefail
@@ -200,7 +200,7 @@ jobs:
     name: Security — dependency + secret scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Set up Node.js

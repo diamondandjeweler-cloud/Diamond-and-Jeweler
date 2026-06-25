@@ -9,7 +9,7 @@
 --   policies has an automated test. This script pins the highest-value
 --   invariants so a future migration that regresses one of them fails CI.
 --
--- HOW IT RUNS (added as a job by the ci-gates unit)
+-- HOW IT RUNS (wired into the `db-apply` job in .github/workflows/ci.yml)
 --   1. `supabase db reset`            -- fresh local DB, replays ALL migrations
 --   2. `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/rls_deny.sql`
 --   psql exits non-zero on the FIRST failing assertion (each assertion RAISEs

@@ -3,6 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useSession } from '../../state/useSession'
 import { markAdminVerified } from '../../lib/adminReauth'
+import { callFunction } from '../../lib/functions'
 
 /**
  * Handles three scenarios:
@@ -307,24 +308,36 @@ function readHashAuthError(): { code: string; description: string } | null {
 const ALLOWED_SIGNUP_ROLES = ['talent', 'hiring_manager', 'hr_admin']
 
 async function applyStoredRole(userId: string) {
+  const storedRole = localStorage.getItem('dnj.signup_role')
+  if (!storedRole) return
+  // 'talent' is the trigger's default — nothing to apply. Disallowed/unknown
+  // values are ignored. Either way, clear the flag so it never retries.
+  if (storedRole === 'talent' || !ALLOWED_SIGNUP_ROLES.includes(storedRole)) {
+    localStorage.removeItem('dnj.signup_role')
+    return
+  }
   try {
-    const storedRole = localStorage.getItem('dnj.signup_role')
-    if (!storedRole) return
-    if (!ALLOWED_SIGNUP_ROLES.includes(storedRole)) {
+    const { data: existing } = await supabase.from('profiles').select('role').eq('id', userId).single()
+    // Never downgrade: if the profile already carries a real (non-talent) role,
+    // honour it and clear the flag.
+    if (existing?.role && existing.role !== 'talent') {
       localStorage.removeItem('dnj.signup_role')
       return
     }
-    const { data: existing } = await supabase.from('profiles').select('role').eq('id', userId).single()
-    // Only override if the profile has no role or still has the trigger's default 'talent' role.
-    // (The trigger always inserts 'talent' as default, so we must overwrite it for hr_admin signups.)
-    if (!existing?.role || existing.role === 'talent') {
-      const { error } = await supabase.from('profiles').update({ role: storedRole }).eq('id', userId)
-      if (error) throw error
-    }
-    // Only clear the stored role on success — otherwise a transient network
-    // error would silently strand the user on the wrong role.
+    // Route the change through switch-account-type — the ONLY path that passes the
+    // 0069 BEFORE-UPDATE trigger. A direct profiles UPDATE here is silently
+    // reverted by that trigger, which is why OAuth HR/HM signups were landing as
+    // 'talent'. The function is SECURITY DEFINER and allow-lists the same roles.
+    await callFunction('switch-account-type', { new_role: storedRole })
     localStorage.removeItem('dnj.signup_role')
   } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    // Idempotent success — the account is already that role.
+    if (/already .*account type/i.test(msg)) {
+      localStorage.removeItem('dnj.signup_role')
+      return
+    }
+    // Leave the flag in place so the next login retries; never strand the user.
     console.error('[auth] applyStoredRole failed', e)
   }
 }

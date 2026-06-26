@@ -94,10 +94,11 @@ serve(async (req) => {
     return json({ error: `Purchase is ${purchase.payment_status} — only paid purchases can be refunded` }, 400)
   }
 
-  const refund = await billplzRefund(purchase.payment_intent_id ?? '', reason)
-  if (!refund.ok) return json({ error: refund.error ?? 'Refund failed' }, 502)
-
-  const { error: updErr } = await db
+  // Atomic compare-and-set: only the caller that actually flips paid->refunded
+  // proceeds to call Billplz. A concurrent or double-clicked refund loses this
+  // race (0 rows affected) and returns WITHOUT a second external refund POST or a
+  // duplicate audit entry — mirroring payment-webhook's affected-row guard.
+  const { data: claimed, error: claimErr } = await db
     .from(table)
     .update({
       payment_status: 'refunded',
@@ -106,12 +107,22 @@ serve(async (req) => {
       refunded_by: auth.userId,
     })
     .eq('id', body.purchase_id)
-  if (updErr) {
-    return json({
-      error: 'Refund succeeded at Billplz but local update failed — investigate manually',
-      detail: updErr.message,
-      billplz_status: refund.status,
-    }, 500)
+    .eq('payment_status', 'paid')
+    .select('id')
+  if (claimErr) return json({ error: 'Refund claim failed', detail: claimErr.message }, 500)
+  if (!claimed || claimed.length === 0) {
+    return json({ refunded: true, billplz_status: 'already_refunded' })
+  }
+
+  const refund = await billplzRefund(purchase.payment_intent_id ?? '', reason)
+  if (!refund.ok) {
+    // External refund failed — roll the row back to 'paid' (best-effort) so a
+    // later retry can refund, and report the failure as before.
+    await db.from(table)
+      .update({ payment_status: 'paid', refunded_at: null, refund_reason: null, refunded_by: null })
+      .eq('id', body.purchase_id)
+      .eq('payment_status', 'refunded')
+    return json({ error: refund.error ?? 'Refund failed' }, 502)
   }
 
   // Claw back the Diamond Points credited at purchase time (mirrors the

@@ -103,7 +103,12 @@ serve(async (req) => {
     ? talentProfileId
     : auth.userId
 
-  const key = idempotency_key ?? `${event_type}:${match_id}`
+  // Server-derive the idempotency key for match-tied credits so a client cannot
+  // bypass the one-credit-per-event-per-match guard by sending a fresh
+  // idempotency_key on each call (point farming). The caller-supplied key is only
+  // honored on the no-match path (e.g. review-submission UUIDs); validation above
+  // guarantees idempotency_key is present whenever match_id is absent.
+  const key = match_id ? `${event_type}:${match_id}` : (idempotency_key as string)
 
   const { data: awarded, error } = await db.rpc('award_points', {
     p_user_id: recipient,

@@ -18,7 +18,7 @@
   Single SPA in **`apps/web/`**. The `apps/` folder is **NOT** a real monorepo — there are no
   workspaces, no pnpm/turbo. One app. Don't add workspace tooling without asking.
 - **Backend:** Supabase (Postgres 15) — Auth, PostgREST, Storage, **49 Deno Edge Functions**
-  (`supabase/functions/`), **176 SQL migrations** (`supabase/migrations/`), pg_cron + pg_net.
+  (`supabase/functions/`), **180 SQL migrations** (`supabase/migrations/`), pg_cron + pg_net.
 - **Deploy:** Vercel **SIN1** (edge, SPA + strict CSP). Data residency: Supabase **Singapore**.
 - **Product:** two-sided recruitment marketplace — `talent` ↔ `hiring_manager` / `hr_admin`,
   AI-assisted matching, Diamond Points + Billplz payments, PDPA data-subject requests.

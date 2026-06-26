@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useSession } from '../state/useSession'
 
@@ -13,6 +14,7 @@ interface NotificationRow {
 
 export default function NotificationBell() {
   const { session } = useSession()
+  const { t } = useTranslation()
   const [items, setItems] = useState<NotificationRow[]>([])
   const [open, setOpen] = useState(false)
   const dropRef = useRef<HTMLDivElement>(null)
@@ -100,7 +102,7 @@ export default function NotificationBell() {
         type="button"
         onClick={() => setOpen((o) => !o)}
         className="relative p-1.5 text-gray-600 hover:text-gray-900"
-        aria-label={unread > 0 ? `Notifications: ${unread} unread` : 'Notifications'}
+        aria-label={unread > 0 ? t('notif.unreadAria', { count: unread }) : t('notif.title')}
         aria-haspopup="true"
         aria-expanded={open}
       >
@@ -115,23 +117,23 @@ export default function NotificationBell() {
       {open && (
         <div
           role="dialog"
-          aria-label="Notifications"
+          aria-label={t('notif.title')}
           className="absolute right-0 mt-2 w-80 bg-white border rounded-lg shadow-lg z-20 max-h-96 overflow-y-auto"
         >
           <div className="flex justify-between items-center p-3 border-b">
-            <h3 className="font-semibold text-sm">Notifications</h3>
+            <h3 className="font-semibold text-sm">{t('notif.title')}</h3>
             {unread > 0 && (
               <button
                 onClick={() => void markAllRead()}
                 className="text-xs text-brand-600 hover:underline"
               >
-                Mark all read
+                {t('notif.markAllRead')}
               </button>
             )}
           </div>
 
           {items.length === 0 ? (
-            <p className="p-4 text-sm text-gray-500 text-center">No notifications yet.</p>
+            <p className="p-4 text-sm text-gray-500 text-center">{t('notif.empty')}</p>
           ) : (
             <ul className="divide-y">
               {items.map((n) => (

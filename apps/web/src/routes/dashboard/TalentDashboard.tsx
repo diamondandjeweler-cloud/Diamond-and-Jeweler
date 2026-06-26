@@ -371,6 +371,15 @@ export default function TalentDashboard() {
     }
   }, [showJustSavedModal, location.pathname, location.state, navigate])
 
+  // Keyboard-dismiss parity: close the 'just saved' dialog on Escape (the
+  // mouse/'Got it' button path is unchanged).
+  useEffect(() => {
+    if (!showJustSavedModal) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowJustSavedModal(false) }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [showJustSavedModal])
+
   async function reviveProfile() {
     if (!session) return
     setReviving(true); setErr(null)

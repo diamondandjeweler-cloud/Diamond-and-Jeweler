@@ -1340,5 +1340,11 @@
     "title": "Page not found",
     "body": "The page you're looking for doesn't exist or has moved.",
     "backHome": "Back to home"
+  },
+  "notif": {
+    "title": "Notifications",
+    "unreadAria": "Notifications: {{count}} unread",
+    "markAllRead": "Mark all read",
+    "empty": "No notifications yet."
   }
 }

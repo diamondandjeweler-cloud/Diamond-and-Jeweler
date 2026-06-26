@@ -1340,5 +1340,11 @@
     "title": "Halaman tidak dijumpai",
     "body": "Halaman yang anda cari tidak wujud atau telah dialihkan.",
     "backHome": "Kembali ke laman utama"
+  },
+  "notif": {
+    "title": "Pemberitahuan",
+    "unreadAria": "Pemberitahuan: {{count}} belum dibaca",
+    "markAllRead": "Tandai semua sebagai dibaca",
+    "empty": "Tiada pemberitahuan lagi."
   }
 }

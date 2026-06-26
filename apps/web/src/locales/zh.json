@@ -1340,5 +1340,11 @@
     "title": "找不到页面",
     "body": "您查找的页面不存在或已被移动。",
     "backHome": "返回首页"
+  },
+  "notif": {
+    "title": "通知",
+    "unreadAria": "通知：{{count}} 条未读",
+    "markAllRead": "全部标为已读",
+    "empty": "暂无通知。"
   }
 }

@@ -79,6 +79,9 @@ serve(async (req) => {
   if (request.request_type !== 'correction') {
     return json({ error: 'Not a correction request' }, 400)
   }
+  if (request.status === 'completed' || request.status === 'rejected') {
+    return json({ error: `Request already ${request.status}` }, 409)
+  }
 
   const proposal = (request.correction_proposal ?? {}) as Proposal
   const items = proposal.items ?? []

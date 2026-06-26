@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { fmt } from '../../lib/format'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
@@ -374,5 +375,3 @@ function ModerationNotice({ role, onAppeal }: { role: RoleRow; onAppeal: () => v
     </div>
   )
 }
-
-function fmt(v: number | null) { return v == null ? '—' : v.toLocaleString() }

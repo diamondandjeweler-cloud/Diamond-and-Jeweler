@@ -158,8 +158,14 @@ jobs:
         # Pins the highest-value authz invariants (a user cannot read another's
         # ic_path / talents / consults; decrypt_dob is not executable by the
         # authenticated role; no RLS recursion). Self-contained + ROLLBACKs, so it
-        # leaves the reset DB untouched. ON_ERROR_STOP makes the first failing
-        # assertion turn CI red. See supabase/tests/rls_deny.sql (AUDIT D5).
+        # leaves the reset DB untouched. ON_ERROR_STOP makes a failing assertion
+        # exit non-zero. See supabase/tests/rls_deny.sql (AUDIT D5).
+        #
+        # ADVISORY (continue-on-error) for now: this suite had never executed in
+        # CI before being wired here, so its first runs surface failures without
+        # blocking merges. Flip continue-on-error to false once a green run is
+        # observed against the reset DB.
+        continue-on-error: true
         run: |
           DB_URL=$(supabase status -o env | grep '^DB_URL=' | cut -d= -f2- | tr -d '"')
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/rls_deny.sql

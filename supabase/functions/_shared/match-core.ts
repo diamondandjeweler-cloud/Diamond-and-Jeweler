@@ -1198,15 +1198,17 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
   }
 
   const expiresAt = new Date(Date.now() + 5 * 86400000).toISOString()
-  const applicationSummaries = await Promise.all(
-    top.map((s) => generateApplicationSummary(role.title as string, roleTraits, s.aiSummary, s.mustHaveItems))
-  )
   const noisedScores = await Promise.all(
     top.map(async (s) => {
       const { data } = await db.rpc('add_score_noise', { p_score: s.finalScore })
       return typeof data === 'number' ? Number(data.toFixed(2)) : Number(s.finalScore.toFixed(2))
     })
   )
+  // Insert matches with application_summary=null first; the recruiter pitch is an
+  // LLM call (Anthropic, up to 15s) and must NOT block persisting the match. We
+  // generate it after the insert and UPDATE each row by id. The column is nullable
+  // and the UI renders it conditionally, so the brief null window is safe; an LLM
+  // failure simply leaves the original (null/base) summary.
   const toInsert = top.map((s, i) => ({
     role_id: roleId,
     talent_id: s.talent_id,
@@ -1216,13 +1218,31 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     life_chart_score: s.characterScore == null ? null : Number(s.characterScore.toFixed(2)),
     internal_reasoning: s.reasoning,
     public_reasoning: buildPublicReasoning(s, roleTraits, useDiversityV2, roleId),
-    application_summary: applicationSummaries[i],
+    application_summary: null,
     status: initialStatus,
     expires_at: expiresAt,
     is_extra_match: isExtraMatch,
   }))
   const { data: inserted, error: insErr } = await db.from('matches').insert(toInsert).select('id, talent_id')
   if (insErr) throw new MatchError(insErr.message, 500)
+
+  // Pitch generation moved off the insert path. Map back to inserted rows by
+  // talent_id (insert order is not relied upon) and UPDATE; best-effort.
+  if (inserted && inserted.length > 0) {
+    const idByTalent = new Map<string, string>()
+    for (const m of inserted as { id: string; talent_id: string }[]) idByTalent.set(m.talent_id, m.id)
+    const summaries = await Promise.all(
+      top.map((s) => generateApplicationSummary(role.title as string, roleTraits, s.aiSummary, s.mustHaveItems))
+    )
+    await Promise.all(
+      top.map(async (s, i) => {
+        const summary = summaries[i]
+        const matchId = idByTalent.get(s.talent_id)
+        if (summary == null || !matchId) return
+        await db.from('matches').update({ application_summary: summary }).eq('id', matchId)
+      })
+    )
+  }
 
   await db.from('match_history').insert(
     (inserted ?? []).map((m) => ({ role_id: roleId, talent_id: m.talent_id, action: 'generated' })),

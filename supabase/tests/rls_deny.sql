@@ -115,12 +115,47 @@ insert into public.roles (id, hiring_manager_id, title)
 values ('c2110000-0000-0000-0000-000000000005',
         'c1110000-0000-0000-0000-000000000004', 'Test Role');
 
--- Alice's match for HER OWN role-less scenario: a match owned by alice that
--- carries internal_reasoning. We attach it to carol's role so the row exists,
--- but the talent side is alice. Bob (a non-owner talent) must not see it.
+-- A SEPARATE hiring manager (dave) + role that carol does NOT own. Alice's
+-- match lives on THIS role, so the match row exists for Invariants 2/2b but
+-- creates NO carol->alice visibility path (Invariant 7 stays a true negative).
+-- (Previously the match sat on carol's own role, which silently gave carol a
+-- match path to alice and made Invariant 7 fail on the suite's first CI run.)
+insert into auth.users (
+  instance_id, id, aud, role, email, encrypted_password,
+  email_confirmed_at, created_at, updated_at,
+  confirmation_token, email_change, email_change_token_new, recovery_token,
+  raw_app_meta_data, raw_user_meta_data
+)
+values
+  ('00000000-0000-0000-0000-000000000000',
+   'dddddddd-dddd-dddd-dddd-dddddddddddd',
+   'authenticated','authenticated','rls.dave.hr@dnj-test.my',
+   crypt('TestDNJ#2026', gen_salt('bf')), now(), now(), now(),
+   '', '', '', '',
+   '{"provider":"email","providers":["email"]}'::jsonb,
+   '{"full_name":"RLS Dave","role":"hiring_manager"}'::jsonb);
+update public.profiles set role = 'hiring_manager'
+  where id = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
+
+insert into public.companies (id, name, registration_number, primary_hr_email, created_by)
+values ('c0110000-0000-0000-0000-000000000013',
+        'RLS Other Co', 'RLS-REG-0002', 'rls.dave.hr@dnj-test.my',
+        'dddddddd-dddd-dddd-dddd-dddddddddddd');
+
+insert into public.hiring_managers (id, profile_id, company_id, job_title)
+values ('c1110000-0000-0000-0000-000000000014',
+        'dddddddd-dddd-dddd-dddd-dddddddddddd',
+        'c0110000-0000-0000-0000-000000000013', 'Other Lead');
+
+insert into public.roles (id, hiring_manager_id, title)
+values ('c2110000-0000-0000-0000-000000000015',
+        'c1110000-0000-0000-0000-000000000014', 'Other Role');
+
+-- Alice's match lives on dave's role (NOT carol's). Bob (a non-owner talent)
+-- must not see it (Inv 2); alice CAN (Inv 2b); carol still has no path (Inv 7).
 insert into public.matches (id, role_id, talent_id, internal_reasoning, status)
 values ('d3110000-0000-0000-0000-000000000006',
-        'c2110000-0000-0000-0000-000000000005',
+        'c2110000-0000-0000-0000-000000000015',
         'a1110000-0000-0000-0000-000000000001',
         '{"secret":"alice-only-reasoning"}'::jsonb,
         'generated');

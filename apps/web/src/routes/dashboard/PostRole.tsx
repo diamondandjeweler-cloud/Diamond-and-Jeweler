@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { fmt } from '../../lib/format'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { callFunction } from '../../lib/functions'
@@ -974,5 +975,3 @@ export default function PostRole() {
     </div>
   )
 }
-
-function fmt(v: number | null | undefined) { return v == null ? '—' : v.toLocaleString() }

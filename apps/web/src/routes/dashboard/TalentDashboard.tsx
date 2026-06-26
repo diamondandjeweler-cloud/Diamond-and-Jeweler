@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { fmt } from '../../lib/format'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
@@ -374,15 +375,15 @@ export default function TalentDashboard() {
     if (!session) return
     setReviving(true); setErr(null)
     try {
-      const { data: t } = await supabase.from('talents').select('id').eq('profile_id', session.user.id).maybeSingle()
+      const { data: talentRow } = await supabase.from('talents').select('id').eq('profile_id', session.user.id).maybeSingle()
       if (!mountedRef.current) return
-      if (!t) return
+      if (!talentRow) return
       const newExpiry = new Date(Date.now() + 45 * 86400000).toISOString()
       const { error } = await supabase.from('talents').update({
         profile_expires_at: newExpiry,
         is_open_to_offers: true,
         ghost_score: 0,
-      }).eq('id', t.id)
+      }).eq('id', talentRow.id)
       if (!mountedRef.current) return
       if (error) throw error
       setProfileExpiresAt(newExpiry)
@@ -1292,11 +1293,6 @@ function CareerHealthPanel({ reputation }: {
       </div>
     </Card>
   )
-}
-
-function fmt(v: number | null | undefined): string {
-  if (v == null) return '—'
-  return v.toLocaleString()
 }
 
 const TOTAL_PROFILE_FIELDS = 12

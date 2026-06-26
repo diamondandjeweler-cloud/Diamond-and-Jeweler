@@ -86,9 +86,11 @@ serve(async (req) => {
     if (!consents.market) return json({ ok: true, email: 'skipped_no_marketing_consent', whatsapp: 'skipped' })
   }
 
-  if (target.email_bounced) {
-    return json({ ok: true, email: 'skipped_bounced', whatsapp: 'skipped' })
-  }
+  // A hard-bounced email must only suppress the EMAIL channel — the in-app and
+  // WhatsApp channels are independent delivery paths and must still fire (e.g.
+  // offer_accepted, interview_scheduled, dsr_export_ready). The previous
+  // early-return here silently dropped ALL channels for any bounced address;
+  // the email send below is now gated on !target.email_bounced instead.
 
   const { subject, body, html } = compose(payload.type, target.full_name, payload.data ?? {}, target.locale)
 
@@ -109,7 +111,7 @@ serve(async (req) => {
 
   let emailStatus: 'sent' | 'skipped' | 'error' = 'skipped'
   const resend = getResend()
-  if (target.email && resend) {
+  if (target.email && resend && !target.email_bounced) {
     try {
       await resend.emails.send({ from: FROM, to: target.email, subject, text: body, html: htmlWithUnsub })
       emailStatus = 'sent'

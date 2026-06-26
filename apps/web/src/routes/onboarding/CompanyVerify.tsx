@@ -56,6 +56,13 @@ export default function CompanyVerify() {
     try {
       const userId = session.user.id
 
+      const MAX_LICENSE_BYTES = 5 * 1024 * 1024
+      if (licenseFile && licenseFile.size > MAX_LICENSE_BYTES) {
+        setErr('File is larger than 5 MB. Please upload a smaller PDF or image.')
+        setBusy(false)
+        return
+      }
+
       let licensePath: string | undefined
       if (licenseFile) {
         setStep('uploading')

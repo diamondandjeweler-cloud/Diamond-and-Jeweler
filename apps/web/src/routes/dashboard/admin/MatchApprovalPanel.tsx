@@ -74,7 +74,7 @@ export default function MatchApprovalPanel() {
       const { data, error } = await supabase
         .from('matches')
         .select(`
-          id, compatibility_score, tag_compatibility, life_chart_score, internal_reasoning, created_at,
+          id, compatibility_score, tag_compatibility, created_at,
           roles(title, industry, description, hiring_managers(life_chart_character, date_of_birth_encrypted)),
           talents(id, life_chart_character, date_of_birth_encrypted, derived_tags)
         `)
@@ -82,8 +82,35 @@ export default function MatchApprovalPanel() {
         .order('created_at', { ascending: false })
         .limit(100)
         .abortSignal(AbortSignal.timeout(20_000))
-      if (error) setErr(error.message)
-      else setRows((data ?? []) as unknown as PendingMatch[])
+      if (error) { setErr(error.message); return }
+      const base = (data ?? []) as unknown as PendingMatch[]
+
+      // life_chart_score + internal_reasoning are admin-only columns (revoked
+      // from `authenticated` in migration 0158, so they're absent from the embed
+      // above). Read them through the is_admin()-gated SECURITY DEFINER RPC and
+      // merge by match id. A failure here is non-fatal — the approval queue still
+      // renders, just without the scoring detail.
+      const { data: reasoning, error: rErr } = await supabase.rpc('get_pending_match_reasoning')
+      if (rErr) {
+        console.error('get_pending_match_reasoning failed', rErr)
+        setRows(base.map((m) => ({ ...m, life_chart_score: null, internal_reasoning: null })))
+      } else {
+        const byId = new Map(
+          ((reasoning ?? []) as {
+            match_id: string
+            life_chart_score: number | null
+            internal_reasoning: Record<string, unknown> | null
+          }[]).map((r) => [r.match_id, r]),
+        )
+        setRows(base.map((m) => {
+          const r = byId.get(m.id)
+          return {
+            ...m,
+            life_chart_score: r ? r.life_chart_score : null,
+            internal_reasoning: r ? r.internal_reasoning : null,
+          }
+        }))
+      }
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Failed to load pending matches')
     } finally {

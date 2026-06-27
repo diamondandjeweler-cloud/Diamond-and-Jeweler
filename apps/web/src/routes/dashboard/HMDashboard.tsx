@@ -416,9 +416,15 @@ export default function HMDashboard() {
     // Subscribe AFTER load() resolves so hmRoleIds is populated and we can
     // set a server-side filter — avoids leaking match events across tenants.
     let channel: ReturnType<typeof supabase.channel> | null = null
+    let resubscribing = false
 
     function subscribeMatches() {
       if (cancelled || hmRoleIds.length === 0) return
+      // Tear down any existing channel synchronously before creating a new one.
+      // Each channel name is unique (Date.now()), so a dropped reference would
+      // leak the prior subscription — removing it here makes resubscribe safe
+      // even if two callers race.
+      if (channel) { void supabase.removeChannel(channel); channel = null }
       channel = supabase
         .channel(`hm-matches-${userId ?? 'anon'}-${Date.now()}`)
         .on('postgres_changes', {
@@ -437,10 +443,14 @@ export default function HMDashboard() {
       if (!hmRoleIds.includes(touched)) {
         // Unknown role_id — a new role was created after the initial load.
         // Re-run load() to pick it up, then resubscribe with the updated
-        // hmRoleIds so the filter stays current.
-        if (payload.eventType === 'INSERT') {
+        // hmRoleIds so the filter stays current. Guard concurrent unknown-role
+        // INSERTs with `resubscribing` so they coalesce into ONE reload+
+        // resubscribe instead of each racing to swap the channel (which orphaned
+        // subscriptions). subscribeMatches() tears down the prior channel itself.
+        if (payload.eventType === 'INSERT' && !resubscribing) {
+          resubscribing = true
           void load().then(() => {
-            if (channel) { void supabase.removeChannel(channel); channel = null }
+            resubscribing = false
             subscribeMatches()
           })
         }

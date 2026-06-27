@@ -23,6 +23,10 @@ serve(async (req) => {
   if (auth instanceof Response) return auth
 
   const db = adminClient()
+  // Heartbeat as soon as the worker runs — not only on the success returns
+  // below — so a transient throw in any pass can't skip it and trip a false
+  // dead-man alert. The end-of-run heartbeats stay as the completion signal.
+  await heartbeat(db)
   const nowIso = new Date().toISOString()
   const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   const notifyUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/notify`

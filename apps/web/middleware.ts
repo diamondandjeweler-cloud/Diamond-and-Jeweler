@@ -333,6 +333,15 @@ export default async function middleware(req: Request) {
     })
   }
 
+  // Allowed → fall through (implicit `return undefined`) so Vercel continues to
+  // the /api route. VERIFIED LIVE 2026-06-27: returning undefined here is a
+  // PASS-THROUGH — GET /api/stats flows through this exact path and returns its
+  // real handler JSON. Do NOT change this to `return res` / next(): returning a
+  // 200 null-body Response risks short-circuiting /api/* (including
+  // /api/set-auth-cookie, the admin gate's own cookie source) to an empty body.
+  // The header lines below are a best-effort no-op on the pass-through — actually
+  // attaching them would require @vercel/functions `next({ headers })`, which we
+  // deliberately do NOT add because it alters this auth-cookie-bearing path.
   const res = new Response(null, { status: 200 })
   res.headers.set('X-RateLimit-Limit', String(MAX_REQS))
   res.headers.set('X-RateLimit-Remaining', String(remaining))

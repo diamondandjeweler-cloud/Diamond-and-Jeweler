@@ -114,7 +114,19 @@ serve(async (req) => {
     return json({ refunded: true, billplz_status: 'already_refunded' })
   }
 
-  const refund = await billplzRefund(purchase.payment_intent_id ?? '', reason)
+  let refund: { ok: boolean; status?: string; error?: string }
+  try {
+    refund = await billplzRefund(purchase.payment_intent_id ?? '', reason)
+  } catch (e) {
+    // A network/DNS/TLS throw (not just a non-2xx) leaves the row flipped to
+    // 'refunded' by the CAS above with no money actually moved. Roll it back to
+    // 'paid' — same as the !refund.ok path — so a later retry can complete.
+    await db.from(table)
+      .update({ payment_status: 'paid', refunded_at: null, refund_reason: null, refunded_by: null })
+      .eq('id', body.purchase_id)
+      .eq('payment_status', 'refunded')
+    return json({ error: `Refund request failed: ${e instanceof Error ? e.message : 'network error'}` }, 502)
+  }
   if (!refund.ok) {
     // External refund failed — roll the row back to 'paid' (best-effort) so a
     // later retry can refund, and report the failure as before.

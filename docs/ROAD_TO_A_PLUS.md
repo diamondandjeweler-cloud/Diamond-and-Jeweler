@@ -31,9 +31,17 @@ _Status as of 2026-06-27. Each item cites the audit finding (file:line) it close
 - **W2a (Security/DevOps):** a **blocking** CI gate (`column_isolation.sql`) on the 3×-recurring leak — fixture-free, validated against the live schema. The fixtured row-suite stays advisory pending a green-reset observation (can't run Docker/`gh` from here).
 - **W3b (Security):** banned users are gated out of the SPA (`enforceBan` at both profile-resolve points) + a `/banned` notice page. (Server-side ban enforcement already exists in edge `authenticate()`.)
 
-**Deferred / blocked:** flip the *fixtured* RLS suite to blocking (needs an observed green reset run — Docker/`gh` unavailable in this env); admin MFA (owner skipped the decision); Billplz secret (owner dashboard action).
+**Wave 1 — IN PROGRESS (2026-06-27, commit 36764f2):**
+- **W1a/W1b (Performance):** matcher N+1 partially collapsed — memoized the STABLE `get_life_chart_bucket`/`get_year_luck_stage` RPCs (per-generation cache, byte-preserving — verified `provolatile='s'`) and batched the 27 `system_config` reads into one `.in()` query (verified `system_config.key` unique). Deployed live to all 6 match-core consumers. **Cannot be runtime-verified until the pipeline below is revived.**
 
-**Next: Wave 1** — matcher N+1 collapse (W1, money/scoring-adjacent → byte-preserving), telemetry (W4), deploy unification + drift reconcile (W2).
+> ### 🔴 P0 discovered — production match pipeline is DEAD (owner action required)
+> While verifying W1, found the **entire async match pipeline has been dead ~27 days** (last match `2026-05-30`; `cron_heartbeat` empty). Root cause: the project's **service-role key was rotated ~2026-05-30, but the Vault `service_role_key` secret was never updated** — so every cron→edge call (`process-match-queue` 1m, `match-expire` 6h) returns **403 `forbidden`** (confirmed in `net._http_response`). No new matches generate.
+> **FIX (owner — I won't handle the master secret):** Dashboard → Settings → API → copy `service_role` key → SQL: `select vault.update_secret((select id from vault.secrets where name='service_role_key'), '<key>');` → verify `cron_heartbeat` populates + 403s become 200s within ~1 min.
+> Also found: `refresh-admin-kpis-mv` cron failing every 2 min ("cannot refresh materialized view"). Both belong to W4 (telemetry / dead-man escalation), which would have surfaced this 27 days ago.
+
+**Deferred / blocked:** flip the *fixtured* RLS suite to blocking (needs an observed green reset run — Docker/`gh` unavailable in this env); admin MFA (owner skipped the decision); Billplz secret (owner dashboard action); **Vault service_role_key (owner — gates the whole match pipeline)**.
+
+**Next:** W4 telemetry + deadman-escalation (would have caught the P0); W1c (nn_concerns short-circuit + loadPreviews batch); W2 deploy unification.
 
 ---
 

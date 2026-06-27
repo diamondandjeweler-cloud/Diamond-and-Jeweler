@@ -63,8 +63,8 @@ The single biggest grade-mover (Perf B-→A, and removes Architecture's one ceil
 - **[auto]** Add a within-row **column-isolation** assertion to the RLS suite: a matched-HM `SELECT *` on `talents`/`matches` must NOT return `ic_path`/`internal_reasoning`/`life_chart_score` (the gap that let it recur 3×; audit Sec-crit / action #2).
 - **[auto]** Switch the `ALTER DEFAULT PRIVILEGES` pattern so future tables don't silently re-expose (0119 root cause).
 - **[auto]** Banned-user gate in `useSession` bootstrap/refresh (`signOut` + `/banned`) + RLS `is_banned = false` on self/talent/HM read policies (Sec-med, useSession.ts).
-- **[decision]** AdminGate OAuth → require a real TOTP factor regardless of provider (AdminGate.tsx:74-82) — **product call**.
-- **[decision]** ToyyibPay consult callback: add a server-side `getBillTransactions` verify branch in `payment-webhook`, **or** disable the consult path until designed (init-consult-booking + payment-webhook).
+- **[deferred]** AdminGate OAuth → require a real TOTP factor regardless of provider (AdminGate.tsx:74-82) — owner skipped this call; left as-is, revisit before final Security A+ sign-off.
+- **[locked: build]** ToyyibPay consult callback: add a server-side `getBillTransactions` verify branch in `payment-webhook` (confirm status=1 + amount before flipping consult) (init-consult-booking + payment-webhook).
 - **[owner]** Set the Billplz webhook signature secret in the Billplz dashboard (config, not code).
 - **[auto]** Drop the wildcard ACAO on pure server-to-server webhooks (cors.ts:10-14).
 
@@ -89,7 +89,7 @@ The single biggest grade-mover (Perf B-→A, and removes Architecture's one ceil
 - Consolidate the three `fmt()` formatters into `lib/format.ts`; fix the test's cross-boundary import via a shared core package (CleanArch-low).
 
 ### W7 — Frontend A+ polish  · lifts Frontend-UI  · **[auto]** + one **[decision]**
-- **[decision]** Dark mode: gate off until dashboards are themed (default light unless `stored==='dark'`, toggle = beta) **or** finish theming the authenticated surfaces — recommend **gate-off-now + schedule theming**. Either way add a pre-paint inline script in `index.html` to kill the FOUC (Frontend-high, useDarkMode.ts:9).
+- **[locked: full theming]** Theme every authenticated dashboard/onboarding/form surface with `dark:` classes (currently dark: lives in only 15 shell/marketing files) + add a pre-paint inline script in `index.html` to kill the FOUC + a theme snapshot/visual test so the half-themed state can't regrow (Frontend-high, useDarkMode.ts:9).
 - Fix the login/signup/password-reset/not-found form-label + autofocus violations, flip `a11y.spec.ts` `≤99` → `toHaveLength(0)`, add one **authenticated-dashboard** axe scan with a seeded user (Frontend-high, a11y.spec.ts:45).
 - Extract one `<Modal>` primitive (focus-trap + focus-restore + Escape + `aria-modal` + scroll-lock); migrate the ~12 ad-hoc dialogs (Frontend-med).
 - Replace user-facing `confirm()/alert()` on money/points actions with `<Alert>`/toast/`<Modal>` (Frontend-med, 22 sites).
@@ -97,7 +97,7 @@ The single biggest grade-mover (Perf B-→A, and removes Architecture's one ceil
 - Lint the public restaurant routes (GuestMenu/Track) for a11y (Frontend-low).
 
 ### W8 — Architecture scale-hardening  · lifts Architecture  · **[auto]** + one **[decision]**
-- **[decision]** Move Restaurant OS into its own `restaurant.*` schema (isolates RLS/realtime/grants/migration numbering; one `DROP SCHEMA` to remove) — **scope/timing call** (Arch-med, 0019).
+- **[deferred]** ~~Move Restaurant OS into its own `restaurant.*` schema~~ — owner deferred; keep public schema while the module is flag-off, documented as a chosen constraint. Re-open if Restaurant OS is enabled (Arch-med, 0019).
 - `interview_rounds` realtime: per-talent broadcast channel / server-side filter instead of global fan-out (Arch-low / Perf-med, TalentDashboard.tsx:330).
 - Pin Vercel function/edge region to the Supabase region; document single-region + the compute-tier upgrade trigger as a chosen constraint (Arch-low).
 - Consolidate the hand-rolled session workarounds: pin/upgrade `@supabase/supabase-js`, delete the raw-fetch `fetchIsHM` if fixed, add a bootstrap integration test (Arch-med, supabase.ts/useSession.ts).
@@ -119,15 +119,17 @@ Waves 1–3 are largely parallelizable; Wave 4 is the long incremental tail.
 
 ---
 
-## 5. Decisions I need from you (these gate A+ — I can't pick them)
+## 5. Decisions — locked 2026-06-27
 
-1. **Dark mode** — gate it OFF now (default light, toggle = beta) and theme dashboards later, or hold A+ on fully theming every authenticated screen now? _(Recommend: gate off now.)_
-2. **Admin MFA** — require a real TOTP second factor for admins even on Google/OAuth login? Today OAuth = blanket AAL2 bypass. _(Recommend: yes, require TOTP.)_
-3. **ToyyibPay consult path** — build the server-side callback verification, or disable the consult booking path until it's designed? _(Either reaches A+; pick by product priority.)_
-4. **Billplz webhook secret** — owner action: set the signature secret in the Billplz dashboard. I can't do this (credential config).
-5. **Restaurant schema move** — green-light moving Restaurant OS to its own `restaurant.*` schema now, or defer (keep public schema) and accept the Architecture point until then?
+| # | Decision | Resolution | Effect on plan |
+|---|---|---|---|
+| 1 | **Dark mode** | **Fully theme now** | W7 expands to a full dark-theme pass over every authenticated dashboard/onboarding/form surface + pre-paint FOUC script. (Owner is a designer — do it right, not gate it off.) |
+| 2 | **Admin MFA** | **Deferred** (skipped) | AdminGate OAuth→AAL2 behavior left as-is for now. Security A+ has ONE remaining open item pending this call; revisit before final A+ sign-off. |
+| 3 | **ToyyibPay consult** | **Build verification** | W3 adds the server-side `getBillTransactions` verify branch in `payment-webhook`; consult feature stays live. |
+| 4 | **Billplz webhook secret** | **Owner action** | Set the signature secret in the Billplz dashboard — I can't touch credentials. Until then payment-webhook stays fail-closed (good), but the secret must exist in prod for live Billplz callbacks. |
+| 5 | **Restaurant schema move** | **Defer** | W8 drops the schema move; Architecture A+ treats single-(public-)schema as a documented chosen constraint while the module is flag-off. Re-open if/when Restaurant OS is enabled. |
 
-Reply with picks (even "all recommended") and I'll execute Wave 0 → 4 autonomously, phase-by-phase, pushing each as it goes — same cadence as the audit remediation.
+**Open A+ blockers after these decisions:** (#2 admin MFA — product) and (#4 Billplz secret — owner config). Everything else is mine to execute autonomously, Wave 0 → 4, phase-by-phase, pushing each as it goes.
 
 ---
 

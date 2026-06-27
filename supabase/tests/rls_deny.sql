@@ -469,32 +469,11 @@ end;
 $$;
 
 -- ============================================================================
--- INVARIANT 9 — COLUMN-grant isolation (the gap that let the leak recur 3×).
---   Every invariant above tests ROW hiding (RLS). The ic_path / internal_reasoning
---   re-exposure was a WITHIN-VISIBLE-ROW COLUMN leak: 0119's table-wide GRANT
---   SELECT clobbered the column-level revokes, so a user who legitimately sees a
---   row could read sensitive COLUMNS of it. RLS cannot protect against that —
---   only column grants can. This invariant pins those grants directly.
---   ic_path = NRIC/passport storage path (PII); internal_reasoning +
---   life_chart_score = proprietary scoring IP. ADD future sensitive columns here.
+-- INVARIANT 9 (static column-grant isolation) lives in its own file,
+--   supabase/tests/column_isolation.sql, which runs as a BLOCKING CI gate (it
+--   needs no fixtures, so it is safe to hard-block on). This suite keeps the
+--   FUNCTIONAL proof (9b) below, which needs the matched-HM fixture.
 -- ============================================================================
-do $$
-declare
-  bad text := '';
-begin
-  if has_column_privilege('authenticated','public.talents','ic_path','SELECT')              then bad := bad || ' talents.ic_path/authenticated'; end if;
-  if has_column_privilege('anon','public.talents','ic_path','SELECT')                        then bad := bad || ' talents.ic_path/anon'; end if;
-  if has_column_privilege('authenticated','public.matches','internal_reasoning','SELECT')    then bad := bad || ' matches.internal_reasoning/authenticated'; end if;
-  if has_column_privilege('anon','public.matches','internal_reasoning','SELECT')             then bad := bad || ' matches.internal_reasoning/anon'; end if;
-  if has_column_privilege('authenticated','public.matches','life_chart_score','SELECT')      then bad := bad || ' matches.life_chart_score/authenticated'; end if;
-  if has_column_privilege('anon','public.matches','life_chart_score','SELECT')               then bad := bad || ' matches.life_chart_score/anon'; end if;
-
-  if bad <> '' then
-    raise exception 'INVARIANT 9 FAILED: sensitive column(s) SELECT-granted — column-isolation leak:%', bad;
-  end if;
-  raise notice 'PASS 9: ic_path / internal_reasoning / life_chart_score are column-isolated from authenticated + anon';
-end;
-$$;
 
 -- ============================================================================
 -- INVARIANT 9b — functional proof, the audit's exact threat: a MATCHED hiring

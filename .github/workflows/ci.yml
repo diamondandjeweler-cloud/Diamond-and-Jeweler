@@ -154,6 +154,16 @@ jobs:
         run: supabase start
       - name: Apply all migrations (reset re-runs every migration)
         run: supabase db reset
+      - name: Column-isolation gate (BLOCKING)
+        # Hard gate on the audit's #1 risk: the 3×-recurring ic_path /
+        # internal_reasoning / life_chart_score column leak must never reach prod.
+        # Pure has_column_privilege() catalog assertions — no fixtures, no side
+        # effects — so it is safe to BLOCK on (unlike the fixtured suite below,
+        # which stays advisory until a green reset run is observed). See
+        # supabase/tests/column_isolation.sql.
+        run: |
+          DB_URL=$(supabase status -o env | grep '^DB_URL=' | cut -d= -f2- | tr -d '"')
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/column_isolation.sql
       - name: RLS deny/allow invariant suite
         # Pins the highest-value authz invariants (a user cannot read another's
         # ic_path / talents / consults; decrypt_dob is not executable by the

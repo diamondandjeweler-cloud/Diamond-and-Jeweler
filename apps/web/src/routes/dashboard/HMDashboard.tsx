@@ -23,7 +23,7 @@ import MatchExplain from '../../components/MatchExplain'
 import ScreeningChecklist from '../../components/ScreeningChecklist'
 import CareerNudgePanel from '../../components/CareerNudgePanel'
 import AddHmDobModal from '../../components/AddHmDobModal'
-import type { PublicReasoning, CultureComparison } from '../../types/db'
+import type { PublicReasoning, CultureComparison, InterviewRound, InterviewProposal } from '../../types/db'
 
 type TFn = (key: string, opts?: Record<string, unknown>) => string
 const hmOutcomes = (t: TFn) => [
@@ -52,28 +52,6 @@ interface CandidateRow {
   } | null
   roles: { id: string; title: string } | null
   match_feedback: { rating: number; hired: boolean; notes: string | null }[] | null
-}
-
-interface InterviewRound {
-  id: string
-  round_number: number
-  scheduled_at: string
-  interview_url: string
-  status: 'scheduled' | 'completed' | 'cancelled' | 'no_show'
-  hm_notes: string | null
-}
-
-interface InterviewProposal {
-  id: string
-  match_id: string
-  round_number: number
-  slot_1_at: string
-  slot_2_at: string
-  slot_3_at: string
-  status: 'pending' | 'accepted' | 'declined' | 'expired' | 'cancelled'
-  picked_slot: number | null
-  decline_reason: string | null
-  created_at: string
 }
 
 interface ProfilePreview {

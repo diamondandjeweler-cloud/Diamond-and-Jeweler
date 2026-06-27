@@ -142,6 +142,32 @@ export interface PublicReasoning {
   note?: string
 }
 
+// Interview scheduling, shared by the HM and talent dashboards. The HM-only
+// fields are OPTIONAL because the talent-facing queries intentionally omit them
+// (hm_notes is private to the hiring manager; decline_reason likewise). Promoted
+// from two divergent inline copies — keep this the single source of truth.
+export interface InterviewRound {
+  id: string
+  round_number: number
+  scheduled_at: string
+  interview_url: string
+  status: 'scheduled' | 'completed' | 'cancelled' | 'no_show'
+  hm_notes?: string | null
+}
+
+export interface InterviewProposal {
+  id: string
+  match_id: string
+  round_number: number
+  slot_1_at: string
+  slot_2_at: string
+  slot_3_at: string
+  status: 'pending' | 'accepted' | 'declined' | 'expired' | 'cancelled'
+  picked_slot: number | null
+  decline_reason?: string | null
+  created_at: string
+}
+
 // Loose Database type for supabase-js generic. Generate via `supabase gen types`
 // for strict typing once the project is live.
 export type Database = {

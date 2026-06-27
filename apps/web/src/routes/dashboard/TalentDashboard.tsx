@@ -14,7 +14,7 @@ import { Button, Card, Badge, Alert, EmptyState, PageHeader, Stat } from '../../
 import MatchExplain from '../../components/MatchExplain'
 import CareerNudgePanel from '../../components/CareerNudgePanel'
 import GrowthNudgePreferences from '../../components/GrowthNudgePreferences'
-import type { PublicReasoning } from '../../types/db'
+import type { PublicReasoning, InterviewRound, InterviewProposal } from '../../types/db'
 import { usePushSubscription } from '../../lib/usePushSubscription'
 
 /** Cached snapshot — counts only. The full match details (scores, IDs) are
@@ -33,26 +33,6 @@ interface MatchRow {
   public_reasoning: PublicReasoning | null
   application_summary: string | null
   roles: { id: string; title: string; description: string | null; salary_min: number | null; salary_max: number | null; location: string | null; work_arrangement: string | null; employment_type?: string; hourly_rate?: number | null; duration_days?: number | null } | null
-}
-
-interface InterviewRound {
-  id: string
-  round_number: number
-  scheduled_at: string
-  interview_url: string
-  status: 'scheduled' | 'completed' | 'cancelled' | 'no_show'
-}
-
-interface InterviewProposal {
-  id: string
-  match_id: string
-  round_number: number
-  slot_1_at: string
-  slot_2_at: string
-  slot_3_at: string
-  status: 'pending' | 'accepted' | 'declined' | 'expired' | 'cancelled'
-  picked_slot: number | null
-  created_at: string
 }
 
 const ACTIVE = [

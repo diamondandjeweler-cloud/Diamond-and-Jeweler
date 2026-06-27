@@ -3,6 +3,11 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- Pre-paint theme: apply <html class="dark"> BEFORE first paint to avoid a
+         flash-of-wrong-theme for OS-dark users (the React useDarkMode hook only
+         runs post-mount). Mirrors src/lib/useDarkMode.ts exactly. CSP-allowed via
+         the sha256 hash in vercel.json — edit both together or it will be blocked. -->
+    <script>(function(){try{var s=localStorage.getItem('dnj-theme');var d=s?s==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.classList.toggle('dark',d);}catch(e){}})();</script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- Critical-path preconnect: Supabase only. Fonts are now self-hosted

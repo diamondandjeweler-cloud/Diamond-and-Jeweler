@@ -189,15 +189,22 @@ export default function HMDashboard() {
 
   const loadPreviews = useCallback(async (matchIds: string[]) => {
     if (matchIds.length === 0) return
-    const results = await Promise.all(matchIds.map(async (id) => {
-      const { data } = await supabase.rpc('get_match_profile_preview', { p_match_id: id })
-      const row = Array.isArray(data) ? data[0] : data
-      return [id, (row ?? { display_name: null, photo_url: null, privacy_mode: null }) as ProfilePreview] as const
-    }))
+    // One round-trip for all cards (was one RPC per card). Unauthorized/missing
+    // ids are omitted by the RPC, so we backfill them with the null preview —
+    // identical to the per-id path which swallowed those errors to null.
+    const { data } = await supabase.rpc('get_match_profile_previews', { p_match_ids: matchIds })
     if (!mountedRef.current) return
+    const byId = new Map(
+      ((data ?? []) as Array<{ match_id: string } & ProfilePreview>).map((r) => [
+        r.match_id,
+        { display_name: r.display_name, photo_url: r.photo_url, privacy_mode: r.privacy_mode } as ProfilePreview,
+      ]),
+    )
     setPreviewByMatch((prev) => {
       const next = { ...prev }
-      for (const [id, p] of results) next[id] = p
+      for (const id of matchIds) {
+        next[id] = byId.get(id) ?? { display_name: null, photo_url: null, privacy_mode: null }
+      }
       return next
     })
   }, [])

@@ -953,18 +953,27 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
       type FtHit = { match_text: string | null; cosine_distance: number | null }
       const ftHits = new Map<string, FtHit>()
       const SEMANTIC_THRESHOLD = 0.25 // cosine distance; ~similarity >= 0.75
-      try {
-        const { data: ftRows } = await db.rpc('compare_nn_concerns', {
-          p_role_id: roleId,
-          p_talent_id: t.id,
-        })
-        for (const row of (ftRows ?? []) as Array<{ side: string; atom_index: number; atom_text: string; match_text: string | null; cosine_distance: number | null }>) {
-          ftHits.set(`${row.side}:${row.atom_index}`, {
-            match_text: row.match_text,
-            cosine_distance: row.cosine_distance,
+      // The pgvector RPC only feeds the `free_text` branches below (lines ~976/996);
+      // if NEITHER side has a free_text atom its result is never read, so skip the
+      // query entirely. Behaviour-preserving: with no free_text atoms ftHits would
+      // be empty regardless, and the structured branches don't consult it.
+      const hasFreeTextAtom =
+        roleNNAtoms.some((a) => a.type === 'free_text') ||
+        talentNNAtoms.some((a) => a.type === 'free_text')
+      if (hasFreeTextAtom) {
+        try {
+          const { data: ftRows } = await db.rpc('compare_nn_concerns', {
+            p_role_id: roleId,
+            p_talent_id: t.id,
           })
-        }
-      } catch { /* embeddings missing — treat all free_text as unverified */ }
+          for (const row of (ftRows ?? []) as Array<{ side: string; atom_index: number; atom_text: string; match_text: string | null; cosine_distance: number | null }>) {
+            ftHits.set(`${row.side}:${row.atom_index}`, {
+              match_text: row.match_text,
+              cosine_distance: row.cosine_distance,
+            })
+          }
+        } catch { /* embeddings missing — treat all free_text as unverified */ }
+      }
 
       roleNNAtoms.forEach((atom, idx) => {
         if (atom.type === 'min_qualification' && talentEduLevel) {

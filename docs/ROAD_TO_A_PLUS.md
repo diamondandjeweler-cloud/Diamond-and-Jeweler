@@ -1,0 +1,138 @@
+# Diamond & Jeweler — Road to A+
+
+_Plan to lift every dimension of [AUDIT_2026-06-27.md](./AUDIT_2026-06-27.md) from its current grade to **A+**._
+_Status as of 2026-06-27. Each item cites the audit finding (file:line) it closes._
+
+---
+
+## 1. Scorecard — now → target
+
+| Dimension | Now | Target | The gap in one line | Lift size |
+|---|:--:|:--:|---|:--:|
+| Architecture | B+ | **A+** | Matcher per-candidate RPC fan-out + migration-dup hazard + Restaurant-in-public-schema | M |
+| Performance | B- | **A+** | Matching engine ~D: 6–9 RPC/candidate ×500; frontend N+1 + zero memo | L |
+| Clean-Arch | C+ | **A+** | No data layer (149 direct calls/59 files) + three 1.3–1.6k-LOC god-files + 1178-LOC matchForRole | XL |
+| Frontend-UI | B+ | **A+** | Half-themed dark mode (FOUC), deactivated a11y gate, no Modal primitive, partial i18n | M |
+| Security | B | **A+** | Column-isolation test gap (let leak recur 3×) + OAuth-MFA bypass + banned-user gap + ToyyibPay verify | M* |
+| DevOps | B | **A+** | Split-brain deploy + drift (repo 0158 / prod ~0121) + advisory RLS gate + dark telemetry | M |
+| Debugging | B+ | **A+** | `middleware.ts` bare-Response instead of `next()` + channel leak + match-expire heartbeat | S–M |
+
+`*` Security has a hard ceiling set by **owner/product decisions** (Billplz secret, admin MFA policy, ToyyibPay-vs-disable) — see §5. Everything else is engineering we can drive autonomously.
+
+**Honest sizing:** Clean-Arch (C+, two-plus grades, structural) and Performance (B-, the matching engine) are the heavy lifts. Security/DevOps/Debugging/Frontend are reachable inside one focused sprint each. A+ *across the board* is a multi-wave effort, sequenced so **correctness + security + scale land first** and the big maintainability refactor lands **incrementally, behind existing seams, last**.
+
+---
+
+## 2. What "A+" means here (exit criteria — falsifiable, not vibes)
+
+| Dimension | A+ is reached when… |
+|---|---|
+| Architecture | Match generation is O(candidates) DB round-trips with a flat per-candidate cost (no N+1); zero duplicate-numbered migrations on the apply path; Restaurant OS isolated in its own schema; single-region pinned + documented as a chosen constraint. |
+| Performance | One match generation ≤ a few hundred round-trips (memoized pure-fn lookups, batched config, precomputed life-chart char); no frontend N+1 (batch preview RPC); hot dashboards memoized; match-expire off the serial HTTP loop. Scoring **byte-identical** to today (test-oracle verified). |
+| Clean-Arch | Recruitment data access flows through a typed repository layer (≤ a handful of direct `supabase.*` calls outside `src/data/`); no component > ~400 LOC; `scoreTalent` decomposed into pure, unit-tested scorers; shared domain types single-sourced; no client/server constant drift. |
+| Frontend-UI | Dark mode correct on every authenticated surface (or cleanly gated off) with no FOUC; a11y gate is **blocking at 0 critical/serious** incl. one authenticated-dashboard scan; one `<Modal>` primitive (focus-trap/restore/Escape/scroll-lock) behind every dialog; no user-facing `confirm()/alert()`; i18n active on all non-admin routes with a lint guard. |
+| Security | Column-isolation is a **hard** CI assertion; `ALTER DEFAULT PRIVILEGES` pattern prevents future re-exposure; banned users are gated in the SPA + RLS; admin AAL2 requires a real second factor; every payment callback path is signature/return-verified. |
+| DevOps | Migrations + edge functions deploy from CI on the same commit as the frontend; a prod-vs-repo drift check gates merges; the RLS suite + `qa/run.mjs` are **blocking**; edge + client errors reach Sentry with source maps; dead-man alerts escalate off-platform. |
+| Debugging | `middleware.ts` uses `next()` (verified on Preview); no channel leaks; every cron worker heartbeats in `finally`; per-route error boundaries + a global `unhandledrejection` handler. |
+
+---
+
+## 3. Workstreams (deduplicated — each maps to the grades it lifts)
+
+> Tag key: **[auto]** = ship-safe, we drive it end-to-end · **[decision]** = needs an owner/product call (see §5) · **[$]** = money/scoring/auth-adjacent → byte-preserving + adversarial verify before ship.
+
+### W1 — Collapse the matching-engine N+1  · lifts Performance, Architecture, Debugging  · **[auto][$]**
+The single biggest grade-mover (Perf B-→A, and removes Architecture's one ceiling).
+- Memoize `get_life_chart_bucket` + `get_year_luck_stage` in an in-process `Map` keyed by `(character,year)`/`(hm_char,talent_char)` — both are IMMUTABLE/STABLE over a tiny char domain (audit Perf-crit, match-core.ts:510,688).
+- Precompute `life_chart_character` at talent **write-time** so the match path never calls `decrypt_dob` per row (match-core.ts:787).
+- Batch the 27 `system_config` reads into one `.in()` query → `Map` with identical per-key defaults (match-core.ts:163-192).
+- Short-circuit `compare_nn_concerns` unless a side actually has a `free_text` atom (match-core.ts:939-960).
+- `match-expire`: replace the serial per-role HTTP regenerate loop with `match_queue` enqueue; set-based joins for the warn/ghost N+1 (match-expire/index.ts:205-223,43-70).
+- `loadPreviews`: add `get_match_profile_previews(uuid[])` batch RPC (HMDashboard.tsx:190-203).
+- **Verify:** existing test oracle + byte-compare scores on a fixed candidate set before/after; load-test one generation's round-trip count.
+
+### W2 — Unify the deploy pipeline + kill drift  · lifts DevOps, Architecture, Security  · **[auto]**
+- CI drift check: `supabase migration list --linked` vs repo files → fail on mismatch; one-time reconcile prod `schema_migrations` (insert missing version rows) so repo == prod (audit DevOps-high, ci.yml:137-176).
+- CI edge-function deploy job (`supabase functions deploy` via `SUPABASE_ACCESS_TOKEN`, push-to-main or manual-approval) so functions ship with their frontend (DevOps-high).
+- Flip the RLS deny/allow suite `continue-on-error: true` → **false** (ci.yml:168) — *after* W3's green run.
+- Wire `qa/run.mjs` (21 checks) into CI; gate Vercel prod promotion on CI green (Required Checks).
+- Delete the stale root `.vercel/project.json`; reconcile `ROLLBACK_RUNBOOK.md` / `docs/deploy.md` with the now-active Git pipeline.
+- Verify a fresh `supabase db reset` applies all files byte-identical to prod; keep the dup-prefix CI guard.
+
+### W3 — Make the authz leak unrepeatable + close session gaps  · lifts Security  · **[auto]** + **[decision]**
+- **[auto]** Add a within-row **column-isolation** assertion to the RLS suite: a matched-HM `SELECT *` on `talents`/`matches` must NOT return `ic_path`/`internal_reasoning`/`life_chart_score` (the gap that let it recur 3×; audit Sec-crit / action #2).
+- **[auto]** Switch the `ALTER DEFAULT PRIVILEGES` pattern so future tables don't silently re-expose (0119 root cause).
+- **[auto]** Banned-user gate in `useSession` bootstrap/refresh (`signOut` + `/banned`) + RLS `is_banned = false` on self/talent/HM read policies (Sec-med, useSession.ts).
+- **[decision]** AdminGate OAuth → require a real TOTP factor regardless of provider (AdminGate.tsx:74-82) — **product call**.
+- **[decision]** ToyyibPay consult callback: add a server-side `getBillTransactions` verify branch in `payment-webhook`, **or** disable the consult path until designed (init-consult-booking + payment-webhook).
+- **[owner]** Set the Billplz webhook signature secret in the Billplz dashboard (config, not code).
+- **[auto]** Drop the wildcard ACAO on pure server-to-server webhooks (cors.ts:10-14).
+
+### W4 — Light up observability  · lifts DevOps, Debugging  · **[auto]**
+- Shared edge-function `try/catch` → POST to Sentry/Logflare DSN (money/auth/webhook fns first); zero edge telemetry today (DevOps-med).
+- `sentry-cli sourcemaps inject && upload` **before** `strip-sourcemaps.mjs` so client stacks de-minify (DevOps-med, main.tsx:23-37).
+- Escalate dead-man alerts off-platform (Resend email / Slack webhook) + an external watchdog (UptimeRobot / cron-job.org) (DevOps-med, 0151/0154).
+- Global `window` `unhandledrejection`/`error` → Sentry; per-route `<ErrorBoundary>` subtrees (Debug-low, main.tsx:50-58).
+
+### W5 — Fix `middleware.ts` continuation  · lifts Debugging  · **[auto]** — *do first, high blast radius*
+- Add `@vercel/functions`; use `next({headers})` for the allowed `/api/*` path and non-api fall-through; reserve a returned `Response` for the 429 block + 302 admin redirect only (Debug-high, middleware.ts:336-338).
+- Also: heartbeat in `finally` for `match-expire` (Debug-low); track realtime channels in a ref + remove prior synchronously (Debug-med, HMDashboard.tsx:418-461); wrap `billplzRefund` fetch in try/catch + roll back on throw (Debug-med, admin-refund:117); tighten `sb-jwt` cookie Max-Age to token TTL (Debug-low).
+- **Verify:** Preview deploy — `/api/stats` returns JSON, `/api/set-auth-cookie` sets the cookie.
+
+### W6 — Data layer + god-file decomposition  · lifts Clean-Arch, Performance, Frontend  · **[auto][$ for scorer]** — *the XL, incremental*
+- `src/data/repositories/{matches,roles,interviews,profiles,points}.ts` (mirror the clean `lib/restaurant/store.ts`); migrate the 149 direct calls incrementally, `matches` (8 routes) first (CleanArch-high).
+- `useAsyncData(fetcher, deps)` hook to retire the 67 raw `useEffect`+supabase loops (CleanArch-med).
+- **[$]** Decompose `scoreTalent` into pure `scoreCultureFit/scoreFeedback/scoreGhost/applyWeights` (match-core.ts:494) — composes with W1, byte-preserving, individually unit-tested.
+- Break the god-components to < ~400 LOC via custom hooks + extracted sub-views: HMDashboard 1621, TalentOnboarding 1569, TalentDashboard 1353 (CleanArch-high / Frontend-low).
+- Single-source domain types in `types/db.ts` (InterviewRound, InterviewProposal, RoleRow, CompanyRow, ChatMessage) (CleanArch-med).
+- Source `URGENT_COST`/`POINTS_PER_EXTRA` from the server response, not client literals (CleanArch-med, drift risk).
+- Consolidate the three `fmt()` formatters into `lib/format.ts`; fix the test's cross-boundary import via a shared core package (CleanArch-low).
+
+### W7 — Frontend A+ polish  · lifts Frontend-UI  · **[auto]** + one **[decision]**
+- **[decision]** Dark mode: gate off until dashboards are themed (default light unless `stored==='dark'`, toggle = beta) **or** finish theming the authenticated surfaces — recommend **gate-off-now + schedule theming**. Either way add a pre-paint inline script in `index.html` to kill the FOUC (Frontend-high, useDarkMode.ts:9).
+- Fix the login/signup/password-reset/not-found form-label + autofocus violations, flip `a11y.spec.ts` `≤99` → `toHaveLength(0)`, add one **authenticated-dashboard** axe scan with a seeded user (Frontend-high, a11y.spec.ts:45).
+- Extract one `<Modal>` primitive (focus-trap + focus-restore + Escape + `aria-modal` + scroll-lock); migrate the ~12 ad-hoc dialogs (Frontend-med).
+- Replace user-facing `confirm()/alert()` on money/points actions with `<Alert>`/toast/`<Modal>` (Frontend-med, 22 sites).
+- Finish i18n on HM sub-routes (Settings/Account/Company/PostRole/EditRole/OrgChart) + a lint/test flagging untranslated JSX text in non-admin routes (Frontend-med). _NotificationBell already localized 2026-06-27._
+- Lint the public restaurant routes (GuestMenu/Track) for a11y (Frontend-low).
+
+### W8 — Architecture scale-hardening  · lifts Architecture  · **[auto]** + one **[decision]**
+- **[decision]** Move Restaurant OS into its own `restaurant.*` schema (isolates RLS/realtime/grants/migration numbering; one `DROP SCHEMA` to remove) — **scope/timing call** (Arch-med, 0019).
+- `interview_rounds` realtime: per-talent broadcast channel / server-side filter instead of global fan-out (Arch-low / Perf-med, TalentDashboard.tsx:330).
+- Pin Vercel function/edge region to the Supabase region; document single-region + the compute-tier upgrade trigger as a chosen constraint (Arch-low).
+- Consolidate the hand-rolled session workarounds: pin/upgrade `@supabase/supabase-js`, delete the raw-fetch `fetchIsHM` if fixed, add a bootstrap integration test (Arch-med, supabase.ts/useSession.ts).
+- Replace core-path `select('*')` with explicit column lists (Perf-low / Arch).
+
+---
+
+## 4. Sequenced waves (leverage × dependency × risk)
+
+| Wave | Goal | Workstreams | Why this order |
+|---|---|---|---|
+| **0 — Today** | Stop the bleeding, no-regret | W5 (middleware), W3-auto (column-isolation test + ALTER-DEFAULT fix + banned gate), then W2 (flip RLS gate to blocking) | Small, isolated, high blast-radius; makes the authz leak structurally unrepeatable. RLS gate flips only after the new test goes green. |
+| **1 — Pre-scale** | Survive real concurrency + see failures | W1 (N+1 collapse), W4 (telemetry), W2 (deploy unify + drift reconcile) | The matcher is the one thing that won't survive load; don't scale until it's collapsed and you're not flying blind. |
+| **2 — Security close-out** | A+ security | W3 remainder ([decision]/[owner] items) | Needs the §5 calls; everything testable is already done in Wave 0. |
+| **3 — Frontend A+** | A+ frontend | W7 | Independent of backend; can run in parallel with Wave 1–2. |
+| **4 — Maintainability bet** | A+ clean-arch + arch residuals | W6 (data layer, god-files, scorer), W8 | XL, incremental, behind existing seams — last so it never blocks correctness/security work. Scorer decomposition (W6-$) merges with W1. |
+
+Waves 1–3 are largely parallelizable; Wave 4 is the long incremental tail.
+
+---
+
+## 5. Decisions I need from you (these gate A+ — I can't pick them)
+
+1. **Dark mode** — gate it OFF now (default light, toggle = beta) and theme dashboards later, or hold A+ on fully theming every authenticated screen now? _(Recommend: gate off now.)_
+2. **Admin MFA** — require a real TOTP second factor for admins even on Google/OAuth login? Today OAuth = blanket AAL2 bypass. _(Recommend: yes, require TOTP.)_
+3. **ToyyibPay consult path** — build the server-side callback verification, or disable the consult booking path until it's designed? _(Either reaches A+; pick by product priority.)_
+4. **Billplz webhook secret** — owner action: set the signature secret in the Billplz dashboard. I can't do this (credential config).
+5. **Restaurant schema move** — green-light moving Restaurant OS to its own `restaurant.*` schema now, or defer (keep public schema) and accept the Architecture point until then?
+
+Reply with picks (even "all recommended") and I'll execute Wave 0 → 4 autonomously, phase-by-phase, pushing each as it goes — same cadence as the audit remediation.
+
+---
+
+## 6. Guardrails (unchanged from [AGENTS.md](../AGENTS.md))
+- **Money/auth/scoring = byte-preserving.** W1/W6 scorer work gates behind the test oracle + adversarial verify; no scoring output changes.
+- **Two-phase deploy** for any column/grant or contract change (additive first, ship frontend, then revoke/cut over) — the pattern proven on 0157/0158.
+- **Each wave ships green:** typecheck + 73 tests + build + lefthook, verified live (`version.txt` flip) before the next.
+- **No credential entry** (logins, dashboard secrets) — those stay owner actions (§5.4).

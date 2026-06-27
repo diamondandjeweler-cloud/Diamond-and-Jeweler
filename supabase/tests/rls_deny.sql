@@ -469,6 +469,73 @@ end;
 $$;
 
 -- ============================================================================
+-- INVARIANT 9 — COLUMN-grant isolation (the gap that let the leak recur 3×).
+--   Every invariant above tests ROW hiding (RLS). The ic_path / internal_reasoning
+--   re-exposure was a WITHIN-VISIBLE-ROW COLUMN leak: 0119's table-wide GRANT
+--   SELECT clobbered the column-level revokes, so a user who legitimately sees a
+--   row could read sensitive COLUMNS of it. RLS cannot protect against that —
+--   only column grants can. This invariant pins those grants directly.
+--   ic_path = NRIC/passport storage path (PII); internal_reasoning +
+--   life_chart_score = proprietary scoring IP. ADD future sensitive columns here.
+-- ============================================================================
+do $$
+declare
+  bad text := '';
+begin
+  if has_column_privilege('authenticated','public.talents','ic_path','SELECT')              then bad := bad || ' talents.ic_path/authenticated'; end if;
+  if has_column_privilege('anon','public.talents','ic_path','SELECT')                        then bad := bad || ' talents.ic_path/anon'; end if;
+  if has_column_privilege('authenticated','public.matches','internal_reasoning','SELECT')    then bad := bad || ' matches.internal_reasoning/authenticated'; end if;
+  if has_column_privilege('anon','public.matches','internal_reasoning','SELECT')             then bad := bad || ' matches.internal_reasoning/anon'; end if;
+  if has_column_privilege('authenticated','public.matches','life_chart_score','SELECT')      then bad := bad || ' matches.life_chart_score/authenticated'; end if;
+  if has_column_privilege('anon','public.matches','life_chart_score','SELECT')               then bad := bad || ' matches.life_chart_score/anon'; end if;
+
+  if bad <> '' then
+    raise exception 'INVARIANT 9 FAILED: sensitive column(s) SELECT-granted — column-isolation leak:%', bad;
+  end if;
+  raise notice 'PASS 9: ic_path / internal_reasoning / life_chart_score are column-isolated from authenticated + anon';
+end;
+$$;
+
+-- ============================================================================
+-- INVARIANT 9b — functional proof, the audit's exact threat: a MATCHED hiring
+--   manager (dave owns the role alice is matched to, so RLS gives him row
+--   visibility) still CANNOT read the sensitive columns. The column-privilege
+--   check fires regardless of row visibility, so a revoked column raises
+--   insufficient_privilege even on a row dave can see.
+-- ============================================================================
+do $$
+declare
+  ic_blocked boolean := false;
+  ir_blocked boolean := false;
+begin
+  set local role authenticated;
+  set local "request.jwt.claim.sub" to 'dddddddd-dddd-dddd-dddd-dddddddddddd';
+  set local "request.jwt.claims" to
+    '{"sub":"dddddddd-dddd-dddd-dddd-dddddddddddd","role":"authenticated"}';
+
+  begin
+    perform ic_path from public.talents where id = 'a1110000-0000-0000-0000-000000000001';
+  exception when insufficient_privilege then ic_blocked := true;
+  end;
+
+  begin
+    perform internal_reasoning from public.matches where id = 'd3110000-0000-0000-0000-000000000006';
+  exception when insufficient_privilege then ir_blocked := true;
+  end;
+
+  reset role;
+
+  if not ic_blocked then
+    raise exception 'INVARIANT 9b FAILED: matched HM can SELECT talents.ic_path (column not revoked)';
+  end if;
+  if not ir_blocked then
+    raise exception 'INVARIANT 9b FAILED: matched HM can SELECT matches.internal_reasoning (column not revoked)';
+  end if;
+  raise notice 'PASS 9b: matched HM cannot read ic_path / internal_reasoning columns even on a visible row';
+end;
+$$;
+
+-- ============================================================================
 -- All assertions passed if we reach here. ROLLBACK so the suite is a pure
 -- read-only smoke against the reset DB and re-runnable without cleanup.
 -- ============================================================================

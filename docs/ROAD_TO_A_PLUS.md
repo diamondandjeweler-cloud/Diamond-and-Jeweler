@@ -23,6 +23,20 @@ _Status as of 2026-06-27. Each item cites the audit finding (file:line) it close
 
 ---
 
+## Progress log
+
+**Wave 0 — SHIPPED LIVE (2026-06-27, commits f60a861 → 874d5cf):**
+- **W5 (Debugging):** documented the `middleware.ts` finding as a verified false-positive (the status-200 path is a pass-through — `/api/stats` returns real JSON through it live; changing it would have *introduced* the break); fixed the HMDashboard realtime channel-leak (synchronous teardown + resubscribe coalescing); guarded `admin-refund` against a thrown Billplz fetch (rolls back to `paid`, v13 live); `match-expire` heartbeats at the top so a mid-run throw can't trip a false dead-man alert (v27 live).
+- **W3a (Security):** `0159` flips the default privilege so future migration-created tables are fail-closed on SELECT for `authenticated` (verified live: default ACL now `awdDxtm`, no `r`); added the column-isolation invariant (static + functional matched-HM) the suite was missing.
+- **W2a (Security/DevOps):** a **blocking** CI gate (`column_isolation.sql`) on the 3×-recurring leak — fixture-free, validated against the live schema. The fixtured row-suite stays advisory pending a green-reset observation (can't run Docker/`gh` from here).
+- **W3b (Security):** banned users are gated out of the SPA (`enforceBan` at both profile-resolve points) + a `/banned` notice page. (Server-side ban enforcement already exists in edge `authenticate()`.)
+
+**Deferred / blocked:** flip the *fixtured* RLS suite to blocking (needs an observed green reset run — Docker/`gh` unavailable in this env); admin MFA (owner skipped the decision); Billplz secret (owner dashboard action).
+
+**Next: Wave 1** — matcher N+1 collapse (W1, money/scoring-adjacent → byte-preserving), telemetry (W4), deploy unification + drift reconcile (W2).
+
+---
+
 ## 2. What "A+" means here (exit criteria — falsifiable, not vibes)
 
 | Dimension | A+ is reached when… |

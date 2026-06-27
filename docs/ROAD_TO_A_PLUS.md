@@ -47,7 +47,9 @@ _Status as of 2026-06-27. Each item cites the audit finding (file:line) it close
 
 **Deferred / blocked (mine):** flip the *fixtured* RLS suite to blocking (needs an observed green reset run — Docker/`gh` unavailable here).
 
-**Next:** W1c (nn_concerns short-circuit + loadPreviews batch); W2 deploy unification + drift reconcile; ToyyibPay verify branch.
+**W1c — SHIPPED (commit ce5cd87):** short-circuit the per-candidate `compare_nn_concerns` pgvector query when neither side has a free_text atom; batch HMDashboard `loadPreviews` into one `get_match_profile_previews(uuid[])` RPC (0162). Both byte-preserving. **→ matcher N+1 collapse (W1) is now complete** (W1a+W1b+W1c); only the `match-expire` serial-regeneration rework remains (deferred — it's pipeline-blocked + needs runtime verification).
+
+**Next (need either owner action, careful money-path work, or CI observability):** ToyyibPay verify branch (payment path — careful); W2 deploy unification + migration-tracking reconcile (repo 0162 / prod schema_migrations ~0121 — delicate bookkeeping); `match-expire` N+1 → queue (pipeline-blocked). Highest-impact remaining action is still the owner's Vault key fix.
 
 ---
 

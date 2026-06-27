@@ -45,6 +45,14 @@ So the next outage pages you instead of going unnoticed for a month. `/api/healt
 
 ---
 
+## 🟢 P3 — Deploy hygiene (when you next touch the pipeline)
+
+**Migration tracking has drifted:** prod records migrations up to **0121** (105 of them), but the repo is at **0162**. A new drift-detector reports **57 repo migrations not recorded as applied in prod** (run `node scripts/check-migration-drift.mjs` with `SUPABASE_ACCESS_TOKEN` set). The schema itself is fine — migrations have been applied out-of-band (Management API / dashboard) without updating `supabase_migrations.schema_migrations` — but it means **`supabase db push` would mis-fire** (try to re-apply the 57).
+
+- This is harmless today (you don't use `db push`), so no rush.
+- Before ever using `db push` against prod: reconcile by recording the genuinely-applied versions in `supabase_migrations.schema_migrations`. I left this as a deliberate step rather than auto-recording all 57 — recording a version that *isn't* actually applied would make a future push silently skip it.
+- To catch future drift in CI, add a job that runs the detector with a `SUPABASE_ACCESS_TOKEN` repo secret (the existing `db-apply` job only validates a fresh apply, never prod-vs-repo).
+
 ## Notes
 - I will not retrieve or write the `service_role` key, Billplz secrets, or any API token — handling master credentials is a hard line regardless of authorization. Everything above that involves a secret is yours to apply; everything else I'm doing autonomously.
 - Status of the broader A+ effort: [docs/ROAD_TO_A_PLUS.md](./ROAD_TO_A_PLUS.md).

@@ -92,6 +92,22 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
   const { roleId, isExtraMatch = false, isServiceRole = false, callerUserId } = params
   const db = adminClient()
 
+  // Per-generation memo for IMMUTABLE/STABLE pure-function RPCs
+  // (get_life_chart_bucket, get_year_luck_stage). Their arguments come from a tiny
+  // finite character/year domain, so across up to 500 candidates the same args
+  // recur constantly. Caching the result per distinct args collapses thousands of
+  // edge→Postgres round-trips with ZERO scoring change — same inputs always yield
+  // the same output. Only SUCCESSFUL results are cached, so a transient RPC error
+  // still retries on the next call exactly as the un-memoized code did.
+  const _rpcMemo = new Map<string, unknown>()
+  async function memoRpc(fn: string, args: Record<string, unknown>): Promise<unknown> {
+    const key = fn + ':' + JSON.stringify(args)
+    if (_rpcMemo.has(key)) return _rpcMemo.get(key)
+    const { data, error } = await db.rpc(fn, args)
+    if (!error) _rpcMemo.set(key, data)
+    return data
+  }
+
   // ── Fetch role ────────────────────────────────────────────────────────────
   const { data: role, error: roleErr } = await db
     .from('roles')
@@ -160,64 +176,55 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     ? (role as unknown as { team_member_characters: string[] }).team_member_characters
     : []
 
-  const [wBehRow, wTagRow, wSalRow, wCultureRow, wEmpRow, wCharRow, wAgeRow, wLocRow, wBgRow, wFbRow, wPeakRow, wBoostRow, wExpRow, wEduRow, wCGRow, wJIRow, wMgmtRow, wUrgRow, wWARow, wTeamRow,
-    wSkillRow, wLangRow, wEnvRow, wOpenToRow, wSchedRow, wProbRow, wConcernsRow] = await Promise.all([
-    db.from('system_config').select('value').eq('key', 'weight_behavioral_fitness').maybeSingle(),
-    db.from('system_config').select('value').eq('key', 'weight_tag_compatibility').maybeSingle(),
-    db.from('system_config').select('value').eq('key', 'weight_salary_fit').maybeSingle(),
-    db.from('system_config').select('value').eq('key', 'weight_culture_fit').maybeSingle(),
-    db.from('system_config').select('value').eq('key', 'weight_employment_fit').maybeSingle(),
-    db.from('system_config').select('value').eq('key', 'weight_character').maybeSingle(),
-    db.from('system_config').select('value').eq('key', 'weight_age').maybeSingle(),
-    db.from('system_config').select('value').eq('key', 'weight_location').maybeSingle(),
-    db.from('system_config').select('value').eq('key', 'weight_background').maybeSingle(),
-    db.from('system_config').select('value').eq('key', 'weight_feedback').maybeSingle(),
-    db.from('system_config').select('value').eq('key', 'weight_peak_age').maybeSingle(),
-    db.from('system_config').select('value').eq('key', 'weight_monthly_boost').maybeSingle(),
-    db.from('system_config').select('value').eq('key', 'weight_experience_fit').maybeSingle(),
-    db.from('system_config').select('value').eq('key', 'weight_education_fit').maybeSingle(),
-    db.from('system_config').select('value').eq('key', 'weight_career_goal_fit').maybeSingle(),
-    db.from('system_config').select('value').eq('key', 'weight_job_intention_fit').maybeSingle(),
-    db.from('system_config').select('value').eq('key', 'weight_management_style_fit').maybeSingle(),
-    db.from('system_config').select('value').eq('key', 'weight_urgency_fit').maybeSingle(),
-    db.from('system_config').select('value').eq('key', 'weight_work_arrangement_fit').maybeSingle(),
-    db.from('system_config').select('value').eq('key', 'weight_team_fit').maybeSingle(),
-    db.from('system_config').select('value').eq('key', 'weight_skill_match').maybeSingle(),
-    db.from('system_config').select('value').eq('key', 'weight_language_match').maybeSingle(),
-    db.from('system_config').select('value').eq('key', 'weight_environment_match').maybeSingle(),
-    db.from('system_config').select('value').eq('key', 'weight_open_to_match').maybeSingle(),
-    db.from('system_config').select('value').eq('key', 'weight_schedule_match').maybeSingle(),
-    db.from('system_config').select('value').eq('key', 'weight_probation_comfort').maybeSingle(),
-    db.from('system_config').select('value').eq('key', 'weight_concerns_alignment').maybeSingle(),
-  ])
-  let weightBehavioral = typeof wBehRow.data?.value     === 'number' ? wBehRow.data.value     : 0.20
-  let weightTag        = typeof wTagRow.data?.value     === 'number' ? wTagRow.data.value     : 0.50
-  let weightSalary     = typeof wSalRow.data?.value     === 'number' ? wSalRow.data.value     : 0.15
-  let weightCulture    = typeof wCultureRow.data?.value === 'number' ? wCultureRow.data.value : 0.30
-  let weightEmployment = typeof wEmpRow.data?.value     === 'number' ? wEmpRow.data.value     : 0.10
-  let weightCharacter  = typeof wCharRow.data?.value    === 'number' ? wCharRow.data.value    : 0.15
-  let weightAge        = typeof wAgeRow.data?.value     === 'number' ? wAgeRow.data.value     : 0.05
-  let weightLocation   = typeof wLocRow.data?.value     === 'number' ? wLocRow.data.value     : 0.10
-  let weightBackground = typeof wBgRow.data?.value      === 'number' ? wBgRow.data.value      : 0.15
-  let weightFeedback   = typeof wFbRow.data?.value      === 'number' ? wFbRow.data.value      : 0.10
-  let weightPeakAge      = typeof wPeakRow.data?.value  === 'number' ? wPeakRow.data.value    : 0.10
-  let weightMonthlyBoost = typeof wBoostRow.data?.value === 'number' ? wBoostRow.data.value   : 0.12
-  let weightExperience    = typeof wExpRow.data?.value  === 'number' ? wExpRow.data.value     : 0.08
-  let weightEducation     = typeof wEduRow.data?.value  === 'number' ? wEduRow.data.value     : 0.05
-  let weightCareerGoal    = typeof wCGRow.data?.value   === 'number' ? wCGRow.data.value      : 0.06
-  let weightJobIntention  = typeof wJIRow.data?.value   === 'number' ? wJIRow.data.value      : 0.04
-  let weightMgmtStyle     = typeof wMgmtRow.data?.value === 'number' ? wMgmtRow.data.value    : 0.07
-  let weightUrgency       = typeof wUrgRow.data?.value  === 'number' ? wUrgRow.data.value     : 0.06
-  let weightWorkArrangement = typeof wWARow.data?.value === 'number' ? wWARow.data.value      : 0.08
-  const weightTeamFit         = typeof wTeamRow.data?.value === 'number' ? wTeamRow.data.value    : 0.10
+  // Batched: one round-trip for all 27 weights instead of 27 separate
+  // maybeSingle() queries. Behaviour-preserving — cfgNum() keeps the exact
+  // "value is a number, else default" semantics per key (a missing key or a
+  // non-numeric value falls back to the same default as before). system_config.key
+  // is unique, so the Map holds exactly one value per key.
+  const WEIGHT_KEYS = [
+    'weight_behavioral_fitness', 'weight_tag_compatibility', 'weight_salary_fit', 'weight_culture_fit',
+    'weight_employment_fit', 'weight_character', 'weight_age', 'weight_location', 'weight_background',
+    'weight_feedback', 'weight_peak_age', 'weight_monthly_boost', 'weight_experience_fit', 'weight_education_fit',
+    'weight_career_goal_fit', 'weight_job_intention_fit', 'weight_management_style_fit', 'weight_urgency_fit',
+    'weight_work_arrangement_fit', 'weight_team_fit', 'weight_skill_match', 'weight_language_match',
+    'weight_environment_match', 'weight_open_to_match', 'weight_schedule_match', 'weight_probation_comfort',
+    'weight_concerns_alignment',
+  ]
+  const { data: weightRows } = await db.from('system_config').select('key, value').in('key', WEIGHT_KEYS)
+  const _weightMap = new Map<string, unknown>()
+  for (const r of (weightRows ?? []) as { key: string; value: unknown }[]) _weightMap.set(r.key, r.value)
+  const cfgNum = (key: string, dflt: number): number => {
+    const v = _weightMap.get(key)
+    return typeof v === 'number' ? v : dflt
+  }
+  let weightBehavioral = cfgNum('weight_behavioral_fitness', 0.20)
+  let weightTag        = cfgNum('weight_tag_compatibility', 0.50)
+  let weightSalary     = cfgNum('weight_salary_fit', 0.15)
+  let weightCulture    = cfgNum('weight_culture_fit', 0.30)
+  let weightEmployment = cfgNum('weight_employment_fit', 0.10)
+  let weightCharacter  = cfgNum('weight_character', 0.15)
+  let weightAge        = cfgNum('weight_age', 0.05)
+  let weightLocation   = cfgNum('weight_location', 0.10)
+  let weightBackground = cfgNum('weight_background', 0.15)
+  let weightFeedback   = cfgNum('weight_feedback', 0.10)
+  let weightPeakAge      = cfgNum('weight_peak_age', 0.10)
+  let weightMonthlyBoost = cfgNum('weight_monthly_boost', 0.12)
+  let weightExperience    = cfgNum('weight_experience_fit', 0.08)
+  let weightEducation     = cfgNum('weight_education_fit', 0.05)
+  let weightCareerGoal    = cfgNum('weight_career_goal_fit', 0.06)
+  let weightJobIntention  = cfgNum('weight_job_intention_fit', 0.04)
+  let weightMgmtStyle     = cfgNum('weight_management_style_fit', 0.07)
+  let weightUrgency       = cfgNum('weight_urgency_fit', 0.06)
+  let weightWorkArrangement = cfgNum('weight_work_arrangement_fit', 0.08)
+  const weightTeamFit         = cfgNum('weight_team_fit', 0.10)
   // v2: structured matching dimensions
-  const weightSkillMatch     = typeof wSkillRow.data?.value    === 'number' ? wSkillRow.data.value    : 0.10
-  const weightLanguageMatch  = typeof wLangRow.data?.value     === 'number' ? wLangRow.data.value     : 0.06
-  const weightEnvMatch       = typeof wEnvRow.data?.value      === 'number' ? wEnvRow.data.value      : 0.03
-  const weightOpenToMatch    = typeof wOpenToRow.data?.value   === 'number' ? wOpenToRow.data.value   : 0.03
-  const weightScheduleMatch  = typeof wSchedRow.data?.value    === 'number' ? wSchedRow.data.value    : 0.04
-  const weightProbationComf  = typeof wProbRow.data?.value     === 'number' ? wProbRow.data.value     : 0.02
-  const weightConcernsAlign  = typeof wConcernsRow.data?.value === 'number' ? wConcernsRow.data.value : 0.05
+  const weightSkillMatch     = cfgNum('weight_skill_match', 0.10)
+  const weightLanguageMatch  = cfgNum('weight_language_match', 0.06)
+  const weightEnvMatch       = cfgNum('weight_environment_match', 0.03)
+  const weightOpenToMatch    = cfgNum('weight_open_to_match', 0.03)
+  const weightScheduleMatch  = cfgNum('weight_schedule_match', 0.04)
+  const weightProbationComf  = cfgNum('weight_probation_comfort', 0.02)
+  const weightConcernsAlign  = cfgNum('weight_concerns_alignment', 0.05)
 
   // Role-type weight presets
   const roleWeightPreset = ((role as { weight_preset?: string }).weight_preset ?? '').toLowerCase()
@@ -507,7 +514,7 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     // pool below before selection to preserve legacy behaviour.
     let characterBucket: string | null = null
     if (hmCharacter && talentCharacter) {
-      const { data: bucketRaw } = await db.rpc('get_life_chart_bucket', { hm_char: hmCharacter, talent_char: talentCharacter })
+      const bucketRaw = await memoRpc('get_life_chart_bucket', { hm_char: hmCharacter, talent_char: talentCharacter })
       characterBucket = (bucketRaw as string | null) ?? null
     }
 
@@ -685,7 +692,7 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     // Internal year-luck stage
     let talentStage: number | null = null
     if (talentCharacter) {
-      const { data: tStageRaw } = await db.rpc('get_year_luck_stage', { p_character: talentCharacter, p_year: currentYear })
+      const tStageRaw = await memoRpc('get_year_luck_stage', { p_character: talentCharacter, p_year: currentYear })
       if (typeof tStageRaw === 'number') talentStage = tStageRaw
     }
     const talentInActiveWindow = talentStage != null && (talentStage === 5 || talentStage === 6 || talentStage === 7)
@@ -761,7 +768,7 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     if (talentCharacter && teamMemberCharacters.length > 0) {
       const buckets = await Promise.all(
         teamMemberCharacters.map(async (colleagueChar) => {
-          const { data: bRaw } = await db.rpc('get_life_chart_bucket', {
+          const bRaw = await memoRpc('get_life_chart_bucket', {
             hm_char: colleagueChar, talent_char: talentCharacter,
           })
           return (bRaw as string | null) ?? null

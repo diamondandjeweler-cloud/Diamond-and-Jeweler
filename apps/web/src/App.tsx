@@ -68,6 +68,7 @@ const PointsWallet     = lazy(() => import('./routes/PointsWallet'))
 const Consult          = lazy(() => import('./routes/Consult'))
 const PaymentReturn    = lazy(() => import('./routes/PaymentReturn'))
 const NotFound         = lazy(() => import('./routes/NotFound'))
+const Banned           = lazy(() => import('./routes/Banned'))
 const Pricing          = lazy(() => import('./routes/Pricing'))
 const MatchPreview     = lazy(() => import('./routes/dev/MatchPreview'))
 
@@ -260,6 +261,7 @@ export default function App() {
           )}
         </Route>
 
+        <Route path="/banned" element={<Banned />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>

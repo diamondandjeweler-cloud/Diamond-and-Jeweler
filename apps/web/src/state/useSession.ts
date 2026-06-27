@@ -130,6 +130,7 @@ export const useSession = create<SessionState>((set) => ({
         fetchIsHM(data.session.user.id),
       ])
       const finalProfile = profile ?? (validCache ? cached : null)
+      if (finalProfile?.is_banned) { enforceBan(); return }
       set({ session: data.session, profile: finalProfile, isHM, loading: false })
       if (finalProfile) saveCachedProfile(finalProfile)
     } catch (e) {
@@ -239,6 +240,28 @@ function wireVisibilityRewarm() {
   window.addEventListener('focus', rewarm)
 }
 
+// A banned user keeps a technically-valid JWT, and RLS still returns their own
+// profile row, so without this client gate they'd route straight into a working
+// dashboard. (Sensitive server actions are already blocked server-side:
+// _shared/auth authenticate() rejects is_banned, and RLS scopes every read to
+// the caller's own rows.) On detecting is_banned we clear the local session and
+// hard-redirect to the /banned notice. Called from both profile-resolve points.
+function enforceBan(): void {
+  try { void supabase.auth.signOut() } catch { /* tolerate */ }
+  saveCachedProfile(null)
+  saveCachedIsHM(null, false)
+  clearAuthHintCookie()
+  try {
+    Object.keys(localStorage).forEach((k) => {
+      if (k.startsWith('sb-') || k === 'supabase.auth.token') localStorage.removeItem(k)
+    })
+  } catch { /* tolerate */ }
+  useSession.setState({ session: null, profile: null, isHM: false, loading: false })
+  if (typeof window !== 'undefined' && window.location.pathname !== '/banned') {
+    window.location.replace('/banned')
+  }
+}
+
 let bootstrapped = false
 export function bootstrapSession() {
   if (bootstrapped) return
@@ -326,6 +349,10 @@ export function bootstrapSession() {
       // before the authoritative DB fetch completes.
       const validCache = cachedProfile && cachedProfile.id === session.user.id
       const cachedIsHM = loadCachedIsHM(session.user.id)
+      // Don't serve a cached profile that is already flagged banned — the fresh
+      // fetch below will enforceBan() authoritatively, but skip the optimistic
+      // dashboard paint in the meantime.
+      if (validCache && cachedProfile.is_banned) { enforceBan(); return }
       useSession.setState({
         session,
         loading: false,
@@ -360,6 +387,7 @@ export function bootstrapSession() {
       // which was the "spinner hang on /hr" regression that broke prod after
       // the dashboard-refactor deploy.
       const finalProfile = profile ?? (validCache ? cachedProfile : null)
+      if (finalProfile?.is_banned) { enforceBan(); return }
       useSession.setState({ profile: finalProfile, isHM })
       // Only persist a NON-null profile. Persisting null on a transient error
       // would defeat the cache-preservation guard above on the next reload.

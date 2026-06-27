@@ -39,9 +39,15 @@ _Status as of 2026-06-27. Each item cites the audit finding (file:line) it close
 > **FIX (owner — I won't handle the master secret):** Dashboard → Settings → API → copy `service_role` key → SQL: `select vault.update_secret((select id from vault.secrets where name='service_role_key'), '<key>');` → verify `cron_heartbeat` populates + 403s become 200s within ~1 min.
 > Also found: `refresh-admin-kpis-mv` cron failing every 2 min ("cannot refresh materialized view"). Both belong to W4 (telemetry / dead-man escalation), which would have surfaced this 27 days ago.
 
-**Deferred / blocked:** flip the *fixtured* RLS suite to blocking (needs an observed green reset run — Docker/`gh` unavailable in this env); admin MFA (owner skipped the decision); Billplz secret (owner dashboard action); **Vault service_role_key (owner — gates the whole match pipeline)**.
+**Also shipped this turn (W4 / ops, commits b55176b, 4439d0c):**
+- **`mv_admin_kpis` refresh fixed (0160):** was failing every 2 min (unique index on the constant `((1))` can't support `CONCURRENTLY`), which aborted the whole job and froze ALL admin KPIs. Dropped `CONCURRENTLY` in the cron + RPC. Verified live: cron now `succeeded`.
+- **`/api/health` now reflects real pipeline liveness (0161):** returns **503** when the pg_cron heartbeat is stale (or Supabase is unreachable), **200** when alive — backed by `pipeline_health()` (anon-safe, no PII). Verified live: currently 503 (correct — pipeline down). **An external monitor on this URL is the fix for "nobody noticed for 27 days"** → see [OWNER_ACTIONS.md](./OWNER_ACTIONS.md).
 
-**Next:** W4 telemetry + deadman-escalation (would have caught the P0); W1c (nn_concerns short-circuit + loadPreviews batch); W2 deploy unification.
+**Owner actions (consolidated → [OWNER_ACTIONS.md](./OWNER_ACTIONS.md)):** 🔴 Vault `service_role_key` (revives the pipeline); 🟠 point a free uptime monitor at `/api/health`; 🟡 Billplz secret + admin-MFA decision.
+
+**Deferred / blocked (mine):** flip the *fixtured* RLS suite to blocking (needs an observed green reset run — Docker/`gh` unavailable here).
+
+**Next:** W1c (nn_concerns short-circuit + loadPreviews batch); W2 deploy unification + drift reconcile; ToyyibPay verify branch.
 
 ---
 

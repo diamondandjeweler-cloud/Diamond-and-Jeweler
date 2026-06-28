@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { activeMatchCountForRole } from '../../data/repositories/matches'
+import { updateRole } from '../../data/repositories/roles'
 import { callFunction } from '../../lib/functions'
 import { Button, Card, Badge, Alert, EmptyState, PageHeader, BadgeTone } from '../../components/ui'
 import ListSkeleton from '../../components/ListSkeleton'
@@ -123,7 +124,7 @@ export default function MyRoles() {
   async function setStatus(id: string, next: RoleStatus) {
     const prev = rows?.find((r) => r.id === id)?.status
     setRows((xs) => (xs ?? []).map((r) => (r.id === id ? { ...r, status: next } : r)))
-    const { error } = await supabase.from('roles').update({ status: next }).eq('id', id)
+    const { error } = await updateRole(id, { status: next })
     if (error) {
       setErr(error.message)
       setRows((xs) => (xs ?? []).map((r) => (r.id === id ? { ...r, status: prev ?? r.status } : r)))
@@ -139,7 +140,7 @@ export default function MyRoles() {
   async function extendVacancy(id: string) {
     const newExpiry = new Date(Date.now() + 45 * 86400000).toISOString()
     setRows((xs) => (xs ?? []).map((r) => (r.id === id ? { ...r, vacancy_expires_at: newExpiry } : r)))
-    const { error } = await supabase.from('roles').update({ vacancy_expires_at: newExpiry }).eq('id', id)
+    const { error } = await updateRole(id, { vacancy_expires_at: newExpiry })
     if (error) { setErr(error.message) }
   }
 

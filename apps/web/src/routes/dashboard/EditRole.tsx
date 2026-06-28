@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
+import { updateRole } from '../../data/repositories/roles'
 import { callFunction } from '../../lib/functions'
 import { FormSkeleton } from '../../components/ListSkeleton'
 import { useSeo } from '../../lib/useSeo'
@@ -143,7 +144,7 @@ export default function EditRole() {
     )
 
     const isDraft = activateMode && currentRow.status === 'paused' && currentRow.from_onboarding
-    const { error } = await supabase.from('roles').update({
+    const { error } = await updateRole(currentRow.id, {
       title: currentRow.title,
       description: currentRow.description,
       department: currentRow.department,
@@ -154,7 +155,7 @@ export default function EditRole() {
       salary_max: currentRow.salary_max,
       required_traits: currentRow.required_traits,
       ...(isDraft ? { status: 'active' } : {}),
-    }).eq('id', currentRow.id)
+    })
     if (error) { setBusy(false); savingRef.current = false; setErr(error.message); return }
 
     void callFunction('moderate-role', { role_id: currentRow.id, force: textChanged || isDraft }).catch(() => {})

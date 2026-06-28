@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
+import { insertRole } from '../../data/repositories/roles'
 import { encryptDob, markOnboardingComplete } from '../../lib/api'
 import { callFunction } from '../../lib/functions'
 import { getLifeChartCharacter, type Gender } from '../../lib/lifeChartCharacter'
@@ -574,7 +575,7 @@ export default function HMOnboarding() {
             if (w.includes('hybrid')) return 'hybrid'
             return 'onsite'
           })()
-          await supabase.from('roles').insert({
+          await insertRole({
             hiring_manager_id: hmRow.id,
             title: extracted.role_type,
             industry: extracted.industry ?? null,

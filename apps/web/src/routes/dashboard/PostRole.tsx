@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { fmt } from '../../lib/format'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
+import { updateRole, insertRole } from '../../data/repositories/roles'
 import { callFunction } from '../../lib/functions'
 import { FormSkeleton } from '../../components/ListSkeleton'
 import { Button, Card, Alert, Input, Select, Textarea, PageHeader } from '../../components/ui'
@@ -436,8 +437,8 @@ export default function PostRole() {
 
       const savedId = isEdit ? editRoleId! : roleId
       const { error: insErr } = isEdit
-        ? await supabase.from('roles').update(payload).eq('id', editRoleId!).abortSignal(controller.signal)
-        : await supabase.from('roles').insert({ id: roleId, ...payload }).abortSignal(controller.signal)
+        ? await updateRole(editRoleId!, payload).abortSignal(controller.signal)
+        : await insertRole({ id: roleId, ...payload }).abortSignal(controller.signal)
       clearTimeout(timeoutId)
 
       if (insErr) throw insErr

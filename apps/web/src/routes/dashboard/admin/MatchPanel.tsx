@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
+import { updateMatch } from '../../../data/repositories/matches'
 import ListSkeleton from '../../../components/ListSkeleton'
 import { formatError } from '../../../lib/errors'
 
@@ -53,8 +54,7 @@ export default function MatchPanel() {
 
   async function forceExpire(id: string) {
     if (!confirm('Force-expire this match? Irreversible.')) return
-    const { error } = await supabase.from('matches')
-      .update({ status: 'expired' }).eq('id', id)
+    const { error } = await updateMatch(id, { status: 'expired' })
     if (error) setErr(error.message)
     else await reload()
   }

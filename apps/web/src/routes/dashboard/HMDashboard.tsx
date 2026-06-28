@@ -24,7 +24,7 @@ import ScreeningChecklist from '../../components/ScreeningChecklist'
 import CareerNudgePanel from '../../components/CareerNudgePanel'
 import AddHmDobModal from '../../components/AddHmDobModal'
 import type { PublicReasoning, CultureComparison, InterviewRound, InterviewProposal } from '../../types/db'
-import { hmCandidatesForManager, hmCandidateById } from '../../data/repositories/matches'
+import { hmCandidatesForManager, hmCandidateById, updateMatch } from '../../data/repositories/matches'
 
 type TFn = (key: string, opts?: Record<string, unknown>) => string
 const hmOutcomes = (t: TFn) => [
@@ -577,7 +577,7 @@ export default function HMDashboard() {
     // viewed → declined_by_manager. Advance through 'viewed' first so both actions are
     // legal from the HM's perspective regardless of which they pick first.
     if (prevStatus === 'generated') {
-      const { error: viewErr } = await supabase.from('matches').update({ status: 'viewed' }).eq('id', id)
+      const { error: viewErr } = await updateMatch(id, { status: 'viewed' })
       if (!mountedRef.current) return
       if (viewErr) {
         setErr(viewErr.message)
@@ -587,10 +587,10 @@ export default function HMDashboard() {
       }
     }
 
-    const { error } = await supabase.from('matches').update({
+    const { error } = await updateMatch(id, {
       status: next,
       invited_at: next === 'invited_by_manager' ? new Date().toISOString() : null,
-    }).eq('id', id)
+    })
     if (!mountedRef.current) return
     if (error) {
       setErr(error.message)

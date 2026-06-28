@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
-import { matchedTalentIdsForRole } from '../../../data/repositories/matches'
+import { matchedTalentIdsForRole, insertMatches } from '../../../data/repositories/matches'
 import ListSkeleton from '../../../components/ListSkeleton'
 
 interface ColdStartRole {
@@ -109,7 +109,7 @@ export default function ColdStartPanel() {
       status: 'generated',
       expires_at: expiresAt,
     }))
-    const { error: insErr } = await supabase.from('matches').insert(insertRows)
+    const { error: insErr } = await insertMatches(insertRows)
     if (insErr) { setErr(insErr.message); setBusy(false); return }
     await supabase.from('match_history').insert(
       Array.from(selected).map((tid) => ({ role_id: roleId, talent_id: tid, action: 'manual_admin' })),

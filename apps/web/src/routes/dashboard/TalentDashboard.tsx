@@ -15,7 +15,7 @@ import MatchExplain from '../../components/MatchExplain'
 import CareerNudgePanel from '../../components/CareerNudgePanel'
 import GrowthNudgePreferences from '../../components/GrowthNudgePreferences'
 import type { PublicReasoning, InterviewRound, InterviewProposal } from '../../types/db'
-import { talentMatchesForTalent, talentMatchById } from '../../data/repositories/matches'
+import { talentMatchesForTalent, talentMatchById, updateMatch } from '../../data/repositories/matches'
 import { usePushSubscription } from '../../lib/usePushSubscription'
 
 /** Cached snapshot — counts only. The full match details (scores, IDs) are
@@ -569,11 +569,11 @@ export default function TalentDashboard() {
     const current = matches?.find((m) => m.id === id)
     setMatches((ms) => (ms ?? []).map((m) => (m.id === id ? { ...m, status: next } : m)))
     try {
-      const { error } = await supabase.from('matches').update({
+      const { error } = await updateMatch(id, {
         status: next,
         viewed_at: new Date().toISOString(),
         accepted_at: next === 'accepted_by_talent' ? new Date().toISOString() : null,
-      }).eq('id', id)
+      })
       if (!mountedRef.current) return
       if (error) {
         setErr(error.message)

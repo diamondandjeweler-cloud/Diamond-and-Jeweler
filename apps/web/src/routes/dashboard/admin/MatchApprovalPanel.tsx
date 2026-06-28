@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
+import { updateMatch, updateMatches } from '../../../data/repositories/matches'
 import ListSkeleton from '../../../components/ListSkeleton'
 
 interface PendingMatch {
@@ -180,7 +181,7 @@ export default function MatchApprovalPanel() {
 
   async function transition(matchId: string, newStatus: 'generated' | 'expired') {
     setProcessing(matchId)
-    const { error } = await supabase.from('matches').update({ status: newStatus }).eq('id', matchId)
+    const { error } = await updateMatch(matchId, { status: newStatus })
     if (error) {
       setErr(error.message)
     } else {
@@ -218,7 +219,7 @@ export default function MatchApprovalPanel() {
     if (!confirm(`Approve all ${rows.length} pending matches?`)) return
     setLoading(true)
     const ids = rows.map((r) => r.id)
-    const { error } = await supabase.from('matches').update({ status: 'generated' }).in('id', ids)
+    const { error } = await updateMatches(ids, { status: 'generated' })
     if (error) setErr(error.message)
     else await reload()
     setLoading(false)
@@ -234,7 +235,7 @@ export default function MatchApprovalPanel() {
     // When switching to autopilot, bulk-approve all currently pending matches.
     if (next && rows.length > 0) {
       const ids = rows.map((r) => r.id)
-      await supabase.from('matches').update({ status: 'generated' }).in('id', ids)
+      await updateMatches(ids, { status: 'generated' })
     }
     setAutopilot(next)
     setAutopilotLoading(false)

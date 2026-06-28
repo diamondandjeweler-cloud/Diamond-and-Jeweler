@@ -103,3 +103,13 @@ export function matchedTalentIdsForRole(roleId: string) {
 export function updateMatch(matchId: string, patch: Record<string, unknown>) {
   return supabase.from('matches').update(patch).eq('id', matchId)
 }
+
+/** Patch many matches by id (bulk approve / status transitions — admin). */
+export function updateMatches(matchIds: string[], patch: Record<string, unknown>) {
+  return supabase.from('matches').update(patch).in('id', matchIds)
+}
+
+/** Insert match rows (admin cold-start). */
+export function insertMatches(rows: Record<string, unknown>[]) {
+  return supabase.from('matches').insert(rows)
+}

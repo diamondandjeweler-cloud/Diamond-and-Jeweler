@@ -4,6 +4,7 @@ import { fmt } from '../../lib/format'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
+import { activeMatchCountForRole } from '../../data/repositories/matches'
 import { callFunction } from '../../lib/functions'
 import { Button, Card, Badge, Alert, EmptyState, PageHeader, BadgeTone } from '../../components/ui'
 import ListSkeleton from '../../components/ListSkeleton'
@@ -106,9 +107,7 @@ export default function MyRoles() {
 
       const roleList = (roles ?? []) as RoleRow[]
       const withCounts = await Promise.all(roleList.map(async (r) => {
-        const { count } = await supabase.from('matches').select('id', { count: 'exact', head: true })
-          .eq('role_id', r.id)
-          .in('status', ['generated', 'viewed', 'accepted_by_talent', 'invited_by_manager', 'hr_scheduling', 'interview_scheduled'])
+        const { count } = await activeMatchCountForRole(r.id)
         return { ...r, match_count: count ?? 0 }
       }))
       setRows(withCounts)

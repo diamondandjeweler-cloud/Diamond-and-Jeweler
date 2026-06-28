@@ -55,3 +55,51 @@ export function hmCandidateById(matchId: string) {
     .select(HM_CANDIDATE_SELECT)
     .eq('id', matchId)
 }
+
+// ── HR scheduling reads ──────────────────────────────────────────────────────
+/** Matches awaiting HR scheduling for a set of roles (caller orders). */
+export function hrPendingMatches(roleIds: string[]) {
+  return supabase
+    .from('matches')
+    .select('id, status, compatibility_score, roles(id, title), talents(id, profile_id)')
+    .in('role_id', roleIds)
+    .in('status', ['invited_by_manager', 'hr_scheduling'])
+}
+
+/** Post-interview matches with their feedback rows (for the outcomes-pending count). */
+export function hrOutcomesPendingMatches(roleIds: string[]) {
+  return supabase
+    .from('matches')
+    .select('id, match_feedback(id)')
+    .in('role_id', roleIds)
+    .in('status', ['interview_completed', 'hired'])
+}
+
+// ── Misc single-purpose reads ────────────────────────────────────────────────
+/** Match + ownership info for the interview-feedback page (caller adds .single()). */
+export function matchForFeedback(matchId: string) {
+  return supabase
+    .from('matches')
+    .select('id, status, role_id, talent_id, roles(title, hiring_manager_id)')
+    .eq('id', matchId)
+}
+
+/** Head count of still-active matches for a role (MyRoles badge). */
+export function activeMatchCountForRole(roleId: string) {
+  return supabase
+    .from('matches')
+    .select('id', { count: 'exact', head: true })
+    .eq('role_id', roleId)
+    .in('status', ['generated', 'viewed', 'accepted_by_talent', 'invited_by_manager', 'hr_scheduling', 'interview_scheduled'])
+}
+
+/** Talent ids already matched to a role (cold-start exclusion set). */
+export function matchedTalentIdsForRole(roleId: string) {
+  return supabase.from('matches').select('talent_id').eq('role_id', roleId)
+}
+
+// ── Mutations ────────────────────────────────────────────────────────────────
+/** Patch a match row by id (status transitions etc.) — reused across HR/HM. */
+export function updateMatch(matchId: string, patch: Record<string, unknown>) {
+  return supabase.from('matches').update(patch).eq('id', matchId)
+}

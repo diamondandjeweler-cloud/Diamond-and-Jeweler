@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useSession } from '../state/useSession'
 import { supabase } from '../lib/supabase'
+import { matchForFeedback } from '../data/repositories/matches'
 import LoadingSpinner from '../components/LoadingSpinner'
 
 type Side = 'talent' | 'hm'
@@ -34,10 +35,7 @@ export default function InterviewFeedback() {
 
     void (async () => {
       // Pull match + interview + ownership info.
-      const { data: match, error } = await supabase
-        .from('matches')
-        .select('id, status, role_id, talent_id, roles(title, hiring_manager_id)')
-        .eq('id', matchId).single()
+      const { data: match, error } = await matchForFeedback(matchId).single()
       if (cancelled) return
       if (error || !match) { setErr(error?.message ?? 'Match not found'); setLoading(false); return }
 

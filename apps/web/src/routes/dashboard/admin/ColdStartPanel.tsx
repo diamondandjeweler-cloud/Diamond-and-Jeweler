@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
+import { matchedTalentIdsForRole } from '../../../data/repositories/matches'
 import ListSkeleton from '../../../components/ListSkeleton'
 
 interface ColdStartRole {
@@ -74,7 +75,7 @@ export default function ColdStartPanel() {
   async function loadTalents(roleId: string) {
     setOpenRoleId(roleId)
     setSelected(new Set())
-    const { data: existing } = await supabase.from('matches').select('talent_id').eq('role_id', roleId)
+    const { data: existing } = await matchedTalentIdsForRole(roleId)
     const excluded = new Set((existing ?? []).map((m) => m.talent_id))
     const { data } = await supabase
       .from('talents')

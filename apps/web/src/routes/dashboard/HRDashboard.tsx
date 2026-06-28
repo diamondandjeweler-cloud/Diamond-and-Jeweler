@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation, Trans } from 'react-i18next'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
+import { hrPendingMatches, hrOutcomesPendingMatches, updateMatch } from '../../data/repositories/matches'
 import { useSeo } from '../../lib/useSeo'
 import { readDashCache, writeDashCache } from '../../lib/dashboardCache'
 import Skeleton from '../../components/Skeleton'
@@ -197,9 +198,7 @@ export default function HRDashboard() {
       }
 
       const [{ data: pendingData, error: pendErr }, { data: scheduledData }, { data: completedMatches }] = await Promise.all([
-        supabase.from('matches')
-          .select('id, status, compatibility_score, roles(id, title), talents(id, profile_id)')
-          .in('role_id', roleIds).in('status', ['invited_by_manager', 'hr_scheduling'])
+        hrPendingMatches(roleIds)
           .order('invited_at', { ascending: true }),
         supabase.from('interviews')
           .select('id, scheduled_at, format, status, match_id, meeting_url, meeting_provider, matches!inner(role_id, talent_id, roles(title))')
@@ -208,10 +207,7 @@ export default function HRDashboard() {
         // Outcomes pending: interviews finished but no feedback row yet from
         // either side. Counted at the matches level (not interviews) so a
         // re-scheduled interview doesn't double-count.
-        supabase.from('matches')
-          .select('id, match_feedback(id)')
-          .in('role_id', roleIds)
-          .in('status', ['interview_completed', 'hired']),
+        hrOutcomesPendingMatches(roleIds),
       ])
       if (cancelled) return
       if (pendErr) setErr(pendErr.message)
@@ -269,9 +265,7 @@ export default function HRDashboard() {
   async function completeInterview(interviewId: string, matchId: string, hired: boolean) {
     const { error: iErr } = await supabase.from('interviews').update({ status: 'completed' }).eq('id', interviewId)
     if (iErr) { setErr(iErr.message); return }
-    const { error: mErr } = await supabase.from('matches')
-      .update({ status: hired ? 'hired' : 'interview_completed', updated_at: new Date().toISOString() })
-      .eq('id', matchId)
+    const { error: mErr } = await updateMatch(matchId, { status: hired ? 'hired' : 'interview_completed', updated_at: new Date().toISOString() })
     if (mErr) { setErr(mErr.message); return }
     setScheduled((xs) => (xs ?? []).filter((s) => s.interview_id !== interviewId))
   }
@@ -283,7 +277,7 @@ export default function HRDashboard() {
       format, status: 'scheduled',
     })
     if (iErr) { setErr(iErr.message); return }
-    const { error: mErr } = await supabase.from('matches').update({ status: 'interview_scheduled' }).eq('id', matchId)
+    const { error: mErr } = await updateMatch(matchId, { status: 'interview_scheduled' })
     if (mErr) { setErr(mErr.message); return }
     setPending((rs) => (rs ?? []).filter((r) => r.id !== matchId))
     setSchedulingId(null); setScheduledAt('')

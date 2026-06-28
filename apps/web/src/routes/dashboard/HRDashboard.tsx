@@ -4,6 +4,7 @@ import { useTranslation, Trans } from 'react-i18next'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { hrPendingMatches, hrOutcomesPendingMatches, updateMatch } from '../../data/repositories/matches'
+import { updateInterview, insertInterview } from '../../data/repositories/interviews'
 import { useSeo } from '../../lib/useSeo'
 import { readDashCache, writeDashCache } from '../../lib/dashboardCache'
 import Skeleton from '../../components/Skeleton'
@@ -263,7 +264,7 @@ export default function HRDashboard() {
   }, [userId, userEmail, loadRetry, t])
 
   async function completeInterview(interviewId: string, matchId: string, hired: boolean) {
-    const { error: iErr } = await supabase.from('interviews').update({ status: 'completed' }).eq('id', interviewId)
+    const { error: iErr } = await updateInterview(interviewId, { status: 'completed' })
     if (iErr) { setErr(iErr.message); return }
     const { error: mErr } = await updateMatch(matchId, { status: hired ? 'hired' : 'interview_completed', updated_at: new Date().toISOString() })
     if (mErr) { setErr(mErr.message); return }
@@ -272,7 +273,7 @@ export default function HRDashboard() {
 
   async function scheduleInterview(matchId: string) {
     if (!scheduledAt) { setErr(t('hrDash.errPickDateTime')); return }
-    const { error: iErr } = await supabase.from('interviews').insert({
+    const { error: iErr } = await insertInterview({
       match_id: matchId, scheduled_at: new Date(scheduledAt).toISOString(),
       format, status: 'scheduled',
     })

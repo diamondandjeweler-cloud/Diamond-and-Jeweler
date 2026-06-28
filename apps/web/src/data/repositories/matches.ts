@@ -33,3 +33,25 @@ export function talentMatchById(matchId: string) {
     .select(TALENT_MATCH_SELECT)
     .eq('id', matchId)
 }
+
+// HM-facing candidate projection — was also copy-pasted across two HMDashboard
+// call sites. Note `public_reasoning` (never internal_reasoning/life_chart_score).
+const HM_CANDIDATE_SELECT =
+  'id, compatibility_score, status, is_urgent, public_reasoning, application_summary, talents(id, privacy_mode, derived_tags, expected_salary_min, expected_salary_max), roles!inner(id, title, hiring_manager_id), match_feedback(rating, hired, notes)'
+
+/** Candidates for a hiring manager's roles, filtered by status (caller orders). */
+export function hmCandidatesForManager(hiringManagerId: string, statuses: readonly string[]) {
+  return supabase
+    .from('matches')
+    .select(HM_CANDIDATE_SELECT)
+    .eq('roles.hiring_manager_id', hiringManagerId)
+    .in('status', statuses as string[])
+}
+
+/** A single candidate by match id, HM projection (caller adds .maybeSingle()). */
+export function hmCandidateById(matchId: string) {
+  return supabase
+    .from('matches')
+    .select(HM_CANDIDATE_SELECT)
+    .eq('id', matchId)
+}

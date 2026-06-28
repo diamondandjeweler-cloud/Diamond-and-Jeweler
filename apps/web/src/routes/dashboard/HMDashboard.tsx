@@ -24,6 +24,7 @@ import ScreeningChecklist from '../../components/ScreeningChecklist'
 import CareerNudgePanel from '../../components/CareerNudgePanel'
 import AddHmDobModal from '../../components/AddHmDobModal'
 import type { PublicReasoning, CultureComparison, InterviewRound, InterviewProposal } from '../../types/db'
+import { hmCandidatesForManager, hmCandidateById } from '../../data/repositories/matches'
 
 type TFn = (key: string, opts?: Record<string, unknown>) => string
 const hmOutcomes = (t: TFn) => [
@@ -314,11 +315,7 @@ export default function HMDashboard() {
 
       const [hiredRes, { data: matchData, error }, activeCountsRes, coldRowsRes] = await Promise.all([
         hiredCountPromise,
-        supabase
-          .from('matches')
-          .select('id, compatibility_score, status, is_urgent, public_reasoning, application_summary, talents(id, privacy_mode, derived_tags, expected_salary_min, expected_salary_max), roles!inner(id, title, hiring_manager_id), match_feedback(rating, hired, notes)')
-          .eq('roles.hiring_manager_id', hm.id)
-          .in('status', ACTIVE)
+        hmCandidatesForManager(hm.id, ACTIVE)
           .order('is_urgent', { ascending: false })
           .order('compatibility_score', { ascending: false }),
         activeCountsPromise,
@@ -648,10 +645,7 @@ export default function HMDashboard() {
       if (!mountedRef.current) return
       // Reconcile the canonical row + rounds in the background. Don't block
       // actionBusy clearing on these — realtime usually catches it first.
-      void supabase
-        .from('matches')
-        .select('id, compatibility_score, status, is_urgent, public_reasoning, application_summary, talents(id, privacy_mode, derived_tags, expected_salary_min, expected_salary_max), roles!inner(id, title, hiring_manager_id), match_feedback(rating, hired, notes)')
-        .eq('id', matchId)
+      void hmCandidateById(matchId)
         .maybeSingle()
         .then(({ data: updated }) => {
           if (updated) setCandidates((cs) => (cs ?? []).map((c) => (c.id === matchId ? (updated as unknown as CandidateRow) : c)))

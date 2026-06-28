@@ -49,7 +49,14 @@ _Status as of 2026-06-27. Each item cites the audit finding (file:line) it close
 
 **W1c — SHIPPED (commit ce5cd87):** short-circuit the per-candidate `compare_nn_concerns` pgvector query when neither side has a free_text atom; batch HMDashboard `loadPreviews` into one `get_match_profile_previews(uuid[])` RPC (0162). Both byte-preserving. **→ matcher N+1 collapse (W1) is now complete** (W1a+W1b+W1c); only the `match-expire` serial-regeneration rework remains (deferred — it's pipeline-blocked + needs runtime verification).
 
-**Next (need either owner action, careful money-path work, or CI observability):** ToyyibPay verify branch (payment path — careful); W2 deploy unification + migration-tracking reconcile (repo 0162 / prod schema_migrations ~0121 — delicate bookkeeping); `match-expire` N+1 → queue (pipeline-blocked). Highest-impact remaining action is still the owner's Vault key fix.
+**Persona re-audit deliverables (2026-06-27) — SHIPPED:**
+- **Persona 1 (full-stack architect):** [ARCHITECTURE.md](./ARCHITECTURE.md) — system arch, file structure, 62-table schema, full API surface, UI arch, data flow.
+- **Persona 10 (DevOps):** [DEPLOYMENT.md](./DEPLOYMENT.md) — deploy architecture, CI/CD, monitoring, prod checklist (Docker/K8s N/A — serverless).
+- **Persona 5 (clean-arch refactor) — data-access layer underway:** `src/data/repositories/{matches,roles,interviews}.ts`. `matches` fully migrated across all 8 route files (2 duplicated projections killed; all reads + writes); `roles` + `interviews` write paths centralized. **No route file mutates matches/roles/interviews directly anymore.** Shared `InterviewRound`/`InterviewProposal` types single-sourced. FOUC fix (CSP-hashed pre-paint theme) also shipped.
+
+**Persona 5 remainder:** more repositories (profiles/points — thin, low dedup); **god-file decomposition** (HMDashboard/TalentOnboarding/TalentDashboard → hooks+sub-views — needs a logged-in preview to verify rendering); **`matchForRole` scorer split** (money-adjacent → byte-preserving against the test oracle). Personas 2/3/4/7/8/9 done; 6 skipped.
+
+**Other open (need owner action, careful money-path work, or CI observability):** ToyyibPay verify branch (payment path); W2 deploy unification + migration-tracking reconcile (repo 0162 / prod schema_migrations 0121); `match-expire` N+1 → queue (pipeline-blocked). **Highest-impact remaining action is still the owner's Vault `service_role_key` fix** ([OWNER_ACTIONS.md](./OWNER_ACTIONS.md)).
 
 ---
 

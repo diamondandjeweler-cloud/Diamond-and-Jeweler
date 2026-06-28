@@ -15,6 +15,7 @@ import MatchExplain from '../../components/MatchExplain'
 import CareerNudgePanel from '../../components/CareerNudgePanel'
 import GrowthNudgePreferences from '../../components/GrowthNudgePreferences'
 import type { PublicReasoning, InterviewRound, InterviewProposal } from '../../types/db'
+import { talentMatchesForTalent, talentMatchById } from '../../data/repositories/matches'
 import { usePushSubscription } from '../../lib/usePushSubscription'
 
 /** Cached snapshot — counts only. The full match details (scores, IDs) are
@@ -229,11 +230,7 @@ export default function TalentDashboard() {
           : Promise.resolve({ data: null })
 
         const [{ data, error }, urgentRoleRes] = await Promise.all([
-          supabase
-            .from('matches')
-            .select('id, compatibility_score, status, expires_at, public_reasoning, application_summary, roles(id, title, description, salary_min, salary_max, location, work_arrangement, employment_type, hourly_rate, duration_days)')
-            .eq('talent_id', talent.id)
-            .in('status', ACTIVE)
+          talentMatchesForTalent(talent.id, ACTIVE)
             .order('created_at', { ascending: false }),
           urgentRolePromise,
         ])
@@ -484,10 +481,7 @@ export default function TalentDashboard() {
       await callFunction('interview-action', { action, match_id: matchId })
       // Reconcile in the background — realtime will pick this up too, the
       // refetch just guarantees we land on the canonical row.
-      void supabase
-        .from('matches')
-        .select('id, compatibility_score, status, expires_at, public_reasoning, application_summary, roles(id, title, description, salary_min, salary_max, location, work_arrangement, employment_type, hourly_rate, duration_days)')
-        .eq('id', matchId)
+      void talentMatchById(matchId)
         .maybeSingle()
         .then(({ data: updated }) => {
           if (!mountedRef.current) return

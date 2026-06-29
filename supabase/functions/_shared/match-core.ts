@@ -11,6 +11,7 @@
  */
 import { adminClient } from './supabase.ts'
 import { buildPublicReasoning } from './match-reasoning.ts'
+import { composeFinalScore } from './match-scoring.ts'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -1049,41 +1050,22 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
       { name: 'probation_comfort',     score: probationComfort ?? 0,   weight: probationComfort != null ? weightProbationComf : 0 },
       { name: 'concerns_alignment',    score: concernsAlignment ?? 0,  weight: concernsAlignment!= null ? weightConcernsAlign : 0 },
     ]
-    const totalW = dims.reduce((acc, d) => acc + d.weight, 0)
-    const rawScore = totalW > 0 ? dims.reduce((acc, d) => acc + d.score * d.weight, 0) / totalW : tagComp
-
+    // PHS inputs read from the talent row (reused in `reasoning` below).
     const ghostScore = (t as unknown as { profiles: { ghost_score: number | null } }).profiles?.ghost_score ?? 0
-    const ghostOver = Math.max(0, ghostScore - (ghostThreshold - 1))
-    const ghostPenalty = ghostOver * 10
-    const activeWindowBoost = (hmInActiveWindow && talentInActiveWindow) ? 5 : 0
-
-    // PHS — Probability of Hire Success
     const phsShowStored   = (t as unknown as { phs_show_rate: number | null }).phs_show_rate
     const phsAcceptStored = (t as unknown as { phs_accept_rate: number | null }).phs_accept_rate
     const phsProbStored   = (t as unknown as { phs_pass_probation_rate: number | null }).phs_pass_probation_rate
     const phsStay6mStored = (t as unknown as { phs_stay_6m_rate: number | null }).phs_stay_6m_rate
 
-    const pShow = phsShowStored ?? Math.max(0.10, 1.0 - ghostScore * 0.15)
-    const salFitN = (salaryFit ?? 50) / 100
-    const culFitN = cultureOffers != null ? cultureFit / 100 : 0.5
-    const empFitN = (employmentFit ?? 60) / 100
-    const pAccept = phsAcceptStored ?? (salFitN * 0.6 + culFitN * 0.3 + empFitN * 0.1)
-    const ownTag = tags['ownership'] ?? 0.5
-    const coaTag = tags['coachability'] ?? 0.5
-    const resTag = tags['resilience'] ?? 0.5
-    const pProbation = phsProbStored ?? (ownTag * 0.4 + coaTag * 0.35 + resTag * 0.25)
-    const pStay6m = phsStay6mStored ?? (pProbation * 0.6 + (backgroundScore / 100) * 0.4)
-    const phsMultiplier = 0.60 + 0.40 * (pAccept * pShow * pProbation * pStay6m)
-
-    const finalScore = Math.min(100, Math.max(0,
-      rawScore * phsMultiplier * hmQualityFactor - ghostPenalty + activeWindowBoost
-    ))
-
-    const activeDims = dims.filter((d) => d.weight > 0).map((d) => d.name)
-    const effectiveWeights: Record<string, number> = {}
-    if (totalW > 0) {
-      for (const d of dims) effectiveWeights[d.name] = d.weight / totalW
-    }
+    // Final-score composition (weighted-average → PHS multiplier → ghost penalty → clamp).
+    // Extracted byte-for-byte to _shared/match-scoring.ts so the money-adjacent scoring
+    // math is pure + unit-tested (apps/web/src/lib/matchScoring.test.ts). Behaviour-identical.
+    const { rawScore, ghostPenalty, pShow, pAccept, pProbation, pStay6m, phsMultiplier, finalScore, activeDims, effectiveWeights } =
+      composeFinalScore(dims, {
+        ghostScore, ghostThreshold, hmInActiveWindow, talentInActiveWindow, hmQualityFactor,
+        phsShowStored, phsAcceptStored, phsProbStored, phsStay6mStored,
+        salaryFit, cultureFit, cultureOffers, employmentFit, backgroundScore, tags, tagComp,
+      })
 
     const mustHaveItems: string[] = Array.isArray((hm as unknown as { must_haves: { items?: string[] } | null } | null)?.must_haves?.items)
       ? ((hm as unknown as { must_haves: { items: string[] } }).must_haves.items) : []

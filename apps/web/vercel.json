@@ -3,6 +3,7 @@
   "installCommand": "npm ci",
   "outputDirectory": "dist",
   "framework": "vite",
+  "regions": ["sin1"],
   "routes": [
     {
       "src": "/(.*)",

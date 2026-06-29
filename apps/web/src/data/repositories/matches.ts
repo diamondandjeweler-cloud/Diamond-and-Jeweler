@@ -98,6 +98,38 @@ export function matchedTalentIdsForRole(roleId: string) {
   return supabase.from('matches').select('talent_id').eq('role_id', roleId)
 }
 
+/** Head count of hired matches across a set of roles (HM all-time hired tally). */
+export function hiredMatchCountForRoles(roleIds: string[]) {
+  return supabase
+    .from('matches')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'hired')
+    .in('role_id', roleIds)
+}
+
+/** role_id of every active match across a set of roles (HM per-role active counts). */
+export function activeMatchRoleIds(roleIds: string[], statuses: readonly string[]) {
+  return supabase
+    .from('matches')
+    .select('role_id')
+    .in('role_id', roleIds)
+    .in('status', statuses as string[])
+}
+
+// Admin scoring-input embed — life_chart_score/internal_reasoning are NOT here
+// (revoked from `authenticated` in 0158); the panel merges those via the
+// is_admin()-gated RPC. Caller adds .order / .limit / .abortSignal.
+export function pendingApprovalMatches() {
+  return supabase
+    .from('matches')
+    .select(`
+          id, compatibility_score, tag_compatibility, created_at,
+          roles(title, industry, description, hiring_managers(life_chart_character, date_of_birth_encrypted)),
+          talents(id, life_chart_character, date_of_birth_encrypted, derived_tags)
+        `)
+    .eq('status', 'pending_approval')
+}
+
 // ── Mutations ────────────────────────────────────────────────────────────────
 /** Patch a match row by id (status transitions etc.) — reused across HR/HM. */
 export function updateMatch(matchId: string, patch: Record<string, unknown>) {

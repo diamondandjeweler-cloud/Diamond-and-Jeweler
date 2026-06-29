@@ -24,7 +24,7 @@ import ScreeningChecklist from '../../components/ScreeningChecklist'
 import CareerNudgePanel from '../../components/CareerNudgePanel'
 import AddHmDobModal from '../../components/AddHmDobModal'
 import type { PublicReasoning, CultureComparison, InterviewRound, InterviewProposal } from '../../types/db'
-import { hmCandidatesForManager, hmCandidateById, updateMatch } from '../../data/repositories/matches'
+import { hmCandidatesForManager, hmCandidateById, updateMatch, hiredMatchCountForRoles, activeMatchRoleIds } from '../../data/repositories/matches'
 
 type TFn = (key: string, opts?: Record<string, unknown>) => string
 const hmOutcomes = (t: TFn) => [
@@ -295,17 +295,11 @@ export default function HMDashboard() {
       const activeRoleIds = (roleRows ?? []).filter((r) => r.status === 'active').map((r) => r.id)
 
       const hiredCountPromise = hmRoleIds.length > 0
-        ? supabase.from('matches')
-            .select('id', { count: 'exact', head: true })
-            .eq('status', 'hired')
-            .in('role_id', hmRoleIds)
+        ? hiredMatchCountForRoles(hmRoleIds)
         : Promise.resolve({ count: 0 })
 
       const activeCountsPromise = activeRoleIds.length > 0
-        ? supabase.from('matches')
-            .select('role_id')
-            .in('role_id', activeRoleIds)
-            .in('status', activeRows)
+        ? activeMatchRoleIds(activeRoleIds, activeRows)
         : Promise.resolve({ data: [] as Array<{ role_id: string }> })
 
       const coldRowsPromise = hmRoleIds.length > 0

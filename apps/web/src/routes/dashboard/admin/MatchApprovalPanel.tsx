@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
-import { updateMatch, updateMatches } from '../../../data/repositories/matches'
+import { updateMatch, updateMatches, pendingApprovalMatches } from '../../../data/repositories/matches'
 import ListSkeleton from '../../../components/ListSkeleton'
 
 interface PendingMatch {
@@ -72,14 +72,7 @@ export default function MatchApprovalPanel() {
       // refresh can't race with the abort signal and look like a sign-out
       // (F7 mitigation). getSession() is cached + idempotent.
       await supabase.auth.getSession()
-      const { data, error } = await supabase
-        .from('matches')
-        .select(`
-          id, compatibility_score, tag_compatibility, created_at,
-          roles(title, industry, description, hiring_managers(life_chart_character, date_of_birth_encrypted)),
-          talents(id, life_chart_character, date_of_birth_encrypted, derived_tags)
-        `)
-        .eq('status', 'pending_approval')
+      const { data, error } = await pendingApprovalMatches()
         .order('created_at', { ascending: false })
         .limit(100)
         .abortSignal(AbortSignal.timeout(20_000))

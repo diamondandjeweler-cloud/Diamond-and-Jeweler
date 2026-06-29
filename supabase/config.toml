@@ -78,3 +78,15 @@ verify_jwt = false
 
 [functions.retry-stuck-extractions]
 verify_jwt = false
+
+# External, signature-verified webhooks (server-to-server; no Supabase user JWT).
+# These MUST be pinned verify_jwt=false: the caller (Billplz / Resend) carries no
+# Supabase JWT, so the gateway's default verify_jwt=true would 401 the callback
+# BEFORE the handler's own HMAC signature check runs — silently failing paid
+# fulfilment / bounce handling. Each verifies its own provider signature
+# (Billplz X-Signature / Svix) and fails closed when the secret is unset.
+[functions.payment-webhook]
+verify_jwt = false
+
+[functions.resend-webhook]
+verify_jwt = false

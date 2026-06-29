@@ -185,6 +185,25 @@ jobs:
         if: always()
         run: supabase stop --no-backup
 
+  edge-tests:
+    name: Edge functions — Deno money-path tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Run payment-webhook signature/replay invariants
+        # Activates the 16 money-path tests in payment-webhook.test.ts that were
+        # WRITTEN but never executed — `deno` appeared nowhere in this workflow, so
+        # the Billplz signature/replay/malformed invariants gave false confidence.
+        # Pure crypto (HMAC + timingSafeEqual), no network/DB at runtime.
+        # STILL OWED (tracked): a seeded-Postgres integration test proving the
+        # `payment_status='pending'` affected-row guard + award_points idempotency
+        # key credit exactly once — see the test-file header + docs/OWNER_ACTIONS.md.
+        run: deno test --allow-all supabase/functions/payment-webhook/payment-webhook.test.ts
+
   secrecy:
     name: Secrecy — no BaZi terms in user-visible text
     runs-on: ubuntu-latest

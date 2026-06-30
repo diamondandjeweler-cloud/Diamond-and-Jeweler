@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { fmt } from '../../lib/format'
 import { useSession } from '../../state/useSession'
-import { supabase } from '../../lib/supabase'
-import { updateRole, insertRole } from '../../data/repositories/roles'
+import { updateRole, insertRole, roleById, roleStatusById } from '../../data/repositories/roles'
 import { hmIdByProfileId } from '../../data/repositories/hiring-managers'
 import { marketRateForRole } from '../../data/repositories/market-rate-cache'
 import {
@@ -199,8 +198,7 @@ export default function PostRole() {
 
       // Edit mode: load the existing role and pre-fill every form field.
       if (editRoleId && hm?.id) {
-        const { data: role, error: roleErr } = await supabase
-          .from('roles').select('*').eq('id', editRoleId).maybeSingle()
+        const { data: role, error: roleErr } = await roleById(editRoleId).maybeSingle()
         if (cancelled) return
         if (roleErr) setErr(roleErr.message)
         else if (!role) setErr('Role not found.')
@@ -439,8 +437,7 @@ export default function PostRole() {
       // just after the abort). If so, proceed as success.
       if (e instanceof Error && e.name === 'AbortError') {
         const checkId = isEdit ? editRoleId! : roleId
-        const { data: committed } = await supabase
-          .from('roles').select('id, status').eq('id', checkId).maybeSingle()
+        const { data: committed } = await roleStatusById(checkId).maybeSingle()
         // Fresh insert: row exists = committed. Edit: row always exists, so the
         // commit landed only if the status flipped to active.
         const didCommit = isEdit ? committed?.status === 'active' : !!committed

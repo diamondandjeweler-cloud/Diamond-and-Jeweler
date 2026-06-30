@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation, Trans } from 'react-i18next'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
-import { updateRole } from '../../data/repositories/roles'
+import { updateRole, roleEditById } from '../../data/repositories/roles'
 import { hmIdByIdAndProfileId } from '../../data/repositories/hiring-managers'
 import { latestOpenNudge } from '../../data/repositories/stale-loop-nudges'
 import { callFunction } from '../../lib/functions'
@@ -68,10 +68,7 @@ export default function EditRole() {
     if (!id || !session) return
     let cancelled = false
     void (async () => {
-      const { data, error } = await supabase
-        .from('roles')
-        .select('id, hiring_manager_id, title, description, department, location, work_arrangement, experience_level, salary_min, salary_max, required_traits, status, from_onboarding')
-        .eq('id', id).single()
+      const { data, error } = await roleEditById(id).single()
       if (cancelled) return
       if (error) { setErr(error.message); setLoading(false); return }
       // Ownership check

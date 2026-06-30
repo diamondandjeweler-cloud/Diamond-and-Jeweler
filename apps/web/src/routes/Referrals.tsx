@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 import { referralsForReferrer, insertReferral } from '../data/repositories/referrals'
 import { configValueByKey } from '../data/repositories/system-config'
 import { hmIdByProfileId } from '../data/repositories/hiring-managers'
+import { rolesForRedeemPicker } from '../data/repositories/roles'
 import { Alert, Badge, Button, Card, CardBody, EmptyState, Input, PageHeader, Select, Spinner, Stat } from '../components/ui'
 import { noticeDialog } from '../components/Modal'
 
@@ -71,9 +72,7 @@ export default function Referrals() {
         if (profile?.role === 'hiring_manager') {
           const { data: hm } = await hmIdByProfileId(userId).maybeSingle()
           if (hm?.id) {
-            const { data: roleRows } = await supabase.from('roles')
-              .select('id, title, status, extra_matches_used')
-              .eq('hiring_manager_id', hm.id)
+            const { data: roleRows } = await rolesForRedeemPicker(hm.id)
               .order('created_at', { ascending: false })
             if (!cancelled && roleRows) {
               setRoles(roleRows as RoleOption[])

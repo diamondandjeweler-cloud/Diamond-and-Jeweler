@@ -27,7 +27,7 @@ export default function HMCompanyProfile() {
     let cancelled = false
     async function load() {
       try {
-        const { data, error } = await hmCompanyProfileByProfileId(userId)
+        const { data, error } = await hmCompanyProfileByProfileId(userId!)
           .maybeSingle()
         if (cancelled) return
         setLoading(false)

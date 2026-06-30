@@ -6,6 +6,7 @@ import { hrPendingMatches, hrOutcomesPendingMatches, updateMatch } from '../../.
 import { updateInterview, insertInterview } from '../../../data/repositories/interviews'
 import { companyIdByPrimaryHrEmail, companyIdById } from '../../../data/repositories/companies'
 import { hmRosterForCompany, insertHiringManager } from '../../../data/repositories/hiring-managers'
+import { rolesForManagers } from '../../../data/repositories/roles'
 import { readDashCache, writeDashCache } from '../../../lib/dashboardCache'
 import type {
   HRCacheSnapshot, PendingRow, ScheduledRow, HMRow, OpenRoleRow,
@@ -113,10 +114,7 @@ export function useHrDashboardData() {
       // §2 — One query for roles (id, title, hm_id) covers BOTH per-HM role
       // counts AND the open-roles list. Previously we ran two near-identical
       // queries sequentially.
-      const { data: rolesData } = await supabase
-        .from('roles')
-        .select('id, title, hiring_manager_id')
-        .in('hiring_manager_id', hmIds)
+      const { data: rolesData } = await rolesForManagers(hmIds)
         .order('created_at', { ascending: false })
 
       const roleCountMap = new Map<string, number>()

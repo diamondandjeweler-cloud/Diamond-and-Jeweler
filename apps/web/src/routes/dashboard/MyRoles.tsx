@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { activeMatchCountForRole } from '../../data/repositories/matches'
-import { updateRole } from '../../data/repositories/roles'
+import { updateRole, rolesForMyRoles } from '../../data/repositories/roles'
 import { hmIdByProfileId } from '../../data/repositories/hiring-managers'
 import { callFunction } from '../../lib/functions'
 import { Button, Card, Badge, Alert, EmptyState, PageHeader, BadgeTone } from '../../components/ui'
@@ -67,10 +67,7 @@ export default function MyRoles() {
         setLoading(false); return
       }
 
-      const { data: roles, error } = await supabase
-        .from('roles')
-        .select('id, title, department, location, work_arrangement, experience_level, salary_min, salary_max, required_traits, required_skills, headcount, min_education_level, start_urgency, open_to, languages_required, status, created_at, vacancy_expires_at, moderation_status, moderation_reason, moderation_appealed_at, moderation_reviewed_at')
-        .eq('hiring_manager_id', hm.id)
+      const { data: roles, error } = await rolesForMyRoles(hm.id)
         .order('created_at', { ascending: false })
       if (error) {
         setErr(error.message)

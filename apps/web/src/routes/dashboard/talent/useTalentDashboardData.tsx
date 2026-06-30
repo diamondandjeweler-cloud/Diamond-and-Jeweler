@@ -9,6 +9,7 @@ import { confirmDialog } from '../../../components/Modal'
 import type { InterviewRound, InterviewProposal } from '../../../types/db'
 import { talentMatchesForTalent, talentMatchById, updateMatch } from '../../../data/repositories/matches'
 import { profilePointsById } from '../../../data/repositories/profiles'
+import { roleTalentUrgentById } from '../../../data/repositories/roles'
 import {
   talentDashboardRowByProfileId,
   talentExtractionStatusByProfileId,
@@ -185,9 +186,7 @@ export function useTalentDashboardData() {
         // page reload (BUG 5 fix). Only for find_job requests, last 24h, with
         // a result_id that still points at an active role.
         const urgentRolePromise = lastUrgent?.result_id
-          ? supabase.from('roles')
-              .select('id, title, description, salary_min, salary_max, location, work_arrangement, status')
-              .eq('id', lastUrgent.result_id)
+          ? roleTalentUrgentById(lastUrgent.result_id)
               .maybeSingle()
           : Promise.resolve({ data: null })
 

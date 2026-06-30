@@ -12,7 +12,7 @@
  * PDPA: name/phone collected locally via form, stored directly to Supabase.
  * They are never forwarded to the chat-onboard Edge Function or any external AI.
  */
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
@@ -24,16 +24,15 @@ import { getLifeChartCharacter, type Gender } from '../../lib/lifeChartCharacter
 import ChatShell, { ChatMessage } from '../../components/ChatShell'
 import { Button, Alert } from '../../components/ui'
 import DobConfirmModal from '../../components/DobConfirmModal'
-import Consent from '../../components/Consent'
 import {
-  SkillChipInput, LanguageRequirement, EnvironmentFlags, OpenToSelect,
-  AvailableShifts, NonNegotiablesInput,
   type LanguageReq, type NNAtom,
 } from '../../components/role-form'
-
-type Phase = 'basics' | 'chat' | 'dob' | 'dealbreakers' | 'extras' | 'docs' | 'review' | 'submit' | 'done' | 'resume'
-
-interface ApiMessage { role: 'user' | 'assistant'; content: string }
+import { type Phase, type ApiMessage, computeUsesLunarCalendar } from './talent/helpers'
+import { ProgressStep, FileRow } from './talent/StepBits'
+import DobStep from './talent/DobStep'
+import DealBreakersStep from './talent/DealBreakersStep'
+import ExtrasStep from './talent/ExtrasStep'
+import ReviewStep from './talent/ReviewStep'
 
 export default function TalentOnboarding() {
   const { t } = useTranslation()
@@ -272,12 +271,6 @@ export default function TalentOnboarding() {
       setSwitchErr(e instanceof Error ? e.message : t('talentOnboard.switchFailed'))
       setSwitching(false)
     }
-  }
-
-  function computeUsesLunarCalendar(r: string, rel: string, langs: string[]): boolean {
-    if (r !== 'chinese') return false
-    if (!['buddhism', 'taoism', 'chinese_folk'].includes(rel)) return false
-    return langs.some((l) => ['mandarin', 'cantonese', 'hokkien', 'hakka', 'teochew'].includes(l))
   }
 
   async function sendMessage(text: string) {
@@ -770,263 +763,26 @@ export default function TalentOnboarding() {
     }
 
     if (phase === 'dob') {
-      const dobValid = !!dob
-      const genderValid = !!gender
-      const raceValid = !!race
-      const religionValid = !!religion
-      const languagesValid = languages.length > 0
-      const locationMattersValid = locationMatters !== null
-      const postcodeValid = locationMatters !== true || locationPostcode.length === 5
-      const dobConsentValid = dobConsent
-
-      const showErr = (valid: boolean) => dobAttempted && !valid
-
-      const missingFields: string[] = []
-      if (!dobValid) missingFields.push(t('talentOnboard.fieldDob'))
-      if (!genderValid) missingFields.push(t('talentOnboard.fieldGender'))
-      if (!raceValid) missingFields.push(t('talentOnboard.fieldRace'))
-      if (!religionValid) missingFields.push(t('talentOnboard.fieldReligion'))
-      if (!languagesValid) missingFields.push(t('talentOnboard.fieldLanguage'))
-      if (!locationMattersValid) missingFields.push(t('talentOnboard.fieldCommute'))
-      if (locationMatters === true && !postcodeValid) missingFields.push(t('talentOnboard.fieldPostcode'))
-      if (!dobConsentValid) missingFields.push(t('talentOnboard.fieldDobConsent'))
-
-      const allValid = missingFields.length === 0
-
-      const inputErrCls = (valid: boolean) =>
-        showErr(valid) ? 'border-red-400 bg-red-50' : 'border-ink-200'
-      const ringWrap = (valid: boolean) =>
-        showErr(valid) ? 'rounded-lg ring-2 ring-red-300 p-1.5' : ''
-
       return (
-        <div className="space-y-3">
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900">
-            <strong>{t('talentOnboard.dobRequiredLead')}</strong> {t('talentOnboard.dobRequiredBody')}{' '}
-            <strong>{t('talentOnboard.dobNeverShown')}</strong> {t('talentOnboard.dobRequiredTail')}
-          </div>
-          <p className="text-xs text-ink-500">
-            {t('talentOnboard.ageRequirementLead')} <strong>{t('talentOnboard.ageRequirementBold')}</strong> {t('talentOnboard.ageRequirementTail')}
-          </p>
-          <input
-            type="date"
-            value={dob}
-            onChange={(e) => setDob(e.target.value)}
-            max={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 18); return d.toISOString().slice(0, 10) })()}
-            data-dob-invalid={showErr(dobValid) ? 'true' : undefined}
-            className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 ${inputErrCls(dobValid)}`}
-          />
-          <div className="space-y-1" data-dob-invalid={showErr(genderValid) ? 'true' : undefined}>
-            <p className={`text-sm ${showErr(genderValid) ? 'text-red-600 font-medium' : 'text-ink-600'}`}>
-              {t('talentOnboard.genderLabel')}{showErr(genderValid) && <span className="ml-1 text-xs">{t('talentOnboard.requiredParen')}</span>}
-            </p>
-            <div className={`grid grid-cols-2 gap-2 ${ringWrap(genderValid)}`}>
-              <button
-                type="button"
-                onClick={() => setGender('male')}
-                className={`border rounded-lg px-3 py-2 text-sm ${gender === 'male' ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 text-ink-700 hover:bg-ink-50'}`}
-              >
-                {t('talentOnboard.male')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setGender('female')}
-                className={`border rounded-lg px-3 py-2 text-sm ${gender === 'female' ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 text-ink-700 hover:bg-ink-50'}`}
-              >
-                {t('talentOnboard.female')}
-              </button>
-            </div>
-          </div>
-          <div className="space-y-1" data-dob-invalid={showErr(raceValid) ? 'true' : undefined}>
-            <p className={`text-sm ${showErr(raceValid) ? 'text-red-600 font-medium' : 'text-ink-600'}`}>
-              {t('talentOnboard.raceLabel')}{showErr(raceValid) && <span className="ml-1 text-xs">{t('talentOnboard.requiredParen')}</span>}
-            </p>
-            <div className={`grid grid-cols-2 gap-2 ${ringWrap(raceValid)}`}>
-              {([
-                { value: 'malay', label: t('talentOnboard.raceMalay') },
-                { value: 'chinese', label: t('talentOnboard.raceChinese') },
-                { value: 'indian', label: t('talentOnboard.raceIndian') },
-                { value: 'others', label: t('talentOnboard.raceOthers') },
-              ] as const).map((r) => (
-                <button
-                  key={r.value}
-                  type="button"
-                  onClick={() => setRace(r.value)}
-                  className={`border rounded-lg px-3 py-2 text-sm ${race === r.value ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 text-ink-700 hover:bg-ink-50'}`}
-                >
-                  {r.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="space-y-1" data-dob-invalid={showErr(religionValid) ? 'true' : undefined}>
-            <p className={`text-sm ${showErr(religionValid) ? 'text-red-600 font-medium' : 'text-ink-600'}`}>
-              {t('talentOnboard.religionLabel')}{showErr(religionValid) && <span className="ml-1 text-xs">{t('talentOnboard.requiredParen')}</span>}
-            </p>
-            <select
-              value={religion}
-              onChange={(e) => setReligion(e.target.value)}
-              className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white ${inputErrCls(religionValid)}`}
-            >
-              <option value="">{t('talentOnboard.selectPlaceholder')}</option>
-              <option value="islam">{t('talentOnboard.religionIslam')}</option>
-              <option value="christianity">{t('talentOnboard.religionChristianity')}</option>
-              <option value="buddhism">{t('talentOnboard.religionBuddhism')}</option>
-              <option value="hinduism">{t('talentOnboard.religionHinduism')}</option>
-              <option value="taoism">{t('talentOnboard.religionTaoism')}</option>
-              <option value="chinese_folk">{t('talentOnboard.religionChineseFolk')}</option>
-              <option value="no_religion">{t('talentOnboard.religionNone')}</option>
-              <option value="others">{t('talentOnboard.religionOthers')}</option>
-            </select>
-          </div>
-          <div className="space-y-1" data-dob-invalid={showErr(languagesValid) ? 'true' : undefined}>
-            <p className={`text-sm ${showErr(languagesValid) ? 'text-red-600 font-medium' : 'text-ink-600'}`}>
-              {t('talentOnboard.languagesLabel')}
-              {showErr(languagesValid) && <span className="ml-1 text-xs">{t('talentOnboard.pickAtLeastOne')}</span>}
-            </p>
-            <div className={`flex flex-wrap gap-2 ${ringWrap(languagesValid)}`}>
-              {[
-                { value: 'english', label: t('talentOnboard.langEnglish') },
-                { value: 'bahasa_malaysia', label: t('talentOnboard.langBahasaMalaysia') },
-                { value: 'mandarin', label: t('talentOnboard.langMandarin') },
-                { value: 'cantonese', label: t('talentOnboard.langCantonese') },
-                { value: 'hokkien', label: t('talentOnboard.langHokkien') },
-                { value: 'hakka', label: t('talentOnboard.langHakka') },
-                { value: 'teochew', label: t('talentOnboard.langTeochew') },
-                { value: 'tamil', label: t('talentOnboard.langTamil') },
-                { value: 'others', label: t('talentOnboard.langOthers') },
-              ].map(({ value, label }) => {
-                const active = languages.includes(value)
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setLanguages((prev) => active ? prev.filter((l) => l !== value) : [...prev, value])}
-                    className={`border rounded-full px-3 py-1.5 text-xs ${active ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 text-ink-700 hover:bg-ink-50'}`}
-                  >
-                    {label}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-          <div
-            className="space-y-1"
-            data-dob-invalid={showErr(locationMattersValid) || (locationMatters === true && showErr(postcodeValid)) ? 'true' : undefined}
-          >
-            <p className={`text-sm ${showErr(locationMattersValid) ? 'text-red-600 font-medium' : 'text-ink-600'}`}>
-              {t('talentOnboard.commuteQuestion')}
-              {showErr(locationMattersValid) && <span className="ml-1 text-xs">{t('talentOnboard.requiredParen')}</span>}
-            </p>
-            <div className={`grid grid-cols-2 gap-2 ${ringWrap(locationMattersValid)}`}>
-              <button
-                type="button"
-                onClick={() => setLocationMatters(true)}
-                className={`border rounded-lg px-3 py-2 text-sm ${locationMatters === true ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 text-ink-700 hover:bg-ink-50'}`}
-              >
-                {t('talentOnboard.commuteYes')}
-              </button>
-              <button
-                type="button"
-                onClick={() => { setLocationMatters(false); setLocationPostcode('') }}
-                className={`border rounded-lg px-3 py-2 text-sm ${locationMatters === false ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 text-ink-700 hover:bg-ink-50'}`}
-              >
-                {t('talentOnboard.commuteNo')}
-              </button>
-            </div>
-            {locationMatters === true && (
-              <input
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]{5}"
-                maxLength={5}
-                value={locationPostcode}
-                onChange={(e) => setLocationPostcode(e.target.value.replace(/[^0-9]/g, ''))}
-                placeholder={t('talentOnboard.postcodePlaceholder')}
-                className={`w-full border rounded-lg px-3 py-2 text-sm mt-2 focus:outline-none focus:ring-2 focus:ring-brand-500 ${inputErrCls(postcodeValid)}`}
-              />
-            )}
-            {locationMatters === true && showErr(postcodeValid) && (
-              <p className="text-xs text-red-600 mt-1">{t('talentOnboard.postcodeError')}</p>
-            )}
-          </div>
-          <label htmlFor="talent-onboard-open-new-field" className="flex items-start gap-2 text-sm cursor-pointer">
-            <input
-              id="talent-onboard-open-new-field"
-              type="checkbox"
-              checked={openToNewField}
-              onChange={(e) => setOpenToNewField(e.target.checked)}
-              className="mt-0.5"
-            />
-            <span>
-              <span className="font-medium text-ink-900">{t('talentOnboard.openNewFieldLabel')}</span>
-              <span className="block text-xs text-ink-500 mt-0.5">
-                {t('talentOnboard.openNewFieldHint')}
-              </span>
-            </span>
-          </label>
-          <div
-            className={ringWrap(dobConsentValid)}
-            data-dob-invalid={showErr(dobConsentValid) ? 'true' : undefined}
-          >
-            <Consent
-              checked={dobConsent}
-              onChange={setDobConsent}
-              label={t('talentOnboard.dobConsentLabel')}
-              required
-            />
-            {showErr(dobConsentValid) && (
-              <p className="text-xs text-red-600 mt-1">{t('talentOnboard.tickToContinue')}</p>
-            )}
-          </div>
-          {dobAttempted && !allValid && (
-            <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2.5 text-xs text-red-900">
-              <p className="font-semibold mb-1">{t('talentOnboard.fillToContinue')}</p>
-              <ul className="list-disc list-inside space-y-0.5">
-                {missingFields.map((m) => <li key={m}>{m}</li>)}
-              </ul>
-            </div>
-          )}
-          <Button
-            onClick={() => {
-              if (!allValid) {
-                setDobAttempted(true)
-                setTimeout(() => {
-                  const el = document.querySelector('[data-dob-invalid="true"]') as HTMLElement | null
-                  el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                }, 0)
-                return
-              }
-              // Server-side belt: also enforce 18+ here in case max attribute is bypassed.
-              if (dob) {
-                const dobMs = new Date(dob).getTime()
-                const minAgeDate = new Date(); minAgeDate.setFullYear(minAgeDate.getFullYear() - 18)
-                if (dobMs > minAgeDate.getTime()) {
-                  setErr(t('talentOnboard.age18Error'))
-                  return
-                }
-              }
-              setErr(null)
-              setDobConfirmOpen(true)
-            }}
-            className="w-full"
-            size="lg"
-          >
-            {t('common.continue')}
-          </Button>
-          {err && <Alert tone="red">{err}</Alert>}
-        </div>
+        <DobStep
+          t={t}
+          dob={dob} setDob={setDob}
+          gender={gender} setGender={setGender}
+          race={race} setRace={setRace}
+          religion={religion} setReligion={setReligion}
+          languages={languages} setLanguages={setLanguages}
+          locationMatters={locationMatters} setLocationMatters={setLocationMatters}
+          locationPostcode={locationPostcode} setLocationPostcode={setLocationPostcode}
+          openToNewField={openToNewField} setOpenToNewField={setOpenToNewField}
+          dobConsent={dobConsent} setDobConsent={setDobConsent}
+          dobAttempted={dobAttempted} setDobAttempted={setDobAttempted}
+          err={err} setErr={setErr}
+          onValidContinue={() => setDobConfirmOpen(true)}
+        />
       )
     }
 
     if (phase === 'dealbreakers') {
-      const addItem = () => {
-        const t = dealBreakerInput.trim()
-        if (!t || dealBreakerItems.includes(t)) return
-        setDealBreakerItems((prev) => [...prev, t])
-        setDealBreakerInput('')
-      }
-      const hasAnyDealBreaker = noWeekendWork || noDrivingLicense || minSalaryHard != null || dealBreakerItems.length > 0 || noTravel || noNightShifts || noOwnCar || remoteOnly || noRelocation || noOvertime || noCommissionOnly
-
       const handleContinue = async () => {
         // Best-effort: classify free-text items into structured flags via AI
         if (dealBreakerItems.length > 0) {
@@ -1049,211 +805,40 @@ export default function TalentOnboarding() {
         setPhase('extras')
       }
       return (
-        <div className="space-y-4">
-          <p className="text-sm text-ink-600 leading-relaxed">
-            {t('talentOnboard.dealBreakersIntroLead')} <strong>{t('talentOnboard.dealBreakersIntroBold')}</strong> {t('talentOnboard.dealBreakersIntroTail')}
-          </p>
-
-          {/* Quick structured toggles — machine-verified hard filters */}
-          <div className="space-y-2">
-            <p className="text-xs font-semibold text-ink-500 uppercase tracking-wide">{t('talentOnboard.quickFiltersHeader')}</p>
-            <label className="flex items-center gap-3 border border-ink-200 rounded-lg px-3 py-2.5 cursor-pointer hover:bg-ink-50 transition-colors">
-              <input
-                type="checkbox"
-                checked={noWeekendWork}
-                onChange={(e) => setNoWeekendWork(e.target.checked)}
-                className="h-4 w-4 rounded border-ink-300 accent-brand-500"
-              />
-              <span className="text-sm text-ink-800">{t('talentOnboard.dbNoWeekend')}</span>
-            </label>
-            <label className="flex items-center gap-3 border border-ink-200 rounded-lg px-3 py-2.5 cursor-pointer hover:bg-ink-50 transition-colors">
-              <input
-                type="checkbox"
-                checked={noDrivingLicense}
-                onChange={(e) => setNoDrivingLicense(e.target.checked)}
-                className="h-4 w-4 rounded border-ink-300 accent-brand-500"
-              />
-              <span className="text-sm text-ink-800">{t('talentOnboard.dbNoLicence')}</span>
-            </label>
-            {[
-              { state: noTravel,         setter: setNoTravel,         label: t('talentOnboard.dbNoTravel') },
-              { state: noNightShifts,    setter: setNoNightShifts,    label: t('talentOnboard.dbNoNightShifts') },
-              { state: noOwnCar,         setter: setNoOwnCar,         label: t('talentOnboard.dbNoOwnCar') },
-              { state: remoteOnly,       setter: setRemoteOnly,       label: t('talentOnboard.dbRemoteOnly') },
-              { state: noRelocation,     setter: setNoRelocation,     label: t('talentOnboard.dbNoRelocation') },
-              { state: noOvertime,       setter: setNoOvertime,       label: t('talentOnboard.dbNoOvertime') },
-              { state: noCommissionOnly, setter: setNoCommissionOnly, label: t('talentOnboard.dbNoCommissionOnly') },
-            ].map(({ state, setter, label }) => (
-              <label key={label} className="flex items-center gap-3 border border-ink-200 rounded-lg px-3 py-2.5 cursor-pointer hover:bg-ink-50 transition-colors">
-                <input
-                  type="checkbox"
-                  checked={state}
-                  onChange={(e) => setter(e.target.checked)}
-                  className="h-4 w-4 rounded border-ink-300 accent-brand-500"
-                />
-                <span className="text-sm text-ink-800">{label}</span>
-              </label>
-            ))}
-            <div className="border border-ink-200 rounded-lg px-3 py-2.5">
-              <label htmlFor="talent-onboard-min-salary" className="block text-sm text-ink-800 mb-1.5">{t('talentOnboard.minSalaryLabel')}</label>
-              <div className="flex items-center gap-2">
-                <input
-                  id="talent-onboard-min-salary"
-                  type="number"
-                  min={0}
-                  step={100}
-                  value={minSalaryHard ?? ''}
-                  onChange={(e) => setMinSalaryHard(e.target.value === '' ? null : Math.max(0, parseInt(e.target.value, 10) || 0))}
-                  placeholder={t('talentOnboard.minSalaryPlaceholder')}
-                  className="flex-1 border border-ink-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
-                {minSalaryHard != null && (
-                  <button
-                    type="button"
-                    onClick={() => setMinSalaryHard(null)}
-                    className="text-ink-400 hover:text-red-500 text-base leading-none"
-                    aria-label={t('talentOnboard.clear')}
-                  >×</button>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Free-text additional requirements */}
-          <div>
-            <p className="text-xs font-semibold text-ink-500 uppercase tracking-wide mb-2">{t('talentOnboard.anythingElseHeader')}</p>
-            <p className="text-xs text-ink-400 mb-2">{t('talentOnboard.anythingElseHint')}</p>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={dealBreakerInput}
-                onChange={(e) => setDealBreakerInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addItem() } }}
-                placeholder={t('talentOnboard.requirementPlaceholder')}
-                className="flex-1 border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-              />
-              <button
-                type="button"
-                onClick={addItem}
-                disabled={!dealBreakerInput.trim()}
-                className="px-4 py-2 rounded-lg text-sm font-medium bg-brand-500 text-white disabled:opacity-40 hover:bg-brand-600 transition-colors shrink-0"
-              >
-                {t('talentOnboard.add')}
-              </button>
-            </div>
-          </div>
-
-          {/* Free-text list */}
-          {dealBreakerItems.length > 0 && (
-            <ul className="space-y-2">
-              {dealBreakerItems.map((item) => (
-                <li key={item} className="flex items-start gap-2 bg-ink-50 border border-ink-200 rounded-lg px-3 py-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-red-400 shrink-0 mt-1.5" />
-                  <span className="flex-1 text-sm text-ink-800">{item}</span>
-                  <button
-                    type="button"
-                    onClick={() => setDealBreakerItems((prev) => prev.filter((i) => i !== item))}
-                    className="text-ink-400 hover:text-red-500 transition-colors shrink-0 text-base leading-none"
-                    aria-label={t('talentOnboard.remove')}
-                  >
-                    ×
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {!hasAnyDealBreaker && (
-            <p className="text-xs text-ink-400 text-center py-1">{t('talentOnboard.noDealBreakers')}</p>
-          )}
-
-          <Button
-            onClick={() => void handleContinue()}
-            className="w-full"
-            size="lg"
-          >
-            {hasAnyDealBreaker ? t('common.continue') : t('talentOnboard.skipFlexible')}
-          </Button>
-        </div>
+        <DealBreakersStep
+          t={t}
+          noWeekendWork={noWeekendWork} setNoWeekendWork={setNoWeekendWork}
+          noDrivingLicense={noDrivingLicense} setNoDrivingLicense={setNoDrivingLicense}
+          noTravel={noTravel} setNoTravel={setNoTravel}
+          noNightShifts={noNightShifts} setNoNightShifts={setNoNightShifts}
+          noOwnCar={noOwnCar} setNoOwnCar={setNoOwnCar}
+          remoteOnly={remoteOnly} setRemoteOnly={setRemoteOnly}
+          noRelocation={noRelocation} setNoRelocation={setNoRelocation}
+          noOvertime={noOvertime} setNoOvertime={setNoOvertime}
+          noCommissionOnly={noCommissionOnly} setNoCommissionOnly={setNoCommissionOnly}
+          minSalaryHard={minSalaryHard} setMinSalaryHard={setMinSalaryHard}
+          dealBreakerItems={dealBreakerItems} setDealBreakerItems={setDealBreakerItems}
+          dealBreakerInput={dealBreakerInput} setDealBreakerInput={setDealBreakerInput}
+          onContinue={() => void handleContinue()}
+        />
       )
     }
 
     if (phase === 'extras') {
       return (
-        <div className="space-y-6">
-          <p className="text-sm text-ink-600 leading-relaxed">
-            {t('talentOnboard.extrasIntro')}
-          </p>
-
-          <SkillChipInput
-            label={t('talentOnboard.skillsLabel')}
-            hint={t('talentOnboard.skillsHint')}
-            value={skills}
-            onChange={setSkills}
-            max={20}
-          />
-
-          <LanguageRequirement
-            label={t('talentOnboard.langProficiencyLabel')}
-            hint={t('talentOnboard.langProficiencyHint')}
-            value={languagesProficiency.length > 0 ? languagesProficiency : languages.map((code) => ({ code, level: 'conversational' as const }))}
-            onChange={setLanguagesProficiency}
-            side="talent"
-          />
-
-          <OpenToSelect
-            label={t('talentOnboard.identifyAsLabel')}
-            hint={t('talentOnboard.identifyAsHint')}
-            value={candidateTypes}
-            onChange={setCandidateTypes}
-            side="talent"
-          />
-
-          <div className="space-y-2">
-            <div className="field-label">{t('talentOnboard.daysPerWeekLabel')}</div>
-            <input
-              type="number"
-              min={1}
-              max={7}
-              value={availableDaysPerWeek === '' ? '' : availableDaysPerWeek}
-              onChange={(e) => {
-                const n = parseInt(e.target.value, 10)
-                setAvailableDaysPerWeek(Number.isFinite(n) ? Math.max(1, Math.min(7, n)) : '')
-              }}
-              placeholder={t('talentOnboard.daysPerWeekPlaceholder')}
-              className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-            />
-          </div>
-
-          <AvailableShifts value={availableShifts} onChange={setAvailableShifts} />
-
-          <EnvironmentFlags
-            label={t('talentOnboard.environmentsLabel')}
-            hint={t('talentOnboard.environmentsHint')}
-            value={environmentPreferences}
-            onChange={setEnvironmentPreferences}
-          />
-
-          <div className="pt-4 border-t border-ink-100">
-            <NonNegotiablesInput
-              text={priorityConcernsText}
-              atoms={priorityConcernsAtoms}
-              onChange={({ text, atoms }) => {
-                setPriorityConcernsText(text)
-                setPriorityConcernsAtoms(atoms)
-              }}
-              side="talent"
-            />
-          </div>
-
-          <Button
-            onClick={() => setPhase('docs')}
-            className="w-full"
-            size="lg"
-          >
-            {t('common.continue')}
-          </Button>
-        </div>
+        <ExtrasStep
+          t={t}
+          skills={skills} setSkills={setSkills}
+          languages={languages}
+          languagesProficiency={languagesProficiency} setLanguagesProficiency={setLanguagesProficiency}
+          candidateTypes={candidateTypes} setCandidateTypes={setCandidateTypes}
+          availableDaysPerWeek={availableDaysPerWeek} setAvailableDaysPerWeek={setAvailableDaysPerWeek}
+          availableShifts={availableShifts} setAvailableShifts={setAvailableShifts}
+          environmentPreferences={environmentPreferences} setEnvironmentPreferences={setEnvironmentPreferences}
+          priorityConcernsText={priorityConcernsText} setPriorityConcernsText={setPriorityConcernsText}
+          priorityConcernsAtoms={priorityConcernsAtoms} setPriorityConcernsAtoms={setPriorityConcernsAtoms}
+          onContinue={() => setPhase('docs')}
+        />
       )
     }
 
@@ -1313,60 +898,20 @@ export default function TalentOnboarding() {
     }
 
     if (phase === 'review') {
-      const activeConstraints = [
-        noWeekendWork && t('talentOnboard.constraintNoWeekend'),
-        noDrivingLicense && t('talentOnboard.constraintNoLicence'),
-        noTravel && t('talentOnboard.constraintNoTravel'),
-        noNightShifts && t('talentOnboard.constraintNoNightShifts'),
-        noOwnCar && t('talentOnboard.constraintNoOwnCar'),
-        remoteOnly && t('talentOnboard.constraintRemoteOnly'),
-        noRelocation && t('talentOnboard.constraintNoRelocation'),
-        noOvertime && t('talentOnboard.constraintNoOvertime'),
-        noCommissionOnly && t('talentOnboard.constraintNoCommissionOnly'),
-      ].filter(Boolean) as string[]
-
       return (
-        <div className="space-y-4">
-          <p className="text-sm text-ink-600 leading-relaxed">
-            {t('talentOnboard.reviewIntroLead')} <strong>{t('talentOnboard.buildMyProfile')}</strong> {t('talentOnboard.reviewIntroTail')}
-          </p>
-
-          <ReviewRow label={t('talentOnboard.reviewChat')} value={t('talentOnboard.reviewCompleted')} ok />
-          <ReviewRow label={t('talentOnboard.reviewDob')} value={dob ? t('talentOnboard.reviewDobValue', { dob }) : '—'} ok={!!dob} />
-          <ReviewRow label={t('talentOnboard.reviewGender')} value={gender || '—'} ok={!!gender} />
-          <ReviewRow label={t('talentOnboard.reviewRace')} value={race || '—'} ok={!!race} />
-          <ReviewRow label={t('talentOnboard.reviewReligion')} value={religion || '—'} ok={!!religion} />
-          <ReviewRow label={t('talentOnboard.reviewLanguages')} value={languages.length > 0 ? languages.join(', ') : '—'} ok={languages.length > 0} />
-          <ReviewRow label={t('talentOnboard.reviewLocation')} value={locationMatters === true ? t('talentOnboard.reviewPostcode', { postcode: locationPostcode }) : locationMatters === false ? t('talentOnboard.reviewFlexible') : '—'} ok={locationMatters !== null} />
-          <ReviewRow
-            label={t('talentOnboard.reviewHardConstraints')}
-            value={activeConstraints.length > 0 ? activeConstraints.join(' · ') : t('talentOnboard.reviewNoneSet')}
-            ok
-          />
-          {minSalaryHard != null && (
-            <ReviewRow label={t('talentOnboard.reviewMinSalary')} value={t('talentOnboard.reviewMinSalaryValue', { amount: minSalaryHard.toLocaleString() })} ok />
-          )}
-          <ReviewRow label={t('talentOnboard.reviewPhoto')} value={photoFile?.name ?? '—'} ok={!!photoFile} />
-          <ReviewRow label={t('talentOnboard.reviewResume')} value={resumeFile?.name ?? '—'} ok={!!resumeFile} />
-          {coverLetterFile && <ReviewRow label={t('talentOnboard.reviewCoverLetter')} value={coverLetterFile.name} ok />}
-
-          {err && <Alert tone="red">{err}</Alert>}
-          <Button
-            onClick={() => { setPhase('submit'); void finalise() }}
-            loading={busy}
-            className="w-full"
-            size="lg"
-          >
-            {t('talentOnboard.buildMyProfile')}
-          </Button>
-          <button
-            type="button"
-            onClick={() => { setErr(null); setPhase('docs') }}
-            className="w-full text-xs text-ink-400 hover:text-ink-600 py-1"
-          >
-            {t('talentOnboard.goBackChange')}
-          </button>
-        </div>
+        <ReviewStep
+          t={t}
+          dob={dob} gender={gender} race={race} religion={religion} languages={languages}
+          locationMatters={locationMatters} locationPostcode={locationPostcode}
+          noWeekendWork={noWeekendWork} noDrivingLicense={noDrivingLicense}
+          noTravel={noTravel} noNightShifts={noNightShifts} noOwnCar={noOwnCar}
+          remoteOnly={remoteOnly} noRelocation={noRelocation} noOvertime={noOvertime}
+          noCommissionOnly={noCommissionOnly} minSalaryHard={minSalaryHard}
+          photoFile={photoFile} resumeFile={resumeFile} coverLetterFile={coverLetterFile}
+          err={err} busy={busy}
+          onBuild={() => { setPhase('submit'); void finalise() }}
+          onBack={() => { setErr(null); setPhase('docs') }}
+        />
       )
     }
 
@@ -1448,122 +993,5 @@ export default function TalentOnboarding() {
         />
       )}
     </>
-  )
-}
-
-// ── ProgressStep ─────────────────────────────────────────────────────────────
-
-function ProgressStep({ label, done, active, doneLabel, nextLabel }: { label: string; done?: boolean; active?: boolean; doneLabel: string; nextLabel: string }) {
-  return (
-    <div className={`flex items-center gap-3 px-3 py-2 rounded-lg border transition-colors ${
-      active ? 'bg-brand-50 border-brand-200' : 'border-transparent'
-    }`}>
-      <div className={`h-5 w-5 rounded-full flex items-center justify-center shrink-0 ${
-        done ? 'bg-emerald-500' : active ? 'bg-brand-500' : 'bg-ink-200'
-      }`}>
-        {done ? (
-          <svg width="10" height="8" viewBox="0 0 10 8" fill="none" aria-hidden>
-            <path d="M1 4l3 3 5-6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        ) : (
-          <div className={`h-2 w-2 rounded-full ${active ? 'bg-white' : 'bg-ink-400'}`} />
-        )}
-      </div>
-      <span className={`text-sm flex-1 ${done ? 'text-emerald-700' : active ? 'text-brand-700 font-medium' : 'text-ink-500'}`}>
-        {label}
-      </span>
-      {done && <span className="text-xs text-emerald-600 font-medium">{doneLabel}</span>}
-      {active && <span className="text-xs text-brand-600 font-medium">{nextLabel}</span>}
-    </div>
-  )
-}
-
-// ── FileRow ──────────────────────────────────────────────────────────────────
-
-function FileRow({
-  label,
-  accept,
-  file,
-  onChange,
-  required,
-  hint,
-  maxBytes,
-  chooseLabel,
-  noFileLabel,
-  tooLargeLabel,
-}: {
-  label: string
-  accept: string
-  file: File | null
-  onChange: (f: File | null) => void
-  required?: boolean
-  hint?: string
-  maxBytes?: number
-  chooseLabel: string
-  noFileLabel: string
-  tooLargeLabel: (mb: number) => string
-}) {
-  const inputId = useId()
-  const [sizeErr, setSizeErr] = useState<string | null>(null)
-  return (
-    <label htmlFor={inputId} className="block border border-dashed border-ink-300 rounded-lg p-3 hover:border-ink-400 transition cursor-pointer bg-white">
-
-      <div className="flex items-center gap-3">
-        <div className="h-8 w-8 rounded-md bg-ink-100 flex items-center justify-center text-ink-500 shrink-0">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path
-              d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6Z M14 3v6h6"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-sm text-ink-900">
-            {label}
-            {required && <span className="text-red-500 ml-0.5">*</span>}
-          </div>
-          <div className={`text-xs truncate ${sizeErr ? 'text-red-600' : 'text-ink-500'}`}>
-            {sizeErr ?? (file ? file.name : (hint ?? noFileLabel))}
-          </div>
-        </div>
-        <span className="btn-secondary btn-sm pointer-events-none shrink-0">{chooseLabel}</span>
-      </div>
-      <input
-        id={inputId}
-        type="file"
-        accept={accept}
-        onChange={(e) => {
-          const f = e.target.files?.[0] ?? null
-          if (f && maxBytes && f.size > maxBytes) {
-            setSizeErr(tooLargeLabel(Math.round(maxBytes / 1024 / 1024)))
-            e.target.value = ''
-            onChange(null)
-            return
-          }
-          setSizeErr(null)
-          onChange(f)
-        }}
-        className="sr-only"
-      />
-    </label>
-  )
-}
-
-// ── ReviewRow ─────────────────────────────────────────────────────────────────
-
-function ReviewRow({ label, value, ok }: { label: string; value: string; ok?: boolean }) {
-  return (
-    <div className="flex items-start gap-3 border border-ink-100 rounded-lg px-3 py-2 bg-white">
-      <span className={`mt-0.5 h-4 w-4 rounded-full flex items-center justify-center shrink-0 text-xs ${ok ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
-        {ok ? '✓' : '!'}
-      </span>
-      <div className="flex-1 min-w-0">
-        <p className="text-xs text-ink-400 uppercase tracking-wide">{label}</p>
-        <p className="text-sm text-ink-800 break-words">{value}</p>
-      </div>
-    </div>
   )
 }

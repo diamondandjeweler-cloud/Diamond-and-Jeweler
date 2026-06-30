@@ -12,6 +12,9 @@ import { corsHeaders, handleOptions } from '../_shared/cors.ts'
 import { authenticate, json } from '../_shared/auth.ts'
 import { adminClient } from '../_shared/supabase.ts'
 import { enforceRateLimit, RateLimitError } from '../_shared/ratelimit.ts'
+import { createLogger } from '../_shared/logger.ts'
+
+const log = createLogger('draft-role-description')
 
 interface Body {
   title?: string
@@ -91,9 +94,9 @@ serve(async (req) => {
         const text = j.choices?.[0]?.message?.content?.trim()
         if (text) return json({ description: text, provider: 'groq' })
       } else {
-        console.error('Groq error:', r.status)
+        log.error('Groq error:', r.status)
       }
-    } catch (e) { console.error('Groq fetch failed:', e) }
+    } catch (e) { log.error('Groq fetch failed:', e) }
   }
 
   // Gemini
@@ -114,9 +117,9 @@ serve(async (req) => {
         const text = j.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
         if (text) return json({ description: text, provider: 'gemini' })
       } else {
-        console.error('Gemini error:', r.status)
+        log.error('Gemini error:', r.status)
       }
-    } catch (e) { console.error('Gemini fetch failed:', e) }
+    } catch (e) { log.error('Gemini fetch failed:', e) }
   }
 
   // OpenAI
@@ -138,9 +141,9 @@ serve(async (req) => {
         const text = j.choices?.[0]?.message?.content?.trim()
         if (text) return json({ description: text, provider: 'openai' })
       } else {
-        console.error('OpenAI error:', r.status)
+        log.error('OpenAI error:', r.status)
       }
-    } catch (e) { console.error('OpenAI fetch failed:', e) }
+    } catch (e) { log.error('OpenAI fetch failed:', e) }
   }
 
   // Anthropic
@@ -166,9 +169,9 @@ serve(async (req) => {
         const text = j.content?.[0]?.text?.trim()
         if (text) return json({ description: text, provider: 'anthropic' })
       } else {
-        console.error('Anthropic error:', r.status)
+        log.error('Anthropic error:', r.status)
       }
-    } catch (e) { console.error('Anthropic fetch failed:', e) }
+    } catch (e) { log.error('Anthropic fetch failed:', e) }
   }
 
   return new Response(

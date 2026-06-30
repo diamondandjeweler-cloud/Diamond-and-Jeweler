@@ -54,7 +54,10 @@ serve(async (req) => {
   if (claimErr) return respond({ error: `Claim failed: ${claimErr.message}` }, 500)
 
   const rows = stuck ?? []
-  if (rows.length === 0) return respond({ processed: 0, message: 'No stuck rows' })
+  if (rows.length === 0) {
+    await heartbeat(db)
+    return respond({ processed: 0, message: 'No stuck rows' })
+  }
 
   console.log(`[retry-stuck-extractions] picked up ${rows.length} stuck rows`)
 
@@ -107,8 +110,19 @@ serve(async (req) => {
     }
   }
 
+  await heartbeat(db)
   return respond({ processed: rows.length, succeeded, failed })
 })
+
+// Best-effort cron heartbeat; never let it break the job.
+async function heartbeat(db: ReturnType<typeof adminClient>): Promise<void> {
+  try {
+    await db.from('cron_heartbeat').upsert(
+      { job_name: 'retry-stuck-extractions', last_run_at: new Date().toISOString() },
+      { onConflict: 'job_name' },
+    )
+  } catch { /* non-fatal */ }
+}
 
 async function rematchActiveRoles(talentId: string): Promise<void> {
   const db = adminClient()

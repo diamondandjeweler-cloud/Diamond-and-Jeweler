@@ -42,6 +42,23 @@ serve(async (req) => {
   if (rolesErr) {
     errors.push(`v_stale_roles: ${rolesErr.message}`)
   } else {
+    // Pre-fetch every HM's profile_id in one query instead of one lookup per
+    // role inside the loop (N+1 → 1). Behavior-preserving: same id→profile_id
+    // mapping, just resolved up front.
+    const hmIds = [...new Set((staleRoles ?? []).map((r) => r.hiring_manager_id).filter(Boolean))]
+    const hmProfileById = new Map<string, string>()
+    if (hmIds.length > 0) {
+      const { data: hms, error: hmErr } = await db.from('hiring_managers')
+        .select('id, profile_id').in('id', hmIds)
+      if (hmErr) {
+        errors.push(`hiring_managers prefetch: ${hmErr.message}`)
+      } else {
+        for (const hm of hms ?? []) {
+          if (hm.profile_id) hmProfileById.set(hm.id, hm.profile_id)
+        }
+      }
+    }
+
     for (const r of staleRoles ?? []) {
       try {
         // Compute market gap via SECURITY DEFINER function.
@@ -60,10 +77,9 @@ serve(async (req) => {
         // useful to say — let the HM continue uninterrupted.
         if (gaps.length === 0 && peerCount === 0) continue
 
-        // Resolve HM's profile_id to deliver the notification.
-        const { data: hm } = await db.from('hiring_managers')
-          .select('profile_id').eq('id', r.hiring_manager_id).maybeSingle()
-        if (!hm?.profile_id) continue
+        // Resolve HM's profile_id (pre-fetched above) to deliver the notification.
+        const hmProfileId = hmProfileById.get(r.hiring_manager_id)
+        if (!hmProfileId) continue
 
         // Persist the nudge first so the link the HM clicks can resolve back to gap_payload.
         const { data: row, error: insErr } = await db.from('stale_loop_nudges').insert({
@@ -85,7 +101,7 @@ serve(async (req) => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${svcKey}` },
           body: JSON.stringify({
-            user_id: hm.profile_id,
+            user_id: hmProfileId,
             type: 'stale_loop_role_nudge',
             data: {
               nudge_id: row.id,
@@ -166,6 +182,14 @@ serve(async (req) => {
       }
     }
   }
+
+  // Best-effort cron heartbeat; never let it break the job.
+  try {
+    await db.from('cron_heartbeat').upsert(
+      { job_name: 'stale-loop-nudge', last_run_at: new Date().toISOString() },
+      { onConflict: 'job_name' },
+    )
+  } catch { /* non-fatal */ }
 
   return json({
     ok: true,

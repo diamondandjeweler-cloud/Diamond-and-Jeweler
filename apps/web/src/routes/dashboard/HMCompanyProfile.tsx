@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { updateProfile } from '../../data/repositories/profiles'
@@ -8,7 +9,8 @@ import { useSeo } from '../../lib/useSeo'
 import type { CompanyRow } from '../../types/db'
 
 export default function HMCompanyProfile() {
-  useSeo({ title: 'Company profile', noindex: true })
+  const { t } = useTranslation()
+  useSeo({ title: t('hmCompany.seoTitle', 'Company profile'), noindex: true })
   const { session, profile, refresh } = useSession()
   const userId = session?.user.id
 
@@ -39,7 +41,7 @@ export default function HMCompanyProfile() {
           setCompany(co)
         }
       } catch (e) {
-        if (!cancelled) { setErr(e instanceof Error ? e.message : 'Load failed'); setLoading(false) }
+        if (!cancelled) { setErr(e instanceof Error ? e.message : t('hmCompany.loadFailed', 'Load failed')); setLoading(false) }
       }
     }
     void load()
@@ -54,7 +56,7 @@ export default function HMCompanyProfile() {
     if (!session) return
     const nameTrimmed = fullName.trim()
     const titleTrimmed = jobTitle.trim()
-    if (!nameTrimmed || !titleTrimmed) { setErr('Name and job title are required.'); return }
+    if (!nameTrimmed || !titleTrimmed) { setErr(t('hmCompany.nameTitleRequired', 'Name and job title are required.')); return }
     setBusy(true); setSaved(false); setErr(null)
     try {
       const [profileRes, hmRes] = await Promise.all([
@@ -66,7 +68,7 @@ export default function HMCompanyProfile() {
       await refresh()
       setSaved(true)
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Save failed')
+      setErr(e instanceof Error ? e.message : t('hmCompany.saveFailed', 'Save failed'))
     } finally {
       setBusy(false)
     }
@@ -75,7 +77,7 @@ export default function HMCompanyProfile() {
   if (loading) {
     return (
       <div className="max-w-xl">
-        <PageHeader title="Company profile" description="Your professional details and company information." />
+        <PageHeader title={t('hmCompany.title', 'Company profile')} description={t('hmCompany.description', 'Your professional details and company information.')} />
         <FormSkeleton fields={8} />
       </div>
     )
@@ -83,30 +85,30 @@ export default function HMCompanyProfile() {
 
   return (
     <div className="max-w-xl">
-      <PageHeader title="Company profile" description="Your professional details and company information." />
+      <PageHeader title={t('hmCompany.title', 'Company profile')} description={t('hmCompany.description', 'Your professional details and company information.')} />
       <div className="space-y-6">
         <div className="space-y-4">
-          <h2 className="text-sm font-semibold text-ink-700 dark:text-gray-300 uppercase tracking-wide">Your details</h2>
-          <Input label="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
-          <Input label="Job title" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} />
+          <h2 className="text-sm font-semibold text-ink-700 dark:text-gray-300 uppercase tracking-wide">{t('hmCompany.yourDetailsHeading', 'Your details')}</h2>
+          <Input label={t('hmCompany.fullNameLabel', 'Full name')} value={fullName} onChange={(e) => setFullName(e.target.value)} />
+          <Input label={t('hmCompany.jobTitleLabel', 'Job title')} value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} />
         </div>
 
         {company && (
           <div className="rounded-xl border border-ink-200 dark:border-gray-700 bg-ink-50 dark:bg-gray-800 p-4 space-y-2">
-            <h2 className="text-sm font-semibold text-ink-700 dark:text-gray-300 uppercase tracking-wide mb-3">Company</h2>
-            <InfoRow label="Name" value={company.name} />
-            {company.industry && <InfoRow label="Industry" value={company.industry} />}
-            {company.size && <InfoRow label="Size" value={company.size} />}
-            {company.website && <InfoRow label="Website" value={company.website} />}
-            <InfoRow label="Status" value={company.verified ? 'Verified ✓' : 'Pending verification'} />
+            <h2 className="text-sm font-semibold text-ink-700 dark:text-gray-300 uppercase tracking-wide mb-3">{t('hmCompany.companyHeading', 'Company')}</h2>
+            <InfoRow label={t('hmCompany.nameLabel', 'Name')} value={company.name} />
+            {company.industry && <InfoRow label={t('hmCompany.industryLabel', 'Industry')} value={company.industry} />}
+            {company.size && <InfoRow label={t('hmCompany.sizeLabel', 'Size')} value={company.size} />}
+            {company.website && <InfoRow label={t('hmCompany.websiteLabel', 'Website')} value={company.website} />}
+            <InfoRow label={t('hmCompany.statusLabel', 'Status')} value={company.verified ? t('hmCompany.statusVerified', 'Verified ✓') : t('hmCompany.statusPending', 'Pending verification')} />
           </div>
         )}
 
         {err && <Alert tone="red">{err}</Alert>}
-        {saved && <Alert tone="green">Saved successfully.</Alert>}
+        {saved && <Alert tone="green">{t('hmCompany.savedMsg', 'Saved successfully.')}</Alert>}
 
         <Button onClick={() => void save()} loading={busy}>
-          Save changes
+          {t('hmCompany.saveButton', 'Save changes')}
         </Button>
       </div>
     </div>

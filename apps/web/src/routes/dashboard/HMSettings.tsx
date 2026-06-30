@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useSession } from '../../state/useSession'
 import { updateProfile } from '../../data/repositories/profiles'
 import { Button, Alert, PageHeader } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
 
 export default function HMSettings() {
-  useSeo({ title: 'Settings', noindex: true })
+  const { t } = useTranslation()
+  useSeo({ title: t('hmSettings.seoTitle', 'Settings'), noindex: true })
   const { session, profile, refresh } = useSession()
   const userId = session?.user.id
 
@@ -27,7 +29,7 @@ export default function HMSettings() {
     if (!userId) return
     const trimmed = whatsappNumber.trim()
     if (trimmed && !/^\+?[0-9\s\-()]{7,20}$/.test(trimmed)) {
-      setErr('Phone number contains invalid characters. Use digits, spaces, + or hyphens only (e.g. +60 12 345 6789).')
+      setErr(t('hmSettings.invalidPhone', 'Phone number contains invalid characters. Use digits, spaces, + or hyphens only (e.g. +60 12 345 6789).'))
       return
     }
     setBusy(true); setSaved(false); setErr(null)
@@ -40,7 +42,7 @@ export default function HMSettings() {
       await refresh()
       setSaved(true)
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Save failed')
+      setErr(e instanceof Error ? e.message : t('hmSettings.saveFailed', 'Save failed'))
     } finally {
       setBusy(false)
     }
@@ -48,12 +50,12 @@ export default function HMSettings() {
 
   return (
     <div className="max-w-xl">
-      <PageHeader title="Settings" description="Notification and contact preferences." />
+      <PageHeader title={t('hmSettings.title', 'Settings')} description={t('hmSettings.description', 'Notification and contact preferences.')} />
       <div className="space-y-6">
         <div className="space-y-4">
-          <h2 className="text-sm font-semibold text-ink-700 dark:text-gray-300 uppercase tracking-wide">WhatsApp notifications</h2>
+          <h2 className="text-sm font-semibold text-ink-700 dark:text-gray-300 uppercase tracking-wide">{t('hmSettings.whatsappHeading', 'WhatsApp notifications')}</h2>
           <div>
-            <label htmlFor="hm-whatsapp-number" className="block text-sm font-medium text-ink-700 dark:text-gray-300 mb-1">WhatsApp number</label>
+            <label htmlFor="hm-whatsapp-number" className="block text-sm font-medium text-ink-700 dark:text-gray-300 mb-1">{t('hmSettings.whatsappNumberLabel', 'WhatsApp number')}</label>
             <input
               id="hm-whatsapp-number"
               type="tel"
@@ -71,16 +73,16 @@ export default function HMSettings() {
               className="mt-0.5"
             />
             <span className="text-sm text-ink-700 dark:text-gray-300">
-              Send me WhatsApp notifications for new candidate matches, interview updates, and important alerts.
+              {t('hmSettings.optInLabel', 'Send me WhatsApp notifications for new candidate matches, interview updates, and important alerts.')}
             </span>
           </label>
         </div>
 
         {err && <Alert tone="red">{err}</Alert>}
-        {saved && <Alert tone="green">Settings saved.</Alert>}
+        {saved && <Alert tone="green">{t('hmSettings.savedMsg', 'Settings saved.')}</Alert>}
 
         <Button onClick={() => void save()} loading={busy}>
-          Save settings
+          {t('hmSettings.saveButton', 'Save settings')}
         </Button>
       </div>
     </div>

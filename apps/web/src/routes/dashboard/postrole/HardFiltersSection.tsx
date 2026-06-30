@@ -51,14 +51,14 @@ function HardFiltersSection({
         { state: requiresOvertime,        setter: setRequiresOvertime,        label: 'Overtime is expected' },
         { state: isCommissionBased,       setter: setIsCommissionBased,       label: 'Commission-based or variable pay structure' },
       ].map(({ state, setter, label }) => (
-        <label key={label} className="flex items-center gap-3 border border-ink-200 rounded-lg px-3 py-2.5 cursor-pointer hover:bg-ink-50 transition-colors">
+        <label key={label} className="flex items-center gap-3 border border-ink-200 dark:border-gray-700 rounded-lg px-3 py-2.5 cursor-pointer hover:bg-ink-50 dark:hover:bg-gray-800 transition-colors">
           <input
             type="checkbox"
             checked={state}
             onChange={(e) => setter(e.target.checked)}
-            className="h-4 w-4 rounded border-ink-300 accent-brand-500"
+            className="h-4 w-4 rounded border-ink-300 dark:border-gray-600 accent-brand-500"
           />
-          <span className="text-sm text-ink-800">{label}</span>
+          <span className="text-sm text-ink-800 dark:text-gray-300">{label}</span>
         </label>
       ))}
     </FormSection>

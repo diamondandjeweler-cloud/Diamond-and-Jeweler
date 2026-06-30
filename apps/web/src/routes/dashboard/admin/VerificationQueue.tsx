@@ -45,14 +45,14 @@ export default function VerificationQueue() {
       {rows == null ? (
         <ListSkeleton rows={5} variant="row" />
       ) : rows.length === 0 ? (
-        <p className="text-sm text-gray-600">All companies verified.</p>
+        <p className="text-sm text-gray-600 dark:text-gray-300">All companies verified.</p>
       ) : (
         <div className="space-y-2">
           {rows.map((c) => (
-            <div key={c.id} className="bg-white border rounded p-4 flex justify-between items-center">
+            <div key={c.id} className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded p-4 flex justify-between items-center">
               <div>
-                <div className="font-semibold">{c.name}</div>
-                <div className="text-xs text-gray-500">
+                <div className="font-semibold dark:text-white">{c.name}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">
                   Company ID: {c.registration_number} · HR: {c.primary_hr_email}
                 </div>
               </div>
@@ -60,7 +60,7 @@ export default function VerificationQueue() {
                 {c.business_license_path && (
                   <button
                     onClick={() => void viewLicense(c.business_license_path!)}
-                    className="border px-3 py-1 rounded text-sm hover:bg-gray-50"
+                    className="border dark:border-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300"
                   >
                     View license
                   </button>

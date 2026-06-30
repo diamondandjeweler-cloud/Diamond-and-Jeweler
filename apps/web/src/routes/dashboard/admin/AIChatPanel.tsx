@@ -221,20 +221,20 @@ export default function AIChatPanel() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-lg font-semibold text-ink-900">AI chat conversations</h2>
+        <h2 className="text-lg font-semibold text-ink-900 dark:text-white">AI chat conversations</h2>
         <button type="button" onClick={() => void reload()} className="btn-ghost btn-sm">Refresh</button>
       </div>
 
       {err && <p className="text-red-600 text-sm mb-4">{err}</p>}
 
-      <div className="flex gap-1 border-b border-ink-200 mb-6 overflow-x-auto">
+      <div className="flex gap-1 border-b border-ink-200 dark:border-gray-700 mb-6 overflow-x-auto">
         {subTabs.map((t) => (
           <button
             key={t.key}
             type="button"
             onClick={() => setTab(t.key)}
             className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors ${
-              tab === t.key ? 'border-brand-600 text-brand-700' : 'border-transparent text-ink-500 hover:text-ink-900'
+              tab === t.key ? 'border-brand-600 text-brand-700' : 'border-transparent text-ink-500 dark:text-gray-400 hover:text-ink-900 dark:hover:text-white'
             }`}
           >
             {t.label}
@@ -246,7 +246,7 @@ export default function AIChatPanel() {
         <select
           value={endpointFilter}
           onChange={(e) => setEndpointFilter(e.target.value as Endpoint | 'all')}
-          className="rounded-lg border border-ink-200 px-2 py-1 bg-white"
+          className="rounded-lg border border-ink-200 dark:border-gray-700 px-2 py-1 bg-white dark:bg-gray-800"
           aria-label="Filter by endpoint"
         >
           <option value="all">All endpoints</option>
@@ -256,7 +256,7 @@ export default function AIChatPanel() {
         <select
           value={roleFilter}
           onChange={(e) => setRoleFilter(e.target.value as UserRoleFilter)}
-          className="rounded-lg border border-ink-200 px-2 py-1 bg-white"
+          className="rounded-lg border border-ink-200 dark:border-gray-700 px-2 py-1 bg-white dark:bg-gray-800"
           aria-label="Filter by user role"
         >
           <option value="all">All roles</option>
@@ -268,7 +268,7 @@ export default function AIChatPanel() {
         <select
           value={dateRange}
           onChange={(e) => setDateRange(e.target.value as DateRange)}
-          className="rounded-lg border border-ink-200 px-2 py-1 bg-white"
+          className="rounded-lg border border-ink-200 dark:border-gray-700 px-2 py-1 bg-white dark:bg-gray-800"
           aria-label="Date range"
         >
           <option value="today">Today (24h)</option>
@@ -282,7 +282,7 @@ export default function AIChatPanel() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search content / email / name…"
-            className="flex-1 min-w-[180px] rounded-lg border border-ink-200 px-3 py-1 bg-white"
+            className="flex-1 min-w-[180px] rounded-lg border border-ink-200 dark:border-gray-700 px-3 py-1 bg-white dark:bg-gray-800"
             aria-label="Search conversations"
           />
         )}
@@ -292,15 +292,15 @@ export default function AIChatPanel() {
         <ListSkeleton rows={5} variant="row" />
       ) : tab === 'conversations' ? (
         conversations.length === 0 ? (
-          <p className="text-ink-500 text-sm text-center py-12">No conversations match these filters.</p>
+          <p className="text-ink-500 dark:text-gray-400 text-sm text-center py-12">No conversations match these filters.</p>
         ) : (
           <div className="space-y-3">
             {conversations.map((c) => (
-              <div key={c.id} className="border border-ink-200 rounded-xl overflow-hidden bg-white">
+              <div key={c.id} className="border border-ink-200 dark:border-gray-700 rounded-xl overflow-hidden bg-white dark:bg-gray-800">
                 <button
                   type="button"
                   onClick={() => setExpanded((e) => (e === c.id ? null : c.id))}
-                  className="w-full text-left px-5 py-4 hover:bg-ink-50 transition-colors"
+                  className="w-full text-left px-5 py-4 hover:bg-ink-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   <div className="flex items-start gap-3">
                     <div className="flex-1 min-w-0">
@@ -309,11 +309,11 @@ export default function AIChatPanel() {
                           {endpointLabel(c.endpoint)}
                         </span>
                         {c.user_role && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-ink-100 text-ink-700">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-ink-100 dark:bg-gray-700 text-ink-700 dark:text-gray-300">
                             {c.user_role}
                           </span>
                         )}
-                        <span className="text-[11px] text-ink-500">
+                        <span className="text-[11px] text-ink-500 dark:text-gray-400">
                           {c.user_turns} user · {c.ai_turns} AI · {c.total_tokens} tokens
                         </span>
                         {flagged[c.id] && (
@@ -322,17 +322,17 @@ export default function AIChatPanel() {
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-ink-800 font-medium truncate">
+                      <p className="text-sm text-ink-800 dark:text-gray-200 font-medium truncate">
                         {c.first_question}
                       </p>
-                      <p className="text-xs text-ink-500 mt-0.5">
+                      <p className="text-xs text-ink-500 dark:text-gray-400 mt-0.5">
                         {c.profile?.full_name ?? 'Unknown'} · {c.profile?.email ?? c.user_id?.slice(0, 8) ?? 'no user'} ·{' '}
                         {fmt(c.last_at)}
                       </p>
                     </div>
                     <svg
                       width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                      className={`shrink-0 mt-1 text-ink-400 transition-transform ${expanded === c.id ? 'rotate-180' : ''}`}
+                      className={`shrink-0 mt-1 text-ink-400 dark:text-gray-500 transition-transform ${expanded === c.id ? 'rotate-180' : ''}`}
                       aria-hidden
                     >
                       <polyline points="6 9 12 15 18 9" />
@@ -341,17 +341,17 @@ export default function AIChatPanel() {
                 </button>
 
                 {expanded === c.id && (
-                  <div className="border-t border-ink-200 px-5 py-4 space-y-4 bg-ink-50/40">
+                  <div className="border-t border-ink-200 dark:border-gray-700 px-5 py-4 space-y-4 bg-ink-50/40 dark:bg-gray-900/40">
                     <div>
-                      <p className="text-xs font-semibold text-ink-500 uppercase tracking-wide mb-2">Transcript</p>
+                      <p className="text-xs font-semibold text-ink-500 dark:text-gray-400 uppercase tracking-wide mb-2">Transcript</p>
                       <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
                         {c.messages.map((m) => (
                           <div key={m.id} className={`flex gap-2 ${m.role === 'user' ? 'justify-end' : ''}`}>
                             <div
                               className={`max-w-[85%] rounded-xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${
                                 m.role === 'user'
-                                  ? 'bg-ink-900 text-white'
-                                  : 'bg-white text-ink-800 border border-ink-200'
+                                  ? 'bg-ink-900 dark:bg-brand-700 text-white'
+                                  : 'bg-white dark:bg-gray-800 text-ink-800 dark:text-gray-200 border border-ink-200 dark:border-gray-700'
                               }`}
                             >
                               {m.content}
@@ -385,7 +385,7 @@ export default function AIChatPanel() {
                       >
                         {flagged[c.id] ? 'Ticket raised' : flagging === c.id ? 'Flagging…' : 'Flag as support ticket'}
                       </button>
-                      <span className="text-[11px] text-ink-500">
+                      <span className="text-[11px] text-ink-500 dark:text-gray-400">
                         Started {fmt(c.started_at)}
                       </span>
                     </div>
@@ -396,23 +396,23 @@ export default function AIChatPanel() {
           </div>
         )
       ) : topQuestions.length === 0 ? (
-        <p className="text-ink-500 text-sm text-center py-12">
+        <p className="text-ink-500 dark:text-gray-400 text-sm text-center py-12">
           No repeated questions in this window. Widen the date range or wait for more usage.
         </p>
       ) : (
         <div className="space-y-2">
-          <p className="text-xs text-ink-500 mb-3">
+          <p className="text-xs text-ink-500 dark:text-gray-400 mb-3">
             User messages grouped by normalized text (lowercased, whitespace collapsed). Only shows
             questions asked ≥ {TOP_QUESTIONS_MIN_COUNT} times.
           </p>
           {topQuestions.map((q) => (
-            <div key={q.content} className="flex items-start gap-3 border border-ink-200 rounded-lg px-4 py-3 bg-white">
-              <span className="text-2xl font-bold text-brand-700 w-10 text-center shrink-0 leading-none mt-0.5">
+            <div key={q.content} className="flex items-start gap-3 border border-ink-200 dark:border-gray-700 rounded-lg px-4 py-3 bg-white dark:bg-gray-800">
+              <span className="text-2xl font-bold text-brand-700 dark:text-brand-300 w-10 text-center shrink-0 leading-none mt-0.5">
                 {q.count}
               </span>
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-ink-800 break-words">{q.content}</p>
-                <p className="text-[11px] text-ink-500 mt-0.5">Last seen {fmt(q.last_seen)}</p>
+                <p className="text-sm text-ink-800 dark:text-gray-200 break-words">{q.content}</p>
+                <p className="text-[11px] text-ink-500 dark:text-gray-400 mt-0.5">Last seen {fmt(q.last_seen)}</p>
               </div>
               <button
                 type="button"

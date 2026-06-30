@@ -46,11 +46,11 @@ export default function WaitlistPanel() {
       {rows == null ? (
         <ListSkeleton rows={5} variant="row" />
       ) : rows.length === 0 ? (
-        <p className="text-sm text-gray-600">Waitlist is empty.</p>
+        <p className="text-sm text-gray-600 dark:text-gray-300">Waitlist is empty.</p>
       ) : (
-        <table className="w-full text-sm">
+        <table className="w-full text-sm dark:text-gray-300">
           <thead>
-            <tr className="text-left text-gray-600 border-b">
+            <tr className="text-left text-gray-600 dark:text-gray-400 border-b dark:border-gray-700">
               <th className="py-2">Email</th>
               <th>Name</th>
               <th>Role</th>
@@ -60,7 +60,7 @@ export default function WaitlistPanel() {
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.id} className="border-b last:border-0">
+              <tr key={r.id} className="border-b dark:border-gray-700 last:border-0">
                 <td className="py-2">{r.email}</td>
                 <td>{r.full_name ?? '—'}</td>
                 <td>{r.intended_role ?? '—'}</td>

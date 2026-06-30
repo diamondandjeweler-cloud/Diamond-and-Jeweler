@@ -48,8 +48,8 @@ function SchedulingSectionImpl({
               <Card key={s.interview_id}>
                 <div className="p-5 flex flex-wrap items-center justify-between gap-4">
                   <div>
-                    <h3 className="font-display text-lg text-ink-900">{s.role_title}</h3>
-                    <div className="text-xs text-ink-500 mt-0.5">
+                    <h3 className="font-display text-lg text-ink-900 dark:text-white">{s.role_title}</h3>
+                    <div className="text-xs text-ink-500 dark:text-gray-400 mt-0.5">
                       {t('hrDash.candidate')} ·{' '}
                       {s.scheduled_at
                         ? new Date(s.scheduled_at).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur', dateStyle: 'medium', timeStyle: 'short' })
@@ -106,8 +106,8 @@ function SchedulingSectionImpl({
                 <div className="p-5">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <h3 className="font-display text-lg text-ink-900">{p.roles?.title}</h3>
-                      <div className="text-xs text-ink-500 mt-0.5 flex items-center gap-2">
+                      <h3 className="font-display text-lg text-ink-900 dark:text-white">{p.roles?.title}</h3>
+                      <div className="text-xs text-ink-500 dark:text-gray-400 mt-0.5 flex items-center gap-2">
                         <span>{t('hrDash.candidate')}</span>
                         <Badge tone="green">{t('hrDash.percentMatch', { pct: Math.round(p.compatibility_score ?? 0) })}</Badge>
                       </div>
@@ -117,7 +117,7 @@ function SchedulingSectionImpl({
                     )}
                   </div>
                   {schedulingId === p.id && (
-                    <div className="mt-5 grid md:grid-cols-3 gap-3 pt-5 border-t border-ink-100">
+                    <div className="mt-5 grid md:grid-cols-3 gap-3 pt-5 border-t border-ink-100 dark:border-gray-700">
                       <Input label={t('hrDash.dateTimeLabel')} type="datetime-local" value={scheduledAt} onChange={(e) => onSetScheduledAt(e.target.value)} />
                       <Select label={t('hrDash.formatLabel')} value={format} onChange={(e) => onSetFormat(e.target.value as typeof format)}>
                         <option value="video">{t('hrDash.format.video')}</option>

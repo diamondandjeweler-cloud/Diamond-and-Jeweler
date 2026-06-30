@@ -52,7 +52,7 @@ function ExtrasStepImpl({
 }: ExtrasStepProps) {
   return (
     <div className="space-y-6">
-      <p className="text-sm text-ink-600 leading-relaxed">
+      <p className="text-sm text-ink-600 dark:text-gray-300 leading-relaxed">
         {t('talentOnboard.extrasIntro')}
       </p>
 
@@ -92,7 +92,7 @@ function ExtrasStepImpl({
             setAvailableDaysPerWeek(Number.isFinite(n) ? Math.max(1, Math.min(7, n)) : '')
           }}
           placeholder={t('talentOnboard.daysPerWeekPlaceholder')}
-          className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="w-full border border-ink-200 dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-white dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
       </div>
 
@@ -105,7 +105,7 @@ function ExtrasStepImpl({
         onChange={setEnvironmentPreferences}
       />
 
-      <div className="pt-4 border-t border-ink-100">
+      <div className="pt-4 border-t border-ink-100 dark:border-gray-700">
         <NonNegotiablesInput
           text={priorityConcernsText}
           atoms={priorityConcernsAtoms}

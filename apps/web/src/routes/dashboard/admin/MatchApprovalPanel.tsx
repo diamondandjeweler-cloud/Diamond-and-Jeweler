@@ -243,9 +243,9 @@ export default function MatchApprovalPanel() {
   return (
     <div>
       {/* Autopilot toggle */}
-      <div className="flex items-center justify-between mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+      <div className="flex items-center justify-between mb-6 p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 rounded-lg">
         <div>
-          <p className="text-sm font-semibold text-amber-900">
+          <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
             {autopilot ? 'Autopilot mode — matches go live immediately' : 'Manual mode — all matches need your approval'}
           </p>
           <p className="text-xs text-amber-700 mt-0.5">
@@ -260,7 +260,7 @@ export default function MatchApprovalPanel() {
           className={`ml-4 px-4 py-2 rounded text-sm font-medium transition-colors ${
             autopilot
               ? 'bg-green-600 text-white hover:bg-green-700'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'
           }`}
         >
           {autopilotLoading ? '…' : autopilot ? 'Autopilot ON' : 'Manual mode'}
@@ -269,10 +269,10 @@ export default function MatchApprovalPanel() {
 
       {/* Header row */}
       <div className="flex items-center gap-3 mb-4">
-        <h2 className="text-sm font-semibold text-gray-800">
+        <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
           Pending approval{rows.length > 0 ? ` (${rows.length})` : ''}
         </h2>
-        <button onClick={() => void reload()} className="text-xs border px-2 py-1 rounded hover:bg-gray-50">
+        <button onClick={() => void reload()} className="text-xs border dark:border-gray-700 px-2 py-1 rounded hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-300">
           Refresh
         </button>
         {rows.length > 1 && (
@@ -288,7 +288,7 @@ export default function MatchApprovalPanel() {
       {err && <p className="text-sm text-red-600 mb-3">{err}</p>}
 
       {loading ? <ListSkeleton rows={5} variant="row" /> : rows.length === 0 ? (
-        <p className="text-sm text-gray-500">No matches pending approval.</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">No matches pending approval.</p>
       ) : (
         <div className="space-y-2">
           {rows.map((m) => {
@@ -300,23 +300,23 @@ export default function MatchApprovalPanel() {
               .slice(0, 5)
 
             return (
-              <div key={m.id} className="bg-white border rounded-lg overflow-hidden">
+              <div key={m.id} className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg overflow-hidden">
                 {/* Summary row */}
                 <div className="flex items-start gap-3 p-4">
                   <div className="flex-1 min-w-0">
                     {/* Role info */}
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium text-sm text-gray-900">
+                      <span className="font-medium text-sm text-gray-900 dark:text-white">
                         {m.roles?.title ?? '(role deleted)'}
                       </span>
                       {m.roles?.industry && (
-                        <span className="text-xs text-gray-500 border rounded px-1.5 py-0.5">
+                        <span className="text-xs text-gray-500 dark:text-gray-400 border dark:border-gray-700 rounded px-1.5 py-0.5">
                           {m.roles.industry}
                         </span>
                       )}
                     </div>
                     {m.roles?.description && (
-                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{m.roles.description}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">{m.roles.description}</p>
                     )}
 
                     {/* Scores row */}
@@ -327,7 +327,7 @@ export default function MatchApprovalPanel() {
                     </div>
 
                     {/* HM vs Talent profile signal */}
-                    <div className="flex gap-6 mt-2 text-xs text-gray-600">
+                    <div className="flex gap-6 mt-2 text-xs text-gray-600 dark:text-gray-400">
                       <span>
                         HM signal: <strong>{m.roles?.hiring_managers?.life_chart_character ?? '—'}</strong>
                       </span>
@@ -366,7 +366,7 @@ export default function MatchApprovalPanel() {
                     </button>
                     <button
                       onClick={() => toggleExpand(m)}
-                      className="px-3 py-1.5 bg-gray-50 text-gray-600 border text-xs rounded hover:bg-gray-100"
+                      className="px-3 py-1.5 bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border dark:border-gray-600 text-xs rounded hover:bg-gray-100 dark:hover:bg-gray-600"
                     >
                       {expanded === m.id ? 'Hide' : 'Details'}
                     </button>
@@ -375,16 +375,16 @@ export default function MatchApprovalPanel() {
 
                 {/* Expanded detail */}
                 {expanded === m.id && (
-                  <div className="border-t bg-gray-50 p-4 space-y-3">
+                  <div className="border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-4 space-y-3 dark:text-gray-300">
                     {/* DOB comparison */}
                     <div className="grid grid-cols-2 gap-4 text-xs">
-                      <div className="bg-white border rounded p-3">
-                        <p className="font-semibold text-gray-700 mb-1">Hiring Manager</p>
+                      <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded p-3">
+                        <p className="font-semibold text-gray-700 dark:text-gray-300 mb-1">Hiring Manager</p>
                         <p>Signal: <strong>{m.roles?.hiring_managers?.life_chart_character ?? '—'}</strong></p>
                         <p>DOB: {dobs ? (dobs.hm ?? 'not set') : 'Loading…'}</p>
                       </div>
-                      <div className="bg-white border rounded p-3">
-                        <p className="font-semibold text-gray-700 mb-1">Talent</p>
+                      <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded p-3">
+                        <p className="font-semibold text-gray-700 dark:text-gray-300 mb-1">Talent</p>
                         <p>Signal: <strong>{m.talents?.life_chart_character ?? '—'}</strong></p>
                         <p>DOB: {dobs ? (dobs.talent ?? 'not set') : 'Loading…'}</p>
                       </div>
@@ -393,12 +393,12 @@ export default function MatchApprovalPanel() {
                     {/* All tags */}
                     {Object.keys(tags).length > 0 && (
                       <div>
-                        <p className="text-xs font-semibold text-gray-600 mb-1.5">All talent strengths</p>
+                        <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5">All talent strengths</p>
                         <div className="flex gap-1.5 flex-wrap">
                           {Object.entries(tags)
                             .sort(([, a], [, b]) => b - a)
                             .map(([k, v]) => (
-                              <span key={k} className="text-xs bg-white border rounded px-1.5 py-0.5 text-gray-700">
+                              <span key={k} className="text-xs bg-white dark:bg-gray-800 border dark:border-gray-700 rounded px-1.5 py-0.5 text-gray-700 dark:text-gray-300">
                                 {TAG_LABELS[k] ?? k}: {Math.round(v * 100)}%
                               </span>
                             ))}
@@ -409,14 +409,14 @@ export default function MatchApprovalPanel() {
                     {/* Internal reasoning */}
                     {m.internal_reasoning && (
                       <div>
-                        <p className="text-xs font-semibold text-gray-600 mb-1">Scoring breakdown</p>
-                        <pre className="text-xs bg-white border rounded p-2 overflow-x-auto max-h-64">
+                        <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Scoring breakdown</p>
+                        <pre className="text-xs bg-white dark:bg-gray-800 border dark:border-gray-700 rounded p-2 overflow-x-auto max-h-64 dark:text-gray-300">
 {JSON.stringify(m.internal_reasoning, null, 2)}
                         </pre>
                       </div>
                     )}
 
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
                       Generated {new Date(m.created_at).toLocaleString()}
                     </p>
                   </div>

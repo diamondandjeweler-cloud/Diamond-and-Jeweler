@@ -62,7 +62,7 @@ function ReviewStepImpl({
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-ink-600 leading-relaxed">
+      <p className="text-sm text-ink-600 dark:text-gray-300 leading-relaxed">
         {t('talentOnboard.reviewIntroLead')} <strong>{t('talentOnboard.buildMyProfile')}</strong> {t('talentOnboard.reviewIntroTail')}
       </p>
 
@@ -97,7 +97,7 @@ function ReviewStepImpl({
       <button
         type="button"
         onClick={onBack}
-        className="w-full text-xs text-ink-400 hover:text-ink-600 py-1"
+        className="w-full text-xs text-ink-400 dark:text-gray-400 hover:text-ink-600 dark:hover:text-gray-300 py-1"
       >
         {t('talentOnboard.goBackChange')}
       </button>

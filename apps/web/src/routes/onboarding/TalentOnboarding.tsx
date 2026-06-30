@@ -608,7 +608,7 @@ export default function TalentOnboarding() {
       const nextPhase: Phase = chatDone ? (dobFilled ? 'docs' : 'dob') : 'chat'
       return (
         <div className="space-y-3">
-          <p className="text-sm text-ink-700 font-medium">{t('talentOnboard.resumeProgressIntro')}</p>
+          <p className="text-sm text-ink-700 dark:text-gray-300 font-medium">{t('talentOnboard.resumeProgressIntro')}</p>
           <div className="space-y-1.5">
             <ProgressStep label={t('talentOnboard.stepNameContact')} done={!!fullName} doneLabel={t('talentOnboard.stepDone')} nextLabel={t('talentOnboard.stepNext')} />
             <ProgressStep label={t('talentOnboard.stepChat')} done={chatDone} active={!chatDone} doneLabel={t('talentOnboard.stepDone')} nextLabel={t('talentOnboard.stepNext')} />
@@ -620,7 +620,7 @@ export default function TalentOnboarding() {
           </Button>
           <button
             type="button"
-            className="w-full text-xs text-ink-400 hover:text-ink-600 py-1"
+            className="w-full text-xs text-ink-400 dark:text-gray-400 hover:text-ink-600 dark:hover:text-gray-300 py-1"
             onClick={() => {
               if (draftKey) localStorage.removeItem(draftKey)
               setPhase('basics')
@@ -649,11 +649,11 @@ export default function TalentOnboarding() {
           }}
           className="space-y-3"
         >
-          <p className="text-sm text-ink-600">
+          <p className="text-sm text-ink-600 dark:text-gray-300">
             {t('talentOnboard.basicsIntro')}
           </p>
           <div>
-            <label htmlFor="talent-onboard-full-name" className="block text-sm font-medium text-ink-700 mb-1">{t('common.fullName')}</label>
+            <label htmlFor="talent-onboard-full-name" className="block text-sm font-medium text-ink-700 dark:text-gray-300 mb-1">{t('common.fullName')}</label>
             <input
               id="talent-onboard-full-name"
               type="text"
@@ -663,18 +663,18 @@ export default function TalentOnboarding() {
               // First wizard field; intentional focus on entry.
               // eslint-disable-next-line jsx-a11y/no-autofocus
               autoFocus
-              className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full border border-ink-200 dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-white dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
           <div>
-            <label htmlFor="talent-onboard-phone" className="block text-sm font-medium text-ink-700 mb-1">{t('common.phone')}</label>
+            <label htmlFor="talent-onboard-phone" className="block text-sm font-medium text-ink-700 dark:text-gray-300 mb-1">{t('common.phone')}</label>
             <input
               id="talent-onboard-phone"
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder={t('talentOnboard.phonePlaceholder')}
-              className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full border border-ink-200 dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-white dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
           <Button
@@ -690,7 +690,7 @@ export default function TalentOnboarding() {
               type="button"
               onClick={() => void handleSwitchToHiring()}
               disabled={switching}
-              className="text-xs text-ink-400 hover:text-ink-600 underline"
+              className="text-xs text-ink-400 dark:text-gray-400 hover:text-ink-600 dark:hover:text-gray-300 underline"
             >
               {switching ? t('talentOnboard.switching') : t('talentOnboard.switchToHiring')}
             </button>
@@ -723,7 +723,7 @@ export default function TalentOnboarding() {
             }
             rows={2}
             disabled={isStreaming}
-            className="flex-1 resize-none rounded-xl border border-ink-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:bg-ink-50"
+            className="flex-1 resize-none rounded-xl border border-ink-200 dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-white dark:placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:bg-ink-50 dark:disabled:bg-gray-700"
             // Active chat surface — autoFocus when entering this step is intentional.
             // eslint-disable-next-line jsx-a11y/no-autofocus
             autoFocus
@@ -833,7 +833,7 @@ export default function TalentOnboarding() {
     if (phase === 'docs') {
       return (
         <div className="space-y-3">
-          <p className="text-sm text-ink-600">
+          <p className="text-sm text-ink-600 dark:text-gray-300">
             {t('talentOnboard.docsIntro')}
           </p>
           <FileRow
@@ -869,7 +869,7 @@ export default function TalentOnboarding() {
             noFileLabel={t('talentOnboard.noFileSelected')}
             tooLargeLabel={(mb) => t('talentOnboard.fileTooLarge', { mb })}
           />
-          <p className="text-xs text-ink-500 italic">
+          <p className="text-xs text-ink-500 dark:text-gray-400 italic">
             {t('talentOnboard.nricNote')}
           </p>
           {err && <Alert tone="red">{err}</Alert>}
@@ -915,7 +915,7 @@ export default function TalentOnboarding() {
               <button
                 type="button"
                 onClick={() => { setErr(null); setPhase('review') }}
-                className="w-full text-xs text-ink-400 hover:text-ink-600 py-1"
+                className="w-full text-xs text-ink-400 dark:text-gray-400 hover:text-ink-600 dark:hover:text-gray-300 py-1"
               >{t('talentOnboard.backToReview')}</button>
             </>
           ) : (
@@ -926,8 +926,8 @@ export default function TalentOnboarding() {
                   <path className="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
               </div>
-              <p className="text-base font-medium text-ink-800">{t('talentOnboard.savingProfile')}</p>
-              <p className="text-sm text-ink-500 leading-relaxed max-w-xs mx-auto">
+              <p className="text-base font-medium text-ink-800 dark:text-gray-300">{t('talentOnboard.savingProfile')}</p>
+              <p className="text-sm text-ink-500 dark:text-gray-400 leading-relaxed max-w-xs mx-auto">
                 {t('talentOnboard.savingProfileHint')}
               </p>
             </>

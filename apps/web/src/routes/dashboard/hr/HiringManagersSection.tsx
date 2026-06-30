@@ -55,11 +55,11 @@ function HiringManagersSectionImpl({
               <div className="p-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-display text-base text-ink-900">
+                    <h3 className="font-display text-base text-ink-900 dark:text-white">
                       {h.is_self ? t('hrDash.you') : h.full_name}
                     </h3>
                   </div>
-                  <div className="text-xs text-ink-500 mt-0.5">
+                  <div className="text-xs text-ink-500 dark:text-gray-400 mt-0.5">
                     {h.job_title} · {t('hrDash.openRoleCount', { count: h.role_count })}
                   </div>
                 </div>
@@ -77,7 +77,7 @@ function HiringManagersSectionImpl({
       )}
 
       {!isSelfHM && (
-        <div className="mt-3 flex items-center gap-2 text-sm text-ink-600">
+        <div className="mt-3 flex items-center gap-2 text-sm text-ink-600 dark:text-gray-300">
           <span>{t('hrDash.alsoHmPrompt')}</span>
           <button
             type="button"

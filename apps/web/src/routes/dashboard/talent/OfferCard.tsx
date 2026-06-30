@@ -34,8 +34,8 @@ function OfferCardImpl({
       <div className="p-6">
         <div className="flex justify-between items-start gap-3 mb-3">
           <div>
-            <h3 className="font-display text-xl text-ink-900 mb-0.5">{m.roles?.title ?? t('talentDash.roleFallback')}</h3>
-            <div className="text-xs text-ink-500 flex gap-2 flex-wrap">
+            <h3 className="font-display text-xl text-ink-900 dark:text-white mb-0.5">{m.roles?.title ?? t('talentDash.roleFallback')}</h3>
+            <div className="text-xs text-ink-500 dark:text-gray-400 flex gap-2 flex-wrap">
               {m.roles?.location && <span>{m.roles.location}</span>}
               {m.roles?.work_arrangement && (<><span>·</span><span className="capitalize">{m.roles.work_arrangement}</span></>)}
             </div>
@@ -44,20 +44,20 @@ function OfferCardImpl({
         </div>
 
         {(m.roles?.salary_min || m.roles?.salary_max) && (
-          <div className="mb-3 text-sm text-ink-700">
+          <div className="mb-3 text-sm text-ink-700 dark:text-gray-300">
             <span className="font-medium">RM {fmt(m.roles?.salary_min)} – {fmt(m.roles?.salary_max)}</span>
-            <span className="text-ink-400"> {t('talentDash.perMonth')}</span>
+            <span className="text-ink-400 dark:text-gray-400"> {t('talentDash.perMonth')}</span>
           </div>
         )}
 
         {m.roles?.description && (
-          <p className="text-sm text-ink-600 line-clamp-3 mb-4">{m.roles.description}</p>
+          <p className="text-sm text-ink-600 dark:text-gray-300 line-clamp-3 mb-4">{m.roles.description}</p>
         )}
 
         {m.application_summary && (
           <div className="mb-3 border border-brand-100 rounded-lg p-3 bg-brand-50">
             <p className="text-xs font-semibold uppercase tracking-wide text-brand-700 mb-1">{t('talentDash.yourPitch')}</p>
-            <p className="text-sm text-ink-800 leading-relaxed whitespace-pre-line">{m.application_summary}</p>
+            <p className="text-sm text-ink-800 dark:text-gray-300 leading-relaxed whitespace-pre-line">{m.application_summary}</p>
           </div>
         )}
 
@@ -66,8 +66,8 @@ function OfferCardImpl({
         {m.roles?.employment_type && m.roles.employment_type !== 'full_time' && (
           <div className="mt-2">
             <Badge tone="accent">{m.roles.employment_type}</Badge>
-            {m.roles.hourly_rate != null && (<span className="ml-2 text-xs text-ink-500">RM {Number(m.roles.hourly_rate).toFixed(2)}/hr</span>)}
-            {m.roles.duration_days != null && (<span className="ml-2 text-xs text-ink-500">{m.roles.duration_days}d</span>)}
+            {m.roles.hourly_rate != null && (<span className="ml-2 text-xs text-ink-500 dark:text-gray-400">RM {Number(m.roles.hourly_rate).toFixed(2)}/hr</span>)}
+            {m.roles.duration_days != null && (<span className="ml-2 text-xs text-ink-500 dark:text-gray-400">{m.roles.duration_days}d</span>)}
           </div>
         )}
 
@@ -84,9 +84,9 @@ function OfferCardImpl({
                 const at = slot === 1 ? pendingProposal.slot_1_at : slot === 2 ? pendingProposal.slot_2_at : pendingProposal.slot_3_at
                 const busy = actionBusy === `${m.id}:accept_interview_slot:${slot}`
                 return (
-                  <div key={slot} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-brand-100 bg-white px-3 py-2">
-                    <div className="text-sm text-ink-900">
-                      <span className="text-xs text-ink-400 mr-2">{t('talentDash.slotLabel', { n: slot })}</span>
+                  <div key={slot} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-brand-100 bg-white dark:bg-gray-800 px-3 py-2">
+                    <div className="text-sm text-ink-900 dark:text-white">
+                      <span className="text-xs text-ink-400 dark:text-gray-400 mr-2">{t('talentDash.slotLabel', { n: slot })}</span>
                       {new Date(at).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur', dateStyle: 'medium', timeStyle: 'short' })} {t('talentDash.myt')}
                     </div>
                     <Button
@@ -115,15 +115,15 @@ function OfferCardImpl({
 
         {/* Interview rounds panel — visible once scheduling begins */}
         {rounds.length > 0 && (
-          <div className="mt-4 border border-ink-100 rounded-lg overflow-hidden">
-            <div className="bg-ink-50 px-3 py-2 text-xs font-semibold text-ink-600 uppercase tracking-wide">
+          <div className="mt-4 border border-ink-100 dark:border-gray-700 rounded-lg overflow-hidden">
+            <div className="bg-ink-50 dark:bg-gray-800 px-3 py-2 text-xs font-semibold text-ink-600 dark:text-gray-300 uppercase tracking-wide">
               {t('talentDash.yourInterviews')}
             </div>
             {rounds.map((r) => (
-              <div key={r.id} className="flex flex-wrap items-center justify-between gap-y-1 px-3 py-2 border-t border-ink-100 first:border-t-0">
+              <div key={r.id} className="flex flex-wrap items-center justify-between gap-y-1 px-3 py-2 border-t border-ink-100 dark:border-gray-700 first:border-t-0">
                 <div className="min-w-0 flex-1">
-                  <span className="text-xs font-medium text-ink-900">{t('talentDash.roundLabel', { n: r.round_number })}</span>
-                  <span className="text-xs text-ink-400 ml-2">
+                  <span className="text-xs font-medium text-ink-900 dark:text-white">{t('talentDash.roundLabel', { n: r.round_number })}</span>
+                  <span className="text-xs text-ink-400 dark:text-gray-400 ml-2">
                     {new Date(r.scheduled_at).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur', dateStyle: 'medium', timeStyle: 'short' })} {t('talentDash.myt')}
                   </span>
                 </div>
@@ -186,22 +186,22 @@ function OfferCardImpl({
 
           {/* Feedback widget */}
           {['interview_completed', 'offer_made', 'hired'].includes(m.status) && (
-            <div className="border border-ink-200 rounded-lg p-3 space-y-2 bg-ink-50">
-              <p className="text-xs font-semibold text-ink-700 uppercase tracking-wide">{t('talentDash.rateOpportunity')}</p>
+            <div className="border border-ink-200 dark:border-gray-700 rounded-lg p-3 space-y-2 bg-ink-50 dark:bg-gray-800">
+              <p className="text-xs font-semibold text-ink-700 dark:text-gray-300 uppercase tracking-wide">{t('talentDash.rateOpportunity')}</p>
               <div className="flex items-center gap-1">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
                     key={star}
                     type="button"
                     onClick={() => onFeedbackChange({ rating: star })}
-                    className={`text-xl leading-none transition-colors ${feedbackEntry.rating >= star ? 'text-amber-400' : 'text-ink-200 hover:text-amber-300'}`}
+                    className={`text-xl leading-none transition-colors ${feedbackEntry.rating >= star ? 'text-amber-400' : 'text-ink-200 dark:text-gray-600 hover:text-amber-300'}`}
                     aria-label={t('talentDash.starAria', { n: star })}
                   >
                     ★
                   </button>
                 ))}
                 {feedbackEntry.rating > 0 && (
-                  <span className="ml-2 text-xs text-ink-500">
+                  <span className="ml-2 text-xs text-ink-500 dark:text-gray-400">
                     {['', t('talentDash.ratePoor'), t('talentDash.rateBelowAverage'), t('talentDash.rateAverage'), t('talentDash.rateGood'), t('talentDash.rateExcellent')][feedbackEntry.rating]}
                   </span>
                 )}
@@ -209,7 +209,7 @@ function OfferCardImpl({
               <select
                 value={feedbackEntry.outcome}
                 onChange={(e) => onFeedbackChange({ outcome: e.target.value })}
-                className="w-full border border-ink-200 rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 bg-white"
+                className="w-full border border-ink-200 dark:border-gray-700 rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 bg-white dark:bg-gray-800 dark:text-gray-300"
               >
                 {TALENT_OUTCOME_KEYS.map((o) => <option key={o.value} value={o.value}>{o.emoji}{t(o.tKey)}</option>)}
               </select>
@@ -218,7 +218,7 @@ function OfferCardImpl({
                 onChange={(e) => onFeedbackChange({ freeText: e.target.value })}
                 placeholder={t('talentDash.feedbackPlaceholder')}
                 rows={2}
-                className="w-full border border-ink-200 rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 bg-white resize-none"
+                className="w-full border border-ink-200 dark:border-gray-700 rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 bg-white dark:bg-gray-800 dark:text-gray-300 dark:placeholder-gray-500 resize-none"
               />
               {feedbackEntry.saved ? (
                 <p className="text-xs text-emerald-600 font-medium">
@@ -267,7 +267,7 @@ function CompatibilityRing({ pct }: { pct: number }) {
   return (
     <div className="relative shrink-0" aria-label={t('talentDash.compatibilityAria', { pct })}>
       <svg width="52" height="52" viewBox="0 0 52 52">
-        <circle cx="26" cy="26" r={radius} stroke="currentColor" className="text-ink-100" strokeWidth="4" fill="none" />
+        <circle cx="26" cy="26" r={radius} stroke="currentColor" className="text-ink-100 dark:text-gray-700" strokeWidth="4" fill="none" />
         <circle
           cx="26" cy="26" r={radius}
           stroke="currentColor"

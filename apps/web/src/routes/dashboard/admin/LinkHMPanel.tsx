@@ -112,14 +112,14 @@ export default function LinkHMPanel() {
       {/* Floating HMs — search & link */}
       <section>
         <div className="flex items-center gap-3 mb-4">
-          <h2 className="text-sm font-semibold text-gray-800">
+          <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
             Unlinked hiring managers{(floaters?.length ?? 0) > 0 ? ` (${floaters!.length})` : ''}
           </h2>
-          <button onClick={() => void load()} className="text-xs border px-2 py-1 rounded hover:bg-gray-50">
+          <button onClick={() => void load()} className="text-xs border dark:border-gray-700 px-2 py-1 rounded hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-300">
             Refresh
           </button>
         </div>
-        <p className="text-xs text-gray-500 mb-4">
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
           These hiring managers signed up independently and have no company yet.
           Send a request (they must accept) or directly link them to your company.
         </p>
@@ -135,20 +135,20 @@ export default function LinkHMPanel() {
         {floaters == null ? (
           <ListSkeleton rows={3} variant="row" />
         ) : filtered.length === 0 ? (
-          <p className="text-sm text-gray-400">No unlinked hiring managers found.</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500">No unlinked hiring managers found.</p>
         ) : (
           <div className="space-y-2">
             {filtered.map((hm) => {
               const wasDone = done[hm.id]
               return (
-                <div key={hm.id} className="bg-white border rounded-lg p-4 flex items-center justify-between gap-4">
+                <div key={hm.id} className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg p-4 flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
                       {hm.profiles?.full_name ?? '(no name)'}
                     </p>
-                    <p className="text-xs text-gray-500">{hm.profiles?.email ?? '—'}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{hm.profiles?.email ?? '—'}</p>
                     {hm.job_title && (
-                      <p className="text-xs text-gray-400 mt-0.5">{hm.job_title}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{hm.job_title}</p>
                     )}
                   </div>
                   <div className="flex gap-2 shrink-0">
@@ -190,18 +190,18 @@ export default function LinkHMPanel() {
       {/* Already-linked HMs */}
       {(linked?.length ?? 0) > 0 && (
         <section>
-          <h2 className="text-sm font-semibold text-gray-800 mb-3">
+          <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">
             Your hiring managers ({linked!.length})
           </h2>
           <div className="space-y-2">
             {linked!.map((hm) => (
-              <div key={hm.id} className="bg-gray-50 border rounded-lg p-3 flex items-center gap-3">
+              <div key={hm.id} className="bg-gray-50 dark:bg-gray-800 border dark:border-gray-700 rounded-lg p-3 flex items-center gap-3">
                 <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold shrink-0">
                   {(hm.profiles?.full_name ?? '?')[0].toUpperCase()}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-800">{hm.profiles?.full_name ?? '—'}</p>
-                  <p className="text-xs text-gray-500">{hm.profiles?.email ?? '—'} {hm.job_title ? `· ${hm.job_title}` : ''}</p>
+                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{hm.profiles?.full_name ?? '—'}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{hm.profiles?.email ?? '—'} {hm.job_title ? `· ${hm.job_title}` : ''}</p>
                 </div>
               </div>
             ))}

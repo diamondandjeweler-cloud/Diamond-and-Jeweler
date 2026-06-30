@@ -80,14 +80,14 @@ const SEVERITY_TONE: Record<Category, string> = {
 }
 
 function ScoreBar({ score }: { score: number | null }) {
-  if (score == null) return <span className="text-xs text-gray-400">—</span>
+  if (score == null) return <span className="text-xs text-gray-400 dark:text-gray-500">—</span>
   const color = score >= 70 ? 'bg-red-500' : score >= 25 ? 'bg-amber-500' : 'bg-green-500'
   return (
     <div className="flex items-center gap-2 min-w-[120px]">
-      <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+      <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
         <div className={`h-full ${color}`} style={{ width: `${score}%` }} />
       </div>
-      <span className="text-xs font-mono text-gray-700 w-7 text-right">{score}</span>
+      <span className="text-xs font-mono text-gray-700 dark:text-gray-300 w-7 text-right">{score}</span>
     </div>
   )
 }
@@ -221,15 +221,15 @@ export default function ModerationPanel() {
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-4 border-b border-gray-200">
+      <div className="flex items-center gap-2 mb-4 border-b border-gray-200 dark:border-gray-700">
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`px-4 py-2 text-sm border-b-2 -mb-px transition ${
               tab === t.key
-                ? 'border-gray-900 text-gray-900 font-medium'
-                : 'border-transparent text-gray-500 hover:text-gray-800'
+                ? 'border-gray-900 dark:border-white text-gray-900 dark:text-white font-medium'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
             }`}
           >
             {t.label}
@@ -237,7 +237,7 @@ export default function ModerationPanel() {
               <span className={`ml-2 inline-flex items-center justify-center rounded-full text-xs px-1.5 min-w-[1.25rem] ${
                 t.tone === 'red' ? 'bg-red-100 text-red-700'
                 : t.tone === 'amber' ? 'bg-amber-100 text-amber-700'
-                : 'bg-gray-100 text-gray-700'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
               }`}>
                 {t.count}
               </span>
@@ -245,12 +245,12 @@ export default function ModerationPanel() {
           </button>
         ))}
         <div className="flex-1" />
-        <button onClick={() => { void reload(); void loadCounts() }} className="text-xs border px-2 py-1 rounded hover:bg-gray-50">
+        <button onClick={() => { void reload(); void loadCounts() }} className="text-xs border dark:border-gray-700 px-2 py-1 rounded hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-300">
           Refresh
         </button>
       </div>
 
-      <p className="text-xs text-gray-500 mb-4">
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
         Roles posted to the platform are screened by an AI classifier (keyword + LLM).
         Anything scoring 25–69 lands here; ≥ 70 goes to auto-rejected; ≥ 75 from the keyword
         prefilter is auto-rejected on the spot. Approve to release into matching, reject to
@@ -260,7 +260,7 @@ export default function ModerationPanel() {
       {err && <p className="text-sm text-red-600 mb-3">{err}</p>}
 
       {loading ? <ListSkeleton rows={5} variant="row" /> : rows.length === 0 ? (
-        <p className="text-sm text-gray-500">Nothing in this bucket.</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Nothing in this bucket.</p>
       ) : (
         <div className="space-y-2">
           {rows.map((r) => {
@@ -269,11 +269,11 @@ export default function ModerationPanel() {
             const employer = r.hiring_managers?.profiles
             const company = r.hiring_managers?.companies?.name
             return (
-              <div key={r.id} className="bg-white border rounded-lg overflow-hidden">
+              <div key={r.id} className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg overflow-hidden">
                 <div className="flex items-start gap-3 p-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium text-sm text-gray-900 truncate">{r.title}</span>
+                      <span className="font-medium text-sm text-gray-900 dark:text-white truncate">{r.title}</span>
                       <span className={`text-xs border rounded px-1.5 py-0.5 ${SEVERITY_TONE[cat]}`}>
                         {CATEGORY_LABELS[cat]}
                       </span>
@@ -283,10 +283,10 @@ export default function ModerationPanel() {
                         </span>
                       )}
                       {r.moderation_provider && (
-                        <span className="text-xs text-gray-400">via {r.moderation_provider}</span>
+                        <span className="text-xs text-gray-400 dark:text-gray-500">via {r.moderation_provider}</span>
                       )}
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       {company && <span>{company}</span>}
                       {company && employer && <span> · </span>}
                       {employer && <span>{employer.full_name ?? employer.email}</span>}
@@ -294,7 +294,7 @@ export default function ModerationPanel() {
                       <span>{new Date(r.created_at).toLocaleString()}</span>
                     </div>
                     {r.moderation_reason && (
-                      <p className="text-xs text-gray-700 mt-2 italic">"{r.moderation_reason}"</p>
+                      <p className="text-xs text-gray-700 dark:text-gray-300 mt-2 italic">"{r.moderation_reason}"</p>
                     )}
                     <div className="mt-2"><ScoreBar score={r.moderation_score} /></div>
                   </div>
@@ -315,7 +315,7 @@ export default function ModerationPanel() {
                     </button>
                     <button
                       onClick={() => toggleExpand(r)}
-                      className="px-3 py-1.5 bg-gray-50 text-gray-600 border text-xs rounded hover:bg-gray-100"
+                      className="px-3 py-1.5 bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border dark:border-gray-600 text-xs rounded hover:bg-gray-100 dark:hover:bg-gray-600"
                     >
                       {expanded === r.id ? 'Hide' : 'Details'}
                     </button>
@@ -323,10 +323,10 @@ export default function ModerationPanel() {
                 </div>
 
                 {expanded === r.id && (
-                  <div className="border-t bg-gray-50 p-4 space-y-3">
+                  <div className="border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-4 space-y-3">
                     {/* Posting body */}
-                    <div className="bg-white border rounded p-3 text-sm">
-                      <div className="grid grid-cols-2 gap-2 text-xs text-gray-500 mb-2">
+                    <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded p-3 text-sm">
+                      <div className="grid grid-cols-2 gap-2 text-xs text-gray-500 dark:text-gray-400 mb-2">
                         <div><strong>Industry:</strong> {r.industry ?? '—'}</div>
                         <div><strong>Department:</strong> {r.department ?? '—'}</div>
                         <div><strong>Location:</strong> {r.location ?? '—'}</div>
@@ -334,8 +334,8 @@ export default function ModerationPanel() {
                         <div><strong>Salary:</strong> RM {r.salary_min ?? '?'} – {r.salary_max ?? '?'}</div>
                         <div><strong>Hourly:</strong> {r.hourly_rate ? `RM ${r.hourly_rate}` : '—'}</div>
                       </div>
-                      <p className="text-sm text-gray-800 whitespace-pre-wrap">
-                        {r.description?.trim() || <em className="text-gray-400">No description provided.</em>}
+                      <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
+                        {r.description?.trim() || <em className="text-gray-400 dark:text-gray-500">No description provided.</em>}
                       </p>
                     </div>
 
@@ -354,7 +354,7 @@ export default function ModerationPanel() {
 
                     {/* Decision note */}
                     <div>
-                      <label htmlFor={`mod-note-${r.id}`} className="block text-xs font-semibold text-gray-700 mb-1">
+                      <label htmlFor={`mod-note-${r.id}`} className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
                         Decision note (optional, shown to employer)
                       </label>
                       <textarea
@@ -362,7 +362,7 @@ export default function ModerationPanel() {
                         rows={2}
                         value={reasonDraft[r.id] ?? ''}
                         onChange={(e) => setReasonDraft((p) => ({ ...p, [r.id]: e.target.value }))}
-                        className="w-full text-sm border rounded p-2"
+                        className="w-full text-sm border dark:border-gray-700 rounded p-2"
                         placeholder="e.g. Confirmed legitimate licensed forex broker — approved."
                       />
                     </div>
@@ -371,7 +371,7 @@ export default function ModerationPanel() {
                     <button
                       onClick={() => void recheck(r.id)}
                       disabled={processing === r.id}
-                      className="text-xs px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50"
+                      className="text-xs px-3 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-300 disabled:opacity-50"
                     >
                       Re-run AI classifier
                     </button>
@@ -379,10 +379,10 @@ export default function ModerationPanel() {
                     {/* Event history */}
                     {events[r.id] && events[r.id].length > 0 && (
                       <div>
-                        <p className="text-xs font-semibold text-gray-600 mb-1">History</p>
-                        <ul className="text-xs text-gray-700 space-y-1">
+                        <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">History</p>
+                        <ul className="text-xs text-gray-700 dark:text-gray-300 space-y-1">
                           {events[r.id].map((e) => (
-                            <li key={e.id} className="border-l-2 border-gray-200 pl-2">
+                            <li key={e.id} className="border-l-2 border-gray-200 dark:border-gray-700 pl-2">
                               <strong>{e.event_type}</strong>
                               {e.prev_status && e.new_status && (
                                 <span> — {e.prev_status} → {e.new_status}</span>
@@ -390,16 +390,16 @@ export default function ModerationPanel() {
                               {e.score != null && <span> · score {e.score}</span>}
                               {e.category && <span> · {e.category}</span>}
                               {e.provider && <span> · {e.provider}</span>}
-                              <span className="text-gray-400"> · {new Date(e.created_at).toLocaleString()}</span>
-                              {e.reason && <p className="text-gray-600 ml-1 italic">"{e.reason}"</p>}
+                              <span className="text-gray-400 dark:text-gray-500"> · {new Date(e.created_at).toLocaleString()}</span>
+                              {e.reason && <p className="text-gray-600 dark:text-gray-400 ml-1 italic">"{e.reason}"</p>}
                             </li>
                           ))}
                         </ul>
                       </div>
                     )}
 
-                    <div className="text-xs text-gray-400">
-                      <Link to={`/hm/roles/${r.id}/edit`} className="underline hover:text-gray-600">
+                    <div className="text-xs text-gray-400 dark:text-gray-500">
+                      <Link to={`/hm/roles/${r.id}/edit`} className="underline hover:text-gray-600 dark:hover:text-gray-300">
                         Open role editor →
                       </Link>
                     </div>

@@ -25,7 +25,7 @@ function ExpiryBannerImpl({
         <p className="text-xs text-red-600 mb-3">
           {t('talentDash.reactivateBody')}
         </p>
-        <ul className="text-xs text-ink-700 space-y-1 mb-4 list-disc list-inside">
+        <ul className="text-xs text-ink-700 dark:text-gray-300 space-y-1 mb-4 list-disc list-inside">
           <li>{t('talentDash.checkSalaryRange')}</li>
           <li>{t('talentDash.checkJobTypes')}</li>
           <li>{t('talentDash.checkNoticePeriod')}</li>
@@ -34,7 +34,7 @@ function ExpiryBannerImpl({
         <div className="flex gap-2 flex-wrap">
           <Button onClick={onReviveConfirm} loading={reviving} size="sm">{t('talentDash.confirmRevive')}</Button>
           <Link to="/talent/profile" className="btn-secondary text-xs px-3 py-1.5 rounded-md">{t('talentDash.updateFirst')}</Link>
-          <button onClick={onReviveCancel} className="text-xs text-ink-400 hover:text-ink-600 px-2">{t('talentDash.cancel')}</button>
+          <button onClick={onReviveCancel} className="text-xs text-ink-400 dark:text-gray-400 hover:text-ink-600 dark:hover:text-gray-300 px-2">{t('talentDash.cancel')}</button>
         </div>
       </div>
     )
@@ -55,7 +55,7 @@ function ExpiryBannerImpl({
       <p className="text-xs text-amber-600 mb-3">
         {t('talentDash.quickCheckBody')}
       </p>
-      <ul className="text-xs text-ink-700 space-y-1 mb-4 list-disc list-inside">
+      <ul className="text-xs text-ink-700 dark:text-gray-300 space-y-1 mb-4 list-disc list-inside">
         <li>{t('talentDash.checkSalaryRange')}</li>
         <li>{t('talentDash.checkJobTypes')}</li>
         <li>{t('talentDash.checkNoticePeriod')}</li>
@@ -64,7 +64,7 @@ function ExpiryBannerImpl({
       <div className="flex gap-2 flex-wrap">
         <Button onClick={onReviveConfirm} loading={reviving} size="sm" variant="secondary">{t('talentDash.confirmExtend')}</Button>
         <Link to="/talent/profile" className="btn-secondary text-xs px-3 py-1.5 rounded-md">{t('talentDash.updateFirst')}</Link>
-        <button onClick={onReviveCancel} className="text-xs text-ink-400 hover:text-ink-600 px-2">{t('talentDash.cancel')}</button>
+        <button onClick={onReviveCancel} className="text-xs text-ink-400 dark:text-gray-400 hover:text-ink-600 dark:hover:text-gray-300 px-2">{t('talentDash.cancel')}</button>
       </div>
     </div>
   )
@@ -93,22 +93,22 @@ function CareerHealthPanelImpl({ reputation }: {
       <div className="p-4">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500 mb-0.5">{t('talentDash.careerHealth')}</p>
-            <p className="text-xs text-ink-400">{t('talentDash.basedOnReviews', { count: reputation.feedback_volume })}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500 dark:text-gray-400 mb-0.5">{t('talentDash.careerHealth')}</p>
+            <p className="text-xs text-ink-400 dark:text-gray-400">{t('talentDash.basedOnReviews', { count: reputation.feedback_volume })}</p>
           </div>
           {score != null && <Badge tone={scoreTone as 'gray' | 'green' | 'amber' | 'brand' | 'accent' | 'red'}>{Math.round(score)} / 100</Badge>}
         </div>
         <div className="flex gap-6 flex-wrap">
           {reputation.phs_show_rate != null && (
             <div>
-              <p className="text-xs text-ink-500">{t('talentDash.interviewAttendance')}</p>
-              <p className="text-sm font-semibold text-ink-900">{Math.round(reputation.phs_show_rate * 100)}%</p>
+              <p className="text-xs text-ink-500 dark:text-gray-400">{t('talentDash.interviewAttendance')}</p>
+              <p className="text-sm font-semibold text-ink-900 dark:text-white">{Math.round(reputation.phs_show_rate * 100)}%</p>
             </div>
           )}
           {reputation.phs_accept_rate != null && (
             <div>
-              <p className="text-xs text-ink-500">{t('talentDash.offerAcceptance')}</p>
-              <p className="text-sm font-semibold text-ink-900">{Math.round(reputation.phs_accept_rate * 100)}%</p>
+              <p className="text-xs text-ink-500 dark:text-gray-400">{t('talentDash.offerAcceptance')}</p>
+              <p className="text-sm font-semibold text-ink-900 dark:text-white">{Math.round(reputation.phs_accept_rate * 100)}%</p>
             </div>
           )}
         </div>
@@ -133,8 +133,8 @@ function ProfileCompletenessBarImpl({ gaps }: { gaps: string[] }) {
       <div className="p-4">
         <div className="flex items-center justify-between mb-2">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">{t('talentDash.completenessTitle')}</p>
-            <p className="text-xs text-ink-400 mt-0.5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500 dark:text-gray-400">{t('talentDash.completenessTitle')}</p>
+            <p className="text-xs text-ink-400 dark:text-gray-400 mt-0.5">
               {pct >= 80
                 ? t('talentDash.completenessHigh')
                 : pct >= 50
@@ -146,7 +146,7 @@ function ProfileCompletenessBarImpl({ gaps }: { gaps: string[] }) {
             {pct}%
           </span>
         </div>
-        <div className="h-2 bg-ink-100 rounded-full overflow-hidden mb-3">
+        <div className="h-2 bg-ink-100 dark:bg-gray-700 rounded-full overflow-hidden mb-3">
           <div className={`h-full rounded-full transition-all ${barTone}`} style={{ width: `${pct}%` }} />
         </div>
         {gaps.length > 0 && (

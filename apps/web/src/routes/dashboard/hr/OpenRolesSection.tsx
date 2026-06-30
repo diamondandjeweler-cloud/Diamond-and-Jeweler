@@ -47,8 +47,8 @@ function OpenRolesSectionImpl({
             <Card key={r.id}>
               <div className="p-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h3 className="font-display text-base text-ink-900">{r.title}</h3>
-                  <div className="text-xs text-ink-500 mt-0.5">{r.hm_name}</div>
+                  <h3 className="font-display text-base text-ink-900 dark:text-white">{r.title}</h3>
+                  <div className="text-xs text-ink-500 dark:text-gray-400 mt-0.5">{r.hm_name}</div>
                 </div>
               </div>
             </Card>

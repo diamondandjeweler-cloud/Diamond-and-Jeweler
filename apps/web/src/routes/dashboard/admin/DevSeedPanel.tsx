@@ -222,9 +222,9 @@ export default function DevSeedPanel() {
       {err && <p className="mb-3 text-sm text-red-600">{err}</p>}
       {msg && <p className="mb-3 text-sm text-green-700">{msg}</p>}
 
-      <div className="overflow-x-auto rounded border bg-white">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50">
+      <div className="overflow-x-auto rounded border dark:border-gray-700 bg-white dark:bg-gray-800">
+        <table className="w-full text-sm dark:text-gray-300">
+          <thead className="bg-gray-50 dark:bg-gray-900">
             <tr className="text-left">
               <th className="px-3 py-2 font-medium">Tester</th>
               <th className="px-3 py-2 font-medium">Email</th>
@@ -235,12 +235,12 @@ export default function DevSeedPanel() {
           </thead>
           <tbody>
             {talents.length === 0 && (
-              <tr><td colSpan={5} className="px-3 py-4 text-center text-gray-500">
+              <tr><td colSpan={5} className="px-3 py-4 text-center text-gray-500 dark:text-gray-400">
                 No <code>@{TEST_DOMAIN}</code> talents found. Run the tester seed first.
               </td></tr>
             )}
             {talents.map((t) => (
-              <tr key={t.talent_id} className="border-t">
+              <tr key={t.talent_id} className="border-t dark:border-gray-700">
                 <td className="px-3 py-2">{t.full_name}</td>
                 <td className="px-3 py-2 font-mono text-xs">{t.email}</td>
                 <td className="px-3 py-2">{t.has_parsed_resume ? '✓' : '—'}</td>
@@ -250,7 +250,7 @@ export default function DevSeedPanel() {
                     type="button"
                     onClick={() => void seedTalent(t)}
                     disabled={busyId === t.talent_id}
-                    className="rounded border px-2 py-1 text-xs hover:bg-gray-50 disabled:opacity-50"
+                    className="rounded border dark:border-gray-700 px-2 py-1 text-xs hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 disabled:opacity-50"
                   >
                     {busyId === t.talent_id ? 'Working…' : 'Seed'}
                   </button>
@@ -259,7 +259,7 @@ export default function DevSeedPanel() {
                       type="button"
                       onClick={() => void clearTalent(t)}
                       disabled={busyId === t.talent_id}
-                      className="ml-2 rounded border px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50"
+                      className="ml-2 rounded border dark:border-gray-700 px-2 py-1 text-xs text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 disabled:opacity-50"
                     >
                       Clear
                     </button>

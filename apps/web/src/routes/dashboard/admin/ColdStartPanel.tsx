@@ -125,12 +125,12 @@ export default function ColdStartPanel() {
 
   return (
     <div>
-      <p className="text-sm text-gray-600 mb-4">
+      <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
         Roles flagged by <code>match-generate</code> because the algorithm found
         fewer than three eligible talents. Manually pair up to 3 talents per role.
       </p>
       {activeTalents !== null && (
-        <p className="text-xs text-gray-500 mb-3">
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
           Active talents: <strong>{activeTalents}</strong>
           {autoSwitchReached
             ? ` · Auto-switch reached (≥ ${COLD_START_AUTO_SWITCH_THRESHOLD}). Manual seeding disabled per v4 §17; the algorithm now handles matching on its own.`
@@ -139,15 +139,15 @@ export default function ColdStartPanel() {
       )}
       {err && <p className="text-sm text-red-600 mb-3">{err}</p>}
       {rows.length === 0 ? (
-        <p className="text-sm text-gray-500">Cold-start queue is empty.</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Cold-start queue is empty.</p>
       ) : (
         <div className="space-y-3">
           {rows.map((r) => (
-            <div key={r.queue_id} className="bg-white border rounded p-4">
+            <div key={r.queue_id} className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded p-4">
               <div className="flex justify-between items-center">
                 <div>
-                  <div className="font-semibold">{r.title}</div>
-                  <div className="text-xs text-gray-500">
+                  <div className="font-semibold dark:text-white">{r.title}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
                     Traits: {r.required_traits.join(', ') || '—'} · Queued{' '}
                     {new Date(r.created_at).toLocaleDateString()}
                   </div>
@@ -163,15 +163,15 @@ export default function ColdStartPanel() {
               </div>
 
               {openRoleId === r.role_id && (
-                <div className="mt-3 border-t pt-3">
+                <div className="mt-3 border-t dark:border-gray-700 pt-3">
                   {talents.length === 0 ? (
-                    <p className="text-xs text-gray-500">No eligible talents in the pool right now.</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">No eligible talents in the pool right now.</p>
                   ) : (
                     <>
-                      <p className="text-xs text-gray-500 mb-2">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                         Pick up to 3. {selected.size} selected.
                       </p>
-                      <ul className="max-h-64 overflow-y-auto divide-y">
+                      <ul className="max-h-64 overflow-y-auto divide-y dark:divide-gray-700">
                         {talents.map((t) => (
                           <li key={t.id} className="py-2 flex items-center gap-2">
                             <input
@@ -181,9 +181,9 @@ export default function ColdStartPanel() {
                               disabled={!selected.has(t.id) && selected.size >= 3}
                               aria-label={`Select talent ${t.id.slice(0, 8)}`}
                             />
-                            <div className="flex-1 text-sm">
+                            <div className="flex-1 text-sm dark:text-gray-300">
                               <div>Talent #{t.id.slice(0, 8)}</div>
-                              <div className="text-xs text-gray-500">
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
                                 Expects: RM {t.expected_salary_min ?? '—'} – {t.expected_salary_max ?? '—'} ·{' '}
                                 Tags: {Object.keys(t.derived_tags ?? {}).slice(0, 4).join(', ') || '—'}
                               </div>

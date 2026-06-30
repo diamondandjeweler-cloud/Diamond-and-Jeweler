@@ -103,8 +103,8 @@ export default function MonthlyBoostPanel() {
   return (
     <div className="max-w-md space-y-6">
       <div>
-        <h2 className="text-sm font-semibold text-gray-800 mb-1">Monthly character boost</h2>
-        <p className="text-xs text-gray-500">
+        <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Monthly character boost</h2>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
           Select 2–3 characters to prioritise in matching for the chosen month.
           Submit on the 1st of the month. Previous selections are not shown for security.
         </p>
@@ -119,7 +119,7 @@ export default function MonthlyBoostPanel() {
             className={`flex-1 border rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
               month === m
                 ? 'bg-brand-500 text-white border-brand-500'
-                : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+                : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
             }`}
           >
             {formatMonthLabel(m)}
@@ -129,24 +129,24 @@ export default function MonthlyBoostPanel() {
 
       {/* Existing submission notice */}
       {checking ? (
-        <p className="text-xs text-gray-400">Checking…</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500">Checking…</p>
       ) : submittedAt ? (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
+        <div className="rounded-lg border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-950/40 px-3 py-2.5 text-xs text-amber-800 dark:text-amber-200">
           <strong>Already submitted</strong> for {formatMonthLabel(month)}{' '}
           on {new Date(submittedAt).toLocaleString('en-MY')}.{' '}
           You can overwrite by selecting new characters below.
         </div>
       ) : (
-        <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-xs text-gray-500">
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">
           No submission yet for {formatMonthLabel(month)}.
         </div>
       )}
 
       {/* Character grid */}
       <div>
-        <p className="text-xs font-medium text-gray-600 mb-2">
+        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
           Select 2–3 characters{' '}
-          <span className={selected.length >= 3 ? 'text-amber-600' : 'text-gray-400'}>
+          <span className={selected.length >= 3 ? 'text-amber-600' : 'text-gray-400 dark:text-gray-500'}>
             ({selected.length}/3)
           </span>
         </p>
@@ -165,8 +165,8 @@ export default function MonthlyBoostPanel() {
                   active
                     ? 'bg-brand-500 text-white border-brand-500 shadow-sm'
                     : disabled
-                      ? 'border-gray-100 text-gray-300 cursor-not-allowed'
-                      : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+                      ? 'border-gray-100 dark:border-gray-800 text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                      : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                 }`}
               >
                 {c}

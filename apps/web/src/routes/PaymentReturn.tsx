@@ -101,10 +101,10 @@ export default function PaymentReturn() {
           {purchaseId && status === 'pending' && (
             <div className="text-center py-6">
               <Spinner />
-              <p className="mt-3 text-sm text-ink-600">
+              <p className="mt-3 text-sm text-ink-600 dark:text-gray-300">
                 Waiting for Billplz to confirm your payment… (attempt {tries}/10)
               </p>
-              <p className="mt-1 text-xs text-ink-400">
+              <p className="mt-1 text-xs text-ink-400 dark:text-gray-400">
                 You can safely leave — we'll email you the moment it's confirmed.
               </p>
             </div>
@@ -130,7 +130,7 @@ export default function PaymentReturn() {
           )}
 
           {isMock && import.meta.env.DEV && (status === 'pending' || status === 'timeout') && purchaseId && (
-            <div className="mt-4 pt-4 border-t border-ink-100">
+            <div className="mt-4 pt-4 border-t border-ink-100 dark:border-gray-700">
               <p className="text-xs text-amber-700 mb-2">
                 <strong>Dev mode:</strong> Click below to simulate a paid webhook (only works when Billplz credentials are not configured).
               </p>

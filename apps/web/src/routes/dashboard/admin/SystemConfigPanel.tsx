@@ -192,7 +192,7 @@ export default function SystemConfigPanel() {
   if (loading) return <FormSkeleton fields={8} />
   return (
     <div>
-      <p className="text-sm text-gray-600 mb-4">
+      <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
         Runtime-tunable platform settings. Values are JSON — see{' '}
         <code>supabase/seed.sql</code> for examples.
       </p>
@@ -200,10 +200,10 @@ export default function SystemConfigPanel() {
         {rows.map((r) => {
           const secret = isSecretKey(r.key)
           return (
-            <div key={r.key} className="bg-white border rounded p-4">
+            <div key={r.key} className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded p-4">
               <div className="flex justify-between items-start">
                 <div>
-                  <code className="text-sm font-semibold">{r.key}</code>
+                  <code className="text-sm font-semibold dark:text-white">{r.key}</code>
                   {secret && (
                     <span className="ml-2 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
                       Secret · managed externally
@@ -218,11 +218,11 @@ export default function SystemConfigPanel() {
                     </span>
                   )}
                   {!secret && KEY_VALIDATORS[r.key] && (
-                    <div className="text-[11px] text-ink-500 mt-1 italic">
+                    <div className="text-[11px] text-ink-500 dark:text-gray-400 mt-1 italic">
                       Expected: {KEY_VALIDATORS[r.key].hint}
                     </div>
                   )}
-                  <div className="text-xs text-gray-400">
+                  <div className="text-xs text-gray-400 dark:text-gray-500">
                     updated {new Date(r.updated_at).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur' })}
                   </div>
                 </div>
@@ -237,7 +237,7 @@ export default function SystemConfigPanel() {
                 )}
               </div>
               {secret ? (
-                <p className="mt-2 text-xs text-ink-600 bg-ink-50 border border-ink-200 rounded px-3 py-2">
+                <p className="mt-2 text-xs text-ink-600 dark:text-gray-400 bg-ink-50 dark:bg-gray-900 border border-ink-200 dark:border-gray-700 rounded px-3 py-2">
                   This value holds a credential. To prevent admin-to-admin secret reads it is not editable here —
                   set it via the Vercel / Supabase env or directly in SQL with the service role.
                 </p>
@@ -246,7 +246,7 @@ export default function SystemConfigPanel() {
                   value={drafts[r.key] ?? ''}
                   onChange={(e) => setDrafts((x) => ({ ...x, [r.key]: e.target.value }))}
                   rows={Math.min(10, (drafts[r.key]?.split('\n').length ?? 2))}
-                  className="w-full border rounded px-3 py-2 mt-2 font-mono text-xs"
+                  className="w-full border dark:border-gray-700 rounded px-3 py-2 mt-2 font-mono text-xs"
                   spellCheck={false}
                   aria-label={`Value for ${r.key}`}
                 />

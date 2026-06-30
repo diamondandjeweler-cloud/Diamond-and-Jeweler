@@ -73,7 +73,7 @@ export function Card({
 }) {
   const base = elevated ? 'card-elevated' : 'card'
   return (
-    <Tag className={`${base} ${hoverable ? 'card-hover' : ''} ${className ?? ''}`}>
+    <Tag className={`${base} dark:bg-gray-800 dark:border-gray-700 ${hoverable ? 'card-hover' : ''} ${className ?? ''}`}>
       {children}
     </Tag>
   )
@@ -95,8 +95,8 @@ export function CardHeader({
     <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-3">
       <div className="min-w-0">
         {eyebrow && <div className="eyebrow mb-1">{eyebrow}</div>}
-        <h2 className="font-display text-xl text-ink-900 truncate">{title}</h2>
-        {subtitle && <p className="mt-1 text-sm text-ink-500">{subtitle}</p>}
+        <h2 className="font-display text-xl text-ink-900 dark:text-white truncate">{title}</h2>
+        {subtitle && <p className="mt-1 text-sm text-ink-500 dark:text-gray-400">{subtitle}</p>}
       </div>
       {right && <div className="shrink-0">{right}</div>}
     </div>
@@ -139,12 +139,12 @@ export function Field({
   return (
     <div className="field mb-3">
       {label && (
-        <label htmlFor={id} className="field-label">
+        <label htmlFor={id} className="field-label dark:text-gray-300">
           {label}{required && <span className="text-red-500 ml-0.5">*</span>}
         </label>
       )}
       {isValidElement(children) ? cloneElement(children as ReactElement, { id }) : children}
-      {error ? <p className="field-error">{error}</p> : hint ? <p className="field-hint">{hint}</p> : null}
+      {error ? <p className="field-error">{error}</p> : hint ? <p className="field-hint dark:text-gray-400">{hint}</p> : null}
     </div>
   )
 }
@@ -185,7 +185,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, Omit<InputHTMLAttribut
     return (
       <div className="field mb-3">
         {label && (
-          <label htmlFor={id} className="field-label">
+          <label htmlFor={id} className="field-label dark:text-gray-300">
             {label}{required && <span className="text-red-500 ml-0.5">*</span>}
           </label>
         )}
@@ -203,12 +203,12 @@ export const PasswordInput = forwardRef<HTMLInputElement, Omit<InputHTMLAttribut
             tabIndex={-1}
             aria-label={show ? 'Hide password' : 'Show password'}
             onClick={() => setShow((s) => !s)}
-            className="absolute inset-y-0 right-0 flex items-center pr-3 text-ink-400 hover:text-ink-600"
+            className="absolute inset-y-0 right-0 flex items-center pr-3 text-ink-400 dark:text-gray-500 hover:text-ink-600 dark:hover:text-gray-300"
           >
             {show ? <EyeOffIcon /> : <EyeIcon />}
           </button>
         </div>
-        {error ? <p className="field-error">{error}</p> : hint ? <p className="field-hint">{hint}</p> : null}
+        {error ? <p className="field-error">{error}</p> : hint ? <p className="field-hint dark:text-gray-400">{hint}</p> : null}
       </div>
     )
   },
@@ -245,11 +245,11 @@ export function EmptyState({
 }) {
   return (
     <div className="text-center py-14 px-6">
-      <div className="mx-auto mb-4 h-12 w-12 flex items-center justify-center rounded-full bg-ink-100 text-ink-400">
+      <div className="mx-auto mb-4 h-12 w-12 flex items-center justify-center rounded-full bg-ink-100 dark:bg-gray-700 text-ink-400 dark:text-gray-400">
         {icon ?? <DefaultEmptyIcon />}
       </div>
-      <h3 className="font-display text-lg text-ink-900 mb-1">{title}</h3>
-      {description && <p className="text-sm text-ink-500 mb-4 max-w-sm mx-auto">{description}</p>}
+      <h3 className="font-display text-lg text-ink-900 dark:text-white mb-1">{title}</h3>
+      {description && <p className="text-sm text-ink-500 dark:text-gray-400 mb-4 max-w-sm mx-auto">{description}</p>}
       {action}
     </div>
   )
@@ -278,8 +278,8 @@ export function PageHeader({
     <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8">
       <div className="min-w-0">
         {eyebrow && <div className="eyebrow mb-2">{eyebrow}</div>}
-        <h1 className="font-display text-display-sm text-ink-900 mb-1.5 leading-tight">{title}</h1>
-        {description && <p className="text-ink-500 text-sm md:text-[15px] max-w-2xl">{description}</p>}
+        <h1 className="font-display text-display-sm text-ink-900 dark:text-white mb-1.5 leading-tight">{title}</h1>
+        {description && <p className="text-ink-500 dark:text-gray-400 text-sm md:text-[15px] max-w-2xl">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
     </div>
@@ -302,7 +302,7 @@ export function Stat({
     tone === 'accent'  ? 'text-accent-600' :
     tone === 'success' ? 'text-emerald-700' :
     tone === 'danger'  ? 'text-red-700' :
-    'text-ink-900'
+    'text-ink-900 dark:text-white'
   const ringClass =
     tone === 'brand'   ? 'before:bg-brand-500/[0.04]' :
     tone === 'accent'  ? 'before:bg-accent-500/[0.05]' :
@@ -310,13 +310,13 @@ export function Stat({
     tone === 'danger'  ? 'before:bg-red-500/[0.04]' :
     ''
   return (
-    <div className={`stat ${ringClass}`}>
+    <div className={`stat dark:bg-gray-800 ${ringClass}`}>
       <div className="flex items-start justify-between gap-2 relative">
-        <div className="stat-label">{label}</div>
-        {icon && <div className="text-ink-300">{icon}</div>}
+        <div className="stat-label dark:text-gray-400">{label}</div>
+        {icon && <div className="text-ink-300 dark:text-gray-500">{icon}</div>}
       </div>
       <div className={`stat-value relative ${valueClass}`}>{value}</div>
-      {hint && <div className="stat-hint relative">{hint}</div>}
+      {hint && <div className="stat-hint relative dark:text-gray-400">{hint}</div>}
     </div>
   )
 }
@@ -332,16 +332,16 @@ export function Alert({
   icon?: ReactNode
 }) {
   const map = {
-    brand: 'bg-brand-50 border-brand-200/70 text-brand-900',
-    amber: 'bg-amber-50 border-amber-200/70 text-amber-900',
-    red:   'bg-red-50 border-red-200/70 text-red-900',
-    green: 'bg-emerald-50 border-emerald-200/70 text-emerald-900',
+    brand: 'bg-brand-50 border-brand-200/70 text-brand-900 dark:bg-brand-950/40 dark:border-brand-800/50 dark:text-brand-100',
+    amber: 'bg-amber-50 border-amber-200/70 text-amber-900 dark:bg-amber-950/40 dark:border-amber-800/50 dark:text-amber-100',
+    red:   'bg-red-50 border-red-200/70 text-red-900 dark:bg-red-950/40 dark:border-red-800/50 dark:text-red-100',
+    green: 'bg-emerald-50 border-emerald-200/70 text-emerald-900 dark:bg-emerald-950/40 dark:border-emerald-800/50 dark:text-emerald-100',
   } as const
   const iconColor = {
-    brand: 'text-brand-600',
-    amber: 'text-amber-600',
-    red:   'text-red-600',
-    green: 'text-emerald-600',
+    brand: 'text-brand-600 dark:text-brand-300',
+    amber: 'text-amber-600 dark:text-amber-300',
+    red:   'text-red-600 dark:text-red-300',
+    green: 'text-emerald-600 dark:text-emerald-300',
   } as const
   return (
     <div className={`rounded-xl border px-4 py-3 text-sm ${map[tone]} flex items-start gap-3`} role="alert">
@@ -380,7 +380,7 @@ export function SectionTitle({
     <div className="flex items-center justify-between gap-4 mb-4">
       <div>
         {eyebrow && <div className="eyebrow mb-1">{eyebrow}</div>}
-        <h2 className="font-display text-xl text-ink-900">{title}</h2>
+        <h2 className="font-display text-xl text-ink-900 dark:text-white">{title}</h2>
       </div>
       {action}
     </div>

@@ -530,7 +530,7 @@ export default function PostRole() {
                   type="button"
                   onClick={() => void generateDraft()}
                   disabled={drafting || !title.trim()}
-                  className="text-xs px-2.5 py-1 rounded-md border border-ink-200 text-ink-700 hover:border-ink-400 hover:text-ink-900 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  className="text-xs px-2.5 py-1 rounded-md border border-ink-200 dark:border-gray-700 text-ink-700 dark:text-gray-300 hover:border-ink-400 dark:hover:border-gray-500 hover:text-ink-900 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition"
                   title={!title.trim() ? 'Type a role title first' : 'Generate a starter draft from the title'}
                 >
                   {drafting ? 'Drafting…' : description ? 'Regenerate draft' : 'Generate draft'}
@@ -621,8 +621,8 @@ export default function PostRole() {
                 className="mt-0.5"
               />
               <span>
-                <span className="font-medium text-ink-900">Open to applicants without prior experience in this field.</span>
-                <span className="block text-xs text-ink-500 mt-0.5">
+                <span className="font-medium text-ink-900 dark:text-white">Open to applicants without prior experience in this field.</span>
+                <span className="block text-xs text-ink-500 dark:text-gray-400 mt-0.5">
                   Off-field candidates won&apos;t be filtered out. Senior / lead roles still require relevant background unless this is checked.
                 </span>
               </span>
@@ -831,10 +831,10 @@ export default function PostRole() {
 
           {err && <Alert tone="red">{err}</Alert>}
 
-          <div className="flex gap-2 justify-between pt-4 border-t border-ink-100">
+          <div className="flex gap-2 justify-between pt-4 border-t border-ink-100 dark:border-gray-700">
             <Button type="button" variant="secondary" onClick={() => navigate('/hm')} disabled={busy}>Cancel</Button>
             <div className="flex items-center gap-3">
-              {(draftSaved || cloudSaved) && <span className="text-xs text-ink-400">{cloudSaved ? 'Cloud saved' : 'Draft saved'}</span>}
+              {(draftSaved || cloudSaved) && <span className="text-xs text-ink-400 dark:text-gray-400">{cloudSaved ? 'Cloud saved' : 'Draft saved'}</span>}
               <Button type="button" variant="secondary" onClick={() => void saveToCloud()} loading={dbDraftSaving} disabled={!hmId || busy}>
                 Save draft
               </Button>

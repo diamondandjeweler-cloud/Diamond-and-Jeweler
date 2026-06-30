@@ -101,13 +101,13 @@ export default function ScreeningChecklist({ reasoning, salaryMin, salaryMax }: 
   }
 
   return (
-    <div className="mt-3 border border-ink-100 rounded-lg overflow-hidden">
+    <div className="mt-3 border border-ink-100 dark:border-gray-700 rounded-lg overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center justify-between w-full px-3 py-2.5 bg-ink-50 hover:bg-ink-100 text-left transition-colors"
+        className="flex items-center justify-between w-full px-3 py-2.5 bg-ink-50 dark:bg-gray-800 hover:bg-ink-100 dark:hover:bg-gray-700 text-left transition-colors"
         aria-expanded={open}
       >
-        <span className="flex items-center gap-2 text-xs font-semibold text-ink-700 uppercase tracking-wide">
+        <span className="flex items-center gap-2 text-xs font-semibold text-ink-700 dark:text-gray-300 uppercase tracking-wide">
           <span>📋</span>
           Pre-screening checklist
           {doneCount > 0 && (
@@ -116,28 +116,28 @@ export default function ScreeningChecklist({ reasoning, salaryMin, salaryMax }: 
             </span>
           )}
         </span>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className={`transition-transform text-ink-400 ${open ? 'rotate-180' : ''}`} aria-hidden>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className={`transition-transform text-ink-400 dark:text-gray-500 ${open ? 'rotate-180' : ''}`} aria-hidden>
           <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
 
       {open && (
         <div className="p-3 space-y-2">
-          <p className="text-xs text-ink-500 mb-3">Auto-generated from platform signals. Tick off as you go.</p>
+          <p className="text-xs text-ink-500 dark:text-gray-400 mb-3">Auto-generated from platform signals. Tick off as you go.</p>
           {items.map((item, i) => (
             <label key={i} className="flex items-start gap-2.5 cursor-pointer group">
               <input
                 type="checkbox"
                 checked={checked[i] ?? false}
                 onChange={() => toggle(i)}
-                className="mt-0.5 rounded border-ink-300 accent-emerald-600 shrink-0"
+                className="mt-0.5 rounded border-ink-300 dark:border-gray-600 accent-emerald-600 shrink-0"
               />
-              <span className={`text-xs leading-snug ${checked[i] ? 'line-through text-ink-400' : 'text-ink-700'}`}>
+              <span className={`text-xs leading-snug ${checked[i] ? 'line-through text-ink-400 dark:text-gray-500' : 'text-ink-700 dark:text-gray-300'}`}>
                 {item}
               </span>
             </label>
           ))}
-          <div className="pt-2 border-t border-ink-100 flex justify-end">
+          <div className="pt-2 border-t border-ink-100 dark:border-gray-700 flex justify-end">
             <button
               onClick={copyToClipboard}
               className="text-xs text-brand-600 hover:text-brand-700 font-medium"

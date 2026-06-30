@@ -54,7 +54,7 @@ export default function HRDashboard() {
   if (loading && err && hms == null) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <p className="text-sm text-ink-500">{err}</p>
+        <p className="text-sm text-ink-500 dark:text-gray-400">{err}</p>
         <Button onClick={() => { setErr(null); setLoadRetry((r) => r + 1) }}>{t('hrDash.retry')}</Button>
       </div>
     )
@@ -70,7 +70,7 @@ export default function HRDashboard() {
       />
 
       {/* Tab bar */}
-      <div className="flex gap-1 border-b border-ink-200 mb-8 overflow-x-auto">
+      <div className="flex gap-1 border-b border-ink-200 dark:border-gray-700 mb-8 overflow-x-auto">
         {(['scheduling', 'link-hms'] as HRTab[]).map((tab) => (
           <button
             key={tab}
@@ -78,7 +78,7 @@ export default function HRDashboard() {
             className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
               hrTab === tab
                 ? 'border-brand-600 text-brand-700'
-                : 'border-transparent text-ink-500 hover:text-ink-800'
+                : 'border-transparent text-ink-500 dark:text-gray-400 hover:text-ink-800 dark:hover:text-gray-200'
             }`}
           >
             {tab === 'scheduling' ? t('hrDash.tabScheduling') : t('hrDash.tabLinkHms')}

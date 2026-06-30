@@ -314,8 +314,8 @@ export default function TalentProfile() {
   if (!talent) {
     return (
       <div className="max-w-lg mx-auto text-center">
-        <h1 className="font-display text-2xl text-ink-900 mb-2">Your profile isn't set up yet</h1>
-        <p className="text-gray-600 mb-4">Finish onboarding so we can start matching you with roles.</p>
+        <h1 className="font-display text-2xl text-ink-900 dark:text-white mb-2">Your profile isn't set up yet</h1>
+        <p className="text-gray-600 dark:text-gray-300 mb-4">Finish onboarding so we can start matching you with roles.</p>
         <button
           onClick={() => navigate('/onboarding/talent')}
           className="bg-brand-600 text-white px-4 py-2 rounded hover:bg-brand-700"
@@ -328,9 +328,9 @@ export default function TalentProfile() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="bg-white border rounded-lg p-6">
-        <h1 className="text-2xl font-bold mb-2">Your profile</h1>
-        <p className="text-sm text-gray-600 mb-6">
+      <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg p-6">
+        <h1 className="text-2xl font-bold mb-2 dark:text-white">Your profile</h1>
+        <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
           Tune what employers see and what kinds of roles we surface for you.
         </p>
 
@@ -381,36 +381,36 @@ export default function TalentProfile() {
         )}
 
         {retryMsg && (
-          <div className="mb-6 border border-ink-200 rounded-lg p-3 bg-ink-50 text-sm text-ink-700">{retryMsg}</div>
+          <div className="mb-6 border border-ink-200 dark:border-gray-700 rounded-lg p-3 bg-ink-50 dark:bg-gray-800 text-sm text-ink-700 dark:text-gray-300">{retryMsg}</div>
         )}
 
         {aiSummary ? (
           <div className="mb-6 border border-brand-200 rounded-lg p-4 bg-brand-50">
             <p className="text-xs font-semibold uppercase tracking-wide text-brand-700 mb-1">How the system describes you</p>
-            <p className="text-sm text-ink-800 leading-relaxed">{aiSummary}</p>
-            <p className="text-xs text-ink-400 mt-2">This is what hiring managers see about your background and strengths when you appear as a match.</p>
+            <p className="text-sm text-ink-800 dark:text-gray-300 leading-relaxed">{aiSummary}</p>
+            <p className="text-xs text-ink-400 dark:text-gray-400 mt-2">This is what hiring managers see about your background and strengths when you appear as a match.</p>
           </div>
         ) : extractionStatus === 'complete' ? (
-          <div className="mb-6 border border-dashed border-ink-200 rounded-lg p-4 bg-ink-50">
-            <p className="text-xs font-semibold uppercase tracking-wide text-ink-400 mb-1">Profile summary</p>
-            <p className="text-sm text-ink-500">No summary yet — complete your profile chat to generate this.</p>
+          <div className="mb-6 border border-dashed border-ink-200 dark:border-gray-700 rounded-lg p-4 bg-ink-50 dark:bg-gray-800">
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-400 dark:text-gray-400 mb-1">Profile summary</p>
+            <p className="text-sm text-ink-500 dark:text-gray-400">No summary yet — complete your profile chat to generate this.</p>
           </div>
         ) : null}
 
-        <section className="mb-6 border-t pt-4">
-          <h2 className="font-semibold mb-2">Documents</h2>
+        <section className="mb-6 border-t dark:border-gray-700 pt-4">
+          <h2 className="font-semibold mb-2 dark:text-white">Documents</h2>
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm w-24 text-gray-700">Photo</span>
+              <span className="text-sm w-24 text-gray-700 dark:text-gray-300">Photo</span>
               <button
                 type="button"
                 onClick={() => void viewPhoto()}
                 disabled={photoBusy}
-                className="px-3 py-1.5 border rounded text-sm hover:bg-gray-50 disabled:opacity-50"
+                className="px-3 py-1.5 border dark:border-gray-700 rounded text-sm dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
               >
                 {photoBusy ? 'Loading…' : 'View photo'}
               </button>
-              <label className="px-3 py-1.5 border rounded text-sm hover:bg-gray-50 cursor-pointer">
+              <label className="px-3 py-1.5 border dark:border-gray-700 rounded text-sm dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
                 Replace photo
                 <input
                   type="file"
@@ -422,16 +422,16 @@ export default function TalentProfile() {
               </label>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm w-24 text-gray-700">Resume</span>
+              <span className="text-sm w-24 text-gray-700 dark:text-gray-300">Resume</span>
               <button
                 type="button"
                 onClick={() => void viewResume()}
                 disabled={resumeBusy}
-                className="px-3 py-1.5 border rounded text-sm hover:bg-gray-50 disabled:opacity-50"
+                className="px-3 py-1.5 border dark:border-gray-700 rounded text-sm dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
               >
                 {resumeBusy ? 'Loading…' : 'View resume'}
               </button>
-              <label className="px-3 py-1.5 border rounded text-sm hover:bg-gray-50 cursor-pointer">
+              <label className="px-3 py-1.5 border dark:border-gray-700 rounded text-sm dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
                 Replace resume
                 <input
                   type="file"
@@ -442,15 +442,15 @@ export default function TalentProfile() {
                 />
               </label>
             </div>
-            {docMsg && <p className="text-xs text-ink-700">{docMsg}</p>}
-            <p className="text-xs text-gray-500">Files open in a new tab via a short-lived secure link.</p>
+            {docMsg && <p className="text-xs text-ink-700 dark:text-gray-300">{docMsg}</p>}
+            <p className="text-xs text-gray-500 dark:text-gray-400">Files open in a new tab via a short-lived secure link.</p>
           </div>
         </section>
 
         <form onSubmit={save} className="space-y-6">
           <section>
-            <h2 className="font-semibold mb-2">Availability</h2>
-            <label className="flex items-center gap-2 text-sm">
+            <h2 className="font-semibold mb-2 dark:text-white">Availability</h2>
+            <label className="flex items-center gap-2 text-sm dark:text-gray-300">
               <input
                 type="checkbox"
                 checked={openToOffers}
@@ -458,27 +458,27 @@ export default function TalentProfile() {
               />
               I'm open to new offers
             </label>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Turn this off to stop receiving new matches without deleting your account.
             </p>
           </section>
 
-          <section className="border-t pt-4">
-            <h2 className="font-semibold mb-2">{t('whatsapp.title')}</h2>
+          <section className="border-t dark:border-gray-700 pt-4">
+            <h2 className="font-semibold mb-2 dark:text-white">{t('whatsapp.title')}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2">
               <div>
-                <label htmlFor="talent-wa-number" className="block text-sm mb-1">{t('whatsapp.numberLabel')}</label>
+                <label htmlFor="talent-wa-number" className="block text-sm mb-1 dark:text-gray-300">{t('whatsapp.numberLabel')}</label>
                 <input
                   id="talent-wa-number"
                   type="tel"
                   value={whatsappNumber}
                   onChange={(e) => setWhatsappNumber(e.target.value)}
                   placeholder="+60 12 345 6789"
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full border dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-white dark:placeholder-gray-500 rounded px-3 py-2"
                 />
               </div>
               <div className="flex items-end">
-                <label className="flex items-center gap-2 text-sm">
+                <label className="flex items-center gap-2 text-sm dark:text-gray-300">
                   <input
                     type="checkbox"
                     checked={whatsappOptIn}
@@ -500,12 +500,12 @@ export default function TalentProfile() {
           </section>
 
           <section>
-            <label htmlFor="talent-privacy" className="block font-semibold mb-2">Privacy</label>
+            <label htmlFor="talent-privacy" className="block font-semibold mb-2 dark:text-white">Privacy</label>
             <select
               id="talent-privacy"
               value={privacy}
               onChange={(e) => setPrivacy(e.target.value as PrivacyMode)}
-              className="w-full border rounded px-3 py-2"
+              className="w-full border dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-white rounded px-3 py-2"
             >
               <option value="public">Public — employers see your name if matched</option>
               <option value="anonymous">Anonymous — employers see only a candidate ID</option>
@@ -514,9 +514,9 @@ export default function TalentProfile() {
           </section>
 
           {privacy === 'whitelist' && (
-            <section className="border-t pt-4">
-              <h2 className="font-semibold mb-1">Whitelisted companies</h2>
-              <p className="text-xs text-gray-500 mb-2">Only these companies will see you as a match. Enter each company name and press Enter.</p>
+            <section className="border-t dark:border-gray-700 pt-4">
+              <h2 className="font-semibold mb-1 dark:text-white">Whitelisted companies</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Only these companies will see you as a match. Enter each company name and press Enter.</p>
               <div className="flex gap-2 mb-2">
                 <input
                   type="text"
@@ -530,12 +530,12 @@ export default function TalentProfile() {
                     }
                   }}
                   placeholder="Company name…"
-                  className="flex-1 border rounded px-3 py-2 text-sm"
+                  className="flex-1 border dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-white dark:placeholder-gray-500 rounded px-3 py-2 text-sm"
                 />
                 <button
                   type="button"
                   onClick={addWhitelistEntry}
-                  className="px-3 py-2 border rounded text-sm hover:bg-gray-50"
+                  className="px-3 py-2 border dark:border-gray-700 rounded text-sm dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
                   Add
                 </button>
@@ -552,47 +552,47 @@ export default function TalentProfile() {
           )}
 
           <section>
-            <h2 className="font-semibold mb-2">Salary expectation (RM / month)</h2>
+            <h2 className="font-semibold mb-2 dark:text-white">Salary expectation (RM / month)</h2>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="talent-salary-min" className="block text-sm mb-1">Minimum</label>
+                <label htmlFor="talent-salary-min" className="block text-sm mb-1 dark:text-gray-300">Minimum</label>
                 <input
                   id="talent-salary-min"
                   type="number" min={0}
                   value={salaryMin || ''}
                   onChange={(e) => setSalaryMin(parseInt(e.target.value, 10) || 0)}
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full border dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-white rounded px-3 py-2"
                 />
               </div>
               <div>
-                <label htmlFor="talent-salary-max" className="block text-sm mb-1">Maximum</label>
+                <label htmlFor="talent-salary-max" className="block text-sm mb-1 dark:text-gray-300">Maximum</label>
                 <input
                   id="talent-salary-max"
                   type="number" min={0}
                   value={salaryMax || ''}
                   onChange={(e) => setSalaryMax(parseInt(e.target.value, 10) || 0)}
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full border dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-white rounded px-3 py-2"
                 />
               </div>
             </div>
           </section>
 
           <section>
-            <h2 className="font-semibold mb-2">Preferences (1 = not important, 5 = very)</h2>
+            <h2 className="font-semibold mb-2 dark:text-white">Preferences (1 = not important, 5 = very)</h2>
             <div className="grid sm:grid-cols-2 gap-y-2 gap-x-4">
               {PREFERENCE_ASPECTS.map((aspect) => (
                 <div key={aspect} className="flex items-center justify-between gap-2">
-                  <span className="text-sm">{aspect}</span>
+                  <span className="text-sm dark:text-gray-300">{aspect}</span>
                   <div className="flex gap-0.5">
                     {[1, 2, 3, 4, 5].map((r) => (
                       <button
                         key={r}
                         type="button"
                         onClick={() => setRatings((x) => ({ ...x, [aspect]: r }))}
-                        className={`w-7 h-7 border text-xs ${
+                        className={`w-7 h-7 border dark:border-gray-700 text-xs ${
                           ratings[aspect] === r
                             ? 'bg-brand-600 text-white border-brand-600'
-                            : 'bg-white hover:bg-gray-50'
+                            : 'bg-white dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                         }`}
                       >
                         {r}
@@ -606,11 +606,11 @@ export default function TalentProfile() {
 
           {err && <p className="text-sm text-red-600">{err}</p>}
 
-          <div className="flex gap-2 justify-between pt-2 border-t">
+          <div className="flex gap-2 justify-between pt-2 border-t dark:border-gray-700">
             <button
               type="button"
               onClick={() => navigate('/talent')}
-              className="px-4 py-2 border rounded hover:bg-gray-50"
+              className="px-4 py-2 border dark:border-gray-700 rounded dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             >
               Back
             </button>

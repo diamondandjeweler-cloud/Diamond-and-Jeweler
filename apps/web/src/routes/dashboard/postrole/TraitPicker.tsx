@@ -27,10 +27,10 @@ function TraitPicker({ requiredTraits, onToggle }: TraitPickerProps) {
               disabled={atCap}
               className={`text-sm px-3 py-1.5 rounded-full border transition ${
                 on
-                  ? 'bg-ink-900 text-white border-ink-900'
+                  ? 'bg-ink-900 dark:bg-gray-200 text-white dark:text-gray-900 border-ink-900 dark:border-gray-200'
                   : atCap
-                    ? 'bg-ink-50 text-ink-300 border-ink-100 cursor-not-allowed'
-                    : 'bg-white text-ink-700 border-ink-200 hover:border-ink-400 hover:text-ink-900'
+                    ? 'bg-ink-50 dark:bg-gray-800 text-ink-300 dark:text-gray-600 border-ink-100 dark:border-gray-700 cursor-not-allowed'
+                    : 'bg-white dark:bg-gray-800 text-ink-700 dark:text-gray-300 border-ink-200 dark:border-gray-700 hover:border-ink-400 dark:hover:border-gray-500 hover:text-ink-900 dark:hover:text-white'
               }`}
             >
               {t.replace(/_/g, ' ')}

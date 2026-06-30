@@ -105,7 +105,7 @@ export default function DsrPanel() {
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-gray-600 dark:text-gray-300">
           PDPA data subject requests. Deletion enforcement runs 30 days after{' '}
           <code>completed</code> via the <code>data-retention</code> cron. Access
           and portability completions fire <code>dsr-export</code> to email the
@@ -114,7 +114,7 @@ export default function DsrPanel() {
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value as 'pending' | 'all')}
-          className="border rounded px-2 py-1 text-sm"
+          className="border dark:border-gray-700 rounded px-2 py-1 text-sm"
           aria-label="Filter DSR requests"
         >
           <option value="pending">Pending only</option>
@@ -124,33 +124,33 @@ export default function DsrPanel() {
 
       {err && <p className="text-sm text-red-600 mb-3">{err}</p>}
       {rows.length === 0 ? (
-        <p className="text-sm text-gray-500">No requests in this view.</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">No requests in this view.</p>
       ) : (
         <div className="space-y-2">
           {rows.map((r) => (
-            <div key={r.id} className="bg-white border rounded p-3">
+            <div key={r.id} className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded p-3">
               <div className="flex justify-between items-start gap-3">
                 <div className="flex-1">
-                  <div className="font-medium">{r.profiles?.full_name ?? '—'}</div>
-                  <div className="text-xs text-gray-500">
+                  <div className="font-medium dark:text-white">{r.profiles?.full_name ?? '—'}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
                     {r.profiles?.email ?? r.user_id.slice(0, 8)} ·{' '}
                     <span className="capitalize">{r.request_type}</span> ·{' '}
                     <span className="capitalize">{r.status.replace('_', ' ')}</span> ·{' '}
                     {new Date(r.created_at).toLocaleDateString()}
                   </div>
-                  {r.notes && <div className="text-xs text-gray-600 mt-1">{r.notes}</div>}
+                  {r.notes && <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">{r.notes}</div>}
 
                   {r.request_type === 'correction' && r.correction_proposal?.items && (
                     <details className="mt-2">
                       <summary className="text-xs text-brand-600 cursor-pointer hover:underline">
                         {r.correction_proposal.items.length} proposed correction{r.correction_proposal.items.length === 1 ? '' : 's'}
                       </summary>
-                      <ul className="mt-2 text-xs bg-gray-50 rounded p-2 space-y-1">
+                      <ul className="mt-2 text-xs bg-gray-50 dark:bg-gray-900 rounded p-2 space-y-1">
                         {r.correction_proposal.items.map((it, i) => (
                           <li key={i} className="font-mono">
-                            <span className="text-gray-500">{it.field}</span>
+                            <span className="text-gray-500 dark:text-gray-400">{it.field}</span>
                             {' → '}
-                            <span className="text-gray-900">{JSON.stringify(it.new_value)}</span>
+                            <span className="text-gray-900 dark:text-gray-200">{JSON.stringify(it.new_value)}</span>
                           </li>
                         ))}
                       </ul>
@@ -158,7 +158,7 @@ export default function DsrPanel() {
                   )}
                 </div>
                 <div className="whitespace-nowrap">
-                  {working === r.id && <span className="text-xs text-gray-400">Working…</span>}
+                  {working === r.id && <span className="text-xs text-gray-400 dark:text-gray-500">Working…</span>}
                   {working !== r.id && (
                     <div className="flex flex-col items-end gap-1">
                       {r.status === 'pending' && (

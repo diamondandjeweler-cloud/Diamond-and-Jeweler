@@ -70,7 +70,7 @@ export default function TalentDashboard() {
                 type="button"
                 onClick={() => void push.subscribe()}
                 disabled={push.subscribing}
-                className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-brand-200 text-brand-700 hover:bg-brand-50 transition-colors disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-brand-200 text-brand-700 hover:bg-brand-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-60"
                 aria-label={t('talentDash.enableNotificationsAria')}
               >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -87,7 +87,7 @@ export default function TalentDashboard() {
               </span>
             )}
             {push.showIosHint && (
-              <span className="text-xs text-gray-500">{t('talentDash.iosHint')}</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">{t('talentDash.iosHint')}</span>
             )}
             <Link to="/talent/profile" className="btn-secondary">{t('talentDash.editProfile')}</Link>
           </div>
@@ -208,13 +208,13 @@ export default function TalentDashboard() {
               <div className="text-sm font-semibold text-amber-900 mb-0.5">
                 {t('talentDash.urgentHeading', { cost: URGENT_COST })}
               </div>
-              <p className="text-sm text-ink-600">
+              <p className="text-sm text-ink-600 dark:text-gray-300">
                 {t('talentDash.urgentSubtitle')}
               </p>
             </div>
             {pointsBalance != null && (
-              <div className="text-xs text-ink-600 whitespace-nowrap">
-                {t('talentDash.balanceLabel')} <span className="font-semibold text-ink-900">{t('talentDash.pointsValue', { n: pointsBalance })}</span>
+              <div className="text-xs text-ink-600 dark:text-gray-300 whitespace-nowrap">
+                {t('talentDash.balanceLabel')} <span className="font-semibold text-ink-900 dark:text-white">{t('talentDash.pointsValue', { n: pointsBalance })}</span>
               </div>
             )}
           </div>
@@ -222,24 +222,24 @@ export default function TalentDashboard() {
             <div className="mb-3"><Alert tone={urgentMsg.tone}>{urgentMsg.text}</Alert></div>
           )}
           {urgentResult && (
-            <div className="mb-3 rounded-lg border-2 border-amber-300 bg-white p-4">
+            <div className="mb-3 rounded-lg border-2 border-amber-300 bg-white dark:bg-gray-800 p-4">
               <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-900">
                 {t('talentDash.urgentMatchBadge')}
               </div>
-              <div className="text-base font-semibold text-ink-900">{urgentResult.role.title}</div>
-              <div className="mt-0.5 text-xs text-ink-500 flex gap-2 flex-wrap">
+              <div className="text-base font-semibold text-ink-900 dark:text-white">{urgentResult.role.title}</div>
+              <div className="mt-0.5 text-xs text-ink-500 dark:text-gray-400 flex gap-2 flex-wrap">
                 {urgentResult.role.location && <span>{urgentResult.role.location}</span>}
                 {urgentResult.role.work_arrangement && (<><span>·</span><span className="capitalize">{urgentResult.role.work_arrangement}</span></>)}
               </div>
               {(urgentResult.role.salary_min || urgentResult.role.salary_max) && (
-                <div className="mt-1 text-sm text-ink-700">
-                  RM {fmt(urgentResult.role.salary_min)} – {fmt(urgentResult.role.salary_max)} <span className="text-ink-400">{t('talentDash.perMonth')}</span>
+                <div className="mt-1 text-sm text-ink-700 dark:text-gray-300">
+                  RM {fmt(urgentResult.role.salary_min)} – {fmt(urgentResult.role.salary_max)} <span className="text-ink-400 dark:text-gray-400">{t('talentDash.perMonth')}</span>
                 </div>
               )}
               {urgentResult.role.description && (
-                <p className="mt-2 text-sm text-ink-600 line-clamp-3">{urgentResult.role.description}</p>
+                <p className="mt-2 text-sm text-ink-600 dark:text-gray-300 line-clamp-3">{urgentResult.role.description}</p>
               )}
-              <p className="mt-3 text-xs text-ink-500">
+              <p className="mt-3 text-xs text-ink-500 dark:text-gray-400">
                 {t('talentDash.urgentStayOpen')}
               </p>
             </div>
@@ -253,8 +253,8 @@ export default function TalentDashboard() {
       {(matches?.length ?? 0) >= 3 && extraUsed < 3 && (
         <Card className="mt-8 border-dashed border-accent-500">
           <div className="p-6 text-center">
-            <div className="text-sm font-medium text-ink-700 mb-1">{t('talentDash.extraLookedAll')}</div>
-            <p className="text-sm text-ink-500 mb-4">
+            <div className="text-sm font-medium text-ink-700 dark:text-gray-300 mb-1">{t('talentDash.extraLookedAll')}</div>
+            <p className="text-sm text-ink-500 dark:text-gray-400 mb-4">
               {t('talentDash.extraUnlockRemaining', { count: 3 - extraUsed })}
               <br />
               {pointsBalance != null
@@ -265,7 +265,7 @@ export default function TalentDashboard() {
               {pointsBalance != null && pointsBalance < POINTS_PER_EXTRA ? (
                 <Link
                   to="/points"
-                  className="inline-flex items-center rounded-md border border-ink-200 bg-white px-3 py-1.5 text-sm font-medium text-ink-700 hover:bg-ink-50"
+                  className="inline-flex items-center rounded-md border border-ink-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm font-medium text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-gray-700"
                 >
                   {t('talentDash.extraGetPoints', { cost: POINTS_PER_EXTRA })}
                 </Link>
@@ -283,7 +283,7 @@ export default function TalentDashboard() {
               </Button>
             </div>
             {pointsBalance != null && pointsBalance < POINTS_PER_EXTRA && (
-              <div className="mt-3 text-xs text-ink-500">
+              <div className="mt-3 text-xs text-ink-500 dark:text-gray-400">
                 {t('talentDash.extraEarnHint', { balance: pointsBalance, cost: POINTS_PER_EXTRA })}{' '}
                 <Link to="/points" className="font-medium text-brand-700 hover:underline">{t('talentDash.walletPage')}</Link>.
               </div>
@@ -303,15 +303,15 @@ export default function TalentDashboard() {
           role="dialog"
           aria-modal="true"
         >
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 text-center">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-6 text-center">
             <div className="flex justify-center mb-3">
               <div className="h-14 w-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-3xl">✓</div>
             </div>
-            <h2 className="font-display text-2xl text-ink-900 mb-2">{t('talentDash.savedTitle')}</h2>
-            <p className="text-sm text-ink-600 leading-relaxed mb-4">
+            <h2 className="font-display text-2xl text-ink-900 dark:text-white mb-2">{t('talentDash.savedTitle')}</h2>
+            <p className="text-sm text-ink-600 dark:text-gray-300 leading-relaxed mb-4">
               {t('talentDash.savedBody')}
             </p>
-            <p className="text-xs text-ink-500 mb-5">
+            <p className="text-xs text-ink-500 dark:text-gray-400 mb-5">
               {t('talentDash.savedShareNote')}
             </p>
             <Button className="w-full" onClick={() => setShowJustSavedModal(false)}>

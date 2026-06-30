@@ -37,8 +37,8 @@ export default function HMAccount() {
       <div className="space-y-6">
         <div className="space-y-4">
           <div>
-            <p className="block text-sm font-medium text-ink-500 mb-1">Email address</p>
-            <p className="text-sm text-ink-900 px-3 py-2 bg-ink-50 border border-ink-200 rounded-lg">
+            <p className="block text-sm font-medium text-ink-500 dark:text-gray-400 mb-1">Email address</p>
+            <p className="text-sm text-ink-900 dark:text-white px-3 py-2 bg-ink-50 dark:bg-gray-800 border border-ink-200 dark:border-gray-700 rounded-lg">
               {session?.user.email}
             </p>
           </div>
@@ -56,9 +56,9 @@ export default function HMAccount() {
           Save changes
         </Button>
 
-        <div className="border-t border-ink-200 pt-4">
-          <h2 className="text-sm font-semibold text-ink-700 mb-2">Password</h2>
-          <p className="text-sm text-ink-500 mb-3">
+        <div className="border-t border-ink-200 dark:border-gray-700 pt-4">
+          <h2 className="text-sm font-semibold text-ink-700 dark:text-gray-300 mb-2">Password</h2>
+          <p className="text-sm text-ink-500 dark:text-gray-400 mb-3">
             Request a password reset link to be sent to your email address.
           </p>
           <Link to="/password-reset" className="text-sm text-brand-600 hover:text-brand-700 underline">

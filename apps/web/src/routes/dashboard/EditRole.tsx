@@ -211,9 +211,9 @@ export default function EditRole() {
   if (!row) {
     return (
       <div className="max-w-2xl mx-auto">
-        <div className="bg-white border rounded-lg p-6">
-          <h1 className="text-2xl font-bold mb-2">Edit role</h1>
-          <p className="text-sm text-ink-500 mb-6">Update the role details below.</p>
+        <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg p-6">
+          <h1 className="text-2xl font-bold mb-2 dark:text-white">Edit role</h1>
+          <p className="text-sm text-ink-500 dark:text-gray-400 mb-6">Update the role details below.</p>
           <FormSkeleton fields={10} />
         </div>
       </div>
@@ -229,14 +229,14 @@ export default function EditRole() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="bg-white border rounded-lg p-6">
-        <h1 className="text-2xl font-bold mb-2">Edit role</h1>
+      <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg p-6">
+        <h1 className="text-2xl font-bold mb-2 dark:text-white">Edit role</h1>
         {activateMode && r.from_onboarding && r.status === 'paused' ? (
           <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2 mb-4">
             This role was pre-filled from your onboarding answers. Review the details below, then click <strong>Activate role</strong> to start receiving candidates.
           </p>
         ) : (
-          <p className="text-sm text-gray-600 mb-4">
+          <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
             Edits apply immediately to existing matches. Status: <strong>{r.status}</strong>.
           </p>
         )}
@@ -253,8 +253,8 @@ export default function EditRole() {
               {nudge.gap_payload.gaps!.map((g, i) => {
                 const applied = appliedKinds.has(g.kind)
                 return (
-                  <li key={i} className="flex items-start gap-3 text-sm bg-white border border-blue-100 rounded px-3 py-2">
-                    <span className="flex-1 text-gray-800">{describeGap(g)}</span>
+                  <li key={i} className="flex items-start gap-3 text-sm bg-white dark:bg-gray-800 border border-blue-100 dark:border-gray-700 rounded px-3 py-2">
+                    <span className="flex-1 text-gray-800 dark:text-gray-300">{describeGap(g)}</span>
                     {canApply(g) && (
                       <button type="button" onClick={() => applyGap(g)} disabled={applied}
                         className={`text-xs px-3 py-1 rounded ${
@@ -273,27 +273,27 @@ export default function EditRole() {
         <form onSubmit={save} className="space-y-4">
           <Field label="Title" required>
             <input value={r.title} onChange={(e) => set('title', e.target.value)}
-              className="w-full border rounded px-3 py-2" required />
+              className="w-full border dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded px-3 py-2" required />
           </Field>
           <Field label="Description">
             <textarea value={r.description ?? ''} onChange={(e) => set('description', e.target.value)}
-              rows={4} className="w-full border rounded px-3 py-2" />
+              rows={4} className="w-full border dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded px-3 py-2" />
           </Field>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Department">
               <input value={r.department ?? ''} onChange={(e) => set('department', e.target.value)}
-                className="w-full border rounded px-3 py-2" />
+                className="w-full border dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded px-3 py-2" />
             </Field>
             <Field label="Location">
               <input value={r.location ?? ''} onChange={(e) => set('location', e.target.value)}
-                className="w-full border rounded px-3 py-2" />
+                className="w-full border dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded px-3 py-2" />
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Work arrangement">
               <select value={r.work_arrangement ?? 'hybrid'}
                 onChange={(e) => set('work_arrangement', e.target.value as RoleRow['work_arrangement'])}
-                className="w-full border rounded px-3 py-2">
+                className="w-full border dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded px-3 py-2">
                 <option value="remote">Remote</option>
                 <option value="hybrid">Hybrid</option>
                 <option value="onsite">Onsite</option>
@@ -302,7 +302,7 @@ export default function EditRole() {
             <Field label="Experience level">
               <select value={r.experience_level ?? 'mid'}
                 onChange={(e) => set('experience_level', e.target.value as RoleRow['experience_level'])}
-                className="w-full border rounded px-3 py-2">
+                className="w-full border dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded px-3 py-2">
                 <option value="entry">Entry</option>
                 <option value="junior">Junior</option>
                 <option value="mid">Mid</option>
@@ -315,12 +315,12 @@ export default function EditRole() {
             <Field label="Salary min (RM)">
               <input type="number" min={0} value={r.salary_min ?? ''}
                 onChange={(e) => set('salary_min', parseInt(e.target.value, 10) || null)}
-                className="w-full border rounded px-3 py-2" />
+                className="w-full border dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded px-3 py-2" />
             </Field>
             <Field label="Salary max (RM)">
               <input type="number" min={0} value={r.salary_max ?? ''}
                 onChange={(e) => set('salary_max', parseInt(e.target.value, 10) || null)}
-                className="w-full border rounded px-3 py-2" />
+                className="w-full border dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded px-3 py-2" />
             </Field>
           </div>
           <div>
@@ -338,10 +338,10 @@ export default function EditRole() {
                         ? r.required_traits.filter((x) => x !== t)
                         : [...r.required_traits, t])
                     }
-                    className={`text-sm px-3 py-1 rounded border ${
+                    className={`text-sm px-3 py-1 rounded border dark:border-gray-700 ${
                       on ? 'bg-brand-600 text-white border-brand-600'
-                         : atCap ? 'bg-gray-100 text-gray-400'
-                         : 'bg-white hover:bg-gray-50'
+                         : atCap ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600'
+                         : 'bg-white dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}>
                     {t}
                   </button>
@@ -354,7 +354,7 @@ export default function EditRole() {
 
           <div className="flex gap-2 justify-between pt-2">
             <button type="button" onClick={() => navigate('/hm/roles')}
-              className="px-4 py-2 border rounded hover:bg-gray-50" disabled={busy}>
+              className="px-4 py-2 border dark:border-gray-700 dark:text-gray-300 rounded hover:bg-gray-50 dark:hover:bg-gray-700" disabled={busy}>
               Cancel
             </button>
             <button type="submit" disabled={busy}

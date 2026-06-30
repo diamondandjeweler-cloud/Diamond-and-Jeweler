@@ -36,11 +36,11 @@ function DemographicsStepImpl({
 }: DemographicsStepProps) {
   return (
     <div className="space-y-4">
-      <p className="text-sm text-ink-600 leading-relaxed">
+      <p className="text-sm text-ink-600 dark:text-gray-300 leading-relaxed">
         {t('hmOnboard.demographicsIntro')}
       </p>
       <div className="space-y-1">
-        <p className="text-sm text-ink-600">{t('hmOnboard.raceLabel')}</p>
+        <p className="text-sm text-ink-600 dark:text-gray-300">{t('hmOnboard.raceLabel')}</p>
         <div className="grid grid-cols-2 gap-2">
           {([
             { value: 'Malay',   label: t('hmOnboard.raceMalay') },
@@ -50,16 +50,16 @@ function DemographicsStepImpl({
           ] as const).map((r) => (
             <button
               key={r.value} type="button" onClick={() => setRace(r.value.toLowerCase())}
-              className={`border rounded-lg px-3 py-2 text-sm ${race === r.value.toLowerCase() ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 text-ink-700 hover:bg-ink-50'}`}
+              className={`border rounded-lg px-3 py-2 text-sm ${race === r.value.toLowerCase() ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 dark:border-gray-700 text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-gray-800'}`}
             >{r.label}</button>
           ))}
         </div>
       </div>
       <div className="space-y-1">
-        <p className="text-sm text-ink-600">{t('hmOnboard.religionLabel')}</p>
+        <p className="text-sm text-ink-600 dark:text-gray-300">{t('hmOnboard.religionLabel')}</p>
         <select
           value={religion} onChange={(e) => setReligion(e.target.value)}
-          className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+          className="w-full border border-ink-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white dark:bg-gray-800 dark:text-white"
         >
           <option value="">{t('hmOnboard.religionSelect')}</option>
           <option value="islam">{t('hmOnboard.religionIslam')}</option>
@@ -73,7 +73,7 @@ function DemographicsStepImpl({
         </select>
       </div>
       <div className="space-y-1">
-        <p className="text-sm text-ink-600">{t('hmOnboard.languagesLabel')}</p>
+        <p className="text-sm text-ink-600 dark:text-gray-300">{t('hmOnboard.languagesLabel')}</p>
         <div className="flex flex-wrap gap-2">
           {[
             { value: 'english',          label: t('hmOnboard.langEnglish') },
@@ -91,22 +91,22 @@ function DemographicsStepImpl({
               <button
                 key={value} type="button"
                 onClick={() => setLanguages((prev) => active ? prev.filter((l) => l !== value) : [...prev, value])}
-                className={`border rounded-full px-3 py-1.5 text-xs ${active ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 text-ink-700 hover:bg-ink-50'}`}
+                className={`border rounded-full px-3 py-1.5 text-xs ${active ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 dark:border-gray-700 text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-gray-800'}`}
               >{label}</button>
             )
           })}
         </div>
       </div>
       <div className="space-y-1">
-        <p className="text-sm text-ink-600">{t('hmOnboard.locationLabel')}</p>
+        <p className="text-sm text-ink-600 dark:text-gray-300">{t('hmOnboard.locationLabel')}</p>
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button" onClick={() => setLocationMatters(true)}
-            className={`border rounded-lg px-3 py-2 text-sm ${locationMatters === true ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 text-ink-700 hover:bg-ink-50'}`}
+            className={`border rounded-lg px-3 py-2 text-sm ${locationMatters === true ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 dark:border-gray-700 text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-gray-800'}`}
           >{t('hmOnboard.locationYes')}</button>
           <button
             type="button" onClick={() => { setLocationMatters(false); setLocationPostcode('') }}
-            className={`border rounded-lg px-3 py-2 text-sm ${locationMatters === false ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 text-ink-700 hover:bg-ink-50'}`}
+            className={`border rounded-lg px-3 py-2 text-sm ${locationMatters === false ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 dark:border-gray-700 text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-gray-800'}`}
           >{t('hmOnboard.locationNo')}</button>
         </div>
         {locationMatters === true && (
@@ -114,7 +114,7 @@ function DemographicsStepImpl({
             type="text" inputMode="numeric" pattern="[0-9]{5}" maxLength={5}
             value={locationPostcode} onChange={(e) => setLocationPostcode(e.target.value.replace(/[^0-9]/g, ''))}
             placeholder={t('hmOnboard.postcodePlaceholder')}
-            className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm mt-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="w-full border border-ink-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-3 py-2 text-sm mt-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
         )}
       </div>

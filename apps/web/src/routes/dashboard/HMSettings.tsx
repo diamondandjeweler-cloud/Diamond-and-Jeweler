@@ -51,16 +51,16 @@ export default function HMSettings() {
       <PageHeader title="Settings" description="Notification and contact preferences." />
       <div className="space-y-6">
         <div className="space-y-4">
-          <h2 className="text-sm font-semibold text-ink-700 uppercase tracking-wide">WhatsApp notifications</h2>
+          <h2 className="text-sm font-semibold text-ink-700 dark:text-gray-300 uppercase tracking-wide">WhatsApp notifications</h2>
           <div>
-            <label htmlFor="hm-whatsapp-number" className="block text-sm font-medium text-ink-700 mb-1">WhatsApp number</label>
+            <label htmlFor="hm-whatsapp-number" className="block text-sm font-medium text-ink-700 dark:text-gray-300 mb-1">WhatsApp number</label>
             <input
               id="hm-whatsapp-number"
               type="tel"
               value={whatsappNumber}
               onChange={(e) => setWhatsappNumber(e.target.value)}
               placeholder="+60 12 345 6789"
-              className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full border border-ink-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
           <label className="flex items-start gap-3 cursor-pointer">
@@ -70,7 +70,7 @@ export default function HMSettings() {
               onChange={(e) => setWhatsappOptIn(e.target.checked)}
               className="mt-0.5"
             />
-            <span className="text-sm text-ink-700">
+            <span className="text-sm text-ink-700 dark:text-gray-300">
               Send me WhatsApp notifications for new candidate matches, interview updates, and important alerts.
             </span>
           </label>

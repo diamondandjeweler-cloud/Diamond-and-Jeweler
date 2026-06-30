@@ -141,15 +141,15 @@ export function Modal({
         aria-label={!title ? ariaLabel : undefined}
         tabIndex={-1}
         onKeyDown={onKeyDownTrap}
-        className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 focus:outline-none"
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 focus:outline-none"
       >
         {title && (
-          <h2 id={titleId} className="text-xl font-semibold text-ink-900">
+          <h2 id={titleId} className="text-xl font-semibold text-ink-900 dark:text-white">
             {title}
           </h2>
         )}
         {children != null && (
-          <div className="text-sm text-ink-700 space-y-2">{children}</div>
+          <div className="text-sm text-ink-700 dark:text-gray-300 space-y-2">{children}</div>
         )}
         {footer && <div className="flex gap-2 pt-2">{footer}</div>}
       </div>

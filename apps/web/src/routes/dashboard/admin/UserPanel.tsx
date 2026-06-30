@@ -94,29 +94,29 @@ export default function UserPanel() {
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && void reload()}
           placeholder="Search email or name…"
-          className="border rounded px-3 py-1.5 text-sm flex-1"
+          className="border dark:border-gray-700 rounded px-3 py-1.5 text-sm flex-1"
           aria-label="Search users"
         />
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value as typeof filter)}
-          className="border rounded px-2 py-1.5 text-sm"
+          className="border dark:border-gray-700 rounded px-2 py-1.5 text-sm"
           aria-label="Filter users"
         >
           <option value="all">All users</option>
           <option value="banned">Banned only</option>
           <option value="ghosts">Ghosting (score ≥ 3)</option>
         </select>
-        <button onClick={() => void reload()} className="border px-3 py-1.5 rounded text-sm hover:bg-gray-50">
+        <button onClick={() => void reload()} className="border dark:border-gray-700 px-3 py-1.5 rounded text-sm hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-300">
           Refresh
         </button>
       </div>
       {err && <p className="text-sm text-red-600 mb-2">{err}</p>}
       {loading ? <ListSkeleton rows={5} variant="row" /> : (
-        rows.length === 0 ? <p className="text-sm text-gray-500">No users match.</p> : (
-          <table className="w-full text-sm">
+        rows.length === 0 ? <p className="text-sm text-gray-500 dark:text-gray-400">No users match.</p> : (
+          <table className="w-full text-sm dark:text-gray-300">
             <thead>
-              <tr className="text-left text-gray-600 border-b">
+              <tr className="text-left text-gray-600 dark:text-gray-400 border-b dark:border-gray-700">
                 <th className="py-2">Name / email</th>
                 <th>Role</th>
                 <th>Onboarded</th>
@@ -127,25 +127,25 @@ export default function UserPanel() {
             </thead>
             <tbody>
               {rows.map((u) => (
-                <tr key={u.id} className="border-b last:border-0 align-top">
+                <tr key={u.id} className="border-b dark:border-gray-700 last:border-0 align-top">
                   <td className="py-2">
-                    <div className={u.is_banned ? 'line-through text-gray-400' : 'font-medium'}>
+                    <div className={u.is_banned ? 'line-through text-gray-400 dark:text-gray-500' : 'font-medium'}>
                       {u.full_name}
                     </div>
-                    <div className="text-xs text-gray-500">{u.email}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">{u.email}</div>
                   </td>
                   <td className="capitalize">{u.role.replace('_', ' ')}</td>
                   <td>{u.onboarding_complete ? '✓' : '—'}</td>
                   <td className={u.ghost_score >= 3 ? 'text-red-600 font-semibold' : ''}>
                     {u.ghost_score}
                   </td>
-                  <td className="text-gray-500 text-xs">
+                  <td className="text-gray-500 dark:text-gray-400 text-xs">
                     {new Date(u.created_at).toLocaleDateString()}
                   </td>
                   <td className="text-right whitespace-nowrap space-x-3">
                     <button
                       onClick={() => openChangeRole(u)}
-                      className="text-xs text-ink-500 hover:underline"
+                      className="text-xs text-ink-500 dark:text-gray-400 hover:underline"
                     >
                       Change role
                     </button>
@@ -174,19 +174,19 @@ export default function UserPanel() {
 
       {changeRoleModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm space-y-4">
-            <h3 className="font-semibold text-base">Change role — {changeRoleModal.name}</h3>
-            <p className="text-xs text-ink-500">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-sm space-y-4">
+            <h3 className="font-semibold text-base dark:text-white">Change role — {changeRoleModal.name}</h3>
+            <p className="text-xs text-ink-500 dark:text-gray-400">
               Current: <span className="capitalize font-medium">{changeRoleModal.currentRole.replace('_', ' ')}</span>.
               Onboarding will be reset so the user goes through the correct flow.
             </p>
             <div>
-              <label htmlFor="admin-new-role" className="block text-sm font-medium text-ink-700 mb-1">New role</label>
+              <label htmlFor="admin-new-role" className="block text-sm font-medium text-ink-700 dark:text-gray-300 mb-1">New role</label>
               <select
                 id="admin-new-role"
                 value={newRole}
                 onChange={(e) => setNewRole(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm"
+                className="w-full border dark:border-gray-700 rounded-lg px-3 py-2 text-sm"
               >
                 {ROLE_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>{o.label}</option>
@@ -194,14 +194,14 @@ export default function UserPanel() {
               </select>
             </div>
             <div>
-              <label htmlFor="admin-role-reason" className="block text-sm font-medium text-ink-700 mb-1">Reason (required)</label>
+              <label htmlFor="admin-role-reason" className="block text-sm font-medium text-ink-700 dark:text-gray-300 mb-1">Reason (required)</label>
               <input
                 id="admin-role-reason"
                 type="text"
                 value={roleReason}
                 onChange={(e) => setRoleReason(e.target.value)}
                 placeholder="e.g. Registered as talent by mistake"
-                className="w-full border rounded-lg px-3 py-2 text-sm"
+                className="w-full border dark:border-gray-700 rounded-lg px-3 py-2 text-sm"
               />
             </div>
             {roleErr && <p className="text-xs text-red-600">{roleErr}</p>}
@@ -209,7 +209,7 @@ export default function UserPanel() {
               <button
                 onClick={() => setChangeRoleModal(null)}
                 disabled={roleChanging}
-                className="px-4 py-2 text-sm rounded-lg border hover:bg-gray-50"
+                className="px-4 py-2 text-sm rounded-lg border dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300"
               >
                 Cancel
               </button>

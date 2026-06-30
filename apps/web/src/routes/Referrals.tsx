@@ -50,18 +50,19 @@ export default function Referrals() {
     let cancelled = false
     void (async () => {
       try {
-        const [refsR, cfgPerRef, cfgPerWelcome, cfgPerExtra] = await Promise.all([
+        const [refsR, cfgR] = await Promise.all([
           supabase.from('referrals').select('id, referred_email, code, status, created_at, reward_claimed_at').eq('referrer_id', userId).order('created_at', { ascending: false }),
-          supabase.from('system_config').select('value').eq('key', 'points_per_referral').maybeSingle(),
-          supabase.from('system_config').select('value').eq('key', 'points_referee_welcome').maybeSingle(),
-          supabase.from('system_config').select('value').eq('key', 'points_per_extra_match').maybeSingle(),
+          supabase.from('system_config').select('key, value').in('key', ['points_per_referral', 'points_referee_welcome', 'points_per_extra_match']),
         ])
         if (cancelled) return
         setList((refsR.data as Referral[] | null) ?? [])
+        const cfg = new Map<string, unknown>(
+          ((cfgR.data as { key: string; value: unknown }[] | null) ?? []).map((row) => [row.key, row.value])
+        )
         setPointsCfg({
-          perReferral: typeof cfgPerRef.data?.value === 'number' ? cfgPerRef.data.value : 19,
-          perWelcome:  typeof cfgPerWelcome.data?.value === 'number' ? cfgPerWelcome.data.value : 5,
-          perExtra:    typeof cfgPerExtra.data?.value === 'number' ? cfgPerExtra.data.value : 21,
+          perReferral: typeof cfg.get('points_per_referral') === 'number' ? (cfg.get('points_per_referral') as number) : 19,
+          perWelcome:  typeof cfg.get('points_referee_welcome') === 'number' ? (cfg.get('points_referee_welcome') as number) : 5,
+          perExtra:    typeof cfg.get('points_per_extra_match') === 'number' ? (cfg.get('points_per_extra_match') as number) : 21,
         })
 
         // For HMs, fetch their active roles so the redeem picker can be a dropdown.

@@ -22,6 +22,9 @@ import { webhookCorsHeaders as corsHeaders, handleWebhookOptions as handleOption
 import { adminClient } from '../_shared/supabase.ts'
 import { timingSafeEqual } from '../_shared/auth.ts'
 import { reportError } from '../_shared/observe.ts'
+import { createLogger } from '../_shared/logger.ts'
+
+const log = createLogger('payment-webhook')
 
 serve(async (req) => {
   const pre = handleOptions(req); if (pre) return pre
@@ -72,13 +75,13 @@ async function handleMoneyPath(params: Record<string, string>): Promise<Response
   // branch is dormant-but-correct (additive, fail-safe) for Billplz-routed flows.
   const apiKey = Deno.env.get('BILLPLZ_API_KEY')
   if (!apiKey) {
-    console.error('BILLPLZ_API_KEY is not set — rejecting webhook to prevent payment fraud')
+    log.error('BILLPLZ_API_KEY is not set — rejecting webhook to prevent payment fraud')
     return new Response('Service misconfigured', { status: 500, headers: corsHeaders })
   }
   const sig = params['x_signature'] ?? ''
   const verified = await verifyBillplzSignature(params, sig, apiKey)
   if (!verified) {
-    console.error('Invalid Billplz X-Signature')
+    log.error('Invalid Billplz X-Signature')
     return new Response('Invalid signature', { status: 401, headers: corsHeaders })
   }
 
@@ -267,7 +270,7 @@ async function tryPointPurchase(args: {
     .eq('id', purchase.id)
     .eq('payment_status', 'pending')
     .select('id')
-  if (updErr) { console.error('points: paid flip failed', purchase.id, updErr); return true }
+  if (updErr) { log.error('points: paid flip failed', purchase.id, updErr); return true }
   if (!updRows || updRows.length === 0) return true
 
   const { error: awardErr } = await db.rpc('award_points', {
@@ -277,7 +280,7 @@ async function tryPointPurchase(args: {
     p_reference: { purchase_id: purchase.id, package_id: purchase.package_id, amount_rm: purchase.amount_rm },
     p_idempotency_key: `point_purchase:${purchase.id}`,
   })
-  if (awardErr) console.error('points: award_points failed', purchase.id, awardErr)
+  if (awardErr) log.error('points: award_points failed', purchase.id, awardErr)
 
   fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/notify`, {
     method: 'POST',
@@ -343,7 +346,7 @@ async function tryConsultBooking(args: {
     const confirmed = await confirmToyyibPayPaid(tpBillCode, booking.price_rm)
     if (confirmed === false) {
       // Authoritative source says NOT paid → treat as a failed/spoofed callback.
-      console.error('consult: ToyyibPay getBillTransactions did not confirm payment', booking.id, tpBillCode)
+      log.error('consult: ToyyibPay getBillTransactions did not confirm payment', booking.id, tpBillCode)
       await db.from('consult_bookings').update({ status: 'cancelled' }).eq('id', booking.id).eq('status', 'pending')
       return true
     }
@@ -356,7 +359,7 @@ async function tryConsultBooking(args: {
     .eq('id', booking.id)
     .eq('status', 'pending')
     .select('id')
-  if (updErr) { console.error('consult: paid flip failed', booking.id, updErr); return true }
+  if (updErr) { log.error('consult: paid flip failed', booking.id, updErr); return true }
   if (!flippedBooking || flippedBooking.length === 0) return true  // concurrent webhook already processed
 
   let videoUrl: string | null = null
@@ -373,7 +376,7 @@ async function tryConsultBooking(args: {
       const j = await r.json() as { url?: string; meeting_url?: string }
       videoUrl = j.url ?? j.meeting_url ?? null
     }
-  } catch (e) { console.error('consult: create-meeting failed', e) }
+  } catch (e) { log.error('consult: create-meeting failed', e) }
 
   if (videoUrl) {
     await db.from('consult_bookings')
@@ -436,13 +439,13 @@ async function confirmToyyibPayPaid(
       body: new URLSearchParams({ userSecretKey: tpSecret, billCode }),
     })
     if (!resp.ok) {
-      console.error('toyyibpay getBillTransactions http error', resp.status)
+      log.error('toyyibpay getBillTransactions http error', resp.status)
       return null  // provider unreachable → fall back
     }
     const text = await resp.text()
     let parsed: unknown
     try { parsed = JSON.parse(text) } catch {
-      console.error('toyyibpay getBillTransactions: non-JSON response')
+      log.error('toyyibpay getBillTransactions: non-JSON response')
       return null
     }
     const rows = Array.isArray(parsed) ? parsed as Array<Record<string, unknown>> : []
@@ -461,7 +464,7 @@ async function confirmToyyibPayPaid(
       if (Number.isFinite(paidRm)) {
         const paidSen = Math.round(paidRm * 100)
         if (paidSen !== expectedSen) {
-          console.error('toyyibpay amount mismatch', { billCode, expectedSen, paidSen })
+          log.error('toyyibpay amount mismatch', { billCode, expectedSen, paidSen })
           return false
         }
       }
@@ -470,7 +473,7 @@ async function confirmToyyibPayPaid(
     }
     return true
   } catch (e) {
-    console.error('toyyibpay getBillTransactions failed', e)
+    log.error('toyyibpay getBillTransactions failed', e)
     return null  // network error → fall back to existing behavior
   }
 }

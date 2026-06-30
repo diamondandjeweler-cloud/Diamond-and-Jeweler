@@ -22,6 +22,9 @@ import {
   type ExtractedProfile,
 } from '../_shared/talent-extraction.ts'
 import { matchForRole, MatchError } from '../_shared/match-core.ts'
+import { createLogger } from '../_shared/logger.ts'
+
+const log = createLogger('retry-stuck-extractions')
 
 const STUCK_AGE_MINUTES = 10
 const MAX_ATTEMPTS = 3
@@ -59,7 +62,7 @@ serve(async (req) => {
     return respond({ processed: 0, message: 'No stuck rows' })
   }
 
-  console.log(`[retry-stuck-extractions] picked up ${rows.length} stuck rows`)
+  log.info(`[retry-stuck-extractions] picked up ${rows.length} stuck rows`)
 
   let succeeded = 0, failed = 0
   for (const row of rows as { id: string; extraction_attempts: number; interview_answers: { transcript?: ExtractionMessage[] } | null }[]) {
@@ -93,15 +96,15 @@ serve(async (req) => {
         extraction_error: null,
         is_open_to_offers: true,
       }).eq('id', row.id)
-      console.log(`[retry-stuck-extractions] talent=${row.id} attempt=${attempt} ok`)
+      log.info(`[retry-stuck-extractions] talent=${row.id} attempt=${attempt} ok`)
       // Inline rematch — bounded fanout against most-recent active roles.
       await rematchActiveRoles(row.id).catch((err) => {
-        console.warn(`[retry-stuck-extractions] rematch error: ${err}`)
+        log.warn(`[retry-stuck-extractions] rematch error: ${err}`)
       })
       succeeded++
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      console.error(`[retry-stuck-extractions] talent=${row.id} attempt=${attempt} FAILED: ${msg}`)
+      log.error(`[retry-stuck-extractions] talent=${row.id} attempt=${attempt} FAILED: ${msg}`)
       await db.from('talents').update({
         extraction_status: attempt >= MAX_ATTEMPTS ? 'failed' : 'pending',
         extraction_error: msg.slice(0, 1000),
@@ -134,7 +137,7 @@ async function rematchActiveRoles(talentId: string): Promise<void> {
     .order('updated_at', { ascending: false, nullsFirst: false })
     .limit(50)
   if (error) {
-    console.warn(`[retry-stuck-extractions] rematch fetch failed: ${error.message}`)
+    log.warn(`[retry-stuck-extractions] rematch fetch failed: ${error.message}`)
     return
   }
   const ids = (roles ?? []).map((r) => (r as { id: string }).id)
@@ -143,16 +146,16 @@ async function rematchActiveRoles(talentId: string): Promise<void> {
     try {
       const result = await matchForRole({ roleId, isServiceRole: true })
       if (result.matches_added > 0) {
-        console.log(`[retry-stuck-extractions] talent=${talentId} role=${roleId} +${result.matches_added}`)
+        log.info(`[retry-stuck-extractions] talent=${talentId} role=${roleId} +${result.matches_added}`)
       }
       ok++
     } catch (err) {
       const msg = err instanceof MatchError ? err.message : err instanceof Error ? err.message : String(err)
-      console.warn(`[retry-stuck-extractions] role=${roleId} match failed: ${msg}`)
+      log.warn(`[retry-stuck-extractions] role=${roleId} match failed: ${msg}`)
       fail++
     }
   }
-  console.log(`[retry-stuck-extractions] rematch done talent=${talentId} ok=${ok} fail=${fail}`)
+  log.info(`[retry-stuck-extractions] rematch done talent=${talentId} ok=${ok} fail=${fail}`)
 }
 
 function buildTalentPatch(extracted: ExtractedProfile): Record<string, unknown> {

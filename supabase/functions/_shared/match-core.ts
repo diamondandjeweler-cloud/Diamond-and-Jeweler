@@ -11,7 +11,18 @@
  */
 import { adminClient } from './supabase.ts'
 import { buildPublicReasoning } from './match-reasoning.ts'
-import { composeFinalScore } from './match-scoring.ts'
+import {
+  composeFinalScore,
+  computeBehavioralFitness,
+  computeSalaryFit,
+  computeEmploymentFit,
+  computeExperienceFit,
+  computeEducationFit,
+  computeLocationScore,
+  computeSkillMatch,
+  computeLanguageMatch,
+  computeCultureFit,
+} from './match-scoring.ts'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -528,80 +539,31 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     const talentHasNoncompete    = (t as unknown as { has_noncompete: boolean | null }).has_noncompete === true
     const talentNoncompeteScope  = (t as unknown as { noncompete_industry_scope: string | null }).noncompete_industry_scope ?? null
 
-    // Behavioral fitness
-    const BEHAVIORAL_WEIGHTS: Record<string, number> = {
-      ownership: 1.2, communication_clarity: 1.0, emotional_maturity: 1.1,
-      problem_solving: 1.1, resilience: 1.0, results_orientation: 1.1,
-      professional_attitude: 1.0, confidence: 0.9, coachability: 1.1,
-    }
-    let bfNum = 0, bfDen = 0
-    for (const [key, w] of Object.entries(BEHAVIORAL_WEIGHTS)) {
-      const s = tags[key]
-      if (s != null) { bfNum += s * w; bfDen += w }
-    }
-    const behavioralFitness: number | null = bfDen > 0 ? (bfNum / bfDen) * 100 : null
+    // Behavioral fitness — pure (see _shared/match-scoring.ts computeBehavioralFitness).
+    const behavioralFitness: number | null = computeBehavioralFitness(tags)
 
-    // Salary fit (roleSalaryMax from outer scope)
+    // Salary fit (roleSalaryMax from outer scope) — pure (computeSalaryFit).
     const talentSalMin = (t as unknown as { expected_salary_min: number | null }).expected_salary_min
     const talentSalMax = (t as unknown as { expected_salary_max: number | null }).expected_salary_max
-    let salaryFit: number | null = null
-    if (roleSalaryMax != null && talentSalMin != null) {
-      if (roleSalaryMax >= (talentSalMax ?? talentSalMin)) {
-        salaryFit = 100
-      } else if (roleSalaryMax >= talentSalMin) {
-        const range = (talentSalMax ?? talentSalMin) - talentSalMin
-        salaryFit = range > 0 ? 50 + ((roleSalaryMax - talentSalMin) / range) * 50 : 75
-      } else {
-        const gap = talentSalMin - roleSalaryMax
-        salaryFit = Math.max(0, 100 - (gap / talentSalMin) * 200)
-      }
-    }
+    const salaryFit: number | null = computeSalaryFit(roleSalaryMax, talentSalMin, talentSalMax)
 
-    // Employment type fit
-    const EMP_COMPAT: Record<string, Record<string, number>> = {
-      full_time:  { full_time: 100, contract: 70, part_time: 40, gig: 20, internship: 10 },
-      contract:   { full_time: 70,  contract: 100, part_time: 40, gig: 30, internship: 10 },
-      part_time:  { full_time: 40,  contract: 40,  part_time: 100, gig: 70, internship: 30 },
-      gig:        { full_time: 20,  contract: 30,  part_time: 70,  gig: 100, internship: 40 },
-      internship: { full_time: 10,  contract: 10,  part_time: 30,  gig: 40, internship: 100 },
-    }
+    // Employment type fit — pure (computeEmploymentFit).
     const talentEmpPrefs: string[] = (t as unknown as { employment_type_preferences: string[] | null }).employment_type_preferences ?? []
-    let employmentFit: number | null = null
-    if (talentEmpPrefs.length > 0) {
-      const row = EMP_COMPAT[employmentType]
-      if (row) employmentFit = talentEmpPrefs.reduce((best, pref) => Math.max(best, row[pref] ?? 0), 0)
-    }
+    const employmentFit: number | null = computeEmploymentFit(employmentType, talentEmpPrefs)
 
     // Feedback score
     const talentFeedbackRaw = (t as unknown as { feedback_score: number | null }).feedback_score
     const feedbackScore: number | null = talentFeedbackRaw != null ? talentFeedbackRaw * 100 : null
 
-    // Experience fit
-    const EXP_RANGES: Record<string, [number, number]> = {
-      junior: [0, 2], internship: [0, 1], mid: [2, 5], senior: [5, 10], lead: [8, 99],
-    }
+    // Experience fit — pure (computeExperienceFit).
     const talentYearsExp = (parsedResume as { years_experience?: number | null } | null)?.years_experience ?? null
-    let experienceFit: number | null = null
-    if (talentYearsExp != null && experienceLevel && EXP_RANGES[experienceLevel]) {
-      const [rMin, rMax] = EXP_RANGES[experienceLevel]
-      if (talentYearsExp >= rMin && talentYearsExp <= rMax) {
-        experienceFit = 100
-      } else if (talentYearsExp > rMax) {
-        experienceFit = Math.max(30, 90 - (talentYearsExp - rMax) * 10)
-      } else {
-        experienceFit = Math.max(10, 80 - (rMin - talentYearsExp) * 20)
-      }
-    }
+    const experienceFit: number | null = computeExperienceFit(talentYearsExp, experienceLevel)
 
     // Education fit
-    const EDU_ORDER: Record<string, number> = {
-      spm: 1, diploma: 2, degree: 3, masters: 4, phd: 5, professional_cert: 3, other: 2,
-    }
     const EDU_MIN: Record<string, string> = {
       junior: 'spm', internship: 'spm', mid: 'diploma', senior: 'degree', lead: 'degree',
     }
     const talentEduLevel = (t as unknown as { education_level: string | null }).education_level ?? null
-    let educationFit: number | null = null
     // Prefer role-driven minimum; fall back to EDU_MIN by experience_level.
     // If HM ticked accept_no_experience, education becomes a soft signal only
     // (we set educationFit to 100 to avoid penalising; matcher still uses
@@ -609,15 +571,9 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     const effectiveMinEdu = roleMinEducation && roleMinEducation !== 'none'
       ? roleMinEducation
       : (experienceLevel && EDU_MIN[experienceLevel]) || null
-    if (talentEduLevel && effectiveMinEdu) {
-      if (acceptNoExperience) {
-        educationFit = 100
-      } else {
-        const talentRank = EDU_ORDER[talentEduLevel] ?? 0
-        const minRank    = EDU_ORDER[effectiveMinEdu] ?? 0
-        educationFit = talentRank >= minRank ? 100 : Math.max(20, 100 - (minRank - talentRank) * 30)
-      }
-    }
+    // Scoring is pure (computeEducationFit); effectiveMinEdu resolution stays inline
+    // because it depends on role/experience closure state.
+    const educationFit: number | null = computeEducationFit(talentEduLevel, effectiveMinEdu, acceptNoExperience)
 
     // Non-compete check (needs background overlap result)
     const bgOverlapsForNoncompete = await backgroundOverlaps(
@@ -725,14 +681,8 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     }
     const tagComp = roleTraits.length > 0 ? (sumHits / roleTraits.length) * 100 : 0
 
-    // Culture fit (qualitative only, weight=0)
-    let cultureFitSum = 0
-    for (const key of CULTURE_KEYS) {
-      const talentWant = tags[key] ?? 0
-      const hmOffer = (cultureOffers ?? {})[key] ?? 0
-      cultureFitSum += talentWant * hmOffer
-    }
-    const cultureFit = (cultureFitSum / CULTURE_KEYS.length) * 100
+    // Culture fit (qualitative only, weight=0) — pure (computeCultureFit).
+    const cultureFit = computeCultureFit(tags, cultureOffers, CULTURE_KEYS)
 
     const CULTURE_LABELS: Record<string, string> = {
       wants_wlb: 'Work-life balance', wants_fair_pay: 'Fair pay',
@@ -817,54 +767,25 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
       if (typeof peakRaw === 'number') peakAgeScore = peakRaw
     }
 
-    // Location
-    let locationScore: number | null = null
-    if (talentLocMatters && talentPostcode && rolePostcode) {
-      const a = talentPostcode.replace(/\s+/g, '')
-      const b = rolePostcode.replace(/\s+/g, '')
-      if (a === b) locationScore = 100
-      else if (a.length >= 3 && b.length >= 3 && a.slice(0, 3) === b.slice(0, 3)) locationScore = 70
-      else if (a.length >= 2 && b.length >= 2 && a.slice(0, 2) === b.slice(0, 2)) locationScore = 40
-      else if (a.length >= 1 && b.length >= 1 && a.slice(0, 1) === b.slice(0, 1)) locationScore = 20
-      else locationScore = 0
-    }
+    // Location — pure (computeLocationScore).
+    const locationScore: number | null = computeLocationScore(talentLocMatters, talentPostcode, rolePostcode)
 
     // ── v2: skill match ────────────────────────────────────────────────────
     // Required skills are hard-filtered in SQL — by the time we reach here
     // the talent has ALL of them. Score = required overlap (always 100 if any
     // required) + bonus from preferred-skill overlap, capped at 100.
+    // Pure (computeSkillMatch); talentSkills is reused below in concerns alignment.
     const talentSkills: string[] = Array.isArray((t as unknown as { skills: string[] | null }).skills)
       ? (t as unknown as { skills: string[] }).skills : []
-    let skillMatch: number | null = null
-    if (roleRequiredSkills.length > 0 || rolePreferredSkills.length > 0) {
-      const reqHits = roleRequiredSkills.filter((s) => talentSkills.includes(s)).length
-      const prefHits = rolePreferredSkills.filter((s) => talentSkills.includes(s)).length
-      const reqScore  = roleRequiredSkills.length > 0 ? (reqHits / roleRequiredSkills.length) * 100 : 100
-      const prefBonus = rolePreferredSkills.length > 0 ? (prefHits / rolePreferredSkills.length) * 30 : 0
-      skillMatch = Math.min(100, reqScore + prefBonus)
-    }
+    const skillMatch: number | null = computeSkillMatch(roleRequiredSkills, rolePreferredSkills, talentSkills)
 
     // ── v2: language match (code already hard-filtered; level is soft) ────
-    const LEVEL_RANK: Record<string, number> = { basic: 1, conversational: 2, fluent: 3, native: 4 }
+    // Pure (computeLanguageMatch).
     const talentLangProf: Array<{ code: string; level: string }> =
       Array.isArray((t as unknown as { languages_proficiency: unknown }).languages_proficiency)
         ? (t as unknown as { languages_proficiency: Array<{ code: string; level: string }> }).languages_proficiency
         : []
-    let languageMatch: number | null = null
-    if (roleLanguagesRequired.length > 0) {
-      const perLang = roleLanguagesRequired.map((req) => {
-        const tp = talentLangProf.find((p) => p.code === req.code)
-        if (!tp) return 50 // talent has the code (legacy text[]) but no level set
-        const need = LEVEL_RANK[req.level] ?? 2
-        const got  = LEVEL_RANK[tp.level]  ?? 2
-        if (got >= need) return 100
-        const gap = need - got
-        return Math.max(20, 100 - gap * 30)
-      })
-      languageMatch = perLang.length > 0
-        ? perLang.reduce((a, b) => a + b, 0) / perLang.length
-        : null
-    }
+    const languageMatch: number | null = computeLanguageMatch(roleLanguagesRequired, talentLangProf)
 
     // ── v2: environment match ─────────────────────────────────────────────
     const talentEnvPref: string[] = Array.isArray((t as unknown as { environment_preferences: string[] | null }).environment_preferences)

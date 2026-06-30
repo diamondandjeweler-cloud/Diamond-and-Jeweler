@@ -6,6 +6,7 @@ import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { activeMatchCountForRole } from '../../data/repositories/matches'
 import { updateRole } from '../../data/repositories/roles'
+import { hmIdByProfileId } from '../../data/repositories/hiring-managers'
 import { callFunction } from '../../lib/functions'
 import { Button, Card, Badge, Alert, EmptyState, PageHeader, BadgeTone } from '../../components/ui'
 import ListSkeleton from '../../components/ListSkeleton'
@@ -58,7 +59,7 @@ export default function MyRoles() {
   async function reload() {
     setLoading(true)
     try {
-      const { data: hm } = await supabase.from('hiring_managers').select('id').eq('profile_id', userId!).maybeSingle()
+      const { data: hm } = await hmIdByProfileId(userId!).maybeSingle()
       if (!hm) {
         // No HM row — settle to empty so EmptyState renders instead of indefinite skeleton.
         setRows([])

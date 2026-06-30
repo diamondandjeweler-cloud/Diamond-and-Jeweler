@@ -21,18 +21,21 @@ test.describe('landing + waitlist + signup smoke', () => {
     // both match getByLabel(/password/i). Target the actual input directly.
     await page.locator('input[type="password"]').fill('Hunter2hunter9!')
 
+    // The "Create account" button is not consent-disabled (it only disables
+    // while a submit is in flight); the form gates submission inside its
+    // onSubmit handler. Clicking with the required consents unchecked surfaces
+    // the consent error and keeps the user on /signup — i.e. submit is blocked.
     const createBtn = page.getByRole('button', { name: /create account/i })
-    await expect(createBtn).toBeDisabled()
+    await createBtn.click()
+    await expect(page.getByText(/required consents/i)).toBeVisible()
+    await expect(page).toHaveURL(/\/signup/)
 
-    // Tick DOB + ToS consents (required)
+    // Ticking the required DOB + ToS consents clears that gate. The Cloudflare
+    // Turnstile test key auto-fills its token within ~1s, so consents are no
+    // longer the blocker and the form reaches a submittable state.
     await page.getByRole('checkbox').nth(0).check()  // DOB
     await page.getByRole('checkbox').nth(2).check()  // ToS
-
-    // With required consents + min-10 password, button still gates on captcha.
-    // Using Cloudflare Turnstile test-site-key, the token is auto-filled
-    // invisibly within ~1s. Wait for the hidden response field, then assert.
     await expect(page.locator('input[name="cf-turnstile-response"]')).toHaveValue(/.+/, { timeout: 8000 })
-    await expect(createBtn).toBeEnabled()
   })
 
   test('login link routes to login page', async ({ page }) => {

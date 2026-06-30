@@ -200,7 +200,7 @@ export default function Login() {
 
         <div className="relative flex items-center gap-3">
           <div className="flex-1 border-t border-ink-200" />
-          <span className="text-xs text-ink-400">{t('auth.orSignInEmail')}</span>
+          <span className="text-xs text-ink-500">{t('auth.orSignInEmail')}</span>
           <div className="flex-1 border-t border-ink-200" />
         </div>
 

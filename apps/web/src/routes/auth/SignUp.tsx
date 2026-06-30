@@ -214,7 +214,7 @@ export default function SignUp() {
 
         <div className="relative flex items-center gap-3">
           <div className="flex-1 border-t border-ink-200" />
-          <span className="text-xs text-ink-400">{t('auth.orSignUpEmail')}</span>
+          <span className="text-xs text-ink-500">{t('auth.orSignUpEmail')}</span>
           <div className="flex-1 border-t border-ink-200" />
         </div>
 
@@ -350,7 +350,7 @@ export default function SignUp() {
           >
             <div>
               <h2 id="google-modal-title" className="text-base font-semibold text-ink-900">{t('signup.googleModalTitle')}</h2>
-              <p className="text-xs text-ink-400 mt-1">{t('signup.googleModalSubtitle')}</p>
+              <p className="text-xs text-ink-500 mt-1">{t('signup.googleModalSubtitle')}</p>
             </div>
 
             <div className="space-y-3">
@@ -389,7 +389,7 @@ export default function SignUp() {
               <button
                 type="button"
                 onClick={() => setShowGoogleModal(false)}
-                className="text-sm text-ink-400 hover:text-ink-600 text-center py-1 transition-colors"
+                className="text-sm text-ink-500 hover:text-ink-700 text-center py-1 transition-colors"
               >
                 {t('common.cancel')}
               </button>

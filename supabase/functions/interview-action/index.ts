@@ -14,6 +14,9 @@ import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { handleOptions } from '../_shared/cors.ts'
 import { authenticate, json } from '../_shared/auth.ts'
 import { adminClient } from '../_shared/supabase.ts'
+import { createLogger } from '../_shared/logger.ts'
+
+const log = createLogger('interview-action')
 
 const SITE = Deno.env.get('SITE_URL') ?? 'https://diamondandjeweler.com'
 const SELF_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -514,6 +517,6 @@ async function callNotify(
       body: JSON.stringify({ user_id: userId, type, data }),
     })
   } catch (e) {
-    console.error('callNotify failed', e)
+    log.error('callNotify failed', e)
   }
 }

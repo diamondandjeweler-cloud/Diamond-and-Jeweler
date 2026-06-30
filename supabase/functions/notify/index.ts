@@ -28,6 +28,9 @@ import { requireServiceRole, json } from '../_shared/auth.ts'
 import { adminClient } from '../_shared/supabase.ts'
 import { logAudit, extractIp } from '../_shared/audit.ts'
 import { reportError } from '../_shared/observe.ts'
+import { createLogger } from '../_shared/logger.ts'
+
+const log = createLogger('notify')
 
 let resendInstance: Resend | null = null
 function getResend(): Resend | null {
@@ -135,7 +138,7 @@ async function handler(req: Request): Promise<Response> {
         subject, body, data: payload.data ?? {},
       })
     } catch (e) {
-      console.error('Resend error', e)
+      log.error('Resend error', e)
       emailStatus = 'error'
     }
   }
@@ -161,7 +164,7 @@ async function handler(req: Request): Promise<Response> {
         })
       }
     } catch (e) {
-      console.error('WATI error', e)
+      log.error('WATI error', e)
       whatsappStatus = 'error'
     }
   }

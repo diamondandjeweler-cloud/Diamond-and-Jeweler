@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import { profileRoleById } from '../../data/repositories/profiles'
 import { useSession } from '../../state/useSession'
 import { markAdminVerified } from '../../lib/adminReauth'
 import { callFunction } from '../../lib/functions'
@@ -323,7 +324,7 @@ async function applyStoredRole(userId: string) {
     return
   }
   try {
-    const { data: existing } = await supabase.from('profiles').select('role').eq('id', userId).single()
+    const { data: existing } = await profileRoleById(userId).single()
     // Never downgrade: if the profile already carries a real (non-talent) role,
     // honour it and clear the flag.
     if (existing?.role && existing.role !== 'talent') {

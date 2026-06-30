@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useSession } from '../state/useSession'
 import { supabase } from '../lib/supabase'
 import { pointTransactionsForUser } from '../data/repositories/points'
+import { configValueByKey } from '../data/repositories/system-config'
 import { Alert, Badge, Button, Card, CardBody, EmptyState, PageHeader, Spinner, Stat } from '../components/ui'
 import { useSeo } from '../lib/useSeo'
 
@@ -51,7 +52,7 @@ export default function PointsWallet() {
       try {
         const [ledgerR, pkgR] = await Promise.all([
           pointTransactionsForUser(userId),
-          supabase.from('system_config').select('value').eq('key', 'points_packages').maybeSingle(),
+          configValueByKey('points_packages').maybeSingle(),
         ])
         if (cancelled) return
         setLedger((ledgerR.data as LedgerRow[] | null) ?? [])

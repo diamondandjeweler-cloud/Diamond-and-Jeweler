@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { supabase } from '../../lib/supabase'
+import { configValuesByKeys } from '../../data/repositories/system-config'
 import { useSeo } from '../../lib/useSeo'
 
 interface LegalCopy {
@@ -30,9 +30,7 @@ export default function PrivacyNotice() {
 
   useEffect(() => {
     let cancelled = false
-    void supabase.from('system_config')
-      .select('key, value')
-      .in('key', ['legal_entity_name', 'legal_contact_email', 'legal_dpo_email', 'legal_reviewed', 'legal_last_updated', 'legal_version'])
+    void configValuesByKeys(['legal_entity_name', 'legal_contact_email', 'legal_dpo_email', 'legal_reviewed', 'legal_last_updated', 'legal_version'])
       .then(({ data }) => {
         if (cancelled || !data) return
         const map = new Map<string, unknown>()

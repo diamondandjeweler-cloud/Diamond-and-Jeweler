@@ -40,6 +40,13 @@ export interface MatchParams {
   isServiceRole?: boolean
   /** The authenticated user's ID — required when isServiceRole=false. */
   callerUserId?: string
+  /**
+   * Injected Supabase client — for tests / dependency injection ONLY. Defaults
+   * to adminClient(); production callers never pass this, so runtime behaviour is
+   * unchanged. This is the seam that makes the orchestration guards unit-testable
+   * (see match-core.test.ts) without a live database.
+   */
+  db?: ReturnType<typeof adminClient>
 }
 
 export interface MatchResult {
@@ -102,7 +109,7 @@ interface ScoredCandidate {
 
 export async function matchForRole(params: MatchParams): Promise<MatchResult> {
   const { roleId, isExtraMatch = false, isServiceRole = false, callerUserId } = params
-  const db = adminClient()
+  const db = params.db ?? adminClient()
 
   // Per-generation memo for IMMUTABLE/STABLE pure-function RPCs
   // (get_life_chart_bucket, get_year_luck_stage). Their arguments come from a tiny

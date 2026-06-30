@@ -1,6 +1,7 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { profilesByIds } from '../../../data/repositories/profiles'
+import { insertSupportTicket } from '../../../data/repositories/support-tickets'
 import ListSkeleton from '../../../components/ListSkeleton'
 
 type Endpoint = 'chat-support' | 'chat-onboard'
@@ -189,7 +190,7 @@ export default function AIChatPanel() {
         content: m.content,
       }))
       const summary = `[Flagged from admin] ${c.first_question.slice(0, 140)}`
-      const { error } = await supabase.from('support_tickets').insert({
+      const { error } = await insertSupportTicket({
         user_id:  c.user_id,
         category: 'enquiry',
         summary,

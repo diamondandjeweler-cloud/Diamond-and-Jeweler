@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { updateMatch, updateMatches, pendingApprovalMatches } from '../../../data/repositories/matches'
 import ListSkeleton from '../../../components/ListSkeleton'
+import { confirmDialog } from '../../../components/Modal'
 
 interface PendingMatch {
   id: string
@@ -209,7 +210,11 @@ export default function MatchApprovalPanel() {
   }
 
   async function approveAll() {
-    if (!confirm(`Approve all ${rows.length} pending matches?`)) return
+    if (!(await confirmDialog({
+      title: 'Approve all pending matches?',
+      message: `This approves all ${rows.length} pending matches at once.`,
+      confirmLabel: 'Approve all',
+    }))) return
     setLoading(true)
     const ids = rows.map((r) => r.id)
     const { error } = await updateMatches(ids, { status: 'generated' })

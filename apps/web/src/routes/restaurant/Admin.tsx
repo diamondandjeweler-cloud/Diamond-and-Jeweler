@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { Alert, Badge, Button, Card, CardBody, EmptyState, Input, Select, Spinner } from '../../components/ui'
+import { confirmDialog } from '../../components/Modal'
 import { useRestaurant } from '../../lib/restaurant/context'
 import { useSession } from '../../state/useSession'
 import {
@@ -286,7 +287,7 @@ function MenuTab({ categories, items, branchId, onChanged }: {
                           Add-ons {modsOpen ? '▲' : '▼'}
                         </button>
                         <button className="btn-ghost btn-sm text-red-600"
-                          onClick={async () => { if (window.confirm(`Delete "${m.name}"?`)) { await deleteMenuItem(m.id); await onChanged() } }}>
+                          onClick={async () => { if (await confirmDialog({ title: 'Delete menu item?', message: `Delete "${m.name}"? This cannot be undone.`, confirmLabel: 'Delete', tone: 'danger' })) { await deleteMenuItem(m.id); await onChanged() } }}>
                           Delete
                         </button>
                       </td>
@@ -337,7 +338,7 @@ function CategoriesSection({ categories, branchId, onChanged }: {
   }
 
   const remove = async (id: string, name: string) => {
-    if (!window.confirm(`Delete category "${name}"? Items in this category will have no category.`)) return
+    if (!(await confirmDialog({ title: 'Delete category?', message: `Delete category "${name}"? Items in this category will have no category.`, confirmLabel: 'Delete', tone: 'danger' }))) return
     try { await deleteCategory(id); await onChanged() }
     catch (e) { setErr((e as Error).message) }
   }
@@ -436,7 +437,7 @@ function ModifiersSection({ menuItemId, itemName }: { menuItemId: string; itemNa
   }
 
   const remove = async (id: string, name: string) => {
-    if (!window.confirm(`Remove add-on "${name}"?`)) return
+    if (!(await confirmDialog({ title: 'Remove add-on?', message: `Remove add-on "${name}"?`, confirmLabel: 'Remove', tone: 'danger' }))) return
     try { await deleteModifier(id); await load() }
     catch (e) { setErr((e as Error).message) }
   }
@@ -550,7 +551,7 @@ function TablesTab({ tables, branchId, onChanged }: { tables: RestaurantTable[];
                   <td className="p-3 space-x-1">
                     <button className="btn-ghost btn-sm" onClick={() => setQrTableId(qrTableId === t.id ? null : t.id)}>QR</button>
                     <button className="btn-ghost btn-sm" onClick={async () => { await updateTable(t.id, { status: 'out_of_service' }); await onChanged() }}>Retire</button>
-                    <button className="btn-ghost btn-sm text-red-600" onClick={async () => { if (window.confirm(`Delete table ${t.table_number}?`)) { await deleteTable(t.id); await onChanged() } }}>Delete</button>
+                    <button className="btn-ghost btn-sm text-red-600" onClick={async () => { if (await confirmDialog({ title: 'Delete table?', message: `Delete table ${t.table_number}?`, confirmLabel: 'Delete', tone: 'danger' })) { await deleteTable(t.id); await onChanged() } }}>Delete</button>
                   </td>
                 </tr>
                 {qrTableId === t.id && (

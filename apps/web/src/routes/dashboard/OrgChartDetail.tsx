@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { Alert, Badge, Button, Card, Field, Input, PageHeader, Select, Textarea } from '../../components/ui'
+import { confirmDialog } from '../../components/Modal'
 import { useSeo } from '../../lib/useSeo'
 import {
   type OrgConsultationRow, type OrgMember,
@@ -104,7 +105,12 @@ export default function OrgChartDetail() {
   }
   async function removeMember(idx: number) {
     if (!row) return
-    if (!confirm('Remove this member?')) return
+    if (!(await confirmDialog({
+      title: 'Remove this member?',
+      message: 'This removes the member from the roster.',
+      confirmLabel: 'Remove',
+      tone: 'danger',
+    }))) return
     const next = members.slice()
     next.splice(idx, 1)
     await patch({ members: next })

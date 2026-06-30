@@ -5,6 +5,7 @@ import { supabase } from '../../../lib/supabase'
 import { callFunction } from '../../../lib/functions'
 import { formatError } from '../../../lib/errors'
 import { readDashCache, writeDashCache } from '../../../lib/dashboardCache'
+import { confirmDialog } from '../../../components/Modal'
 import type { InterviewRound, InterviewProposal } from '../../../types/db'
 import { hmCandidatesForManager, hmCandidateById, updateMatch, hiredMatchCountForRoles, activeMatchRoleIds } from '../../../data/repositories/matches'
 import { ACTIVE } from './types'
@@ -402,7 +403,11 @@ export function useHmDashboardData(userId: string | undefined) {
       })
       return
     }
-    if (!window.confirm(t('hmDash.urgentConfirm', { cost: URGENT_COST }))) return
+    if (!(await confirmDialog({
+      title: t('hmDash.urgentConfirmTitle', 'Use priority search?'),
+      message: t('hmDash.urgentConfirm', { cost: URGENT_COST }),
+      confirmLabel: t('common.confirm', 'Confirm'),
+    }))) return
     setUrgentRoleId(roleId); setUrgentBusy(true)
     try {
       const res = await callFunction<{
@@ -453,7 +458,11 @@ export function useHmDashboardData(userId: string | undefined) {
       })
       return
     }
-    if (!window.confirm(t('hmDash.redeemConfirm', { points: POINTS_PER_EXTRA, role: roleTitle }))) return
+    if (!(await confirmDialog({
+      title: t('hmDash.redeemConfirmTitle', 'Redeem points?'),
+      message: t('hmDash.redeemConfirm', { points: POINTS_PER_EXTRA, role: roleTitle }),
+      confirmLabel: t('common.confirm', 'Confirm'),
+    }))) return
     setRedeemingRoleId(roleId)
     try {
       await callFunction<{ message: string; cost: number }>('redeem-points', {

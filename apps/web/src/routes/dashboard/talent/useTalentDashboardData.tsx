@@ -5,6 +5,7 @@ import { useSession } from '../../../state/useSession'
 import { supabase } from '../../../lib/supabase'
 import { callFunction } from '../../../lib/functions'
 import { readDashCache, writeDashCache } from '../../../lib/dashboardCache'
+import { confirmDialog } from '../../../components/Modal'
 import type { InterviewRound, InterviewProposal } from '../../../types/db'
 import { talentMatchesForTalent, talentMatchById, updateMatch } from '../../../data/repositories/matches'
 import {
@@ -357,7 +358,11 @@ export function useTalentDashboardData() {
       })
       return
     }
-    if (!window.confirm(t('talentDash.redeemConfirm', { cost: POINTS_PER_EXTRA }))) return
+    if (!(await confirmDialog({
+      title: t('talentDash.redeemConfirmTitle', 'Redeem points?'),
+      message: t('talentDash.redeemConfirm', { cost: POINTS_PER_EXTRA }),
+      confirmLabel: t('common.confirm', 'Confirm'),
+    }))) return
     setRedeemingExtra(true)
     try {
       await callFunction<{ message: string; cost: number }>('redeem-points', { target_type: 'talent' })
@@ -389,7 +394,11 @@ export function useTalentDashboardData() {
       })
       return
     }
-    if (!window.confirm(t('talentDash.urgentConfirm', { cost: URGENT_COST }))) return
+    if (!(await confirmDialog({
+      title: t('talentDash.urgentConfirmTitle', 'Use priority search?'),
+      message: t('talentDash.urgentConfirm', { cost: URGENT_COST }),
+      confirmLabel: t('common.confirm', 'Confirm'),
+    }))) return
     setUrgentBusy(true)
     try {
       const res = await callFunction<{

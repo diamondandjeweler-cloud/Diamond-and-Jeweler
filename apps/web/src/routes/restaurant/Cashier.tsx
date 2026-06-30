@@ -639,6 +639,11 @@ function ShiftCard({ shift, onChanged, branchId }: { shift: CashierShift | null;
       acc.by_method[p.method] = (acc.by_method[p.method] ?? 0) + Number(p.amount)
       return acc
     }, { totals: { count: 0, amount: 0 }, by_method: {} as Record<string, number> })
+    // TODO(road95): migrate this read-only X-report dump to a <Modal> rendering
+    // the per-method breakdown as structured JSX. Left as alert() for now — it's
+    // a financial *report* (not a money/points/destructive action) and the
+    // multi-line string needs reshaping into markup, which is out of this task's
+    // behavior-preserving scope.
     alert(`X-report\nSince: ${new Date(since).toLocaleTimeString()}\nTxn: ${tally.totals.count}\nRevenue: ${MYR(tally.totals.amount)}\n` + Object.entries(tally.by_method).map(([m,v]) => `${m}: ${MYR(v)}`).join('\n'))
   }
 

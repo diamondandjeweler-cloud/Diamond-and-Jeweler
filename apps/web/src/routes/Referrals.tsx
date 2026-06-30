@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useSession } from '../state/useSession'
 import { supabase } from '../lib/supabase'
 import { Alert, Badge, Button, Card, CardBody, EmptyState, Input, PageHeader, Select, Spinner, Stat } from '../components/ui'
+import { noticeDialog } from '../components/Modal'
 
 interface Referral {
   id: string
@@ -184,7 +185,7 @@ export default function Referrals() {
   }
 
   const redeemForRole = async () => {
-    if (!pickedRoleId) { alert('Pick a role first'); return }
+    if (!pickedRoleId) { void noticeDialog({ title: 'Pick a role first', message: 'Select a role before redeeming.' }); return }
     setRedeeming(true)
     try {
       const r = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/redeem-points`, {
@@ -204,7 +205,7 @@ export default function Referrals() {
         : row))
       flashCopy(`Redeemed ${j.cost ?? pointsCfg.perExtra} Diamond Points — extra match generating shortly.`)
     } catch (e) {
-      alert((e as Error).message)
+      void noticeDialog({ title: 'Redeem failed', message: (e as Error).message, tone: 'danger' })
     } finally {
       setRedeeming(false)
     }
@@ -226,7 +227,7 @@ export default function Referrals() {
       await refresh()
       flashCopy(`Redeemed ${j.cost ?? pointsCfg.perExtra} Diamond Points — your next match is being generated.`)
     } catch (e) {
-      alert((e as Error).message)
+      void noticeDialog({ title: 'Redeem failed', message: (e as Error).message, tone: 'danger' })
     } finally {
       setRedeeming(false)
     }

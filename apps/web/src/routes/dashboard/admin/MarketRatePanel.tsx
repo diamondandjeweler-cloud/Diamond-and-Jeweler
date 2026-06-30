@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import ListSkeleton from '../../../components/ListSkeleton'
+import { confirmDialog } from '../../../components/Modal'
 
 interface MarketRow {
   id: string
@@ -62,7 +63,12 @@ export default function MarketRatePanel() {
   }
 
   async function remove(id: string) {
-    if (!confirm('Delete this market rate row?')) return
+    if (!(await confirmDialog({
+      title: 'Delete market rate row?',
+      message: 'This removes the salary benchmark row. This cannot be undone.',
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    }))) return
     const { error } = await supabase.from('market_rate_cache').delete().eq('id', id)
     if (error) setErr(error.message)
     else await reload()

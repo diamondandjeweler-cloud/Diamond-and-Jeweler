@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { FormSkeleton } from '../../../components/ListSkeleton'
+import { confirmDialog } from '../../../components/Modal'
 
 interface ConfigRow {
   key: string
@@ -156,10 +157,25 @@ export default function SystemConfigPanel() {
     }
     if (HIGH_RISK_KEYS.has(key)) {
       const display = JSON.stringify(parsed)
-      const ok = confirm(
-        `High-risk config change.\n\nKey: ${key}\nNew value: ${display}\n\n` +
-        `This affects platform-wide behaviour and takes effect immediately for all users. Proceed?`,
-      )
+      const ok = await confirmDialog({
+        title: 'High-risk config change',
+        message: (
+          <>
+            <p>
+              <strong>Key:</strong> <code>{key}</code>
+            </p>
+            <p className="break-all">
+              <strong>New value:</strong> <code>{display}</code>
+            </p>
+            <p>
+              This affects platform-wide behaviour and takes effect immediately
+              for all users. Proceed?
+            </p>
+          </>
+        ),
+        confirmLabel: 'Proceed',
+        tone: 'danger',
+      })
       if (!ok) return
     }
     setSavingKey(key)

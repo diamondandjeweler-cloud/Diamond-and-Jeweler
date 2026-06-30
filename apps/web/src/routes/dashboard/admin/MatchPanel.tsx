@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { updateMatch } from '../../../data/repositories/matches'
 import ListSkeleton from '../../../components/ListSkeleton'
+import { confirmDialog } from '../../../components/Modal'
 import { formatError } from '../../../lib/errors'
 
 // F8 — Switched from a direct PostgREST embed (`from('matches').select('…,
@@ -53,7 +54,12 @@ export default function MatchPanel() {
   useEffect(() => { void reload() }, [statusFilter])
 
   async function forceExpire(id: string) {
-    if (!confirm('Force-expire this match? Irreversible.')) return
+    if (!(await confirmDialog({
+      title: 'Force-expire this match?',
+      message: 'This immediately expires the match and cannot be undone.',
+      confirmLabel: 'Force-expire',
+      tone: 'danger',
+    }))) return
     const { error } = await updateMatch(id, { status: 'expired' })
     if (error) setErr(error.message)
     else await reload()

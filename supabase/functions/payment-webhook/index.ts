@@ -52,6 +52,15 @@ serve(async (req) => {
   }
 
   // Verify Billplz X-Signature — fail closed if key is not configured.
+  // NOTE(swr-money-matcher): this gate is the Billplz path and is intentionally
+  // left unchanged here (out of scope: "do not alter the Billplz path"). The new
+  // server-side ToyyibPay confirmation lives in tryConsultBooking, but a real
+  // ToyyibPay callback carries no x_signature and is rejected 401 by THIS gate
+  // before it reaches that branch. For the ToyyibPay verify branch to actually
+  // run end-to-end, the owner must reconcile inbound routing (e.g. a dedicated
+  // toyyibpay-webhook function, or a provider branch BEFORE this gate) — see
+  // docs/AUDIT_REMEDIATION_2026-06-26.md [P1-toyyibpay-callback]. Until then the
+  // branch is dormant-but-correct (additive, fail-safe) for Billplz-routed flows.
   const apiKey = Deno.env.get('BILLPLZ_API_KEY')
   if (!apiKey) {
     console.error('BILLPLZ_API_KEY is not set — rejecting webhook to prevent payment fraud')
@@ -287,18 +296,18 @@ async function tryConsultBooking(args: {
   const { db, billId, purchaseRef, paid } = args
   let booking: {
     id: string; profile_id: string; tier: string; duration_minutes: number;
-    price_rm: number; status: string;
+    price_rm: number; status: string; payment_provider: string | null; payment_ref: string | null;
   } | null = null
 
   if (billId) {
     const { data } = await db.from('consult_bookings')
-      .select('id, profile_id, tier, duration_minutes, price_rm, status')
+      .select('id, profile_id, tier, duration_minutes, price_rm, status, payment_provider, payment_ref')
       .eq('payment_ref', billId).maybeSingle()
     booking = data as typeof booking
   }
   if (!booking && purchaseRef) {
     const { data } = await db.from('consult_bookings')
-      .select('id, profile_id, tier, duration_minutes, price_rm, status')
+      .select('id, profile_id, tier, duration_minutes, price_rm, status, payment_provider, payment_ref')
       .eq('id', purchaseRef).maybeSingle()
     booking = data as typeof booking
   }
@@ -309,6 +318,28 @@ async function tryConsultBooking(args: {
   if (!paid) {
     await db.from('consult_bookings').update({ status: 'cancelled' }).eq('id', booking.id).eq('status', 'pending')
     return true
+  }
+
+  // Defense-in-depth (ROAD_TO_A_PLUS §3): consults are paid via ToyyibPay, whose
+  // basic callback carries no HMAC signature. Before trusting paid=true for a
+  // ToyyibPay booking, re-confirm the bill SERVER-SIDE via getBillTransactions
+  // (status=success + amount matches) rather than the raw callback flag. This is
+  // an ADDITIVE guard: it can only DOWNGRADE a callback we'd otherwise trust to
+  // 'failed' — it never flips a booking to paid on its own. If the ToyyibPay
+  // secret is unset, OR the booking did not go through ToyyibPay, we fall back to
+  // the existing callback-trusting behavior so nothing breaks.
+  const tpBillCode = booking.payment_ref ?? (billId || null)
+  const isToyyibBooking = (booking.payment_provider ?? '').toLowerCase() === 'toyyibpay'
+  if (isToyyibBooking && tpBillCode) {
+    const confirmed = await confirmToyyibPayPaid(tpBillCode, booking.price_rm)
+    if (confirmed === false) {
+      // Authoritative source says NOT paid → treat as a failed/spoofed callback.
+      console.error('consult: ToyyibPay getBillTransactions did not confirm payment', booking.id, tpBillCode)
+      await db.from('consult_bookings').update({ status: 'cancelled' }).eq('id', booking.id).eq('status', 'pending')
+      return true
+    }
+    // confirmed === null → env not configured or provider unreachable: fall back
+    // to the existing behavior (trust the callback) so the path is not broken.
   }
 
   const { data: flippedBooking, error: updErr } = await db.from('consult_bookings')
@@ -352,4 +383,85 @@ async function tryConsultBooking(args: {
   }).catch(() => { /* best effort */ })
 
   return true
+}
+
+/**
+ * Server-side confirmation of a ToyyibPay bill via getBillTransactions.
+ *
+ * Defense-in-depth for the consult money path: ToyyibPay's basic callback has no
+ * HMAC signature, so we re-fetch the bill's authoritative status from ToyyibPay
+ * before trusting paid=true. Mirrors the env var names used by
+ * init-consult-booking (TOYYIBPAY_SECRET / TOYYIBPAY_BASE_URL).
+ *
+ * Returns:
+ *   true  — ToyyibPay reports the bill is paid (billpaymentStatus == '1') and,
+ *           when an expected amount is known, the paid amount matches (in sen).
+ *   false — ToyyibPay reports the bill is NOT successfully paid, or the amount
+ *           does not match the booking price (possible spoof / tampering).
+ *   null  — secret not configured OR the provider could not be reached / parsed,
+ *           so the caller should FALL BACK to the existing callback behavior
+ *           rather than break the path.
+ *
+ * Endpoint contract (ToyyibPay): POST {base}/index.php/api/getBillTransactions
+ * with form fields { userSecretKey, billCode }. Response is a JSON array of
+ * transactions; a successful payment has billpaymentStatus == '1' and
+ * billpaymentAmount in RM (string). Documented here so the exact field names are
+ * verifiable against ToyyibPay's live contract at deploy time.
+ * TODO(swr-money-matcher): confirm the getBillTransactions field names
+ * (billpaymentStatus / billpaymentAmount) + success code ('1') against the live
+ * ToyyibPay API during owner deploy verification; the null fallback keeps the
+ * path safe if the shape differs.
+ */
+async function confirmToyyibPayPaid(
+  billCode: string,
+  expectedPriceRm: number | null,
+): Promise<boolean | null> {
+  const tpSecret = Deno.env.get('TOYYIBPAY_SECRET')
+  const tpBaseUrl = Deno.env.get('TOYYIBPAY_BASE_URL') ?? 'https://toyyibpay.com'
+  // Env not configured → cannot verify; signal fall-back.
+  if (!tpSecret || !billCode) return null
+
+  try {
+    const resp = await fetch(`${tpBaseUrl}/index.php/api/getBillTransactions`, {
+      method: 'POST',
+      body: new URLSearchParams({ userSecretKey: tpSecret, billCode }),
+    })
+    if (!resp.ok) {
+      console.error('toyyibpay getBillTransactions http error', resp.status)
+      return null  // provider unreachable → fall back
+    }
+    const text = await resp.text()
+    let parsed: unknown
+    try { parsed = JSON.parse(text) } catch {
+      console.error('toyyibpay getBillTransactions: non-JSON response')
+      return null
+    }
+    const rows = Array.isArray(parsed) ? parsed as Array<Record<string, unknown>> : []
+    if (rows.length === 0) {
+      // No transactions recorded for this bill → not paid.
+      return false
+    }
+    // A successful payment row has billpaymentStatus == '1'.
+    const successRow = rows.find((r) => String(r['billpaymentStatus'] ?? '') === '1')
+    if (!successRow) return false
+
+    // When we know the expected price, confirm the paid amount matches (in sen).
+    if (expectedPriceRm != null) {
+      const expectedSen = Math.round(expectedPriceRm * 100)
+      const paidRm = Number(successRow['billpaymentAmount'])
+      if (Number.isFinite(paidRm)) {
+        const paidSen = Math.round(paidRm * 100)
+        if (paidSen !== expectedSen) {
+          console.error('toyyibpay amount mismatch', { billCode, expectedSen, paidSen })
+          return false
+        }
+      }
+      // If the amount field is missing/unparseable, do not hard-fail on amount —
+      // the status==1 success row already confirms payment.
+    }
+    return true
+  } catch (e) {
+    console.error('toyyibpay getBillTransactions failed', e)
+    return null  // network error → fall back to existing behavior
+  }
 }

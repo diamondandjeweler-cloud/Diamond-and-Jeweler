@@ -21,6 +21,7 @@ import { corsHeaders, handleOptions } from '../_shared/cors.ts'
 import { authenticate, json } from '../_shared/auth.ts'
 import { adminClient } from '../_shared/supabase.ts'
 import { enforceRateLimit, RateLimitError } from '../_shared/ratelimit.ts'
+import { withIdempotency } from '../_shared/idempotency.ts'
 
 interface Body {
   target_type?: 'role' | 'talent'
@@ -55,125 +56,139 @@ serve(async (req) => {
 
   const db = adminClient()
 
-  // Cost.
-  const { data: costCfg } = await db.from('system_config').select('value')
-    .eq('key', 'points_per_extra_match').maybeSingle()
-  const cost = typeof costCfg?.value === 'number' ? costCfg.value : 21
+  // Request-level idempotency: a client-supplied Idempotency-Key de-dupes the
+  // whole redeem body (ownership/quota resolution, points deduction, quota bump,
+  // match-generate fire). The DB-level guards remain authoritative — the
+  // redeem_points_for RPC is itself idempotent on `redeem:{target}:{used}`, and
+  // the quota bump uses an optimistic-concurrency guard — so this only avoids a
+  // redundant second pass / second match-generate call on a double-submit.
+  const idemKey = req.headers.get('Idempotency-Key')
+  const result = await withIdempotency(db, idemKey, auth.userId, 'redeem-points', async () => {
+    // Cost.
+    const { data: costCfg } = await db.from('system_config').select('value')
+      .eq('key', 'points_per_extra_match').maybeSingle()
+    const cost = typeof costCfg?.value === 'number' ? costCfg.value : 21
 
-  // Resolve target + verify ownership + read current quota.
-  let roleId: string | null = null
-  let talentId: string | null = null
-  let used = 0
-  let cap = 3
+    // Resolve target + verify ownership + read current quota.
+    let roleId: string | null = null
+    let talentId: string | null = null
+    let used = 0
+    let cap = 3
 
-  if (targetType === 'role') {
-    if (!body.role_id) return json({ error: 'role_id required' }, 400)
-    if (auth.role === 'talent') return json({ error: 'Talents cannot redeem on a role' }, 403)
+    if (targetType === 'role') {
+      if (!body.role_id) return { _status: 400, _body: { error: 'role_id required' } }
+      if (auth.role === 'talent') return { _status: 403, _body: { error: 'Talents cannot redeem on a role' } }
 
-    const { data: role } = await db.from('roles')
-      .select('id, hiring_manager_id, extra_matches_used, status')
-      .eq('id', body.role_id).maybeSingle()
-    if (!role) return json({ error: 'Role not found' }, 404)
-    if (role.status !== 'active') return json({ error: `Role is ${role.status}` }, 400)
+      const { data: role } = await db.from('roles')
+        .select('id, hiring_manager_id, extra_matches_used, status')
+        .eq('id', body.role_id).maybeSingle()
+      if (!role) return { _status: 404, _body: { error: 'Role not found' } }
+      if (role.status !== 'active') return { _status: 400, _body: { error: `Role is ${role.status}` } }
 
-    if (auth.role !== 'admin') {
-      const { data: hm } = await db.from('hiring_managers')
-        .select('id').eq('id', role.hiring_manager_id).eq('profile_id', auth.userId)
-        .maybeSingle()
-      if (!hm) return json({ error: 'Not the role owner' }, 403)
+      if (auth.role !== 'admin') {
+        const { data: hm } = await db.from('hiring_managers')
+          .select('id').eq('id', role.hiring_manager_id).eq('profile_id', auth.userId)
+          .maybeSingle()
+        if (!hm) return { _status: 403, _body: { error: 'Not the role owner' } }
+      }
+      roleId = role.id
+      used = role.extra_matches_used ?? 0
+
+      const { data: capCfg } = await db.from('system_config').select('value')
+        .eq('key', 'extra_match_cap_per_role').maybeSingle()
+      if (typeof capCfg?.value === 'number') cap = capCfg.value
+    } else {
+      // Talent redemption — defaults to caller's own talent profile.
+      let tid = body.talent_id ?? null
+      if (!tid) {
+        const { data: t } = await db.from('talents').select('id')
+          .eq('profile_id', auth.userId).maybeSingle()
+        tid = t?.id ?? null
+      }
+      if (!tid) return { _status: 404, _body: { error: 'Talent profile not found' } }
+
+      const { data: talent } = await db.from('talents')
+        .select('id, profile_id, extra_matches_used').eq('id', tid).maybeSingle()
+      if (!talent) return { _status: 404, _body: { error: 'Talent not found' } }
+      if (auth.role === 'talent' && talent.profile_id !== auth.userId) {
+        return { _status: 403, _body: { error: 'Cannot redeem for another talent' } }
+      }
+      if (auth.role === 'hiring_manager') {
+        return { _status: 403, _body: { error: 'Hiring managers redeem against a role, not a talent' } }
+      }
+      talentId = talent.id
+      used = talent.extra_matches_used ?? 0
+
+      const { data: capCfg } = await db.from('system_config').select('value')
+        .eq('key', 'extra_match_cap_per_talent').maybeSingle()
+      if (typeof capCfg?.value === 'number') cap = capCfg.value
     }
-    roleId = role.id
-    used = role.extra_matches_used ?? 0
 
-    const { data: capCfg } = await db.from('system_config').select('value')
-      .eq('key', 'extra_match_cap_per_role').maybeSingle()
-    if (typeof capCfg?.value === 'number') cap = capCfg.value
-  } else {
-    // Talent redemption — defaults to caller's own talent profile.
-    let tid = body.talent_id ?? null
-    if (!tid) {
-      const { data: t } = await db.from('talents').select('id')
-        .eq('profile_id', auth.userId).maybeSingle()
-      tid = t?.id ?? null
+    if (used >= cap) {
+      return { _status: 400, _body: { error: 'Extra match quota exhausted', used, cap } }
     }
-    if (!tid) return json({ error: 'Talent profile not found' }, 404)
 
-    const { data: talent } = await db.from('talents')
-      .select('id, profile_id, extra_matches_used').eq('id', tid).maybeSingle()
-    if (!talent) return json({ error: 'Talent not found' }, 404)
-    if (auth.role === 'talent' && talent.profile_id !== auth.userId) {
-      return json({ error: 'Cannot redeem for another talent' }, 403)
+    // Deduct points with a balance check + an idempotency key derived from the
+    // current `used` value. The RPC is idempotent on the key, so a double-click
+    // from the UI replays the same key and is not double-charged.
+    const idempotencyKey = `redeem:${targetType}:${roleId ?? talentId}:${used}`
+
+    const { data: redeemResult, error: redeemErr } = await db.rpc('redeem_points_for', {
+      p_user_id: auth.userId,
+      p_cost: cost,
+      p_reason: 'redeem_extra_match',
+      p_idempotency_key: idempotencyKey,
+    })
+    if (redeemErr) {
+      // P0001 with 'insufficient_points' = balance too low → 402 Payment Required.
+      if (redeemErr.code === 'P0001' || (redeemErr.message ?? '').includes('insufficient_points')) {
+        return { _status: 402, _body: { error: 'Insufficient points' } }
+      }
+      return { _status: 500, _body: { error: redeemErr.message } }
     }
-    if (auth.role === 'hiring_manager') {
-      return json({ error: 'Hiring managers redeem against a role, not a talent' }, 403)
+
+    // redeem_points_for returns -1 on an idempotency replay (same key already
+    // charged). Short-circuit so a double-click does NOT bump the quota again or
+    // fire a second (free) extra match. A real redemption returns the new balance
+    // (>= 0), so a balance landing exactly on 0 is NOT mistaken for a replay.
+    if (redeemResult === -1) {
+      return {
+        _status: 409,
+        _body: { message: 'Already redeemed', already: true, target_type: targetType, role_id: roleId, talent_id: talentId },
+      }
     }
-    talentId = talent.id
-    used = talent.extra_matches_used ?? 0
 
-    const { data: capCfg } = await db.from('system_config').select('value')
-      .eq('key', 'extra_match_cap_per_talent').maybeSingle()
-    if (typeof capCfg?.value === 'number') cap = capCfg.value
-  }
+    // Bump quota counter.
+    if (targetType === 'role' && roleId) {
+      await db.from('roles')
+        .update({ extra_matches_used: used + 1 })
+        .eq('id', roleId)
+        .eq('extra_matches_used', used) // optimistic concurrency guard
+    } else if (targetType === 'talent' && talentId) {
+      await db.from('talents')
+        .update({ extra_matches_used: used + 1 })
+        .eq('id', talentId)
+        .eq('extra_matches_used', used)
+    }
 
-  if (used >= cap) {
-    return json({ error: 'Extra match quota exhausted', used, cap }, 400)
-  }
+    // Trigger an extra-match generation. Service-role auth.
+    const url = `${Deno.env.get('SUPABASE_URL')}/functions/v1/match-generate`
+    const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${svcKey}` },
+      body: JSON.stringify(
+        targetType === 'role'
+          ? { role_id: roleId, is_extra_match: true }
+          : { talent_id: talentId, is_extra_match: true }
+      ),
+    }).catch(() => { /* best effort */ })
 
-  // Deduct points with a balance check + an idempotency key derived from the
-  // current `used` value. The RPC is idempotent on the key, so a double-click
-  // from the UI replays the same key and is not double-charged.
-  const idempotencyKey = `redeem:${targetType}:${roleId ?? talentId}:${used}`
-
-  const { data: redeemResult, error: redeemErr } = await db.rpc('redeem_points_for', {
-    p_user_id: auth.userId,
-    p_cost: cost,
-    p_reason: 'redeem_extra_match',
-    p_idempotency_key: idempotencyKey,
+    return {
+      _status: 200,
+      _body: { message: 'Redeemed', cost, target_type: targetType, role_id: roleId, talent_id: talentId },
+    }
   })
-  if (redeemErr) {
-    // P0001 with 'insufficient_points' = balance too low → 402 Payment Required.
-    if (redeemErr.code === 'P0001' || (redeemErr.message ?? '').includes('insufficient_points')) {
-      return json({ error: 'Insufficient points' }, 402)
-    }
-    return json({ error: redeemErr.message }, 500)
-  }
 
-  // redeem_points_for returns -1 on an idempotency replay (same key already
-  // charged). Short-circuit so a double-click does NOT bump the quota again or
-  // fire a second (free) extra match. A real redemption returns the new balance
-  // (>= 0), so a balance landing exactly on 0 is NOT mistaken for a replay.
-  if (redeemResult === -1) {
-    return json(
-      { message: 'Already redeemed', already: true, target_type: targetType, role_id: roleId, talent_id: talentId },
-      409,
-    )
-  }
-
-  // Bump quota counter.
-  if (targetType === 'role' && roleId) {
-    await db.from('roles')
-      .update({ extra_matches_used: used + 1 })
-      .eq('id', roleId)
-      .eq('extra_matches_used', used) // optimistic concurrency guard
-  } else if (targetType === 'talent' && talentId) {
-    await db.from('talents')
-      .update({ extra_matches_used: used + 1 })
-      .eq('id', talentId)
-      .eq('extra_matches_used', used)
-  }
-
-  // Trigger an extra-match generation. Service-role auth.
-  const url = `${Deno.env.get('SUPABASE_URL')}/functions/v1/match-generate`
-  const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${svcKey}` },
-    body: JSON.stringify(
-      targetType === 'role'
-        ? { role_id: roleId, is_extra_match: true }
-        : { talent_id: talentId, is_extra_match: true }
-    ),
-  }).catch(() => { /* best effort */ })
-
-  return json({ message: 'Redeemed', cost, target_type: targetType, role_id: roleId, talent_id: talentId })
+  return json(result._body, result._status)
 })

@@ -201,6 +201,21 @@ export function useTalentDashboardData() {
         else {
           const rows = (data ?? []) as unknown as MatchRow[]
           setMatches(rows)
+          // Prune match-keyed maps to the current match set so they don't grow
+          // unbounded across refreshes over a long session. Rebuild each map from
+          // the current ids, dropping entries for matches no longer present;
+          // entries for current matches are preserved verbatim.
+          const currentMatchIds = new Set(rows.map((m) => m.id))
+          const pruneByMatch = <V,>(prev: Record<string, V>): Record<string, V> => {
+            const next: Record<string, V> = {}
+            for (const id of Object.keys(prev)) {
+              if (currentMatchIds.has(id)) next[id] = prev[id]
+            }
+            return next
+          }
+          setRoundsByMatch(pruneByMatch)
+          setProposalsByMatch(pruneByMatch)
+          setTalentFeedbackState(pruneByMatch)
           // Cache safe-to-show counts so the KPI strip is instant on return.
           // We never cache match IDs / scores / role details — those refetch.
           const openCount = rows.filter((m) => ['generated', 'viewed'].includes(m.status)).length

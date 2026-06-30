@@ -155,6 +155,7 @@ export const useSession = create<SessionState>((set) => ({
     } catch (e) {
       console.error('[session] signOut failed or timed out', e)
     }
+    clearProfileRetries()
     clearAdminVerified()
     saveCachedProfile(null)
     saveCachedIsHM(null, false)
@@ -263,6 +264,14 @@ function enforceBan(): void {
 }
 
 let bootstrapped = false
+// U4 — track the profile-retry ladder's timers so they can be cancelled on
+// logout / user-switch. Without this, the setTimeout calls scheduled below keep
+// firing refresh() after the session is gone (orphaned timers).
+let profileRetryTimers: ReturnType<typeof setTimeout>[] = []
+function clearProfileRetries() {
+  profileRetryTimers.forEach(clearTimeout)
+  profileRetryTimers = []
+}
 export function bootstrapSession() {
   if (bootstrapped) return
   bootstrapped = true
@@ -318,6 +327,7 @@ export function bootstrapSession() {
         const definitive = definitiveEvents.has(event as unknown as string)
         if (definitive) {
           lastFetchedFor = null
+          clearProfileRetries()
           clearAuthHintCookie()
           useSession.setState({ session: null, profile: null, isHM: false, loading: false })
         } else {
@@ -406,8 +416,12 @@ export function bootstrapSession() {
         // error boundary) takes over and offers manual sign-out.
         const session2 = session
         const retryDelays = [3_000, 5_000, 10_000]
+        // U4 — cancel any prior batch before scheduling a fresh one, and track
+        // each timer id so logout / user-switch can clear them (see
+        // clearProfileRetries). Prevents orphaned retries firing post-logout.
+        clearProfileRetries()
         retryDelays.forEach((delay, i) => {
-          setTimeout(() => {
+          const timer = setTimeout(() => {
             // Bail if user signed out, navigated to a different session, or
             // profile arrived in the meantime.
             const cur = useSession.getState()
@@ -418,6 +432,7 @@ export function bootstrapSession() {
               console.error(`[session] profile retry #${i + 1} failed`, err)
             })
           }, delay)
+          profileRetryTimers.push(timer)
         })
       }
     } catch (e) {

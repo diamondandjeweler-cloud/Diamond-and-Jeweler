@@ -1241,7 +1241,51 @@ export const HIRES: Record<HireSlug, HireConfig> = {
   },
 }
 
-// Convenience arrays for sitemap and inject-meta generation
-export const ROLE_SLUGS = Object.keys(ROLES) as RoleSlug[]
-export const LOCATION_SLUGS = Object.keys(LOCATIONS) as LocationSlug[]
-export const HIRE_SLUGS = Object.keys(HIRES) as HireSlug[]
+// Convenience arrays for sitemap and inject-meta generation.
+// Listed explicitly (in the same order as the config objects above) so that
+// importing just the slug list does not pull the full ROLES/LOCATIONS/HIRES
+// config objects into the consumer's chunk.
+export const ROLE_SLUGS: RoleSlug[] = [
+  'pilot',
+  'cadet-pilot',
+  'jeweler',
+  'diamond-grader',
+  'gemologist',
+  'jewelry-designer',
+  'luxury-retail',
+  'sales-executive',
+  'admin-executive',
+  'account-assistant',
+  'software-developer',
+  'graphic-designer',
+  'marketing-executive',
+  'customer-service',
+  'hr-assistant',
+  'finance',
+  'banking',
+  'engineering',
+  'healthcare',
+  'education',
+  'hospitality',
+  'construction',
+  'logistics',
+  'manufacturing',
+  'f-and-b',
+]
+export const LOCATION_SLUGS: LocationSlug[] = [
+  'kuala-lumpur',
+  'petaling-jaya',
+  'penang',
+  'johor-bahru',
+  'cyberjaya',
+  'shah-alam',
+  'subang-jaya',
+]
+export const HIRE_SLUGS: HireSlug[] = [
+  'pilot',
+  'jeweler',
+  'diamond-grader',
+  'gemologist',
+  'sales-team',
+  'luxury-retail-staff',
+]

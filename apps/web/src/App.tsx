@@ -12,13 +12,13 @@ import AdminGate from './components/AdminGate'
 import ConsentGate from './components/ConsentGate'
 import RoleGate from './components/RoleGate'
 import Landing from './routes/Landing'
-import SignUp from './routes/auth/SignUp'
-import Login from './routes/auth/Login'
 import { LOCATION_SLUGS, HIRE_SLUGS } from './data/silo-data'
 import PwaInstallBanner from './components/PwaInstallBanner'
 import { useDarkMode } from './lib/useDarkMode'
 import type { RestaurantRole } from './types/db'
 
+const SignUp           = lazy(() => import('./routes/auth/SignUp'))
+const Login            = lazy(() => import('./routes/auth/Login'))
 const Start            = lazy(() => import('./routes/Start'))
 const About            = lazy(() => import('./routes/About'))
 const Careers          = lazy(() => import('./routes/Careers'))

@@ -11,6 +11,7 @@ import OnboardingGate from './components/OnboardingGate'
 import AdminGate from './components/AdminGate'
 import ConsentGate from './components/ConsentGate'
 import RoleGate from './components/RoleGate'
+import RestaurantGate from './components/RestaurantGate'
 import Landing from './routes/Landing'
 import SignUp from './routes/auth/SignUp'
 import Login from './routes/auth/Login'
@@ -86,9 +87,9 @@ const MatchPreview     = lazy(() => import('./routes/dev/MatchPreview'))
 // ---------------------------------------------------------------------------
 const RESTAURANT_ENABLED = import.meta.env.VITE_ENABLE_RESTAURANT === 'true'
 
-// Role that, in addition to 'admin', may access the Restaurant OS shell.
-// Sourced from the restaurant role seam so this string is not hard-coded into
-// the recruitment routing below.
+// The restaurant role, used by RoleHome below to route a restaurant user to
+// their shell. Route-level access control lives in RestaurantGate (which owns
+// the full allow-set) so recruitment routing never hard-codes 'restaurant_staff'.
 const RESTAURANT_ROLE: RestaurantRole = 'restaurant_staff'
 
 const GuestMenu        = lazy(() => import('./routes/restaurant/GuestMenu'))
@@ -234,12 +235,12 @@ export default function App() {
           <Route path="/consult/return" element={<Consult />} />
 
           {/* === RESTAURANT OS SEAM (routes) ===
-              Gated to admin + the restaurant role only. Hidden in production
-              unless VITE_ENABLE_RESTAURANT=true. The restaurant role string is
-              sourced from RESTAURANT_ROLE (restaurant seam) so recruitment
+              Gated to admin + the restaurant role only, via RestaurantGate which
+              owns the restaurant access policy inside the seam. Hidden in
+              production unless VITE_ENABLE_RESTAURANT=true, so recruitment
               routing never hard-codes 'restaurant_staff'. */}
           {RESTAURANT_ENABLED && (
-            <Route path="/restaurant" element={<RoleGate allow={['admin', RESTAURANT_ROLE]}><RestaurantLayout /></RoleGate>}>
+            <Route path="/restaurant" element={<RestaurantGate><RestaurantLayout /></RestaurantGate>}>
               <Route index element={<RestaurantHome />} />
               <Route path="kiosk"      element={<Kiosk />} />
               <Route path="orders"     element={<Orders />} />

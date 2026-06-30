@@ -15,12 +15,25 @@ import { handleOptions } from '../_shared/cors.ts'
 import { authenticate, json } from '../_shared/auth.ts'
 import { adminClient } from '../_shared/supabase.ts'
 import { logAudit, extractIp } from '../_shared/audit.ts'
+import { reportError } from '../_shared/observe.ts'
 
 interface Body { request_id?: string }
 
 const SIGNED_URL_TTL_SECONDS = 60 * 60 // 1 h
 
+// Wrapped so any uncaught throw in the handler is reported to the edge error
+// sink before propagating. Re-throws unchanged — status/response/control flow
+// are byte-for-byte identical to the bare handler (purely additive telemetry).
 serve(async (req) => {
+  try {
+    return await handler(req)
+  } catch (e) {
+    await reportError(e, { fn: 'dsr-export' })
+    throw e
+  }
+})
+
+async function handler(req: Request): Promise<Response> {
   const pre = handleOptions(req); if (pre) return pre
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
 
@@ -186,7 +199,7 @@ serve(async (req) => {
   })
 
   return json({ ok: true, file_path: filePath, size_bytes: bytes.byteLength })
-})
+}
 
 /** Returns a comma-joined list of talent IDs owned by the user, or 'NULL' if none. */
 async function resolveIds(

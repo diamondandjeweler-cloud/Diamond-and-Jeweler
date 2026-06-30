@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { requireServiceRole } from '../_shared/auth.ts'
+import { reportError } from '../_shared/observe.ts'
 
 const VAPID_PUBLIC_KEY  = Deno.env.get('VAPID_PUBLIC_KEY')  ?? ''
 const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY') ?? ''
@@ -50,6 +51,7 @@ serve(async (req: Request) => {
     })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
+    await reportError(err, { fn: 'send-push-notification' })
     return new Response(JSON.stringify({ error: msg }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

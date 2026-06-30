@@ -12,6 +12,7 @@ import { authenticate, json } from '../_shared/auth.ts'
 import { adminClient } from '../_shared/supabase.ts'
 import { enforceRateLimit, RateLimitError } from '../_shared/ratelimit.ts'
 import { matchForRole, MatchError } from '../_shared/match-core.ts'
+import { reportError } from '../_shared/observe.ts'
 
 interface Body { role_id?: string; is_extra_match?: boolean }
 
@@ -54,6 +55,7 @@ serve(async (req) => {
       return json({ error: err.message }, err.statusCode)
     }
     const msg = err instanceof Error ? err.message : String(err)
+    await reportError(err, { fn: 'match-generate', role_id: body.role_id, is_extra_match: body.is_extra_match === true })
     return json({ error: msg }, 500)
   }
 })

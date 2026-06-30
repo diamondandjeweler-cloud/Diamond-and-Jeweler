@@ -22,6 +22,7 @@ import { authenticate, json } from '../_shared/auth.ts'
 import { adminClient } from '../_shared/supabase.ts'
 import { enforceRateLimit, RateLimitError } from '../_shared/ratelimit.ts'
 import { withIdempotency } from '../_shared/idempotency.ts'
+import { reportError } from '../_shared/observe.ts'
 
 interface Body {
   target_type?: 'role' | 'talent'
@@ -30,7 +31,19 @@ interface Body {
   /** Legacy: original API only accepted role_id (HM-only). */
 }
 
+// Wrapped so any uncaught throw in the handler is reported to the edge error
+// sink before propagating. Re-throws unchanged — status/response/control flow
+// are byte-for-byte identical to the bare handler (purely additive telemetry).
 serve(async (req) => {
+  try {
+    return await handler(req)
+  } catch (e) {
+    await reportError(e, { fn: 'redeem-points' })
+    throw e
+  }
+})
+
+async function handler(req: Request): Promise<Response> {
   const pre = handleOptions(req); if (pre) return pre
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
 
@@ -191,4 +204,4 @@ serve(async (req) => {
   })
 
   return json(result._body, result._status)
-})
+}

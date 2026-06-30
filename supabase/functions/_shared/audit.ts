@@ -4,6 +4,9 @@
  * IPs and user-agents are SHA-256 hashed before storing — no raw PII.
  */
 import { adminClient } from './supabase.ts'
+import { createLogger } from './logger.ts'
+
+const log = createLogger('audit')
 
 type AuditAction =
   | 'login' | 'logout' | 'login_failed' | 'session_expired'
@@ -58,7 +61,7 @@ export async function logAudit(p: AuditParams): Promise<void> {
     })
   } catch (e) {
     // Audit failures must never crash the calling function.
-    console.error('[audit] log failed:', e)
+    log.error('[audit] log failed:', e)
   }
 }
 

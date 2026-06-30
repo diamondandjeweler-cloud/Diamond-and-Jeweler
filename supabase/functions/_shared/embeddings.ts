@@ -23,6 +23,10 @@
 // Providers without keys are silently skipped. At least one must work for
 // free_text atom matching to be active.
 
+import { createLogger } from './logger.ts'
+
+const log = createLogger('embeddings')
+
 export interface EmbedResult {
   vectors: Array<number[] | null>
   provider: string
@@ -66,14 +70,14 @@ async function tryGemini(texts: string[]): Promise<EmbedResult | null> {
         )
         if (!res.ok) {
           if (text === texts[0]) {
-            console.error(`[embed:gemini] ${res.status}: ${(await res.text()).slice(0, 200)}`)
+            log.error(`[embed:gemini] ${res.status}: ${(await res.text()).slice(0, 200)}`)
           }
           return null
         }
         const data = await res.json() as { embedding?: { values: number[] } }
         return Array.isArray(data.embedding?.values) ? data.embedding!.values : null
       } catch (e) {
-        if (text === texts[0]) console.error('[embed:gemini] item threw:', e instanceof Error ? e.message : String(e))
+        if (text === texts[0]) log.error('[embed:gemini] item threw:', e instanceof Error ? e.message : String(e))
         return null
       }
     }))
@@ -81,7 +85,7 @@ async function tryGemini(texts: string[]): Promise<EmbedResult | null> {
       ? { vectors: results, provider: 'gemini', dim: 768 }
       : null
   } catch (e) {
-    console.error('[embed:gemini] threw:', e instanceof Error ? e.message : String(e))
+    log.error('[embed:gemini] threw:', e instanceof Error ? e.message : String(e))
     return null
   } finally { clearTimeout(t) }
 }
@@ -101,7 +105,7 @@ async function tryVoyage(texts: string[]): Promise<EmbedResult | null> {
       signal: ac.signal,
     })
     if (!res.ok) {
-      console.error(`[embed:voyage] ${res.status}: ${(await res.text()).slice(0, 200)}`)
+      log.error(`[embed:voyage] ${res.status}: ${(await res.text()).slice(0, 200)}`)
       return null
     }
     const data = await res.json() as { data?: Array<{ embedding: number[]; index: number }> }
@@ -111,7 +115,7 @@ async function tryVoyage(texts: string[]): Promise<EmbedResult | null> {
     }
     return out.some((v) => v != null) ? { vectors: out, provider: 'voyage', dim: 1024 } : null
   } catch (e) {
-    console.error('[embed:voyage] threw:', e instanceof Error ? e.message : String(e))
+    log.error('[embed:voyage] threw:', e instanceof Error ? e.message : String(e))
     return null
   } finally { clearTimeout(t) }
 }
@@ -132,7 +136,7 @@ async function tryCohere(texts: string[]): Promise<EmbedResult | null> {
       signal: ac.signal,
     })
     if (!res.ok) {
-      console.error(`[embed:cohere] ${res.status}: ${(await res.text()).slice(0, 200)}`)
+      log.error(`[embed:cohere] ${res.status}: ${(await res.text()).slice(0, 200)}`)
       return null
     }
     const data = await res.json() as { embeddings?: { float?: number[][] } }
@@ -140,7 +144,7 @@ async function tryCohere(texts: string[]): Promise<EmbedResult | null> {
     const vectors = texts.map((_, i) => Array.isArray(arr[i]) ? arr[i] : null)
     return vectors.some((v) => v != null) ? { vectors, provider: 'cohere', dim: 1024 } : null
   } catch (e) {
-    console.error('[embed:cohere] threw:', e instanceof Error ? e.message : String(e))
+    log.error('[embed:cohere] threw:', e instanceof Error ? e.message : String(e))
     return null
   } finally { clearTimeout(t) }
 }
@@ -159,7 +163,7 @@ async function tryMistral(texts: string[]): Promise<EmbedResult | null> {
       signal: ac.signal,
     })
     if (!res.ok) {
-      console.error(`[embed:mistral] ${res.status}: ${(await res.text()).slice(0, 200)}`)
+      log.error(`[embed:mistral] ${res.status}: ${(await res.text()).slice(0, 200)}`)
       return null
     }
     const data = await res.json() as { data?: Array<{ embedding: number[]; index: number }> }
@@ -169,7 +173,7 @@ async function tryMistral(texts: string[]): Promise<EmbedResult | null> {
     }
     return out.some((v) => v != null) ? { vectors: out, provider: 'mistral', dim: 1024 } : null
   } catch (e) {
-    console.error('[embed:mistral] threw:', e instanceof Error ? e.message : String(e))
+    log.error('[embed:mistral] threw:', e instanceof Error ? e.message : String(e))
     return null
   } finally { clearTimeout(t) }
 }
@@ -188,7 +192,7 @@ async function tryTogether(texts: string[]): Promise<EmbedResult | null> {
       signal: ac.signal,
     })
     if (!res.ok) {
-      console.error(`[embed:together] ${res.status}: ${(await res.text()).slice(0, 200)}`)
+      log.error(`[embed:together] ${res.status}: ${(await res.text()).slice(0, 200)}`)
       return null
     }
     const data = await res.json() as { data?: Array<{ embedding: number[]; index: number }> }
@@ -198,7 +202,7 @@ async function tryTogether(texts: string[]): Promise<EmbedResult | null> {
     }
     return out.some((v) => v != null) ? { vectors: out, provider: 'together', dim: 768 } : null
   } catch (e) {
-    console.error('[embed:together] threw:', e instanceof Error ? e.message : String(e))
+    log.error('[embed:together] threw:', e instanceof Error ? e.message : String(e))
     return null
   } finally { clearTimeout(t) }
 }
@@ -219,7 +223,7 @@ async function tryCloudflare(texts: string[]): Promise<EmbedResult | null> {
       },
     )
     if (!res.ok) {
-      console.error(`[embed:cloudflare] ${res.status}: ${(await res.text()).slice(0, 200)}`)
+      log.error(`[embed:cloudflare] ${res.status}: ${(await res.text()).slice(0, 200)}`)
       return null
     }
     const data = await res.json() as { result?: { data?: number[][] } }
@@ -227,7 +231,7 @@ async function tryCloudflare(texts: string[]): Promise<EmbedResult | null> {
     const vectors = texts.map((_, i) => Array.isArray(arr[i]) ? arr[i] : null)
     return vectors.some((v) => v != null) ? { vectors, provider: 'cloudflare', dim: 768 } : null
   } catch (e) {
-    console.error('[embed:cloudflare] threw:', e instanceof Error ? e.message : String(e))
+    log.error('[embed:cloudflare] threw:', e instanceof Error ? e.message : String(e))
     return null
   } finally { clearTimeout(t) }
 }
@@ -247,7 +251,7 @@ async function tryJina(texts: string[]): Promise<EmbedResult | null> {
       signal: ac.signal,
     })
     if (!res.ok) {
-      console.error(`[embed:jina] ${res.status}: ${(await res.text()).slice(0, 200)}`)
+      log.error(`[embed:jina] ${res.status}: ${(await res.text()).slice(0, 200)}`)
       return null
     }
     const data = await res.json() as { data?: Array<{ embedding: number[]; index: number }> }
@@ -257,7 +261,7 @@ async function tryJina(texts: string[]): Promise<EmbedResult | null> {
     }
     return out.some((v) => v != null) ? { vectors: out, provider: 'jina', dim: 1024 } : null
   } catch (e) {
-    console.error('[embed:jina] threw:', e instanceof Error ? e.message : String(e))
+    log.error('[embed:jina] threw:', e instanceof Error ? e.message : String(e))
     return null
   } finally { clearTimeout(t) }
 }
@@ -277,7 +281,7 @@ async function tryNomic(texts: string[]): Promise<EmbedResult | null> {
       signal: ac.signal,
     })
     if (!res.ok) {
-      console.error(`[embed:nomic] ${res.status}: ${(await res.text()).slice(0, 200)}`)
+      log.error(`[embed:nomic] ${res.status}: ${(await res.text()).slice(0, 200)}`)
       return null
     }
     const data = await res.json() as { embeddings?: number[][] }
@@ -285,7 +289,7 @@ async function tryNomic(texts: string[]): Promise<EmbedResult | null> {
     const vectors = texts.map((_, i) => Array.isArray(arr[i]) ? arr[i] : null)
     return vectors.some((v) => v != null) ? { vectors, provider: 'nomic', dim: 768 } : null
   } catch (e) {
-    console.error('[embed:nomic] threw:', e instanceof Error ? e.message : String(e))
+    log.error('[embed:nomic] threw:', e instanceof Error ? e.message : String(e))
     return null
   } finally { clearTimeout(t) }
 }
@@ -307,7 +311,7 @@ async function tryHuggingFace(texts: string[]): Promise<EmbedResult | null> {
       },
     )
     if (!res.ok) {
-      console.error(`[embed:huggingface] ${res.status}: ${(await res.text()).slice(0, 200)}`)
+      log.error(`[embed:huggingface] ${res.status}: ${(await res.text()).slice(0, 200)}`)
       return null
     }
     // HF returns either number[][] (batch) or number[] (single)
@@ -318,7 +322,7 @@ async function tryHuggingFace(texts: string[]): Promise<EmbedResult | null> {
     const vectors = texts.map((_, i) => Array.isArray(arr[i]) ? arr[i] : null)
     return vectors.some((v) => v != null) ? { vectors, provider: 'huggingface', dim: 768 } : null
   } catch (e) {
-    console.error('[embed:huggingface] threw:', e instanceof Error ? e.message : String(e))
+    log.error('[embed:huggingface] threw:', e instanceof Error ? e.message : String(e))
     return null
   } finally { clearTimeout(t) }
 }
@@ -338,7 +342,7 @@ async function tryOpenAI(texts: string[]): Promise<EmbedResult | null> {
       signal: ac.signal,
     })
     if (!res.ok) {
-      console.error(`[embed:openai] ${res.status}: ${(await res.text()).slice(0, 200)}`)
+      log.error(`[embed:openai] ${res.status}: ${(await res.text()).slice(0, 200)}`)
       return null
     }
     const data = await res.json() as { data?: Array<{ embedding: number[]; index: number }> }
@@ -348,7 +352,7 @@ async function tryOpenAI(texts: string[]): Promise<EmbedResult | null> {
     }
     return out.some((v) => v != null) ? { vectors: out, provider: 'openai', dim: 1536 } : null
   } catch (e) {
-    console.error('[embed:openai] threw:', e instanceof Error ? e.message : String(e))
+    log.error('[embed:openai] threw:', e instanceof Error ? e.message : String(e))
     return null
   } finally { clearTimeout(t) }
 }
@@ -370,11 +374,11 @@ export async function embedMany(texts: string[]): Promise<EmbedResult> {
   for (const fn of chain) {
     const result = await fn(texts)
     if (result && result.vectors.some((v) => v != null)) {
-      console.log(`[embedMany] provider=${result.provider} dim=${result.dim} ok=${result.vectors.filter(v => v != null).length}/${texts.length}`)
+      log.info(`[embedMany] provider=${result.provider} dim=${result.dim} ok=${result.vectors.filter(v => v != null).length}/${texts.length}`)
       return result
     }
   }
-  console.error('[embedMany] no provider returned vectors — set at least one *_API_KEY')
+  log.error('[embedMany] no provider returned vectors — set at least one *_API_KEY')
   return { vectors: texts.map(() => null), provider: 'none', dim: 0 }
 }
 

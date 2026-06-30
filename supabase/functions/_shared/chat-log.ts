@@ -9,6 +9,9 @@
  * the background and write a single assistant row when the stream ends.
  */
 import { adminClient } from './supabase.ts'
+import { createLogger } from './logger.ts'
+
+const log = createLogger('chat-log')
 
 export type Endpoint = 'chat-onboard' | 'chat-support'
 export type ChatMode = 'talent' | 'hm'
@@ -39,7 +42,7 @@ export async function logUserMessage(ctx: LogContext, content: string): Promise<
       content,
     })
   } catch (e) {
-    console.error('logUserMessage failed:', (e as Error).message)
+    log.error('logUserMessage failed:', (e as Error).message)
   }
 }
 
@@ -67,7 +70,7 @@ export async function logAssistantMessage(ctx: LogContext, msg: AssistantLog): P
       output_tokens:   msg.output_tokens ?? null,
     })
   } catch (e) {
-    console.error('logAssistantMessage failed:', (e as Error).message)
+    log.error('logAssistantMessage failed:', (e as Error).message)
   }
 }
 
@@ -118,7 +121,7 @@ export function teeAnthropic(
           }
         }
       } catch (e) {
-        console.error('teeAnthropic upstream read failed:', (e as Error).message)
+        log.error('teeAnthropic upstream read failed:', (e as Error).message)
       } finally {
         controller.close()
         void logAssistantMessage(ctx, {
@@ -190,7 +193,7 @@ export function teeOpenAICompat(
           }
         }
       } catch (e) {
-        console.error(`teeOpenAICompat (${provider}) upstream read failed:`, (e as Error).message)
+        log.error(`teeOpenAICompat (${provider}) upstream read failed:`, (e as Error).message)
       } finally {
         controller.close()
         void logAssistantMessage(ctx, {

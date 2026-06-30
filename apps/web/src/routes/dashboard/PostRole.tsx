@@ -8,19 +8,17 @@ import { callFunction } from '../../lib/functions'
 import { FormSkeleton } from '../../components/ListSkeleton'
 import { Button, Card, Alert, Input, Select, Textarea, PageHeader } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
-import { getLifeChartCharacter, type Gender } from '../../lib/lifeChartCharacter'
 import {
   FormSection, SkillChipInput, LanguageRequirement, EnvironmentFlags,
   ScheduleBlock, OpenToSelect, EligibilitySelect, NonNegotiablesInput,
   type LanguageReq, type ScheduleValue, type NNAtom,
 } from '../../components/role-form'
-
-type TeamMember = { dob: string; gender: '' | Gender }
-
-const TRAITS = [
-  'self_starter', 'reliable', 'collaborator', 'growth_minded', 'clear_communicator',
-  'detail_oriented', 'adaptable', 'customer_focused', 'analytical', 'accountable',
-]
+import { DRAFT_KEY, type TeamMember } from './postrole/types'
+import { buildTeamMemberCharacters } from './postrole/teamCharacters'
+import DraftBanners from './postrole/DraftBanners'
+import HardFiltersSection from './postrole/HardFiltersSection'
+import TraitPicker from './postrole/TraitPicker'
+import TeamDynamicSection from './postrole/TeamDynamicSection'
 
 export default function PostRole() {
   const { id: editRoleId } = useParams<{ id?: string }>()
@@ -98,7 +96,6 @@ export default function PostRole() {
   const [dbDraftOffer, setDbDraftOffer] = useState<{ data: Record<string, unknown>; updatedAt: string } | null>(null)
   const didMount = useRef(false)
   const submittingRef = useRef(false)
-  const DRAFT_KEY = 'hm_role_draft'
 
   function collectDraft() {
     return {
@@ -422,17 +419,7 @@ export default function PostRole() {
         eligibility_work_auth: eligibilityWorkAuth,
         non_negotiables_text:  nnText.trim() || null,
         non_negotiables_atoms: nnAtoms,
-        team_member_characters: (() => {
-          const chars = teamMembers
-            .map((m) => {
-              if (!m.dob || !m.gender) return null
-              const year = parseInt(m.dob, 10)
-              if (!Number.isFinite(year) || year < 1950 || year > 2100) return null
-              return getLifeChartCharacter(`${year}-07-01`, m.gender)
-            })
-            .filter((c): c is NonNullable<typeof c> => c !== null)
-          return chars.length > 0 ? chars : null
-        })(),
+        team_member_characters: buildTeamMemberCharacters(teamMembers),
       }
 
       const savedId = isEdit ? editRoleId! : roleId
@@ -515,36 +502,13 @@ export default function PostRole() {
         }
       />
 
-      {hasDraft && (
-        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between gap-3 text-sm">
-          <span className="text-amber-800">Draft restored from your last session.</span>
-          <button
-            type="button"
-            onClick={() => { localStorage.removeItem(DRAFT_KEY); window.location.reload() }}
-            className="text-xs text-amber-700 underline hover:text-amber-900 shrink-0"
-          >
-            Discard draft
-          </button>
-        </div>
-      )}
-
-      {dbDraftOffer && (
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between gap-3 text-sm">
-          <span className="text-blue-800">Cloud draft found from {new Date(dbDraftOffer.updatedAt).toLocaleDateString()}. Restore it?</span>
-          <div className="flex gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={() => { applyDraftData(dbDraftOffer.data); setDbDraftOffer(null); setHasDraft(true) }}
-              className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >Restore</button>
-            <button
-              type="button"
-              onClick={() => { setDbDraftOffer(null); void supabase.from('job_posting_drafts').delete().eq('hm_id', hmId!) }}
-              className="text-xs text-blue-700 underline hover:text-blue-900"
-            >Discard</button>
-          </div>
-        </div>
-      )}
+      <DraftBanners
+        hasDraft={hasDraft}
+        dbDraftOffer={dbDraftOffer}
+        onDiscardLocalDraft={() => { localStorage.removeItem(DRAFT_KEY); window.location.reload() }}
+        onRestoreCloudDraft={(data) => { applyDraftData(data); setDbDraftOffer(null); setHasDraft(true) }}
+        onDiscardCloudDraft={() => { setDbDraftOffer(null); void supabase.from('job_posting_drafts').delete().eq('hm_id', hmId!) }}
+      />
 
       <Card>
         <form onSubmit={submit} className="p-4 md:p-6 space-y-4">
@@ -813,32 +777,16 @@ export default function PostRole() {
           </FormSection>
 
           {/* ── Hard filters (existing booleans) ─────────────────────────── */}
-          <FormSection
-            title="Hard filters"
-            description="Candidates who refuse these are excluded before scoring."
-            defaultOpen={false}
-          >
-            {[
-              { state: requiresWeekend,         setter: setRequiresWeekend,         label: 'Role requires weekend work' },
-              { state: requiresDrivingLicense,  setter: setRequiresDrivingLicense,  label: 'Role requires a driving licence' },
-              { state: requiresTravel,          setter: setRequiresTravel,          label: 'Role requires travel' },
-              { state: hasNightShifts,          setter: setHasNightShifts,          label: 'Role has night shifts / shift work' },
-              { state: requiresOwnCar,          setter: setRequiresOwnCar,          label: 'Must have own transport / car' },
-              { state: requiresRelocation,      setter: setRequiresRelocation,      label: 'Must be willing to relocate' },
-              { state: requiresOvertime,        setter: setRequiresOvertime,        label: 'Overtime is expected' },
-              { state: isCommissionBased,       setter: setIsCommissionBased,       label: 'Commission-based or variable pay structure' },
-            ].map(({ state, setter, label }) => (
-              <label key={label} className="flex items-center gap-3 border border-ink-200 rounded-lg px-3 py-2.5 cursor-pointer hover:bg-ink-50 transition-colors">
-                <input
-                  type="checkbox"
-                  checked={state}
-                  onChange={(e) => setter(e.target.checked)}
-                  className="h-4 w-4 rounded border-ink-300 accent-brand-500"
-                />
-                <span className="text-sm text-ink-800">{label}</span>
-              </label>
-            ))}
-          </FormSection>
+          <HardFiltersSection
+            requiresWeekend={requiresWeekend}                 setRequiresWeekend={setRequiresWeekend}
+            requiresDrivingLicense={requiresDrivingLicense}   setRequiresDrivingLicense={setRequiresDrivingLicense}
+            requiresTravel={requiresTravel}                   setRequiresTravel={setRequiresTravel}
+            hasNightShifts={hasNightShifts}                   setHasNightShifts={setHasNightShifts}
+            requiresOwnCar={requiresOwnCar}                   setRequiresOwnCar={setRequiresOwnCar}
+            requiresRelocation={requiresRelocation}           setRequiresRelocation={setRequiresRelocation}
+            requiresOvertime={requiresOvertime}               setRequiresOvertime={setRequiresOvertime}
+            isCommissionBased={isCommissionBased}             setIsCommissionBased={setIsCommissionBased}
+          />
 
           {/* ── Non-negotiables (free-text + AI atoms) ───────────────────── */}
           <FormSection
@@ -870,88 +818,16 @@ export default function PostRole() {
               <option value="management">Management — leadership behaviourals, culture, seniority</option>
             </Select>
 
-            <div>
-              <div className="field-label">Required traits <span className="text-red-500">*</span></div>
-              <div className="field-hint mb-3">Pick 1–5. We match on these against each talent&apos;s behavioural tags.</div>
-              <div className="flex flex-wrap gap-2">
-                {TRAITS.map((t) => {
-                  const on = requiredTraits.includes(t)
-                  const atCap = !on && requiredTraits.length >= 5
-                  return (
-                    <button
-                      key={t} type="button"
-                      onClick={() => toggleTrait(t)}
-                      disabled={atCap}
-                      className={`text-sm px-3 py-1.5 rounded-full border transition ${
-                        on
-                          ? 'bg-ink-900 text-white border-ink-900'
-                          : atCap
-                            ? 'bg-ink-50 text-ink-300 border-ink-100 cursor-not-allowed'
-                            : 'bg-white text-ink-700 border-ink-200 hover:border-ink-400 hover:text-ink-900'
-                      }`}
-                    >
-                      {t.replace(/_/g, ' ')}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
+            <TraitPicker requiredTraits={requiredTraits} onToggle={toggleTrait} />
           </FormSection>
 
           {/* ── Team-dynamic reference (kept last) ───────────────────────── */}
-          <FormSection
-            title="Team-dynamic reference (optional)"
-            description="Existing colleagues this hire will work with directly."
-            defaultOpen={false}
-          >
-            <div className="field-hint mb-2">
-              Tell us how many existing colleagues this hire will work with directly, then enter each colleague&apos;s
-              year of birth and gender. We use this to gauge team-dynamic compatibility — it stays private and is
-              never shown to candidates.
-            </div>
-            <Input
-              label="How many existing colleagues will this hire work with directly?"
-              type="number"
-              min={0}
-              max={50}
-              value={teamSize === '' ? '' : teamSize}
-              onChange={(e) => setTeamSize(e.target.value === '' ? '' : Math.max(0, Math.min(50, parseInt(e.target.value, 10) || 0)))}
-              placeholder="e.g. 4"
-            />
-            {teamMembers.length > 0 && (
-              <div className="space-y-3 mt-3">
-                {teamMembers.map((m, idx) => (
-                  <div key={idx} className="grid grid-cols-1 md:grid-cols-2 gap-3 border border-ink-100 rounded-lg p-3">
-                    <Input
-                      label={`Colleague ${idx + 1} year of birth`}
-                      type="number"
-                      inputMode="numeric"
-                      min={1950}
-                      max={new Date().getFullYear()}
-                      placeholder="e.g. 1985"
-                      value={m.dob}
-                      onChange={(e) => {
-                        const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 4)
-                        setTeamMembers((prev) => prev.map((p, i) => i === idx ? { ...p, dob: v } : p))
-                      }}
-                    />
-                    <Select
-                      label={`Colleague ${idx + 1} gender`}
-                      value={m.gender}
-                      onChange={(e) => {
-                        const v = e.target.value as '' | Gender
-                        setTeamMembers((prev) => prev.map((p, i) => i === idx ? { ...p, gender: v } : p))
-                      }}
-                    >
-                      <option value="">Select…</option>
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                    </Select>
-                  </div>
-                ))}
-              </div>
-            )}
-          </FormSection>
+          <TeamDynamicSection
+            teamSize={teamSize}
+            setTeamSize={setTeamSize}
+            teamMembers={teamMembers}
+            setTeamMembers={setTeamMembers}
+          />
 
           {err && <Alert tone="red">{err}</Alert>}
 

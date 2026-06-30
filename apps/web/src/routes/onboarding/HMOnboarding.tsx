@@ -24,13 +24,15 @@ import { insertRole } from '../../data/repositories/roles'
 import { encryptDob, markOnboardingComplete } from '../../lib/api'
 import { callFunction } from '../../lib/functions'
 import { getLifeChartCharacter, type Gender } from '../../lib/lifeChartCharacter'
-import Consent from '../../components/Consent'
 import ChatShell, { ChatMessage } from '../../components/ChatShell'
 import { Button, Alert } from '../../components/ui'
-
-type Phase = 'basics' | 'chat' | 'mustHaves' | 'demographics' | 'hiringDetails' | 'dob' | 'review' | 'submit' | 'done'
-
-interface ApiMessage { role: 'user' | 'assistant'; content: string }
+import { type Phase, type ApiMessage, headlineForPhase, progressPctForPhase } from './hm/helpers'
+import BasicsStep from './hm/BasicsStep'
+import MustHavesStep from './hm/MustHavesStep'
+import DemographicsStep from './hm/DemographicsStep'
+import HiringDetailsStep from './hm/HiringDetailsStep'
+import DobStep from './hm/DobStep'
+import ReviewStep from './hm/ReviewStep'
 
 export default function HMOnboarding() {
   const { t } = useTranslation()
@@ -624,49 +626,14 @@ export default function HMOnboarding() {
   const composer = (() => {
     if (phase === 'basics') {
       return (
-        <form
-          onSubmit={(e) => { e.preventDefault(); if (fullName.trim() && jobTitle.trim()) setPhase('chat') }}
-          className="space-y-3"
-        >
-          <p className="text-sm text-ink-600">
-            {t('hmOnboard.basicsIntro')}
-          </p>
-          <div>
-            <label htmlFor="hm-onboard-full-name" className="block text-sm font-medium text-ink-700 mb-1">{t('common.fullName')}</label>
-            <input
-              id="hm-onboard-full-name"
-              type="text" value={fullName} onChange={(e) => setFullName(e.target.value)}
-              placeholder={t('hmOnboard.fullNamePlaceholder')}
-              // First field of the onboarding step; autoFocus mirrors a fresh wizard arrival.
-              // eslint-disable-next-line jsx-a11y/no-autofocus
-              autoFocus
-              className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="hm-onboard-job-title" className="block text-sm font-medium text-ink-700 mb-1">{t('hmOnboard.jobTitleLabel')}</label>
-            <input
-              id="hm-onboard-job-title"
-              type="text" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)}
-              placeholder={t('hmOnboard.jobTitlePlaceholder')}
-              className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-            />
-          </div>
-          <Button type="submit" disabled={!fullName.trim() || !jobTitle.trim()} className="w-full" size="lg">
-            {t('hmOnboard.continueToChat')}
-          </Button>
-          <div className="text-center pt-1">
-            <button
-              type="button"
-              onClick={() => void handleSwitchToTalent()}
-              disabled={switching}
-              className="text-xs text-ink-400 hover:text-ink-600 underline"
-            >
-              {switching ? t('hmOnboard.switching') : t('hmOnboard.switchToTalent')}
-            </button>
-            {switchErr && <p className="text-xs text-red-600 mt-1">{switchErr}</p>}
-          </div>
-        </form>
+        <BasicsStep
+          t={t}
+          fullName={fullName} setFullName={setFullName}
+          jobTitle={jobTitle} setJobTitle={setJobTitle}
+          switching={switching} switchErr={switchErr}
+          onSubmit={() => setPhase('chat')}
+          onSwitchToTalent={() => void handleSwitchToTalent()}
+        />
       )
     }
 
@@ -696,367 +663,85 @@ export default function HMOnboarding() {
     }
 
     if (phase === 'mustHaves') {
-      const addItem = () => {
-        const t = mustHaveInput.trim()
-        if (!t || mustHaveItems.includes(t)) return
-        setMustHaveItems((prev) => [...prev, t])
-        setMustHaveInput('')
-      }
-      const structuredItems = [
-        { state: hmRequiresDrivingLicense, setter: setHmRequiresDrivingLicense, label: t('hmOnboard.constraintDrivingLicense') },
-        { state: hmRequiresWeekends,       setter: setHmRequiresWeekends,       label: t('hmOnboard.constraintWeekends') },
-        { state: hmRequiresTravel,         setter: setHmRequiresTravel,         label: t('hmOnboard.constraintTravel') },
-        { state: hmRequiresNightShifts,    setter: setHmRequiresNightShifts,    label: t('hmOnboard.constraintNightShifts') },
-        { state: hmRequiresRelocation,     setter: setHmRequiresRelocation,     label: t('hmOnboard.constraintRelocation') },
-        { state: hmOnsiteOnly,             setter: setHmOnsiteOnly,             label: t('hmOnboard.constraintOnsiteOnly') },
-        { state: hmRequiresOwnTransport,   setter: setHmRequiresOwnTransport,   label: t('hmOnboard.constraintOwnTransport') },
-        { state: hmHasCommission,          setter: setHmHasCommission,          label: t('hmOnboard.constraintCommission') },
-      ]
       return (
-        <div className="space-y-4">
-          <p className="text-sm text-ink-600 leading-relaxed">
-            {t('hmOnboard.mustHavesIntro')}
-          </p>
-          <div className="space-y-2">
-            <p className="text-xs font-semibold text-ink-500 uppercase tracking-wide">{t('hmOnboard.roleConstraintsHeading')}</p>
-            {structuredItems.map(({ state, setter, label }) => (
-              <label key={label} className="flex items-center gap-3 border border-ink-200 rounded-lg px-3 py-2.5 cursor-pointer hover:bg-ink-50 transition-colors">
-                <input
-                  type="checkbox" checked={state} onChange={(e) => setter(e.target.checked)}
-                  className="h-4 w-4 rounded border-ink-300 accent-brand-500"
-                />
-                <span className="text-sm text-ink-800">{label}</span>
-              </label>
-            ))}
-          </div>
-
-          <div>
-            <p className="text-xs font-semibold text-ink-500 uppercase tracking-wide mb-2">{t('hmOnboard.additionalReqHeading')}</p>
-            <p className="text-xs text-ink-400 mb-2">{t('hmOnboard.additionalReqHint')}</p>
-            <div className="flex gap-2">
-              <input
-                type="text" value={mustHaveInput} onChange={(e) => setMustHaveInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addItem() } }}
-                placeholder={t('hmOnboard.additionalReqPlaceholder')}
-                className="flex-1 border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                // Wizard step surfaces this input front and centre; intentional focus.
-                // eslint-disable-next-line jsx-a11y/no-autofocus
-                autoFocus
-              />
-              <button
-                type="button" onClick={addItem} disabled={!mustHaveInput.trim()}
-                className="px-4 py-2 rounded-lg text-sm font-medium bg-brand-500 text-white disabled:opacity-40 hover:bg-brand-600 transition-colors shrink-0"
-              >{t('hmOnboard.add')}</button>
-            </div>
-          </div>
-
-          {mustHaveItems.length > 0 && (
-            <ul className="space-y-2">
-              {mustHaveItems.map((item) => (
-                <li key={item} className="flex items-start gap-2 bg-ink-50 border border-ink-200 rounded-lg px-3 py-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-brand-400 shrink-0 mt-1.5" />
-                  <span className="flex-1 text-sm text-ink-800">{item}</span>
-                  <button
-                    type="button" onClick={() => setMustHaveItems((prev) => prev.filter((i) => i !== item))}
-                    className="text-ink-400 hover:text-red-500 transition-colors shrink-0 text-base leading-none" aria-label={t('hmOnboard.remove')}
-                  >×</button>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <Button onClick={() => setPhase('demographics')} className="w-full" size="lg">{t('common.continue')}</Button>
-        </div>
+        <MustHavesStep
+          t={t}
+          hmRequiresDrivingLicense={hmRequiresDrivingLicense} setHmRequiresDrivingLicense={setHmRequiresDrivingLicense}
+          hmRequiresWeekends={hmRequiresWeekends} setHmRequiresWeekends={setHmRequiresWeekends}
+          hmRequiresTravel={hmRequiresTravel} setHmRequiresTravel={setHmRequiresTravel}
+          hmRequiresNightShifts={hmRequiresNightShifts} setHmRequiresNightShifts={setHmRequiresNightShifts}
+          hmRequiresRelocation={hmRequiresRelocation} setHmRequiresRelocation={setHmRequiresRelocation}
+          hmOnsiteOnly={hmOnsiteOnly} setHmOnsiteOnly={setHmOnsiteOnly}
+          hmRequiresOwnTransport={hmRequiresOwnTransport} setHmRequiresOwnTransport={setHmRequiresOwnTransport}
+          hmHasCommission={hmHasCommission} setHmHasCommission={setHmHasCommission}
+          mustHaveItems={mustHaveItems} setMustHaveItems={setMustHaveItems}
+          mustHaveInput={mustHaveInput} setMustHaveInput={setMustHaveInput}
+          onContinue={() => setPhase('demographics')}
+        />
       )
     }
 
     if (phase === 'demographics') {
       return (
-        <div className="space-y-4">
-          <p className="text-sm text-ink-600 leading-relaxed">
-            {t('hmOnboard.demographicsIntro')}
-          </p>
-          <div className="space-y-1">
-            <p className="text-sm text-ink-600">{t('hmOnboard.raceLabel')}</p>
-            <div className="grid grid-cols-2 gap-2">
-              {([
-                { value: 'Malay',   label: t('hmOnboard.raceMalay') },
-                { value: 'Chinese', label: t('hmOnboard.raceChinese') },
-                { value: 'Indian',  label: t('hmOnboard.raceIndian') },
-                { value: 'Others',  label: t('hmOnboard.raceOthers') },
-              ] as const).map((r) => (
-                <button
-                  key={r.value} type="button" onClick={() => setRace(r.value.toLowerCase())}
-                  className={`border rounded-lg px-3 py-2 text-sm ${race === r.value.toLowerCase() ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 text-ink-700 hover:bg-ink-50'}`}
-                >{r.label}</button>
-              ))}
-            </div>
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm text-ink-600">{t('hmOnboard.religionLabel')}</p>
-            <select
-              value={religion} onChange={(e) => setReligion(e.target.value)}
-              className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
-            >
-              <option value="">{t('hmOnboard.religionSelect')}</option>
-              <option value="islam">{t('hmOnboard.religionIslam')}</option>
-              <option value="christianity">{t('hmOnboard.religionChristianity')}</option>
-              <option value="buddhism">{t('hmOnboard.religionBuddhism')}</option>
-              <option value="hinduism">{t('hmOnboard.religionHinduism')}</option>
-              <option value="taoism">{t('hmOnboard.religionTaoism')}</option>
-              <option value="chinese_folk">{t('hmOnboard.religionChineseFolk')}</option>
-              <option value="no_religion">{t('hmOnboard.religionNone')}</option>
-              <option value="others">{t('hmOnboard.religionOthers')}</option>
-            </select>
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm text-ink-600">{t('hmOnboard.languagesLabel')}</p>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { value: 'english',          label: t('hmOnboard.langEnglish') },
-                { value: 'bahasa_malaysia',  label: t('hmOnboard.langBahasaMalaysia') },
-                { value: 'mandarin',         label: t('hmOnboard.langMandarin') },
-                { value: 'cantonese',        label: t('hmOnboard.langCantonese') },
-                { value: 'hokkien',          label: t('hmOnboard.langHokkien') },
-                { value: 'hakka',            label: t('hmOnboard.langHakka') },
-                { value: 'teochew',          label: t('hmOnboard.langTeochew') },
-                { value: 'tamil',            label: t('hmOnboard.langTamil') },
-                { value: 'others',           label: t('hmOnboard.langOthers') },
-              ].map(({ value, label }) => {
-                const active = languages.includes(value)
-                return (
-                  <button
-                    key={value} type="button"
-                    onClick={() => setLanguages((prev) => active ? prev.filter((l) => l !== value) : [...prev, value])}
-                    className={`border rounded-full px-3 py-1.5 text-xs ${active ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 text-ink-700 hover:bg-ink-50'}`}
-                  >{label}</button>
-                )
-              })}
-            </div>
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm text-ink-600">{t('hmOnboard.locationLabel')}</p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button" onClick={() => setLocationMatters(true)}
-                className={`border rounded-lg px-3 py-2 text-sm ${locationMatters === true ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 text-ink-700 hover:bg-ink-50'}`}
-              >{t('hmOnboard.locationYes')}</button>
-              <button
-                type="button" onClick={() => { setLocationMatters(false); setLocationPostcode('') }}
-                className={`border rounded-lg px-3 py-2 text-sm ${locationMatters === false ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 text-ink-700 hover:bg-ink-50'}`}
-              >{t('hmOnboard.locationNo')}</button>
-            </div>
-            {locationMatters === true && (
-              <input
-                type="text" inputMode="numeric" pattern="[0-9]{5}" maxLength={5}
-                value={locationPostcode} onChange={(e) => setLocationPostcode(e.target.value.replace(/[^0-9]/g, ''))}
-                placeholder={t('hmOnboard.postcodePlaceholder')}
-                className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm mt-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
-              />
-            )}
-          </div>
-          <Button
-            onClick={() => setPhase('hiringDetails')}
-            disabled={!race || !religion || languages.length === 0 || locationMatters === null || (locationMatters === true && locationPostcode.length !== 5)}
-            className="w-full" size="lg"
-          >{t('common.continue')}</Button>
-        </div>
+        <DemographicsStep
+          t={t}
+          race={race} setRace={setRace}
+          religion={religion} setReligion={setReligion}
+          languages={languages} setLanguages={setLanguages}
+          locationMatters={locationMatters} setLocationMatters={setLocationMatters}
+          locationPostcode={locationPostcode} setLocationPostcode={setLocationPostcode}
+          onContinue={() => setPhase('hiringDetails')}
+        />
       )
     }
 
     if (phase === 'hiringDetails') {
       return (
-        <div className="space-y-4">
-          <p className="text-sm text-ink-600 leading-relaxed">
-            {t('hmOnboard.hiringDetailsIntro')}
-          </p>
-
-          {/* Budget */}
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-ink-700">{t('hmOnboard.budgetLabel')}</p>
-            <div className="grid grid-cols-3 gap-2">
-              {(['yes', 'pending', 'unknown'] as const).map((v) => (
-                <button
-                  key={v} type="button" onClick={() => setBudgetApproved(v)}
-                  className={`border rounded-lg px-3 py-2 text-sm capitalize ${budgetApproved === v ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 text-ink-700 hover:bg-ink-50'}`}
-                >{v === 'yes' ? t('hmOnboard.budgetYes') : v === 'pending' ? t('hmOnboard.budgetPending') : t('hmOnboard.budgetUnknown')}</button>
-              ))}
-            </div>
-            {budgetApproved === 'pending' && (
-              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 mt-1">
-                {t('hmOnboard.budgetPendingNote')}
-              </p>
-            )}
-          </div>
-
-          {/* Deadline */}
-          <div className="space-y-1">
-            <label htmlFor="hm-onboard-deadline" className="block text-sm font-medium text-ink-700">{t('hmOnboard.deadlineLabel')}</label>
-            <input
-              id="hm-onboard-deadline"
-              type="date" value={deadlineToFill} onChange={(e) => setDeadlineToFill(e.target.value)}
-              min={new Date().toISOString().slice(0, 10)}
-              className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-            />
-          </div>
-
-          {/* Interview rounds */}
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-ink-700">{t('hmOnboard.interviewRoundsLabel')}</p>
-            <div className="grid grid-cols-4 gap-2">
-              {[1, 2, 3, 4].map((n) => (
-                <button
-                  key={n} type="button" onClick={() => setInterviewRoundsHM(n)}
-                  className={`border rounded-lg px-3 py-2 text-sm ${interviewRoundsHM === n ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 text-ink-700 hover:bg-ink-50'}`}
-                >{n}{n === 4 ? '+' : ''}</button>
-              ))}
-            </div>
-          </div>
-
-          {/* Salary flex */}
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-ink-700">{t('hmOnboard.salaryFlexLabel')}</p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button" onClick={() => setSalaryFlex(true)}
-                className={`border rounded-lg px-3 py-2 text-sm ${salaryFlex === true ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 text-ink-700 hover:bg-ink-50'}`}
-              >{t('hmOnboard.salaryFlexYes')}</button>
-              <button
-                type="button" onClick={() => setSalaryFlex(false)}
-                className={`border rounded-lg px-3 py-2 text-sm ${salaryFlex === false ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 text-ink-700 hover:bg-ink-50'}`}
-              >{t('hmOnboard.salaryFlexNo')}</button>
-            </div>
-          </div>
-
-          {/* Failure at 90 days */}
-          <div className="space-y-1">
-            <label htmlFor="hm-onboard-failure-90d" className="block text-sm font-medium text-ink-700">
-              {t('hmOnboard.failure90Label')} <span className="text-ink-400 font-normal">{t('hmOnboard.optionalParen')}</span>
-            </label>
-            <p className="text-xs text-ink-400">{t('hmOnboard.failure90Hint')}</p>
-            <textarea
-              id="hm-onboard-failure-90d"
-              value={failureAt90Days} onChange={(e) => setFailureAt90Days(e.target.value)}
-              rows={3} placeholder={t('hmOnboard.failure90Placeholder')}
-              className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
-            />
-          </div>
-
-          <Button onClick={() => setPhase('dob')} className="w-full" size="lg">{t('common.continue')}</Button>
-        </div>
+        <HiringDetailsStep
+          t={t}
+          budgetApproved={budgetApproved} setBudgetApproved={setBudgetApproved}
+          deadlineToFill={deadlineToFill} setDeadlineToFill={setDeadlineToFill}
+          interviewRoundsHM={interviewRoundsHM} setInterviewRoundsHM={setInterviewRoundsHM}
+          salaryFlex={salaryFlex} setSalaryFlex={setSalaryFlex}
+          failureAt90Days={failureAt90Days} setFailureAt90Days={setFailureAt90Days}
+          onContinue={() => setPhase('dob')}
+        />
       )
     }
 
     if (phase === 'dob') {
       return (
-        <div className="space-y-3">
-          <p className="text-sm text-ink-600">
-            {t('hmOnboard.dobIntro')}
-          </p>
-          <input
-            type="date" value={dob} onChange={(e) => { setDob(e.target.value); setDobSkipped(false) }}
-            max={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 18); return d.toISOString().slice(0, 10) })()}
-            className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-          />
-          <div className="space-y-1">
-            <p className="text-sm text-ink-600">{t('hmOnboard.genderLabel')}</p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button" onClick={() => { setGender('male'); setDobSkipped(false) }}
-                className={`border rounded-lg px-3 py-2 text-sm ${gender === 'male' ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 text-ink-700 hover:bg-ink-50'}`}
-              >{t('hmOnboard.genderMale')}</button>
-              <button
-                type="button" onClick={() => { setGender('female'); setDobSkipped(false) }}
-                className={`border rounded-lg px-3 py-2 text-sm ${gender === 'female' ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 text-ink-700 hover:bg-ink-50'}`}
-              >{t('hmOnboard.genderFemale')}</button>
-            </div>
-          </div>
-          <Consent
-            checked={dobConsent} onChange={setDobConsent}
-            label={t('hmOnboard.dobConsentLabel')}
-            required
-          />
-          {err && <Alert tone="red">{err}</Alert>}
-          <Button
-            onClick={() => { setDobSkipped(false); setPhase('review') }}
-            disabled={!dob || !gender || !dobConsent}
-            className="w-full" size="lg"
-          >{t('hmOnboard.reviewAndConfirm')}</Button>
-
-          <div className="pt-3 border-t border-ink-100">
-            {!dobSkipPrompt ? (
-              <button
-                type="button" onClick={() => setDobSkipPrompt(true)}
-                className="text-xs text-ink-400 hover:text-ink-600 underline"
-              >{t('hmOnboard.preferNotToShare')}</button>
-            ) : (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">
-                <p className="text-sm text-amber-900">
-                  {t('hmOnboard.dobSkipExplain')}
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm" variant="secondary"
-                    onClick={() => {
-                      setDob(''); setGender(''); setDobConsent(false)
-                      setDobSkipped(true); setDobSkipPrompt(false); setPhase('review')
-                    }}
-                  >{t('hmOnboard.skipAndContinue')}</Button>
-                  <Button size="sm" onClick={() => setDobSkipPrompt(false)}>{t('hmOnboard.addItNow')}</Button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <DobStep
+          t={t}
+          dob={dob} setDob={setDob}
+          gender={gender} setGender={setGender}
+          dobConsent={dobConsent} setDobConsent={setDobConsent}
+          dobSkipPrompt={dobSkipPrompt} setDobSkipPrompt={setDobSkipPrompt}
+          setDobSkipped={setDobSkipped}
+          err={err}
+          onAdvanceToReview={() => setPhase('review')}
+        />
       )
     }
 
     if (phase === 'review') {
-      const activeConstraints = [
-        hmRequiresDrivingLicense && t('hmOnboard.reviewConstraintDrivingLicense'),
-        hmRequiresWeekends       && t('hmOnboard.reviewConstraintWeekends'),
-        hmRequiresTravel         && t('hmOnboard.reviewConstraintTravel'),
-        hmRequiresNightShifts    && t('hmOnboard.reviewConstraintNightShifts'),
-        hmRequiresRelocation     && t('hmOnboard.reviewConstraintRelocation'),
-        hmOnsiteOnly             && t('hmOnboard.reviewConstraintOnsiteOnly'),
-        hmRequiresOwnTransport   && t('hmOnboard.reviewConstraintOwnTransport'),
-        hmHasCommission          && t('hmOnboard.reviewConstraintCommission'),
-      ].filter(Boolean) as string[]
-
       return (
-        <div className="space-y-4">
-          <p className="text-sm text-ink-600 leading-relaxed">
-            {t('hmOnboard.reviewIntro')}
-          </p>
-
-          <HMReviewRow label={t('hmOnboard.reviewChat')} value={t('hmOnboard.reviewCompleted')} ok />
-          <HMReviewRow
-            label={t('hmOnboard.reviewDob')}
-            value={dob ? t('hmOnboard.reviewDobValue', { dob }) : dobSkipped ? t('hmOnboard.reviewDobSkipped') : '—'}
-            ok={!!dob}
-          />
-          <HMReviewRow label={t('hmOnboard.reviewGender')} value={gender || (dobSkipped ? t('hmOnboard.reviewSkipped') : '—')} ok={!!gender} />
-          <HMReviewRow label={t('hmOnboard.reviewRace')} value={race || '—'} ok={!!race} />
-          <HMReviewRow label={t('hmOnboard.reviewReligion')} value={religion || '—'} ok={!!religion} />
-          <HMReviewRow label={t('hmOnboard.reviewLanguages')} value={languages.length > 0 ? languages.join(', ') : '—'} ok={languages.length > 0} />
-          <HMReviewRow label={t('hmOnboard.reviewOfficeLocation')} value={locationMatters === true ? t('hmOnboard.reviewPostcode', { postcode: locationPostcode }) : locationMatters === false ? t('hmOnboard.reviewOpenLocation') : '—'} ok={locationMatters !== null} />
-          <HMReviewRow label={t('hmOnboard.reviewRoleConstraints')} value={activeConstraints.length > 0 ? activeConstraints.join(' · ') : t('hmOnboard.reviewNoneSet')} ok />
-          {mustHaveItems.length > 0 && <HMReviewRow label={t('hmOnboard.reviewAdditionalReq')} value={mustHaveItems.join(' · ')} ok />}
-          <HMReviewRow label={t('hmOnboard.reviewBudgetApproved')} value={budgetApproved || t('hmOnboard.reviewNotSpecified')} ok={!!budgetApproved} />
-          {deadlineToFill && <HMReviewRow label={t('hmOnboard.reviewDeadline')} value={deadlineToFill} ok />}
-          {interviewRoundsHM != null && <HMReviewRow label={t('hmOnboard.reviewInterviewRounds')} value={String(interviewRoundsHM)} ok />}
-          {salaryFlex != null && <HMReviewRow label={t('hmOnboard.reviewSalaryFlex')} value={salaryFlex ? t('hmOnboard.reviewNegotiable') : t('hmOnboard.reviewFixedBand')} ok />}
-          {failureAt90Days && <HMReviewRow label={t('hmOnboard.reviewFailure90')} value={failureAt90Days} ok />}
-
-          {err && <Alert tone="red">{err}</Alert>}
-          <Button onClick={() => { setPhase('submit'); void finalise() }} loading={busy} className="w-full" size="lg">
-            {t('hmOnboard.buildProfile')}
-          </Button>
-          <button
-            type="button" onClick={() => { setErr(null); setPhase('dob') }}
-            className="w-full text-xs text-ink-400 hover:text-ink-600 py-1"
-          >{t('hmOnboard.goBackChange')}</button>
-        </div>
+        <ReviewStep
+          t={t}
+          dob={dob} gender={gender} dobSkipped={dobSkipped}
+          race={race} religion={religion} languages={languages}
+          locationMatters={locationMatters} locationPostcode={locationPostcode}
+          hmRequiresDrivingLicense={hmRequiresDrivingLicense} hmRequiresWeekends={hmRequiresWeekends}
+          hmRequiresTravel={hmRequiresTravel} hmRequiresNightShifts={hmRequiresNightShifts}
+          hmRequiresRelocation={hmRequiresRelocation} hmOnsiteOnly={hmOnsiteOnly}
+          hmRequiresOwnTransport={hmRequiresOwnTransport} hmHasCommission={hmHasCommission}
+          mustHaveItems={mustHaveItems}
+          budgetApproved={budgetApproved} deadlineToFill={deadlineToFill}
+          interviewRoundsHM={interviewRoundsHM} salaryFlex={salaryFlex} failureAt90Days={failureAt90Days}
+          err={err} busy={busy}
+          onBuild={() => { setPhase('submit'); void finalise() }}
+          onBack={() => { setErr(null); setPhase('dob') }}
+        />
       )
     }
 
@@ -1094,46 +779,14 @@ export default function HMOnboarding() {
     )
   }
 
-  const headline =
-    phase === 'basics'       ? t('hmOnboard.headlineBasics') :
-    phase === 'chat'         ? t('hmOnboard.headlineChat') :
-    phase === 'mustHaves'    ? t('hmOnboard.headlineMustHaves') :
-    phase === 'demographics' ? t('hmOnboard.headlineDemographics') :
-    phase === 'hiringDetails'? t('hmOnboard.headlineHiringDetails') :
-    phase === 'dob'          ? t('hmOnboard.headlineDob') :
-    phase === 'review'       ? t('hmOnboard.headlineReview') :
-    phase === 'submit'       ? t('hmOnboard.headlineSubmit') : ''
+  const headline = headlineForPhase(phase, t)
 
-  const progressPct =
-    phase === 'basics'       ? 5  :
-    phase === 'chat'         ? 40 :
-    phase === 'mustHaves'    ? 55 :
-    phase === 'demographics' ? 68 :
-    phase === 'hiringDetails'? 78 :
-    phase === 'dob'          ? 88 :
-    phase === 'review'       ? 94 :
-    phase === 'submit'       ? 97 : 100
+  const progressPct = progressPctForPhase(phase)
 
   return (
     <>
       {DiamondPointsInfo}
       <ChatShell messages={log} input={composer} headline={headline} progressPct={progressPct} formMode={phase !== 'chat'} />
     </>
-  )
-}
-
-// ── HMReviewRow ───────────────────────────────────────────────────────────────
-
-function HMReviewRow({ label, value, ok }: { label: string; value: string; ok?: boolean }) {
-  return (
-    <div className="flex items-start gap-3 border border-ink-100 rounded-lg px-3 py-2 bg-white">
-      <span className={`mt-0.5 h-4 w-4 rounded-full flex items-center justify-center shrink-0 text-xs ${ok ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
-        {ok ? '✓' : '!'}
-      </span>
-      <div className="flex-1 min-w-0">
-        <p className="text-xs text-ink-400 uppercase tracking-wide">{label}</p>
-        <p className="text-sm text-ink-800 break-words">{value}</p>
-      </div>
-    </div>
   )
 }

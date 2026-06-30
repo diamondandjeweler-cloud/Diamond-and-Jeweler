@@ -78,7 +78,7 @@ export function useHmDashboardData(userId: string | undefined) {
     if (matchIds.length === 0) return
     const { data, error } = await supabase
       .from('interview_rounds')
-      .select('id, match_id, round_number, scheduled_at, interview_url, status, hm_notes')
+      .select('id, match_id, round_number, scheduled_at, interview_url, status')
       .in('match_id', matchIds)
       .order('round_number', { ascending: true })
     if (error) { setErr(error.message); return }
@@ -121,8 +121,11 @@ export function useHmDashboardData(userId: string | undefined) {
         { display_name: r.display_name, photo_url: r.photo_url, privacy_mode: r.privacy_mode } as ProfilePreview,
       ]),
     )
-    setPreviewByMatch((prev) => {
-      const next = { ...prev }
+    // Rebuild from the current match set only (was a merge over `prev`), so the
+    // map stays bounded to the active cards instead of accumulating stale keys
+    // across reloads. Same per-id fallback as before for omitted/unauthorized ids.
+    setPreviewByMatch(() => {
+      const next: Record<string, ProfilePreview> = {}
       for (const id of matchIds) {
         next[id] = byId.get(id) ?? { display_name: null, photo_url: null, privacy_mode: null }
       }
@@ -483,7 +486,7 @@ export function useHmDashboardData(userId: string | undefined) {
     } finally { setRedeemingRoleId(null) }
   }
 
-  async function viewResume(matchId: string) {
+  const viewResume = useCallback(async (matchId: string) => {
     if (companyVerified === false) {
       setErr(t('hmDash.resumeLocked'))
       return
@@ -501,9 +504,9 @@ export function useHmDashboardData(userId: string | undefined) {
     } finally {
       setActionBusy(null)
     }
-  }
+  }, [companyVerified, t])
 
-  async function respond(id: string, next: 'invited_by_manager' | 'declined_by_manager') {
+  const respond = useCallback(async (id: string, next: 'invited_by_manager' | 'declined_by_manager') => {
     if (next === 'invited_by_manager' && companyVerified === false) {
       setErr(t('hmDash.askHrUpload'))
       setRespondMsg({ tone: 'red', text: t('hmDash.inviteLocked') })
@@ -554,9 +557,9 @@ export function useHmDashboardData(userId: string | undefined) {
     window.setTimeout(() => setRespondMsg((m) => (m && m.tone === 'green' ? null : m)), 4500)
     const event_type = next === 'invited_by_manager' ? 'accept_interview' : 'reject_with_reason'
     try { await callFunction('award-points', { event_type, match_id: id }) } catch { /* tolerate */ }
-  }
+  }, [companyVerified, t, candidates])
 
-  async function doAction(matchId: string, action: string, extra?: Record<string, unknown>) {
+  const doAction = useCallback(async (matchId: string, action: string, extra?: Record<string, unknown>) => {
     if (['schedule_round', 'make_offer', 'mark_hired'].includes(action) && companyVerified === false) {
       setErr(t('hmDash.askHrUpload'))
       return
@@ -603,9 +606,9 @@ export function useHmDashboardData(userId: string | undefined) {
     } finally {
       if (mountedRef.current) setActionBusy(null)
     }
-  }
+  }, [companyVerified, t, candidates, loadRounds, loadProposals])
 
-  async function revealContact(matchId: string) {
+  const revealContact = useCallback(async (matchId: string) => {
     if (companyVerified === false) {
       setErr(t('hmDash.askHrUpload'))
       return
@@ -621,9 +624,9 @@ export function useHmDashboardData(userId: string | undefined) {
       if (!mountedRef.current) return
       setErr(e instanceof Error ? e.message : t('hmDash.contactRetrieveFailed'))
     }
-  }
+  }, [companyVerified, t])
 
-  async function submitFeedback(matchId: string) {
+  const submitFeedback = useCallback(async (matchId: string) => {
     const fb = feedbackState[matchId]
     if (!fb || fb.rating === 0) return
     setFeedbackState((s) => ({ ...s, [matchId]: { ...s[matchId], saving: true } }))
@@ -647,7 +650,7 @@ export function useHmDashboardData(userId: string | undefined) {
       setFeedbackState((s) => ({ ...s, [matchId]: { ...s[matchId], saving: false } }))
       setErr(e instanceof Error ? e.message : t('hmDash.feedbackSaveFailed'))
     }
-  }
+  }, [feedbackState, t])
 
   // Shell always renders; sections skeleton themselves. Cached counts (if any)
   // keep the KPI strip from shimmering on returning visits.

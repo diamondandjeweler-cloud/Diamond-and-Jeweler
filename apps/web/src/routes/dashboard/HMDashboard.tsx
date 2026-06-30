@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { fmt } from '../../lib/format'
 import { useTranslation } from 'react-i18next'
@@ -11,6 +12,14 @@ import AddHmDobModal from '../../components/AddHmDobModal'
 import { useHmDashboardData } from './hm/useHmDashboardData'
 import CandidateCard from './hm/CandidateCard'
 import EmployerReputationPanel from './hm/EmployerReputationPanel'
+import type { FeedbackEntry } from './hm/types'
+
+// Pristine feedback-entry default — the constant parts shared by the per-card
+// fallback (which overlays the row's saved match_feedback) and the
+// onFeedbackChange seed. Module-level so it's a single stable reference.
+const DEFAULT_FEEDBACK_ENTRY: FeedbackEntry = {
+  rating: 0, hired: false, notes: '', outcome: '', freeText: '', saving: false, saved: false,
+}
 
 export default function HMDashboard() {
   const { t } = useTranslation()
@@ -71,6 +80,15 @@ export default function HMDashboard() {
     submitFeedback,
     respondToLinkRequest,
   } = useHmDashboardData(userId)
+
+  // Roles eligible for an extra-match unlock (>=3 active candidates, <3 extras
+  // used). Derived once per roleExtras change rather than re-filtering the array
+  // twice on every render. `eligibleExtras.length > 0` is identical to the prior
+  // `.some(...)` guard since both use the same predicate.
+  const eligibleExtras = useMemo(
+    () => roleExtras.filter((r) => r.activeCount >= 3 && r.extraUsed < 3),
+    [roleExtras],
+  )
 
   return (
     <div>
@@ -308,8 +326,8 @@ export default function HMDashboard() {
                 onCancel={() => void doAction(c.id, 'cancel_match')}
                 onRevealContact={() => void revealContact(c.id)}
                 onViewResume={() => void viewResume(c.id)}
-                feedbackEntry={feedbackState[c.id] ?? { rating: c.match_feedback?.[0]?.rating ?? 0, hired: c.match_feedback?.[0]?.hired ?? false, notes: c.match_feedback?.[0]?.notes ?? '', outcome: '', freeText: '', saving: false, saved: !!c.match_feedback?.[0] }}
-                onFeedbackChange={(patch) => setFeedbackState((s) => ({ ...s, [c.id]: { ...(s[c.id] ?? { rating: 0, hired: false, notes: '', outcome: '', freeText: '', saving: false, saved: false }), ...patch } }))}
+                feedbackEntry={feedbackState[c.id] ?? { ...DEFAULT_FEEDBACK_ENTRY, rating: c.match_feedback?.[0]?.rating ?? 0, hired: c.match_feedback?.[0]?.hired ?? false, notes: c.match_feedback?.[0]?.notes ?? '', saved: !!c.match_feedback?.[0] }}
+                onFeedbackChange={(patch) => setFeedbackState((s) => ({ ...s, [c.id]: { ...(s[c.id] ?? DEFAULT_FEEDBACK_ENTRY), ...patch } }))}
                 onFeedbackSubmit={() => void submitFeedback(c.id)}
               />
             )
@@ -361,7 +379,7 @@ export default function HMDashboard() {
         </Card>
       )}
 
-      {roleExtras.some((r) => r.activeCount >= 3 && r.extraUsed < 3) && (
+      {eligibleExtras.length > 0 && (
         <Card className="mt-8 border-dashed border-accent-500">
           <div className="p-6">
             <div className="text-sm font-medium text-ink-900 dark:text-white mb-1">{t('hmDash.needMoreTitle')}</div>
@@ -369,8 +387,7 @@ export default function HMDashboard() {
               {t('hmDash.needMoreBody', { points: POINTS_PER_EXTRA })}{pointsBalance != null ? t('hmDash.needMoreBalance', { balance: pointsBalance }) : ''}
             </p>
             <div className="space-y-2">
-              {roleExtras
-                .filter((r) => r.activeCount >= 3 && r.extraUsed < 3)
+              {eligibleExtras
                 .map((r) => {
                   const busy = unlockingRoleId === r.id || redeemingRoleId === r.id
                   const insufficientPoints = pointsBalance != null && pointsBalance < POINTS_PER_EXTRA

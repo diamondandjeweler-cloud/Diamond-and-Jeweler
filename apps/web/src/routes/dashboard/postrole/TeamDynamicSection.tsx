@@ -1,7 +1,7 @@
 import { memo } from 'react'
 import { FormSection } from '../../../components/role-form'
 import { Input, Select } from '../../../components/ui'
-import type { Gender } from '../../../lib/lifeChartCharacter'
+import type { Gender } from '../../../shared/domain/lifeChart/lifeChartCharacter'
 import type { TeamMember } from './types'
 
 interface TeamDynamicSectionProps {

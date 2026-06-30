@@ -1,4 +1,4 @@
-import { getLifeChartCharacter } from '../../../lib/lifeChartCharacter'
+import { getLifeChartCharacter } from '../../../shared/domain/lifeChart/lifeChartCharacter'
 import type { TeamMember } from './types'
 
 /**

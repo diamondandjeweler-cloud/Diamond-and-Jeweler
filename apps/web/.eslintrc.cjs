@@ -91,5 +91,38 @@ module.exports = {
       files: ['src/lib/restaurant/**', 'src/routes/restaurant/**'],
       rules: { 'no-restricted-imports': 'off' },
     },
+    // Clean-architecture dependency rule (Phase 1): the domain layer
+    // (src/shared/domain/**) is PURE — deterministic, framework-free business
+    // logic with no React/router/Supabase/infrastructure imports. Deps point
+    // inward only; this LOCKS the relocated life-chart + identity modules clean
+    // so the layer can't rot. See docs/ARCHITECTURE.md (target layering).
+    {
+      files: ['src/shared/domain/**/*.ts', 'src/shared/domain/**/*.tsx'],
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            paths: [
+              { name: 'react', message: 'domain layer must stay pure — no React' },
+              { name: 'react-dom', message: 'domain layer must stay pure — no React' },
+              { name: 'react-router-dom', message: 'domain layer must stay pure — no routing' },
+              { name: '@supabase/supabase-js', message: 'domain layer must stay pure — no Supabase' },
+            ],
+            patterns: [
+              {
+                group: [
+                  '**/lib/supabase',
+                  '**/lib/functions',
+                  '**/data/repositories/**',
+                  '**/supabaseClient',
+                ],
+                message:
+                  'domain layer must stay pure — no infrastructure/data-access imports',
+              },
+            ],
+          },
+        ],
+      },
+    },
   ],
 }

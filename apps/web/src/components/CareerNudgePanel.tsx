@@ -13,7 +13,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useSession } from '../state/useSession'
 import { Card } from './ui'
-import type { CareerNudge } from '../lib/yearLuck'
+import type { CareerNudge } from '../shared/domain/lifeChart/yearLuck'
 
 interface Props {
   side: 'talent' | 'hm'

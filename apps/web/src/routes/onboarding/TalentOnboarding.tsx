@@ -21,7 +21,7 @@ import { profileOnboardingDraftById, updateProfile } from '../../data/repositori
 import { uploadPrivate } from '../../lib/storage'
 import { encryptDob, markOnboardingComplete } from '../../lib/api'
 import { callFunction } from '../../lib/functions'
-import { getLifeChartCharacter, type Gender } from '../../lib/lifeChartCharacter'
+import { getLifeChartCharacter, type Gender } from '../../shared/domain/lifeChart/lifeChartCharacter'
 import ChatShell, { ChatMessage } from '../../components/ChatShell'
 import { Button, Alert } from '../../components/ui'
 import DobConfirmModal from '../../components/DobConfirmModal'

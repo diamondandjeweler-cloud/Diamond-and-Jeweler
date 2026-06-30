@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { profileConsentsById, updateProfile } from '../data/repositories/profiles'
 import { encryptDob } from '../lib/api'
-import { getLifeChartCharacter, type Gender } from '../lib/lifeChartCharacter'
+import { getLifeChartCharacter, type Gender } from '../shared/domain/lifeChart/lifeChartCharacter'
 import { Button, Alert } from './ui'
 import Consent from './Consent'
 

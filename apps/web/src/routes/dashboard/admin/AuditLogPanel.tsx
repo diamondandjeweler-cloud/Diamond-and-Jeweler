@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import ListSkeleton from '../../../components/ListSkeleton'
 import { formatError } from '../../../lib/errors'
+import { useQuery } from '../../../lib/useQuery'
 
 // F14 — switched from a direct PostgREST select on `audit_log` to a
 // SECURITY DEFINER RPC `get_admin_audit_log`. The audit_log RLS policies
@@ -38,51 +39,67 @@ const ACTION_GROUPS: Array<{ label: string; actions: string[] }> = [
   { label: 'System', actions: ['data_purged', 'cron_run'] },
 ]
 
+async function fetchAuditLog(
+  actionFilter: string,
+  committedSearch: string,
+  page: number,
+): Promise<AuditRow[]> {
+  const trimmed = committedSearch.trim()
+  // The RPC accepts uuid params — only forward a value when the input is
+  // a well-formed UUID; ignore otherwise so partial typing doesn't 400.
+  const uuidValue = trimmed && UUID_RE.test(trimmed) ? trimmed : null
+  const { data, error } = await supabase.rpc('get_admin_audit_log', {
+    p_action:     actionFilter || null,
+    // The original UI did an OR on actor_id/subject_id with one input;
+    // RPC takes both — we pass the same UUID to both, then dedupe.
+    p_actor_id:   uuidValue,
+    p_subject_id: uuidValue,
+    p_page:       page,
+    p_page_size:  PAGE_SIZE,
+  })
+  if (error) throw error
+  // Dedupe by id (the OR filter could return the same row from both
+  // p_actor_id and p_subject_id branches if a user is both).
+  const seen = new Set<number>()
+  return ((data ?? []) as AuditRow[]).filter((r) => {
+    if (seen.has(r.id)) return false
+    seen.add(r.id); return true
+  })
+}
+
 export default function AuditLogPanel() {
-  const [rows, setRows] = useState<AuditRow[]>([])
-  const [loading, setLoading] = useState(true)
-  const [err, setErr] = useState<string | null>(null)
   const [page, setPage] = useState(0)
   const [actionFilter, setActionFilter] = useState<string>('')
+  // `actorSearch` is the live input; `committedSearch` is the value actually
+  // sent to the RPC. The original UI refetched on page/filter changes via
+  // useEffect, but only refetched on the actor input when the Search button /
+  // Enter / Clear was pressed. We model that by keying the query on the
+  // *committed* search — typing in the box no longer triggers a fetch; the
+  // commit handlers below bump `committedSearch` (and the SWR key) instead.
   const [actorSearch, setActorSearch] = useState('')
+  const [committedSearch, setCommittedSearch] = useState('')
 
-  async function reload() {
-    setLoading(true); setErr(null)
-    const trimmed = actorSearch.trim()
-    // The RPC accepts uuid params — only forward a value when the input is
-    // a well-formed UUID; ignore otherwise so partial typing doesn't 400.
-    const uuidValue = trimmed && UUID_RE.test(trimmed) ? trimmed : null
-    try {
-      const { data, error } = await supabase.rpc('get_admin_audit_log', {
-        p_action:     actionFilter || null,
-        // The original UI did an OR on actor_id/subject_id with one input;
-        // RPC takes both — we pass the same UUID to both, then dedupe.
-        p_actor_id:   uuidValue,
-        p_subject_id: uuidValue,
-        p_page:       page,
-        p_page_size:  PAGE_SIZE,
-      })
-      if (error) throw error
-      // Dedupe by id (the OR filter could return the same row from both
-      // p_actor_id and p_subject_id branches if a user is both).
-      const seen = new Set<number>()
-      const rows = ((data ?? []) as AuditRow[]).filter((r) => {
-        if (seen.has(r.id)) return false
-        seen.add(r.id); return true
-      })
-      setRows(rows)
-    } catch (e) {
-      console.error('[AuditLogPanel] reload failed:', e)
-      setErr(formatError(e))
-    } finally {
-      setLoading(false)
-    }
-  }
+  // SWR seam: keyed by the params that define the result. Changing any of
+  // page / actionFilter / committedSearch refetches; identical keys dedupe.
+  const { data, error: rawErr, isValidating } = useQuery<AuditRow[]>(
+    ['admin-audit-log', actionFilter, committedSearch, page],
+    () => fetchAuditLog(actionFilter, committedSearch, page),
+  )
+  if (rawErr) console.error('[AuditLogPanel] reload failed:', rawErr)
+  const rows = data ?? []
+  const err = rawErr ? formatError(rawErr) : null
+  // Preserve the original UX exactly: the old reload() flipped `loading` true
+  // on EVERY fetch (initial load, page change, filter change, search), so the
+  // skeleton showed each time. `isValidating` is true on every in-flight fetch
+  // (initial + revalidation), so we mirror that here rather than `isLoading`
+  // (which is only the first load and would let keepPreviousData show stale
+  // rows across page changes).
+  const loading = isValidating
 
-  // reload also reads actorSearch but we only want to refire on filter/page changes;
-  // actorSearch refetch is driven manually by the Search button / Enter key.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { void reload() }, [page, actionFilter])
+  // Commit the current actor input as the searched value (resets to page 0).
+  // Re-committing the same value still fires because we reset the page; if both
+  // are unchanged SWR dedupes to the cached result — same data the user sees.
+  const commitSearch = (value: string) => { setCommittedSearch(value); setPage(0) }
 
   return (
     <div>
@@ -118,19 +135,19 @@ export default function AuditLogPanel() {
               type="text"
               value={actorSearch}
               onChange={(e) => setActorSearch(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { setPage(0); void reload() } }}
+              onKeyDown={(e) => { if (e.key === 'Enter') commitSearch(actorSearch) }}
               placeholder="Paste a user UUID and press Enter"
               className="flex-1 border rounded px-2 py-1 text-sm font-mono"
             />
             <button
-              onClick={() => { setPage(0); void reload() }}
+              onClick={() => commitSearch(actorSearch)}
               className="text-sm bg-brand-600 text-white px-3 py-1 rounded hover:bg-brand-700"
             >
               Search
             </button>
             {actorSearch && (
               <button
-                onClick={() => { setActorSearch(''); setPage(0); void reload() }}
+                onClick={() => { setActorSearch(''); commitSearch('') }}
                 className="text-sm border px-3 py-1 rounded hover:bg-gray-50"
               >
                 Clear

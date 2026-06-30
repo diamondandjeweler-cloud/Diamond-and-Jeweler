@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { formatError } from '../../../lib/errors'
 import { readDashCache, writeDashCache } from '../../../lib/dashboardCache'
+import { useQuery } from '../../../lib/useQuery'
 import Skeleton from '../../../components/Skeleton'
 
 interface Kpis {
@@ -25,34 +25,34 @@ const TRACKED_STATUSES = [
   'interview_scheduled','interview_completed','hired','expired',
 ]
 
+// F1 fix — single SECURITY DEFINER RPC replaces 14 parallel head+count
+// queries. The old pattern was returning 503 across all matches/profiles
+// counts because PostgREST/Supabase shed parallel-HEAD load when the
+// matches RLS policy chain materialised nested EXISTS joins on roles
+// even for admin callers. The RPC bypasses RLS entirely and gates on
+// is_admin() inside its body — see migrations/0100_admin_kpis_rpc.sql.
+async function fetchKpis(): Promise<Kpis> {
+  const { data, error } = await supabase.rpc('get_admin_kpis')
+  if (error) throw error
+  if (!data) throw new Error('get_admin_kpis returned no data')
+  return data as Kpis
+}
+
 export default function KpiPanel() {
-  // Hydrate from local cache so admins re-opening /admin see numbers
-  // instantly. Live refresh runs in the background and swaps in fresh data.
-  const cached = useState(() => readDashCache<Kpis>('admin_kpi'))[0]
-  const [kpis, setKpis] = useState<Kpis | null>(cached)
-  const [err, setErr] = useState<string | null>(null)
-
-  async function load() {
-    setErr(null)
-    try {
-      // F1 fix — single SECURITY DEFINER RPC replaces 14 parallel head+count
-      // queries. The old pattern was returning 503 across all matches/profiles
-      // counts because PostgREST/Supabase shed parallel-HEAD load when the
-      // matches RLS policy chain materialised nested EXISTS joins on roles
-      // even for admin callers. The RPC bypasses RLS entirely and gates on
-      // is_admin() inside its body — see migrations/0100_admin_kpis_rpc.sql.
-      const { data, error } = await supabase.rpc('get_admin_kpis')
-      if (error) throw error
-      if (!data) throw new Error('get_admin_kpis returned no data')
-      const fresh = data as Kpis
-      setKpis(fresh)
-      writeDashCache<Kpis>('admin_kpi', undefined, fresh)
-    } catch (e) {
-      setErr(formatError(e))
-    }
-  }
-
-  useEffect(() => { void load() }, [])
+  // SWR seam: dedup + stale-while-revalidate + focus refetch for free.
+  // `fallbackData` hydrates from the local cache so admins re-opening /admin
+  // see numbers instantly; the live refresh runs in the background and swaps
+  // in fresh data. `onSuccess` keeps that local snapshot warm for next visit.
+  const { data: kpis, error: rawErr, mutate } = useQuery<Kpis>(
+    'admin-kpis',
+    fetchKpis,
+    {
+      fallbackData: readDashCache<Kpis>('admin_kpi') ?? undefined,
+      onSuccess: (fresh) => writeDashCache<Kpis>('admin_kpi', undefined, fresh),
+    },
+  )
+  const err = rawErr ? formatError(rawErr) : null
+  const load = () => { void mutate() }
 
   // Error only blocks if we don't even have a cached snapshot to render.
   if (err && !kpis) return <p className="text-sm text-red-600">{err}</p>
@@ -72,7 +72,7 @@ export default function KpiPanel() {
     <div>
       <div className="flex justify-between items-center mb-4">
         <p className="text-sm text-gray-600">Live platform metrics. All counts are exact, computed at load time.</p>
-        <button onClick={() => void load()} className="border px-3 py-1 rounded text-sm hover:bg-gray-50">
+        <button onClick={() => load()} className="border px-3 py-1 rounded text-sm hover:bg-gray-50">
           Refresh
         </button>
       </div>

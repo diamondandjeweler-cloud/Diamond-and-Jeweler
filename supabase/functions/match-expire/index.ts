@@ -214,33 +214,27 @@ async function handler(req: Request): Promise<Response> {
     await bumpProfileGhostScore(hm.profile_id, hmGhosted ?? 0)
   }
 
-  // Regenerate per affected role (match-generate respects refresh_limit).
-  const generateUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/match-generate`
+  // Re-queue the affected roles instead of a SERIAL fan-out of synchronous
+  // match-generate HTTP calls (the old loop blocked this 6h cron for one full
+  // generation × N roles — a Performance N+1). process-match-queue (every 1m)
+  // drains the queue with bounded concurrency, calling the SAME matchForRole,
+  // so refresh_limit_per_role is still enforced. enqueue_roles_for_rematch
+  // (migration 0167) skips inactive / vacancy-expired roles and dedups against
+  // the partial-unique index — one INSERT total instead of N round-trips.
   const roleIds = [...new Set((expired ?? []).map((m) => m.role_id).filter(Boolean))]
 
-  let regenerated = 0
-  for (const roleId of roleIds) {
-    const { data: role } = await db.from('roles')
-      .select('status').eq('id', roleId!).maybeSingle()
-    if (!role || role.status !== 'active') continue
-
-    try {
-      const res = await fetch(generateUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${svcKey}` },
-        body: JSON.stringify({ role_id: roleId }),
-      })
-      if (res.ok) {
-        const payload = await res.json().catch(() => ({ matches_added: 0 }))
-        regenerated += payload.matches_added ?? 0
-      }
-    } catch (e) {
-      console.error('regenerate failed for', roleId, e)
-    }
+  let enqueued = 0
+  if (roleIds.length > 0) {
+    const { data: n, error: enqErr } = await db.rpc('enqueue_roles_for_rematch', {
+      p_role_ids: roleIds,
+      p_priority: 5,
+    })
+    if (enqErr) console.error('enqueue_roles_for_rematch failed', enqErr.message)
+    else if (typeof n === 'number') enqueued = n
   }
 
   await heartbeat(db)
-  return json({ expired: expiredCount, regenerated, warned, reminded })
+  return json({ expired: expiredCount, enqueued, warned, reminded })
 }
 
 // Best-effort cron heartbeat; never let it break the job.

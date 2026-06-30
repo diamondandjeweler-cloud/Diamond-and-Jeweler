@@ -172,16 +172,22 @@ export default function AuthCallback() {
           className="max-w-md w-full bg-white border rounded-lg p-6 shadow-sm space-y-4"
         >
           <h1 className="text-xl font-semibold">Set a new password</h1>
-          <input
-            type="password"
-            value={newPw}
-            onChange={(e) => setNewPw(e.target.value)}
-            placeholder="New password (min. 12 chars)"
-            minLength={12}
-            required
-            className="w-full border rounded px-3 py-2"
-            autoComplete="new-password"
-          />
+          <div>
+            <label htmlFor="auth-callback-new-password" className="block text-sm font-medium text-gray-700 mb-1">
+              New password (min. 12 chars)
+            </label>
+            <input
+              id="auth-callback-new-password"
+              type="password"
+              value={newPw}
+              onChange={(e) => setNewPw(e.target.value)}
+              placeholder="New password (min. 12 chars)"
+              minLength={12}
+              required
+              className="w-full border rounded px-3 py-2"
+              autoComplete="new-password"
+            />
+          </div>
           {err && <p className="text-sm text-red-600">{err}</p>}
           <button
             type="submit"

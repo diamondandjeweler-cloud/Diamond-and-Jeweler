@@ -217,18 +217,18 @@ jobs:
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - name: Run payment-webhook signature/replay invariants
-        # Activates the 16 money-path tests in payment-webhook.test.ts that were
-        # WRITTEN but never executed — `deno` appeared nowhere in this workflow, so
-        # the Billplz signature/replay/malformed invariants gave false confidence.
-        # Pure crypto (HMAC + timingSafeEqual), no network/DB at runtime.
-        # The complementary seeded-Postgres integration proof — the
-        # `payment_status='pending'` affected-row flip guard + award_points
-        # idempotency-key "credit exactly once" + increment_extra_matches_used
-        # "quota once" — now runs in the db-apply job as
-        # supabase/tests/payment_idempotency.sql (this Deno suite covers the
-        # signature algorithm; that psql suite covers the DB exactly-once logic).
-        run: deno test --allow-all supabase/functions/payment-webhook/payment-webhook.test.ts
+      - name: Run all edge-function Deno tests
+        # Runs EVERY *.test.ts under supabase/functions (recursively) so any new
+        # edge test is picked up automatically — not just payment-webhook.
+        #   • payment-webhook.test.ts — 16 money-path invariants (Billplz HMAC +
+        #     timingSafeEqual signature/replay/malformed). Pure crypto, no net/DB.
+        #     The complementary seeded-Postgres exactly-once proof
+        #     (payment_status='pending' flip + award_points idempotency-key +
+        #     increment_extra_matches_used quota) runs in the db-apply job as
+        #     supabase/tests/payment_idempotency.sql.
+        #   • match-core / matcher orchestration tests added under the
+        #     road-to-95 testing track land here automatically.
+        run: deno test --allow-all supabase/functions/
       - name: verify_jwt pin invariant (BLOCKING)
         # The invariant that prevents the payment-webhook 401 class of bug:
         # every signature-verified webhook (imports webhookCorsHeaders) and every

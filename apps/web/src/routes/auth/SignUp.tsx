@@ -7,6 +7,9 @@ import AuthShell from '../../components/AuthShell'
 import { Button, Input, PasswordInput, Alert } from '../../components/ui'
 import Turnstile from '../../components/Turnstile'
 import { useSeo } from '../../lib/useSeo'
+import { createLogger } from '../../lib/logger'
+
+const log = createLogger('signup')
 
 export default function SignUp() {
   const { t } = useTranslation()
@@ -138,7 +141,7 @@ export default function SignUp() {
               .update({ role })
               .eq('id', data.session.user.id)
           } catch (e) {
-            console.error('[signup] role update failed', e)
+            log.error('[signup] role update failed', e)
           }
         }
         window.location.replace('/home')

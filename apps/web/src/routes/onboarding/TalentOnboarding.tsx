@@ -37,6 +37,11 @@ import DobStep from './talent/DobStep'
 import DealBreakersStep from './talent/DealBreakersStep'
 import ExtrasStep from './talent/ExtrasStep'
 import ReviewStep from './talent/ReviewStep'
+import { createLogger } from '../../lib/logger'
+
+// `log` is a local state variable in this component (the chat transcript), so
+// the scoped logger is bound as `logger` to avoid shadowing it.
+const logger = createLogger('onboarding')
 
 export default function TalentOnboarding() {
   const { t } = useTranslation()
@@ -559,7 +564,7 @@ export default function TalentOnboarding() {
           )
         } catch (enqueueErr) {
           // Non-fatal: retry-stuck-extractions cron will pick it up.
-          console.warn('[onboarding] enqueue-talent-extraction failed, will retry via cron:', enqueueErr)
+          logger.warn('[onboarding] enqueue-talent-extraction failed, will retry via cron:', enqueueErr)
         }
 
         // 6. Referral processing — best-effort.

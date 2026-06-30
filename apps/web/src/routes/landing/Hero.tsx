@@ -67,12 +67,23 @@ function DecisionCardImpl({
   return (
     <Link
       to={to}
+      onMouseDown={() => {
+        // Best-effort prefetch of the destination route chunk so the click
+        // feels instant. Both landing cards link to /start/* which render
+        // routes/Start.tsx. Never throws — warming the chunk is optional.
+        try {
+          if (to.startsWith('/start')) import('../Start').catch(() => {})
+        } catch {
+          /* no-op: prefetch is purely a nicety */
+        }
+      }}
       className="group relative block px-6 md:px-8 pt-5 pb-6 text-center transition-all duration-300
                  bg-gradient-to-b from-white to-[#fafbff]
                  ring-1 ring-[#e8edff]
                  shadow-[0_2px_4px_rgba(20,21,17,0.04),0_14px_36px_-14px_rgba(39,48,110,0.12)]
                  hover:shadow-[0_4px_8px_rgba(20,21,17,0.05),0_24px_48px_-12px_rgba(39,48,110,0.22)]
-                 hover:-translate-y-0.5"
+                 hover:-translate-y-0.5
+                 active:scale-[0.98] active:opacity-75"
       style={{
         clipPath:
           'polygon(26px 0, calc(100% - 26px) 0, 100% 26px, 100% calc(100% - 26px), calc(100% - 26px) 100%, 26px 100%, 0 calc(100% - 26px), 0 26px)',

@@ -17,6 +17,7 @@ import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { corsHeaders, handleOptions } from '../_shared/cors.ts'
 import { authenticate, json } from '../_shared/auth.ts'
 import { adminClient } from '../_shared/supabase.ts'
+import { enforceRateLimit, RateLimitError } from '../_shared/ratelimit.ts'
 
 interface PointsPackage {
   id: string
@@ -40,6 +41,14 @@ serve(async (req) => {
   try { body = (await req.json()) as Body } catch { /* tolerate */ }
   const packageId = body.package_id?.trim()
   if (!packageId) return json({ error: 'Missing package_id' }, 400)
+
+  // Per-user rate limit (20 req/hour) before any DB write or Billplz bill creation.
+  try {
+    await enforceRateLimit(adminClient(), 'buy-points:' + auth.userId, 20, 3600)
+  } catch (e) {
+    if (e instanceof RateLimitError) return json({ error: 'rate_limited' }, 429)
+    throw e
+  }
 
   const db = adminClient()
 

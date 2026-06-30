@@ -9,6 +9,8 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { corsHeaders, handleOptions } from '../_shared/cors.ts'
 import { authenticate, json } from '../_shared/auth.ts'
+import { adminClient } from '../_shared/supabase.ts'
+import { enforceRateLimit, RateLimitError } from '../_shared/ratelimit.ts'
 import { matchForRole, MatchError } from '../_shared/match-core.ts'
 
 interface Body { role_id?: string; is_extra_match?: boolean }
@@ -23,6 +25,18 @@ serve(async (req) => {
   let body: Body = {}
   try { body = (await req.json()) as Body } catch { /* empty body tolerated */ }
   if (!body.role_id) return json({ error: 'Missing role_id' }, 400)
+
+  // Per-user rate limit (20 req/hour) before the expensive matching run.
+  // Internal service-role calls (redeem-points, process-match-queue) are not a
+  // real end user and share the sentinel id, so they are not throttled.
+  if (!auth.isServiceRole) {
+    try {
+      await enforceRateLimit(adminClient(), 'match-generate:' + auth.userId, 20, 3600)
+    } catch (e) {
+      if (e instanceof RateLimitError) return json({ error: 'rate_limited' }, 429)
+      throw e
+    }
+  }
 
   try {
     const result = await matchForRole({

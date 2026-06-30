@@ -18,6 +18,7 @@ import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { corsHeaders, handleOptions } from '../_shared/cors.ts'
 import { authenticate, json } from '../_shared/auth.ts'
 import { adminClient } from '../_shared/supabase.ts'
+import { enforceRateLimit, RateLimitError } from '../_shared/ratelimit.ts'
 
 interface Body {
   match_type: 'hm_extra' | 'talent_extra'
@@ -48,6 +49,14 @@ serve(async (req) => {
   }
   if (body.match_type === 'talent_extra' && auth.role === 'hiring_manager') {
     return json({ error: 'Forbidden: hiring_manager cannot purchase talent_extra matches' }, 403)
+  }
+
+  // Per-user rate limit (20 req/hour) before any DB write or Billplz bill creation.
+  try {
+    await enforceRateLimit(adminClient(), 'unlock-extra-match:' + auth.userId, 20, 3600)
+  } catch (e) {
+    if (e instanceof RateLimitError) return json({ error: 'rate_limited' }, 429)
+    throw e
   }
 
   const db = adminClient()

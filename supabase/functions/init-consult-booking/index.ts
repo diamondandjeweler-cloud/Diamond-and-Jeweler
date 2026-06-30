@@ -15,6 +15,7 @@ import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { handleOptions } from '../_shared/cors.ts'
 import { authenticate, json } from '../_shared/auth.ts'
 import { adminClient } from '../_shared/supabase.ts'
+import { enforceRateLimit, RateLimitError } from '../_shared/ratelimit.ts'
 
 interface Body { tier?: 'quick' | 'standard' | 'deep' }
 
@@ -31,6 +32,14 @@ serve(async (req) => {
   const tier = body.tier
   if (tier !== 'quick' && tier !== 'standard' && tier !== 'deep') {
     return json({ error: 'tier must be quick, standard, or deep' }, 400)
+  }
+
+  // Per-user rate limit (20 req/hour) before any DB write or ToyyibPay bill creation.
+  try {
+    await enforceRateLimit(adminClient(), 'init-consult-booking:' + auth.userId, 20, 3600)
+  } catch (e) {
+    if (e instanceof RateLimitError) return json({ error: 'rate_limited' }, 429)
+    throw e
   }
 
   const db = adminClient()

@@ -20,6 +20,7 @@ import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { corsHeaders, handleOptions } from '../_shared/cors.ts'
 import { authenticate, json } from '../_shared/auth.ts'
 import { adminClient } from '../_shared/supabase.ts'
+import { enforceRateLimit, RateLimitError } from '../_shared/ratelimit.ts'
 
 interface Body {
   target_type?: 'role' | 'talent'
@@ -43,6 +44,14 @@ serve(async (req) => {
   // Backward-compat: if only role_id is supplied, treat as HM redemption.
   let targetType = body.target_type
   if (!targetType) targetType = body.role_id ? 'role' : 'talent'
+
+  // Per-user rate limit (20 req/hour) before any points deduction or quota bump.
+  try {
+    await enforceRateLimit(adminClient(), 'redeem-points:' + auth.userId, 20, 3600)
+  } catch (e) {
+    if (e instanceof RateLimitError) return json({ error: 'rate_limited' }, 429)
+    throw e
+  }
 
   const db = adminClient()
 

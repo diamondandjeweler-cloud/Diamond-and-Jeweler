@@ -263,7 +263,7 @@ function CompatibilityRing({ pct }: { pct: number }) {
   const radius = 20
   const circ = 2 * Math.PI * radius
   const offset = circ - (pct / 100) * circ
-  const tone = pct >= 75 ? 'text-emerald-600' : pct >= 50 ? 'text-accent-600' : 'text-ink-400'
+  const tone = pct >= 75 ? 'text-emerald-600' : pct >= 50 ? 'text-accent-700' : 'text-ink-400'
   return (
     <div className="relative shrink-0" aria-label={t('talentDash.compatibilityAria', { pct })}>
       <svg width="52" height="52" viewBox="0 0 52 52">

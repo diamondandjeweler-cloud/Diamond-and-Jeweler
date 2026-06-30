@@ -299,7 +299,7 @@ export function Stat({
 }) {
   const valueClass =
     tone === 'brand'   ? 'text-brand-700' :
-    tone === 'accent'  ? 'text-accent-600' :
+    tone === 'accent'  ? 'text-accent-700' :
     tone === 'success' ? 'text-emerald-700' :
     tone === 'danger'  ? 'text-red-700' :
     'text-ink-900 dark:text-white'

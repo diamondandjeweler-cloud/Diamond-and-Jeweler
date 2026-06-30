@@ -133,7 +133,7 @@ function SystemAvatar() {
 
 function YouAvatar() {
   return (
-    <div className="h-8 w-8 shrink-0 rounded-full bg-accent-500/15 border border-accent-500/40 text-accent-600 flex items-center justify-center text-xs font-semibold">
+    <div className="h-8 w-8 shrink-0 rounded-full bg-accent-500/15 border border-accent-500/40 text-accent-700 flex items-center justify-center text-xs font-semibold">
       You
     </div>
   )

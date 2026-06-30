@@ -160,7 +160,7 @@
   .badge-green   { @apply badge bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200/70; }
   .badge-amber   { @apply badge bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200/70; }
   .badge-red     { @apply badge bg-red-50 text-red-700 ring-1 ring-inset ring-red-200/70; }
-  .badge-accent  { @apply badge bg-accent-500/10 text-accent-600 ring-1 ring-inset ring-accent-500/20; }
+  .badge-accent  { @apply badge bg-accent-500/10 text-accent-700 ring-1 ring-inset ring-accent-500/20; }
 
   /* Chips (filter / status) */
   .chip {

@@ -72,6 +72,9 @@ export default function AdminGate({ children }: { children: ReactNode }) {
       }
 
       // Google (or any OAuth) login is strong auth — skip TOTP requirement.
+      // ACCEPTED DECISION (2026-06-30) — see docs/security/admin-mfa-policy.md.
+      // This is a client-side UX gate; the real admin boundary is server-side
+      // is_admin()/RLS, which never consults AAL. Not an oversight.
       // currentAuthenticationMethods is typed as AMREntry[] | string[] (union of arrays),
       // which creates an overloaded .some() that TS can't resolve with a typed callback.
       // Cast to any[] to avoid the overload ambiguity.

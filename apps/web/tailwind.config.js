@@ -33,9 +33,14 @@ export default {
           900: '#141511',
         },
         accent: {
-          // Warm gold for highlights, badges, emphasis
+          // Warm gold for highlights, badges, emphasis (fills / borders / large display).
           500: '#c79a3b',
           600: '#a67c27',
+          // AA-safe text shades on white: 500/600 are only ~2.4:1 / 3.5:1, so small
+          // text must use 700+ (≈4.9:1) or 800 (≈7:1). Use text-accent-700 for any
+          // accent-coloured body/label text; keep 500/600 for backgrounds + emphasis.
+          700: '#8a6d1f',
+          800: '#6b5518',
         },
       },
       fontFamily: {

@@ -168,7 +168,16 @@ serve(async (req) => {
       p_reference: { purchase_id: purchase.id, refunded_by: auth.userId },
       p_idempotency_key: `refund:${purchase.id}`,
     })
-    if (clawErr) console.error('points_refund: award_points clawback failed', purchase.id, clawErr)
+    if (clawErr) {
+      // Non-fatal to the refund, but the ledger now drifts (points credited at
+      // purchase were not clawed back). Surface it: ship telemetry to on-call
+      // AND fold it into pointsWarning so it rides back in the response instead
+      // of being swallowed into console.error only.
+      console.error('points_refund: award_points clawback failed', purchase.id, clawErr)
+      await reportError(clawErr, { fn: 'admin-refund', stage: 'points-clawback', purchase_id: purchase.id })
+      const clawbackWarning = `Points clawback failed (${creditedPoints} points were not reversed) — ledger may be out of sync, please review.`
+      pointsWarning = pointsWarning ? `${pointsWarning} ${clawbackWarning}` : clawbackWarning
+    }
   }
 
   await logAudit({

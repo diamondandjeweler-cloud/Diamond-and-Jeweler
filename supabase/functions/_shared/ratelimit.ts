@@ -1,4 +1,7 @@
 import { type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
+import { createLogger } from './logger.ts'
+
+const log = createLogger('ratelimit')
 
 /**
  * Thrown by enforceRateLimit when the caller has exceeded their limit.
@@ -29,7 +32,7 @@ export async function enforceRateLimit(
 
   if (error) {
     // Fail open — never block traffic on a rate-limiter outage.
-    console.error('enforceRateLimit: rpc error (failing open)', error)
+    log.error('enforceRateLimit: rpc error (failing open)', error)
     return
   }
 

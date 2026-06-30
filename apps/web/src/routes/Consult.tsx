@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { supabase } from '../lib/supabase'
+import { configValuesByKeys } from '../data/repositories/system-config'
+import { consultBookingStatusById } from '../data/repositories/consult-bookings'
 import { callFunction } from '../lib/functions'
 import { Button, Card, Alert, PageHeader } from '../components/ui'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -60,7 +61,7 @@ export default function Consult() {
         'consult_label_quick', 'consult_label_standard', 'consult_label_deep',
         'consult_currency',
       ]
-      const { data } = await supabase.from('system_config').select('key, value').in('key', keys)
+      const { data } = await configValuesByKeys(keys)
       if (cancelled) return
       const map = new Map<string, unknown>()
       for (const row of (data ?? []) as Array<{ key: string; value: unknown }>) {
@@ -87,9 +88,7 @@ export default function Consult() {
   useEffect(() => {
     if (!onReturn) return
     let cancelled = false
-    void supabase.from('consult_bookings')
-      .select('status, video_url')
-      .eq('id', onReturn)
+    void consultBookingStatusById(onReturn)
       .maybeSingle()
       .then(({ data }) => {
         if (cancelled || !data) return

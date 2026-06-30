@@ -22,6 +22,9 @@ import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { corsHeaders, handleOptions } from '../_shared/cors.ts'
 import { authenticate, json } from '../_shared/auth.ts'
 import { adminClient } from '../_shared/supabase.ts'
+import { createLogger } from '../_shared/logger.ts'
+
+const log = createLogger('submit-feedback')
 
 interface Body {
   match_id: string
@@ -182,9 +185,9 @@ serve(async (req) => {
         outcome: outcomeCode,
         recorded_by: body.from_party,
       }, { onConflict: 'match_id,outcome' })
-      if (outcomeErr) console.error('match_outcomes upsert error:', outcomeErr)
+      if (outcomeErr) log.error('match_outcomes upsert error:', outcomeErr)
     } catch (e) {
-      console.error('match_outcomes upsert threw:', e)
+      log.error('match_outcomes upsert threw:', e)
     }
   }
 

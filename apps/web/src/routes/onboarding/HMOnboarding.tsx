@@ -20,8 +20,15 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
-import { insertRole } from '../../data/repositories/roles'
+import { insertRole, onboardingDraftRoleIdForManager } from '../../data/repositories/roles'
 import { profileEmailById, updateProfile } from '../../data/repositories/profiles'
+import {
+  hmIdByProfileId,
+  upsertHiringManager,
+  updateHiringManagerById,
+  updateHiringManagerByProfileId,
+} from '../../data/repositories/hiring-managers'
+import { companyIdByCreatedBy, companyIdByPrimaryHrEmail } from '../../data/repositories/companies'
 import { encryptDob, markOnboardingComplete } from '../../lib/api'
 import { callFunction } from '../../lib/functions'
 import { getLifeChartCharacter, type Gender } from '../../lib/lifeChartCharacter'
@@ -106,32 +113,20 @@ export default function HMOnboarding() {
     let mounted = true
 
     async function preflight() {
-      const { data: hmRow } = await supabase
-        .from('hiring_managers')
-        .select('id')
-        .eq('profile_id', userId)
-        .maybeSingle()
+      const { data: hmRow } = await hmIdByProfileId(userId).maybeSingle()
 
       if (hmRow) return // all good
 
       // No HM row — try to find a company this user owns
-      const { data: company } = await supabase
-        .from('companies')
-        .select('id')
-        .eq('created_by', userId)
-        .maybeSingle()
+      const { data: company } = await companyIdByCreatedBy(userId).maybeSingle()
 
       if (!company) {
         // Also try primary_hr_email match
         const { data: prof } = await profileEmailById(userId).maybeSingle()
         if (prof?.email) {
-          const { data: companyByEmail } = await supabase
-            .from('companies')
-            .select('id')
-            .eq('primary_hr_email', prof.email)
-            .maybeSingle()
+          const { data: companyByEmail } = await companyIdByPrimaryHrEmail(prof.email).maybeSingle()
           if (companyByEmail) {
-            await supabase.from('hiring_managers').upsert(
+            await upsertHiringManager(
               { profile_id: userId, company_id: companyByEmail.id, job_title: 'Hiring Manager' },
               { onConflict: 'profile_id' },
             )
@@ -143,7 +138,7 @@ export default function HMOnboarding() {
       }
 
       // Found a company — insert the missing HM row silently
-      await supabase.from('hiring_managers').upsert(
+      await upsertHiringManager(
         { profile_id: userId, company_id: company.id, job_title: 'Hiring Manager' },
         { onConflict: 'profile_id' },
       )
@@ -386,7 +381,7 @@ export default function HMOnboarding() {
         const savedAt = new Date().toISOString()
         Promise.all([
           updateProfile(session!.user.id, { interview_transcript: { messages: finalMsgs, saved_at: savedAt } }),
-          supabase.from('hiring_managers').update({ interview_answers: { transcript: finalMsgs } }).eq('profile_id', session!.user.id),
+          updateHiringManagerByProfileId(session!.user.id, { interview_answers: { transcript: finalMsgs } }),
         ]).then(() => { /* best-effort */ })
 
         setLog((l) => [...l, {
@@ -406,7 +401,7 @@ export default function HMOnboarding() {
         const savedAt = new Date().toISOString()
         Promise.all([
           updateProfile(session!.user.id, { interview_transcript: { messages: partialMsgs, saved_at: savedAt, partial: true } }),
-          supabase.from('hiring_managers').update({ interview_answers: { transcript: partialMsgs } }).eq('profile_id', session!.user.id),
+          updateHiringManagerByProfileId(session!.user.id, { interview_answers: { transcript: partialMsgs } }),
         ]).then(() => {})
         setLog((l) => [
           ...l.map((m) => m.id === boId ? { ...m, typing: false } : m),
@@ -487,15 +482,13 @@ export default function HMOnboarding() {
       }
       if (extracted.error) throw new Error(`Profile extraction failed: ${extracted.error}`)
 
-      const { data: hmRow, error: hmErr } = await supabase.from('hiring_managers').select('id').eq('profile_id', userId).maybeSingle()
+      const { data: hmRow, error: hmErr } = await hmIdByProfileId(userId).maybeSingle()
       if (hmErr) throw hmErr
       if (!hmRow) throw new Error(t('hmOnboard.noHmRecord'))
 
       const lifeChartCharacter = gender ? getLifeChartCharacter(dob, gender) : null
 
-      const { error: updateErr } = await supabase
-        .from('hiring_managers')
-        .update({
+      const { error: updateErr } = await updateHiringManagerById(hmRow.id, {
           date_of_birth_encrypted: dobEncrypted,
           gender: gender || null,
           life_chart_character: lifeChartCharacter,
@@ -556,7 +549,6 @@ export default function HMOnboarding() {
             has_commission: hmHasCommission,
           },
         })
-        .eq('id', hmRow.id)
       if (updateErr) throw updateErr
 
       const { error: profErr } = await updateProfile(userId, { full_name: fullName.trim() })
@@ -565,8 +557,7 @@ export default function HMOnboarding() {
       // Auto-create a draft role from chat data so the HM doesn't re-enter everything.
       // Only insert if no paused onboarding draft already exists (idempotent on retry).
       if (extracted.role_type) {
-        const { data: existingDraft } = await supabase.from('roles')
-          .select('id').eq('hiring_manager_id', hmRow.id).eq('from_onboarding', true).eq('status', 'paused').maybeSingle()
+        const { data: existingDraft } = await onboardingDraftRoleIdForManager(hmRow.id).maybeSingle()
         if (!existingDraft) {
           const workArr = (() => {
             const w = (extracted.work_arrangement_offered ?? '').toLowerCase()

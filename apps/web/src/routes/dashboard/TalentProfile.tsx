@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { updateProfile } from '../../data/repositories/profiles'
+import { talentProfileFieldsByProfileId, updateTalentById } from '../../data/repositories/talents'
+import { latestResumeDoc, insertTalentDocuments } from '../../data/repositories/talent-documents'
 import { FormSkeleton } from '../../components/ListSkeleton'
 import { PREFERENCE_ASPECTS } from '../../data/preference-aspects'
 import { useTranslation } from 'react-i18next'
@@ -85,7 +87,7 @@ export default function TalentProfile() {
     setDocMsg(null); setPhotoBusy(true)
     try {
       const path = await uploadPrivate('talent-photos', file, session.user.id, file.name)
-      const { error } = await supabase.from('talents').update({ photo_url: path }).eq('id', talent.id)
+      const { error } = await updateTalentById(talent.id, { photo_url: path })
       if (error) throw error
       setTalent({ ...talent, photo_url: path })
       setDocMsg('Photo updated.')
@@ -102,13 +104,7 @@ export default function TalentProfile() {
     try {
       let doc = cachedResumeRef.current
       if (!doc) {
-        const { data, error } = await supabase
-          .from('talent_documents')
-          .select('storage_path, file_name')
-          .eq('talent_id', talent.id)
-          .eq('doc_type', 'resume')
-          .order('created_at', { ascending: false })
-          .limit(1)
+        const { data, error } = await latestResumeDoc(talent.id)
           .maybeSingle()
         if (error) throw error
         if (!data) { setDocMsg('No resume on file.'); return }
@@ -131,7 +127,7 @@ export default function TalentProfile() {
     setDocMsg(null); setResumeBusy(true)
     try {
       const path = await uploadPrivate('resumes', file, session.user.id, file.name)
-      const { error } = await supabase.from('talent_documents').insert({
+      const { error } = await insertTalentDocuments({
         talent_id: talent.id,
         doc_type: 'resume',
         storage_path: path,
@@ -193,10 +189,7 @@ export default function TalentProfile() {
     let cancelled = false
     void (async () => {
       try {
-        const { data, error } = await supabase
-          .from('talents')
-          .select('id, expected_salary_min, expected_salary_max, is_open_to_offers, privacy_mode, whitelist_companies, preference_ratings, parsed_resume, extraction_status, extraction_error, extraction_started_at, photo_url')
-          .eq('profile_id', userId)
+        const { data, error } = await talentProfileFieldsByProfileId(userId)
           .maybeSingle()
         if (cancelled) return
         if (error) setErr(error.message)
@@ -288,8 +281,7 @@ export default function TalentProfile() {
       whitelist_companies: privacy === 'whitelist' ? whitelistCompanies : [],
       preference_ratings: ratings,
     }
-    const { data: updated, error } = await supabase.from('talents').update(payload)
-      .eq('id', talent.id)
+    const { data: updated, error } = await updateTalentById(talent.id, payload)
       .select('expected_salary_min, expected_salary_max, privacy_mode')
       .single()
     setBusy(false)

@@ -4,6 +4,9 @@ import { useSession } from '../../../state/useSession'
 import { supabase } from '../../../lib/supabase'
 import { hrPendingMatches, hrOutcomesPendingMatches, updateMatch } from '../../../data/repositories/matches'
 import { updateInterview, insertInterview } from '../../../data/repositories/interviews'
+import { companyIdByPrimaryHrEmail, companyIdById } from '../../../data/repositories/companies'
+import { hmRosterForCompany, insertHiringManager } from '../../../data/repositories/hiring-managers'
+import { rolesForManagers } from '../../../data/repositories/roles'
 import { readDashCache, writeDashCache } from '../../../lib/dashboardCache'
 import type {
   HRCacheSnapshot, PendingRow, ScheduledRow, HMRow, OpenRoleRow,
@@ -64,7 +67,7 @@ export function useHrDashboardData() {
       // queries queue silently behind the refresh and appear to hang.
       await supabase.auth.getSession()
       if (cancelled) { clearTimeout(loadTimeout); return }
-      const { data: comp } = await supabase.from('companies').select('id').eq('primary_hr_email', userEmail).maybeSingle()
+      const { data: comp } = await companyIdByPrimaryHrEmail(userEmail).maybeSingle()
       if (!comp) {
         // No company row yet — surface empty lists (not skeletons) so the
         // EmptyState UI takes over instead of permanent shimmer.
@@ -76,10 +79,7 @@ export function useHrDashboardData() {
       setCompanyId(comp.id)
 
       // §1 — All hiring managers in the company, with their profile names.
-      const { data: hmRows } = await supabase
-        .from('hiring_managers')
-        .select('id, profile_id, job_title, profiles!inner(full_name)')
-        .eq('company_id', comp.id)
+      const { data: hmRows } = await hmRosterForCompany(comp.id)
       const hmIds = (hmRows ?? []).map((h) => h.id)
 
       if (hmIds.length === 0) {
@@ -114,10 +114,7 @@ export function useHrDashboardData() {
       // §2 — One query for roles (id, title, hm_id) covers BOTH per-HM role
       // counts AND the open-roles list. Previously we ran two near-identical
       // queries sequentially.
-      const { data: rolesData } = await supabase
-        .from('roles')
-        .select('id, title, hiring_manager_id')
-        .in('hiring_manager_id', hmIds)
+      const { data: rolesData } = await rolesForManagers(hmIds)
         .order('created_at', { ascending: false })
 
       const roleCountMap = new Map<string, number>()
@@ -263,7 +260,7 @@ export function useHrDashboardData() {
     if (!session || !companyId) return
     setAddMeBusy(true); setAddMeErr(null)
     try {
-      const { error } = await supabase.from('hiring_managers').insert({
+      const { error } = await insertHiringManager({
         profile_id: session.user.id,
         company_id: companyId,
         job_title: addMeJobTitle.trim(),
@@ -272,12 +269,9 @@ export function useHrDashboardData() {
       // Refresh both the page-local HM list and the global isHM flag (drives
       // sidebar HM links + RoleGate access to /hm routes).
       await refreshIsHM()
-      const { data: comp } = await supabase.from('companies').select('id').eq('id', companyId).maybeSingle()
+      const { data: comp } = await companyIdById(companyId).maybeSingle()
       if (comp) {
-        const { data: hmRows } = await supabase
-          .from('hiring_managers')
-          .select('id, profile_id, job_title, profiles!inner(full_name)')
-          .eq('company_id', companyId)
+        const { data: hmRows } = await hmRosterForCompany(companyId)
         const userId = session.user.id
         const newHms: HMRow[] = ((hmRows ?? []) as unknown as Array<{
           id: string; profile_id: string; job_title: string; profiles: { full_name: string } | null

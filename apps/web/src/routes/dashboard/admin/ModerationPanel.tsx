@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import { callFunction } from '../../../lib/functions'
+import { moderationRoleCountByStatus, moderationRolesByStatus } from '../../../data/repositories/roles'
 import ListSkeleton from '../../../components/ListSkeleton'
 
 type ModStatus = 'pending' | 'flagged' | 'rejected' | 'approved'
@@ -109,8 +110,7 @@ export default function ModerationPanel() {
     const buckets: Array<'flagged' | 'rejected' | 'pending'> = ['flagged', 'rejected', 'pending']
     const out = { flagged: 0, rejected: 0, pending: 0 }
     await Promise.all(buckets.map(async (s) => {
-      const { count } = await supabase.from('roles').select('id', { count: 'exact', head: true })
-        .eq('moderation_status', s)
+      const { count } = await moderationRoleCountByStatus(s)
       out[s] = count ?? 0
     }))
     setCounts(out)
@@ -120,21 +120,7 @@ export default function ModerationPanel() {
     setLoading(true)
     setErr(null)
     try {
-      const { data, error } = await supabase
-        .from('roles')
-        .select(`
-          id, title, description, industry, department, location, employment_type,
-          salary_min, salary_max, hourly_rate, is_commission_based, status, created_at,
-          moderation_status, moderation_score, moderation_category, moderation_reason,
-          moderation_provider, moderation_checked_at, moderation_appeal_text,
-          moderation_appealed_at,
-          hiring_managers!inner(
-            id, profile_id,
-            companies(name),
-            profiles!hiring_managers_profile_id_fkey(email, full_name)
-          )
-        `)
-        .eq('moderation_status', tab)
+      const { data, error } = await moderationRolesByStatus(tab)
         .order('moderation_appealed_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false })
         .limit(100)

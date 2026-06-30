@@ -19,6 +19,9 @@ import { authenticate, json } from '../_shared/auth.ts'
 import { adminClient } from '../_shared/supabase.ts'
 import { logAudit, extractIp } from '../_shared/audit.ts'
 import { reportError } from '../_shared/observe.ts'
+import { createLogger } from '../_shared/logger.ts'
+
+const log = createLogger('admin-refund')
 
 interface Body {
   purchase_type: 'extra_match' | 'points'
@@ -168,7 +171,16 @@ serve(async (req) => {
       p_reference: { purchase_id: purchase.id, refunded_by: auth.userId },
       p_idempotency_key: `refund:${purchase.id}`,
     })
-    if (clawErr) console.error('points_refund: award_points clawback failed', purchase.id, clawErr)
+    if (clawErr) {
+      // Non-fatal to the refund, but the ledger now drifts (points credited at
+      // purchase were not clawed back). Surface it: ship telemetry to on-call
+      // AND fold it into pointsWarning so it rides back in the response instead
+      // of being swallowed into console.error only.
+      log.error('points_refund: award_points clawback failed', purchase.id, clawErr)
+      await reportError(clawErr, { fn: 'admin-refund', stage: 'points-clawback', purchase_id: purchase.id })
+      const clawbackWarning = `Points clawback failed (${creditedPoints} points were not reversed) — ledger may be out of sync, please review.`
+      pointsWarning = pointsWarning ? `${pointsWarning} ${clawbackWarning}` : clawbackWarning
+    }
   }
 
   await logAudit({

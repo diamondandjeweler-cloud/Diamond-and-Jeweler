@@ -1,6 +1,9 @@
 import { supabase } from './supabase'
 import { profileById, updateProfile } from '../data/repositories/profiles'
+import { createLogger } from './logger'
 import type { Profile } from '../types/db'
+
+const log = createLogger('api')
 
 export async function fetchProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await profileById(userId).maybeSingle()
@@ -10,7 +13,7 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
     // localStorage cache. The next reload found no cached profile and the
     // auth gates hung on a spinner forever. Throwing here lets the bootstrap's
     // `.catch` handler fall back to the cached profile instead.
-    console.error('fetchProfile error', error)
+    log.error('fetchProfile error', error)
     throw error
   }
   return data as Profile | null

@@ -9,6 +9,13 @@ import { confirmDialog } from '../../../components/Modal'
 import type { InterviewRound, InterviewProposal } from '../../../types/db'
 import { talentMatchesForTalent, talentMatchById, updateMatch } from '../../../data/repositories/matches'
 import { profilePointsById } from '../../../data/repositories/profiles'
+import { roleTalentUrgentById } from '../../../data/repositories/roles'
+import {
+  talentDashboardRowByProfileId,
+  talentExtractionStatusByProfileId,
+  talentIdByProfileId,
+  updateTalentById,
+} from '../../../data/repositories/talents'
 import {
   ACTIVE,
   computeProfileGaps,
@@ -16,6 +23,9 @@ import {
   type TalentCacheSnapshot,
   type TalentFeedbackEntry,
 } from './types'
+import { createLogger } from '../../../lib/logger'
+
+const log = createLogger('talent-dashboard')
 
 /**
  * Data-loading + derived-state orchestration for TalentDashboard.
@@ -130,7 +140,7 @@ export function useTalentDashboardData() {
         // Phase 1 — fire all session-only queries in parallel. Previously these
         // ran sequentially, costing ~3× the network RTT on dashboard mount.
         const [{ data: talent }, { data: pointsRow }, { data: lastUrgent }] = await Promise.all([
-          supabase.from('talents').select('id, extra_matches_used, profile_expires_at, reputation_score, feedback_volume, phs_show_rate, phs_accept_rate, current_employment_status, current_salary, notice_period_days, education_level, has_management_experience, work_authorization, preferred_management_style, expected_salary_min, expected_salary_max, employment_type_preferences, location_matters, career_goal_horizon, job_intention, has_noncompete, salary_structure_preference, role_scope_preference, reason_for_leaving_category, extraction_status').eq('profile_id', userId).maybeSingle(),
+          talentDashboardRowByProfileId(userId).maybeSingle(),
           profilePointsById(userId).maybeSingle(),
           supabase
             .from('urgent_priority_requests')
@@ -179,9 +189,7 @@ export function useTalentDashboardData() {
         // page reload (BUG 5 fix). Only for find_job requests, last 24h, with
         // a result_id that still points at an active role.
         const urgentRolePromise = lastUrgent?.result_id
-          ? supabase.from('roles')
-              .select('id, title, description, salary_min, salary_max, location, work_arrangement, status')
-              .eq('id', lastUrgent.result_id)
+          ? roleTalentUrgentById(lastUrgent.result_id)
               .maybeSingle()
           : Promise.resolve({ data: null })
 
@@ -283,10 +291,7 @@ export function useTalentDashboardData() {
     if (extractionStatus !== 'pending' && extractionStatus !== 'processing') return
     let cancelled = false
     const tick = async () => {
-      const { data } = await supabase
-        .from('talents')
-        .select('extraction_status')
-        .eq('profile_id', userId)
+      const { data } = await talentExtractionStatusByProfileId(userId)
         .maybeSingle()
       if (cancelled) return
       const next = (data as { extraction_status: string | null } | null)?.extraction_status ?? null
@@ -317,15 +322,15 @@ export function useTalentDashboardData() {
     if (!session) return
     setReviving(true); setErr(null)
     try {
-      const { data: talentRow } = await supabase.from('talents').select('id').eq('profile_id', session.user.id).maybeSingle()
+      const { data: talentRow } = await talentIdByProfileId(session.user.id).maybeSingle()
       if (!mountedRef.current) return
       if (!talentRow) return
       const newExpiry = new Date(Date.now() + 45 * 86400000).toISOString()
-      const { error } = await supabase.from('talents').update({
+      const { error } = await updateTalentById(talentRow.id, {
         profile_expires_at: newExpiry,
         is_open_to_offers: true,
         ghost_score: 0,
-      }).eq('id', talentRow.id)
+      })
       if (!mountedRef.current) return
       if (error) throw error
       setProfileExpiresAt(newExpiry)
@@ -345,7 +350,7 @@ export function useTalentDashboardData() {
       if (res?.paymentUrl) window.location.href = res.paymentUrl
       else setUnlockMsg({ tone: 'red', text: t('talentDash.errPaymentNoUrl') })
     } catch (e) {
-      console.error('[unlock-extra-match] failed', e)
+      log.error('[unlock-extra-match] failed', e)
       setUnlockMsg({ tone: 'red', text: e instanceof Error ? e.message : t('talentDash.errPaymentStart') })
     } finally { setUnlocking(false) }
   }
@@ -373,7 +378,7 @@ export function useTalentDashboardData() {
       setExtraUsed((u) => u + 1)
       reloadTimerRef.current = setTimeout(() => { window.location.reload() }, 1500)
     } catch (e) {
-      console.error('[redeem-points] failed', e)
+      log.error('[redeem-points] failed', e)
       if (!mountedRef.current) return
       setUnlockMsg({ tone: 'red', text: e instanceof Error ? e.message : t('talentDash.errRedeemPoints') })
     } finally { if (mountedRef.current) setRedeemingExtra(false) }

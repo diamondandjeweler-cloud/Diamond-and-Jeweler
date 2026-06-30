@@ -23,6 +23,9 @@ import {
 } from '../_shared/non-negotiables.ts'
 import { embedMany, toPgVectorLiteral } from '../_shared/embeddings.ts'
 import { enforceRateLimit, RateLimitError } from '../_shared/ratelimit.ts'
+import { createLogger } from '../_shared/logger.ts'
+
+const log = createLogger('extract-non-negotiables')
 
 interface Body {
   side?: 'hm' | 'talent'
@@ -245,12 +248,12 @@ async function persistEmbeddings(
         free.push({ atomIndex: i, text: a.value.trim() })
       }
     })
-    console.log(`[persistEmbeddings] owner=${ownerType}:${ownerId} free_atoms=${free.length}`)
+    log.info(`[persistEmbeddings] owner=${ownerType}:${ownerId} free_atoms=${free.length}`)
     if (free.length === 0) return
 
     const result = await embedMany(free.map((f) => f.text))
     const okVectors = result.vectors.filter((v) => v != null).length
-    console.log(`[persistEmbeddings] provider=${result.provider} dim=${result.dim} ok=${okVectors}/${free.length}`)
+    log.info(`[persistEmbeddings] provider=${result.provider} dim=${result.dim} ok=${okVectors}/${free.length}`)
 
     const rows: Array<Record<string, unknown>> = []
     free.forEach((f, i) => {
@@ -267,13 +270,13 @@ async function persistEmbeddings(
         })
       }
     })
-    if (rows.length === 0) { console.log('[persistEmbeddings] no rows to insert'); return }
+    if (rows.length === 0) { log.info('[persistEmbeddings] no rows to insert'); return }
 
     const { error } = await db.from('nn_atom_embeddings').insert(rows)
-    if (error) console.error('[persistEmbeddings] insert failed:', error.message)
-    else console.log(`[persistEmbeddings] inserted ${rows.length} rows (${result.provider})`)
+    if (error) log.error('[persistEmbeddings] insert failed:', error.message)
+    else log.info(`[persistEmbeddings] inserted ${rows.length} rows (${result.provider})`)
   } catch (e) {
-    console.error('[persistEmbeddings] threw:', e instanceof Error ? e.message : String(e))
+    log.error('[persistEmbeddings] threw:', e instanceof Error ? e.message : String(e))
   }
 }
 

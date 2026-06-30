@@ -7,6 +7,9 @@
  *   - enqueue-talent-extraction (async wrapper that runs in EdgeRuntime.waitUntil
  *     after returning 202 to the client)
  */
+import { createLogger } from './logger.ts'
+
+const log = createLogger('talent-extraction')
 
 export interface ExtractionMessage {
   role: 'user' | 'assistant'
@@ -224,9 +227,9 @@ export async function runExtraction(
         const data = await res.json() as { content: { type: string; text: string }[] }
         return parseExtraction(data.content?.[0]?.text ?? '')
       }
-      console.warn(`[extraction] anthropic returned ${res.status}, falling back`)
+      log.warn(`[extraction] anthropic returned ${res.status}, falling back`)
     } catch (err) {
-      console.warn('[extraction] anthropic call failed, falling back:', err)
+      log.warn('[extraction] anthropic call failed, falling back:', err)
     } finally {
       clearTimeout(t)
     }
@@ -271,7 +274,7 @@ function parseExtraction(raw: string): ExtractedProfile {
   try {
     return JSON.parse(cleaned) as ExtractedProfile
   } catch (err) {
-    console.error('[extraction] JSON parse failed:', cleaned.slice(0, 500))
+    log.error('[extraction] JSON parse failed:', cleaned.slice(0, 500))
     throw new ExtractionError('Extraction returned invalid JSON', err)
   }
 }

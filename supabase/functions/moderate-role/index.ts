@@ -26,6 +26,9 @@ import { handleOptions } from '../_shared/cors.ts'
 import { authenticate, json } from '../_shared/auth.ts'
 import { adminClient } from '../_shared/supabase.ts'
 import { logAudit, extractIp } from '../_shared/audit.ts'
+import { createLogger } from '../_shared/logger.ts'
+
+const log = createLogger('moderate-role')
 
 interface Body {
   role_id?: string
@@ -272,9 +275,9 @@ async function classifyWithProviderChain(
         const norm = normalizeClassification(parsed, 'groq')
         if (norm) return norm
       } else {
-        console.error('[moderate-role] groq error', r.status)
+        log.error('[moderate-role] groq error', r.status)
       }
-    } catch (e) { console.error('[moderate-role] groq fetch failed', e) }
+    } catch (e) { log.error('[moderate-role] groq fetch failed', e) }
   }
 
   // Gemini 2.0 Flash with JSON mode.
@@ -301,9 +304,9 @@ async function classifyWithProviderChain(
         const norm = normalizeClassification(parsed, 'gemini')
         if (norm) return norm
       } else {
-        console.error('[moderate-role] gemini error', r.status)
+        log.error('[moderate-role] gemini error', r.status)
       }
-    } catch (e) { console.error('[moderate-role] gemini fetch failed', e) }
+    } catch (e) { log.error('[moderate-role] gemini fetch failed', e) }
   }
 
   // OpenAI gpt-4o-mini.
@@ -328,9 +331,9 @@ async function classifyWithProviderChain(
         const norm = normalizeClassification(parsed, 'openai')
         if (norm) return norm
       } else {
-        console.error('[moderate-role] openai error', r.status)
+        log.error('[moderate-role] openai error', r.status)
       }
-    } catch (e) { console.error('[moderate-role] openai fetch failed', e) }
+    } catch (e) { log.error('[moderate-role] openai fetch failed', e) }
   }
 
   // Anthropic Claude Haiku 4.5 — last in the chain (highest latency in this stack).
@@ -359,9 +362,9 @@ async function classifyWithProviderChain(
         const norm = normalizeClassification(parsed, 'anthropic')
         if (norm) return norm
       } else {
-        console.error('[moderate-role] anthropic error', r.status)
+        log.error('[moderate-role] anthropic error', r.status)
       }
-    } catch (e) { console.error('[moderate-role] anthropic fetch failed', e) }
+    } catch (e) { log.error('[moderate-role] anthropic fetch failed', e) }
   }
 
   return null
@@ -632,9 +635,9 @@ serve(async (req) => {
         },
         body: JSON.stringify({ role_id: roleId }),
         signal: AbortSignal.timeout(20000),
-      }).catch((e) => console.error('[moderate-role] match-generate kick failed', e))
+      }).catch((e) => log.error('[moderate-role] match-generate kick failed', e))
     } catch (e) {
-      console.error('[moderate-role] match-generate kick threw', e)
+      log.error('[moderate-role] match-generate kick threw', e)
     }
   }
 

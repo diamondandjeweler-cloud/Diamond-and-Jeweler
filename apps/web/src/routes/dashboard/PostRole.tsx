@@ -2,9 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { fmt } from '../../lib/format'
 import { useSession } from '../../state/useSession'
-import { supabase } from '../../lib/supabase'
-import { updateRole, insertRole } from '../../data/repositories/roles'
+import { updateRole, insertRole, roleById, roleStatusById } from '../../data/repositories/roles'
+import { hmIdByProfileId } from '../../data/repositories/hiring-managers'
+import { marketRateForRole } from '../../data/repositories/market-rate-cache'
+import {
+  jobPostingDraftByHmId, upsertJobPostingDraft, deleteJobPostingDraftByHmId,
+} from '../../data/repositories/job-posting-drafts'
 import { callFunction } from '../../lib/functions'
+import { useDraftForm } from '../../lib/useDraftForm'
 import { FormSkeleton } from '../../components/ListSkeleton'
 import { Button, Card, Alert, Input, Select, Textarea, PageHeader } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
@@ -94,7 +99,6 @@ export default function PostRole() {
   const [dbDraftSaving, setDbDraftSaving] = useState(false)
   const [cloudSaved, setCloudSaved] = useState(false)
   const [dbDraftOffer, setDbDraftOffer] = useState<{ data: Record<string, unknown>; updatedAt: string } | null>(null)
-  const didMount = useRef(false)
   const submittingRef = useRef(false)
 
   function collectDraft() {
@@ -187,16 +191,14 @@ export default function PostRole() {
     if (!userId) { setLoading(false); return }
     let cancelled = false
     void (async () => {
-      const { data: hm, error } = await supabase
-        .from('hiring_managers').select('id').eq('profile_id', userId).maybeSingle()
+      const { data: hm, error } = await hmIdByProfileId(userId).maybeSingle()
       if (cancelled) return
       if (error) { setErr(error.message); setLoading(false); return }
       setHmId(hm?.id ?? null)
 
       // Edit mode: load the existing role and pre-fill every form field.
       if (editRoleId && hm?.id) {
-        const { data: role, error: roleErr } = await supabase
-          .from('roles').select('*').eq('id', editRoleId).maybeSingle()
+        const { data: role, error: roleErr } = await roleById(editRoleId).maybeSingle()
         if (cancelled) return
         if (roleErr) setErr(roleErr.message)
         else if (!role) setErr('Role not found.')
@@ -271,8 +273,7 @@ export default function PostRole() {
   useEffect(() => {
     if (!title || !salaryMin || !salaryMax) { setMarketWarning(null); return }
     let cancelled = false
-    supabase.from('market_rate_cache').select('min_salary, max_salary, median_salary')
-      .ilike('job_title', title).eq('location', location).eq('experience_level', experience)
+    marketRateForRole(title, location, experience)
       .limit(1).maybeSingle()
       .then(({ data }) => {
         if (cancelled || !data) { setMarketWarning(null); return }
@@ -285,50 +286,36 @@ export default function PostRole() {
     return () => { cancelled = true }
   }, [title, location, experience, salaryMin, salaryMax])
 
-  // Draft restore — run once on mount. Skipped in edit mode (role is the source).
-  useEffect(() => {
-    if (isEdit) return
-    try {
-      const raw = localStorage.getItem(DRAFT_KEY)
-      if (!raw) return
-      const d = JSON.parse(raw) as Record<string, unknown>
-      applyDraftData(d)
-      setHasDraft(true)
-    } catch {
-      localStorage.removeItem(DRAFT_KEY)
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Draft autosave — debounced 600 ms, skips first mount. Disabled in edit mode.
-  useEffect(() => {
-    if (isEdit) return
-    if (!didMount.current) { didMount.current = true; return }
-    const json = JSON.stringify(collectDraft())
-    const timer = setTimeout(() => {
-      localStorage.setItem(DRAFT_KEY, json)
-      setDraftSaved(true)
-      setTimeout(() => setDraftSaved(false), 2000)
-    }, 600)
-    return () => clearTimeout(timer)
-  }, [ // eslint-disable-line react-hooks/exhaustive-deps
-    title, description, department, location, locationPostcode, industry,
-    acceptNoExperience, workArr, experience, salaryMin, salaryMax,
-    requiredTraits, employmentType, hourlyRate, durationDays, startDate,
-    requiresWeekend, requiresDrivingLicense, requiresTravel, hasNightShifts,
-    requiresOwnCar, requiresRelocation, requiresOvertime, isCommissionBased,
-    weightPreset, schedule, minEducationLevel, minEducationClass,
-    requiredSkills, preferredSkills, languagesRequired, environmentFlags,
-    openTo, headcount, reportsToTitle, directTeamSize, probationMonths,
-    interviewProcess, startUrgency, eligibilityWorkAuth, nnText, nnAtoms,
-    teamSize, teamMembers,
-  ])
+  // Draft restore-on-mount + debounced 600 ms autosave (skips first mount).
+  // Both are disabled in edit mode (the role row is the source of truth).
+  // Behaviour matches the prior inline effects exactly — see useDraftForm.
+  useDraftForm({
+    key: DRAFT_KEY,
+    enabled: !isEdit,
+    collect: collectDraft,
+    debounceMs: 600,
+    skipFirstMount: true,
+    onSaved: () => { setDraftSaved(true); setTimeout(() => setDraftSaved(false), 2000) },
+    restore: (d) => { applyDraftData(d); setHasDraft(true) },
+    onRestoreError: () => localStorage.removeItem(DRAFT_KEY),
+    deps: [
+      title, description, department, location, locationPostcode, industry,
+      acceptNoExperience, workArr, experience, salaryMin, salaryMax,
+      requiredTraits, employmentType, hourlyRate, durationDays, startDate,
+      requiresWeekend, requiresDrivingLicense, requiresTravel, hasNightShifts,
+      requiresOwnCar, requiresRelocation, requiresOvertime, isCommissionBased,
+      weightPreset, schedule, minEducationLevel, minEducationClass,
+      requiredSkills, preferredSkills, languagesRequired, environmentFlags,
+      openTo, headcount, reportsToTitle, directTeamSize, probationMonths,
+      interviewProcess, startUrgency, eligibilityWorkAuth, nnText, nnAtoms,
+      teamSize, teamMembers,
+    ],
+  })
 
   // DB draft check — only when no localStorage draft was found after hmId loads
   useEffect(() => {
     if (isEdit || !hmId || hasDraft) return
-    supabase.from('job_posting_drafts')
-      .select('draft_data, updated_at')
-      .eq('hm_id', hmId)
+    jobPostingDraftByHmId(hmId)
       .maybeSingle()
       .then(({ data, error }) => {
         if (error) return // tolerate — user simply won't see the restore banner
@@ -346,7 +333,7 @@ export default function PostRole() {
     if (!hmId) return
     setDbDraftSaving(true)
     try {
-      const { error } = await supabase.from('job_posting_drafts').upsert(
+      const { error } = await upsertJobPostingDraft(
         { hm_id: hmId, draft_data: collectDraft() },
         { onConflict: 'hm_id' }
       )
@@ -441,7 +428,7 @@ export default function PostRole() {
       void callFunction('moderate-role', { role_id: savedId }).catch(() => {})
       void callFunction('match-generate', { role_id: savedId }).catch(() => {})
       localStorage.removeItem(DRAFT_KEY)
-      void supabase.from('job_posting_drafts').delete().eq('hm_id', hmId)
+      void deleteJobPostingDraftByHmId(hmId)
       navigate('/hm', { replace: true })
     } catch (e) {
       clearTimeout(timeoutId)
@@ -450,8 +437,7 @@ export default function PostRole() {
       // just after the abort). If so, proceed as success.
       if (e instanceof Error && e.name === 'AbortError') {
         const checkId = isEdit ? editRoleId! : roleId
-        const { data: committed } = await supabase
-          .from('roles').select('id, status').eq('id', checkId).maybeSingle()
+        const { data: committed } = await roleStatusById(checkId).maybeSingle()
         // Fresh insert: row exists = committed. Edit: row always exists, so the
         // commit landed only if the status flipped to active.
         const didCommit = isEdit ? committed?.status === 'active' : !!committed
@@ -459,7 +445,7 @@ export default function PostRole() {
           void callFunction('moderate-role', { role_id: checkId }).catch(() => {})
           void callFunction('match-generate', { role_id: checkId }).catch(() => {})
           localStorage.removeItem(DRAFT_KEY)
-          void supabase.from('job_posting_drafts').delete().eq('hm_id', hmId)
+          void deleteJobPostingDraftByHmId(hmId)
           navigate('/hm', { replace: true })
           return
         }
@@ -507,7 +493,7 @@ export default function PostRole() {
         dbDraftOffer={dbDraftOffer}
         onDiscardLocalDraft={() => { localStorage.removeItem(DRAFT_KEY); window.location.reload() }}
         onRestoreCloudDraft={(data) => { applyDraftData(data); setDbDraftOffer(null); setHasDraft(true) }}
-        onDiscardCloudDraft={() => { setDbDraftOffer(null); void supabase.from('job_posting_drafts').delete().eq('hm_id', hmId!) }}
+        onDiscardCloudDraft={() => { setDbDraftOffer(null); void deleteJobPostingDraftByHmId(hmId!) }}
       />
 
       <Card>

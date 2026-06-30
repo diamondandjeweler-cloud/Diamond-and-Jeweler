@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../../../lib/supabase'
 import { profilesByIds } from '../../../data/repositories/profiles'
+import { adminSupportTicketList, updateSupportTicket } from '../../../data/repositories/support-tickets'
 import ListSkeleton from '../../../components/ListSkeleton'
 
 type TicketStatus = 'open' | 'in_progress' | 'resolved'
@@ -56,10 +56,7 @@ export default function SupportPanel() {
 
   async function reload() {
     setLoading(true)
-    let q = supabase
-      .from('support_tickets')
-      .select('id, user_id, category, payment_sub_type, summary, transcript, status, admin_notes, payment_transaction_id, payment_amount, payment_status_snapshot, created_at, resolved_at')
-      .order('created_at', { ascending: false })
+    let q = adminSupportTicketList()
     if (filter !== 'all') q = q.eq('status', filter)
     const { data, error } = await q.limit(100)
     if (error) { setErr(error.message); setLoading(false); return }
@@ -82,7 +79,7 @@ export default function SupportPanel() {
     setWorking(ticket.id)
     const patch: Record<string, unknown> = { status }
     if (status === 'resolved') patch.resolved_at = new Date().toISOString()
-    const { error } = await supabase.from('support_tickets').update(patch).eq('id', ticket.id)
+    const { error } = await updateSupportTicket(ticket.id, patch)
     if (error) setErr(error.message)
     else await reload()
     setWorking(null)
@@ -92,7 +89,7 @@ export default function SupportPanel() {
     const note = noteInput[ticket.id]?.trim()
     if (!note) return
     setWorking(ticket.id)
-    const { error } = await supabase.from('support_tickets').update({ admin_notes: note }).eq('id', ticket.id)
+    const { error } = await updateSupportTicket(ticket.id, { admin_notes: note })
     if (error) setErr(error.message)
     else { setNoteInput((n) => ({ ...n, [ticket.id]: '' })); await reload() }
     setWorking(null)

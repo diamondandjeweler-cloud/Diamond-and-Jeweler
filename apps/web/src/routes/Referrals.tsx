@@ -3,6 +3,10 @@ import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../state/useSession'
 import { supabase } from '../lib/supabase'
+import { referralsForReferrer, insertReferral } from '../data/repositories/referrals'
+import { configValueByKey } from '../data/repositories/system-config'
+import { hmIdByProfileId } from '../data/repositories/hiring-managers'
+import { rolesForRedeemPicker } from '../data/repositories/roles'
 import { Alert, Badge, Button, Card, CardBody, EmptyState, Input, PageHeader, Select, Spinner, Stat } from '../components/ui'
 import { noticeDialog } from '../components/Modal'
 
@@ -51,10 +55,10 @@ export default function Referrals() {
     void (async () => {
       try {
         const [refsR, cfgPerRef, cfgPerWelcome, cfgPerExtra] = await Promise.all([
-          supabase.from('referrals').select('id, referred_email, code, status, created_at, reward_claimed_at').eq('referrer_id', userId).order('created_at', { ascending: false }),
-          supabase.from('system_config').select('value').eq('key', 'points_per_referral').maybeSingle(),
-          supabase.from('system_config').select('value').eq('key', 'points_referee_welcome').maybeSingle(),
-          supabase.from('system_config').select('value').eq('key', 'points_per_extra_match').maybeSingle(),
+          referralsForReferrer(userId),
+          configValueByKey('points_per_referral').maybeSingle(),
+          configValueByKey('points_referee_welcome').maybeSingle(),
+          configValueByKey('points_per_extra_match').maybeSingle(),
         ])
         if (cancelled) return
         setList((refsR.data as Referral[] | null) ?? [])
@@ -66,12 +70,9 @@ export default function Referrals() {
 
         // For HMs, fetch their active roles so the redeem picker can be a dropdown.
         if (profile?.role === 'hiring_manager') {
-          const { data: hm } = await supabase.from('hiring_managers')
-            .select('id').eq('profile_id', userId).maybeSingle()
+          const { data: hm } = await hmIdByProfileId(userId).maybeSingle()
           if (hm?.id) {
-            const { data: roleRows } = await supabase.from('roles')
-              .select('id, title, status, extra_matches_used')
-              .eq('hiring_manager_id', hm.id)
+            const { data: roleRows } = await rolesForRedeemPicker(hm.id)
               .order('created_at', { ascending: false })
             if (!cancelled && roleRows) {
               setRoles(roleRows as RoleOption[])
@@ -110,7 +111,7 @@ export default function Referrals() {
       )
       const { data: code } = await Promise.race([supabase.rpc('generate_referral_code').then(r => r), timedOut()])
       const { data, error } = await Promise.race([
-        supabase.from('referrals').insert({
+        insertReferral({
           referrer_id: session.user.id,
           referred_email: email.trim().toLowerCase(),
           code: (code as string) ?? Math.random().toString(36).slice(2, 10).toUpperCase(),

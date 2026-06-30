@@ -52,6 +52,76 @@ function maybeEvict() {
   }
 }
 
+// ── Shared-store rate limiting (optional) ─────────────────────────────────────
+// The in-memory Map above is per-instance: each Vercel Edge isolate keeps its
+// own counters, so under horizontal scaling a single IP can burst N× the limit
+// (N = number of warm isolates). To enforce the limit GLOBALLY, point the
+// limiter at an Upstash Redis REST store shared across every isolate.
+//
+// OWNER ACTION REQUIRED TO ACTIVATE — until these envs are set, NOTHING changes
+// and the in-memory Map below stays the live path (zero behaviour change in
+// prod):
+//   1. Provision an Upstash Redis database (or a Vercel KV store — it speaks the
+//      same REST protocol) from the Vercel Marketplace.
+//   2. Add the two REST envs to the Vercel project (the integration sets them
+//      automatically; KV exposes them as KV_REST_API_URL / KV_REST_API_TOKEN,
+//      Upstash as UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN — both are
+//      accepted below).
+//   3. Redeploy. The limiter switches to the shared store on the next boot.
+//
+// Implemented as a thin fetch wrapper over the Upstash REST API so it works on
+// the Edge runtime with no SDK and no extra cold-start cost. We atomically
+// INCR a per-IP key and set a WINDOW_MS TTL on first hit — a fixed-window
+// counter that mirrors the in-memory semantics closely enough for abuse
+// control. On ANY transport error we fail OPEN to the in-memory path so a Redis
+// blip can never take down /api/*.
+function getSharedStore(): { url: string; token: string } | null {
+  const env = getEnv()
+  const url = env.UPSTASH_REDIS_REST_URL ?? env.KV_REST_API_URL
+  const token = env.UPSTASH_REDIS_REST_TOKEN ?? env.KV_REST_API_TOKEN
+  if (url && token) return { url, token }
+  return null
+}
+
+async function rateLimitShared(ip: string): Promise<{ allowed: boolean; remaining: number }> {
+  const store = getSharedStore()
+  if (!store) {
+    // No shared store configured → preserve the exact in-memory behaviour.
+    maybeEvict()
+    return rateLimit(ip)
+  }
+
+  try {
+    const key = `rl:${ip}`
+    // Pipeline INCR + (conditional) PEXPIRE in one round-trip. INCR returns the
+    // new count; on the first hit (count === 1) we stamp the window TTL.
+    const res = await fetch(`${store.url}/pipeline`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${store.token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify([
+        ['INCR', key],
+        ['PEXPIRE', key, String(WINDOW_MS), 'NX'],
+      ]),
+      signal: AbortSignal.timeout(1500),
+    })
+    if (!res.ok) throw new Error(`upstash_${res.status}`)
+    const out = (await res.json()) as Array<{ result?: unknown; error?: unknown }>
+    const count = Number(out?.[0]?.result)
+    if (!Number.isFinite(count)) throw new Error('upstash_bad_reply')
+    const remaining = Math.max(0, MAX_REQS - count)
+    return { allowed: count <= MAX_REQS, remaining }
+  } catch {
+    // Fail open: a shared-store outage must never break legitimate traffic.
+    // Fall back to the per-instance Map (degraded but available).
+    maybeEvict()
+    return rateLimit(ip)
+  }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function readCookie(req: Request, name: string): string | null {
   const cookie = req.headers.get('cookie') ?? ''
   const re = new RegExp(`(?:^|;\\s*)${name}=([^;]+)`)
@@ -318,8 +388,9 @@ export default async function middleware(req: Request) {
     req.headers.get('x-real-ip') ??
     'unknown'
 
-  maybeEvict()
-  const { allowed, remaining } = rateLimit(ip)
+  // Uses the shared Upstash/KV store when its env is configured, else falls
+  // back to the per-instance in-memory Map (and runs maybeEvict() internally).
+  const { allowed, remaining } = await rateLimitShared(ip)
 
   if (!allowed) {
     return new Response(JSON.stringify({ error: 'Too many requests' }), {

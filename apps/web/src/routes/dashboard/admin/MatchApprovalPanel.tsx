@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { updateMatch, updateMatches, pendingApprovalMatches } from '../../../data/repositories/matches'
+import { configValueByKey, updateConfigValue } from '../../../data/repositories/system-config'
 import ListSkeleton from '../../../components/ListSkeleton'
 import { confirmDialog } from '../../../components/Modal'
+import { createLogger } from '../../../lib/logger'
+
+const log = createLogger('MatchApprovalPanel')
 
 interface PendingMatch {
   id: string
@@ -58,7 +62,7 @@ export default function MatchApprovalPanel() {
 
   async function loadMode() {
     try {
-      const { data } = await supabase.from('system_config').select('value').eq('key', 'match_approval_mode').maybeSingle()
+      const { data } = await configValueByKey('match_approval_mode').maybeSingle()
       setAutopilot((data?.value as string | null) === 'autopilot')
     } finally {
       setAutopilotLoading(false)
@@ -87,7 +91,7 @@ export default function MatchApprovalPanel() {
       // renders, just without the scoring detail.
       const { data: reasoning, error: rErr } = await supabase.rpc('get_pending_match_reasoning')
       if (rErr) {
-        console.error('get_pending_match_reasoning failed', rErr)
+        log.error('get_pending_match_reasoning failed', rErr)
         setRows(base.map((m) => ({ ...m, life_chart_score: null, internal_reasoning: null })))
       } else {
         const byId = new Map(
@@ -148,7 +152,7 @@ export default function MatchApprovalPanel() {
         talentEnc ? supabase.rpc('decrypt_dob', { encrypted: talentEnc }) : Promise.resolve({ data: null, error: null }),
       ])
       if (hmResult.error || talentResult.error) {
-        console.warn('[approvals] decrypt_dob failed', hmResult.error || talentResult.error)
+        log.warn('[approvals] decrypt_dob failed', hmResult.error || talentResult.error)
         return
       }
       setDobCache((prev) => ({
@@ -160,7 +164,7 @@ export default function MatchApprovalPanel() {
         },
       }))
     } catch (e) {
-      console.warn('[approvals] decryptDobs threw', e)
+      log.warn('[approvals] decryptDobs threw', e)
     }
   }
 
@@ -198,9 +202,9 @@ export default function MatchApprovalPanel() {
                 type: 'match_ready',
                 data: { compatibility_score: row.compatibility_score },
               }),
-            }).catch((e) => console.warn('[approvals] notify failed', e))
+            }).catch((e) => log.warn('[approvals] notify failed', e))
           } catch (e) {
-            console.warn('[approvals] notify setup failed, continuing', e)
+            log.warn('[approvals] notify setup failed, continuing', e)
           }
         }
       }
@@ -226,8 +230,7 @@ export default function MatchApprovalPanel() {
   async function toggleAutopilot() {
     const next = !autopilot
     setAutopilotLoading(true)
-    const { error } = await supabase.from('system_config')
-      .update({ value: next ? '"autopilot"' : '"manual"' }).eq('key', 'match_approval_mode')
+    const { error } = await updateConfigValue('match_approval_mode', next ? '"autopilot"' : '"manual"')
     if (error) { setErr(error.message); setAutopilotLoading(false); return }
 
     // When switching to autopilot, bulk-approve all currently pending matches.

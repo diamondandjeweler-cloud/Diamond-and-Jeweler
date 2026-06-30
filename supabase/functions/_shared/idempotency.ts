@@ -1,4 +1,7 @@
 import { type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
+import { createLogger } from './logger.ts'
+
+const log = createLogger('idempotency')
 
 /**
  * Request-level idempotency for the money-path POSTs.
@@ -48,14 +51,14 @@ export async function withIdempotency<T>(
       // Unique-violation (23505) means someone else already claimed it —
       // fall through to the replay read below. Any other error → fail open.
       if (insErr.code !== '23505') {
-        console.error('withIdempotency: insert failed (failing open)', insErr)
+        log.error('withIdempotency: insert failed (failing open)', insErr)
         return await fn()
       }
     } else if (inserted) {
       claimed = true
     }
   } catch (e) {
-    console.error('withIdempotency: insert threw (failing open)', e)
+    log.error('withIdempotency: insert threw (failing open)', e)
     return await fn()
   }
 
@@ -74,7 +77,7 @@ export async function withIdempotency<T>(
         return existing.response as T
       }
     } catch (e) {
-      console.error('withIdempotency: replay read threw (failing open)', e)
+      log.error('withIdempotency: replay read threw (failing open)', e)
     }
     // No usable stored response — run the body but do NOT persist (we are
     // not the owning row), so we don't clobber the owner's eventual store.
@@ -90,7 +93,7 @@ export async function withIdempotency<T>(
       .eq('key', key)
   } catch (e) {
     // Never throw on a store failure — the caller already has a result.
-    console.error('withIdempotency: response store failed (returning result)', e)
+    log.error('withIdempotency: response store failed (returning result)', e)
   }
   return result
 }

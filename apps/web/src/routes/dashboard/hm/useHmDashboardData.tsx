@@ -9,11 +9,20 @@ import { confirmDialog } from '../../../components/Modal'
 import type { InterviewRound, InterviewProposal } from '../../../types/db'
 import { hmCandidatesForManager, hmCandidateById, updateMatch, hiredMatchCountForRoles, activeMatchRoleIds } from '../../../data/repositories/matches'
 import { profilePointsById } from '../../../data/repositories/profiles'
+import { hmDashboardRowByProfileId } from '../../../data/repositories/hiring-managers'
+import { activeRoleCountForManager, rolesForManagerDashboard, onboardingDraftRoleForManager } from '../../../data/repositories/roles'
+import { companyVerifiedById } from '../../../data/repositories/companies'
+import { pendingLinkRequestForHm } from '../../../data/repositories/company-hm-link-requests'
+import { pendingColdStartRoleIds } from '../../../data/repositories/cold-start-queue'
+import { configValueByKey } from '../../../data/repositories/system-config'
 import { ACTIVE } from './types'
 import type {
   HMCacheSnapshot, CandidateRow, ProfilePreview, ContactInfo, WaitingInfo, RoleExtraInfo,
   HmReputation, FeedbackEntry,
 } from './types'
+import { createLogger } from '../../../lib/logger'
+
+const log = createLogger('hm-dashboard')
 
 /**
  * Owns the HM dashboard's data-loading + derived-state orchestration:
@@ -146,7 +155,7 @@ export function useHmDashboardData(userId: string | undefined) {
       loadingRef.current = true
       watchdog = setTimeout(() => {
         if (cancelled) return
-        console.error('[hm-dashboard] load watchdog tripped — a Supabase query stalled')
+        log.error('[hm-dashboard] load watchdog tripped — a Supabase query stalled')
         setErr(t('hmDash.loadingTimedOut'))
         // Settle the data slots so the skeleton doesn't shimmer forever; the
         // error banner above will tell the user what happened.
@@ -158,7 +167,7 @@ export function useHmDashboardData(userId: string | undefined) {
       // Phase 1 — hiring_managers + profiles.points fire in parallel.
       // Both only depend on session.user.id.
       const [{ data: hm }, { data: pointsRow }] = await Promise.all([
-        supabase.from('hiring_managers').select('id, company_id, reputation_score, feedback_volume, phs_offer_accept_rate, hm_quality_factor, hm_cancel_rate, date_of_birth_encrypted').eq('profile_id', userId).maybeSingle(),
+        hmDashboardRowByProfileId(userId).maybeSingle(),
         profilePointsById(userId).maybeSingle(),
       ])
       if (!hm) {
@@ -176,25 +185,18 @@ export function useHmDashboardData(userId: string | undefined) {
       // all fire in parallel. They share hm.id and don't depend on each other.
       const cid = (hm as unknown as { company_id: string | null }).company_id
       const companyOrLinkPromise = cid
-        ? supabase.from('companies').select('verified').eq('id', cid).maybeSingle()
+        ? companyVerifiedById(cid).maybeSingle()
             .then((res) => ({ kind: 'company' as const, data: res.data }))
-        : supabase.from('company_hm_link_requests')
-            .select('id, companies(name)')
-            .eq('hm_id', hm.id)
-            .eq('status', 'pending')
+        : pendingLinkRequestForHm(hm.id)
             .maybeSingle()
             .then((res) => ({ kind: 'linkReq' as const, data: res.data }))
 
       const [companyOrLink, { count }, { data: roleRows }, { data: onboardingDraft }] = await Promise.all([
         companyOrLinkPromise,
-        supabase.from('roles').select('id', { count: 'exact', head: true })
-          .eq('hiring_manager_id', hm.id).eq('status', 'active'),
-        supabase.from('roles')
-          .select('id, title, status, extra_matches_used, created_at')
-          .eq('hiring_manager_id', hm.id)
+        activeRoleCountForManager(hm.id),
+        rolesForManagerDashboard(hm.id)
           .limit(200),
-        supabase.from('roles').select('id, title, industry, salary_min, salary_max, work_arrangement, required_traits').eq('hiring_manager_id', hm.id)
-          .eq('from_onboarding', true).eq('status', 'paused').maybeSingle(),
+        onboardingDraftRoleForManager(hm.id).maybeSingle(),
       ])
       if (!cancelled && onboardingDraft) setOnboardingDraftRole(onboardingDraft as typeof onboardingDraft & { required_traits: string[] })
 
@@ -245,8 +247,7 @@ export function useHmDashboardData(userId: string | undefined) {
         : Promise.resolve({ data: [] as Array<{ role_id: string }> })
 
       const coldRowsPromise = hmRoleIds.length > 0
-        ? supabase.from('cold_start_queue').select('role_id')
-            .in('role_id', hmRoleIds).eq('status', 'pending')
+        ? pendingColdStartRoleIds(hmRoleIds)
         : Promise.resolve({ data: [] as Array<{ role_id: string }> })
 
       const [hiredRes, { data: matchData, error }, activeCountsRes, coldRowsRes] = await Promise.all([
@@ -304,7 +305,7 @@ export function useHmDashboardData(userId: string | undefined) {
       const coldRows = (coldRowsRes as { data: Array<{ role_id: string }> | null }).data ?? []
       if (coldRows.length > 0) {
         const [{ data: cfg }, { data: talentCountResp }] = await Promise.all([
-          supabase.from('system_config').select('value').eq('key', 'waiting_period_thresholds').maybeSingle(),
+          configValueByKey('waiting_period_thresholds').maybeSingle(),
           supabase.rpc('active_talent_count'),
         ])
         const thresholds = (cfg?.value as Array<{ min_talents: number; max_talents: number; days: number }> | undefined) ?? []
@@ -347,6 +348,10 @@ export function useHmDashboardData(userId: string | undefined) {
         .channel(`hm-matches-${userId ?? 'anon'}`)
         .on('postgres_changes', {
           event: '*', schema: 'public', table: 'matches',
+          // TODO(realtime-scope): switch to a single stable equality filter
+          // `hm_id=eq.<hmId>` once the denormalised column lands (migration
+          // 0172_matches_hm_id_for_realtime.sql). That removes the grow-with-roles
+          // comma-list and the unknown-role reload/resubscribe dance below.
           filter: `role_id=in.(${hmRoleIds.join(',')})`,
         }, handleMatchChange)
         .subscribe()
@@ -445,7 +450,7 @@ export function useHmDashboardData(userId: string | undefined) {
       if (res?.paymentUrl) window.location.href = res.paymentUrl
       else setUnlockMsg({ roleId, tone: 'red', text: t('hmDash.paymentNoUrl') })
     } catch (e) {
-      console.error('[unlock-extra-match] failed', e)
+      log.error('[unlock-extra-match] failed', e)
       setUnlockMsg({ roleId, tone: 'red', text: e instanceof Error ? e.message : t('hmDash.paymentStartFailed') })
     } finally { setUnlockingRoleId(null) }
   }
@@ -478,7 +483,7 @@ export function useHmDashboardData(userId: string | undefined) {
       // Refresh the dashboard so the new match appears once match-generate finishes.
       reloadTimerRef.current = setTimeout(() => { window.location.reload() }, 1500)
     } catch (e) {
-      console.error('[redeem-points] failed', e)
+      log.error('[redeem-points] failed', e)
       setUnlockMsg({ roleId, tone: 'red', text: e instanceof Error ? e.message : t('hmDash.redeemFailed') })
     } finally { setRedeemingRoleId(null) }
   }

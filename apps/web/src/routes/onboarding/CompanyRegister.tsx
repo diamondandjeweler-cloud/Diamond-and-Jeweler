@@ -5,6 +5,8 @@ import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { uploadPrivate } from '../../lib/storage'
 import { markOnboardingComplete } from '../../lib/api'
+import { insertCompany } from '../../data/repositories/companies'
+import { upsertHiringManager } from '../../data/repositories/hiring-managers'
 
 type UserType = 'hr_admin' | 'hiring_manager'
 
@@ -68,7 +70,7 @@ export default function CompanyRegister() {
         : regNo
 
       const { data, error } = await Promise.race([
-        supabase.from('companies').insert({
+        insertCompany({
           name,
           registration_number: registrationNumber,
           business_license_path: licensePath,
@@ -83,7 +85,7 @@ export default function CompanyRegister() {
       if (error) throw error
 
       if (isHM && data?.id) {
-        const { error: hmErr } = await supabase.from('hiring_managers').upsert(
+        const { error: hmErr } = await upsertHiringManager(
           { profile_id: userId, company_id: data.id, job_title: 'Hiring Manager' },
           { onConflict: 'profile_id' },
         )

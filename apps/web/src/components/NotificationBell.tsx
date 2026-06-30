@@ -3,6 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { inAppNotifications, markNotificationsRead } from '../data/repositories/notifications'
 import { useSession } from '../state/useSession'
+import { createLogger } from '../lib/logger'
+
+const log = createLogger('notification-bell')
 
 interface NotificationRow {
   id: string
@@ -83,7 +86,7 @@ export default function NotificationBell() {
     setItems((xs) => xs.map((i) => ({ ...i, read: true })))
     const { error } = await markNotificationsRead(unreadIds)
     if (error) {
-      console.error('notifications markAllRead failed:', error)
+      log.error('notifications markAllRead failed:', error)
       // Roll back the flag on just the ones we tried to flip.
       const failed = new Set(unreadIds)
       setItems((xs) => xs.map((i) => (failed.has(i.id) ? { ...i, read: false } : i)))

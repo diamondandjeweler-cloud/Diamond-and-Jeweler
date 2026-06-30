@@ -3,7 +3,9 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation, Trans } from 'react-i18next'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
-import { updateRole } from '../../data/repositories/roles'
+import { updateRole, roleEditById } from '../../data/repositories/roles'
+import { hmIdByIdAndProfileId } from '../../data/repositories/hiring-managers'
+import { latestOpenNudge } from '../../data/repositories/stale-loop-nudges'
 import { callFunction } from '../../lib/functions'
 import { FormSkeleton } from '../../components/ListSkeleton'
 import { useSeo } from '../../lib/useSeo'
@@ -66,15 +68,11 @@ export default function EditRole() {
     if (!id || !session) return
     let cancelled = false
     void (async () => {
-      const { data, error } = await supabase
-        .from('roles')
-        .select('id, hiring_manager_id, title, description, department, location, work_arrangement, experience_level, salary_min, salary_max, required_traits, status, from_onboarding')
-        .eq('id', id).single()
+      const { data, error } = await roleEditById(id).single()
       if (cancelled) return
       if (error) { setErr(error.message); setLoading(false); return }
       // Ownership check
-      const { data: hm, error: hmErr } = await supabase.from('hiring_managers')
-        .select('id').eq('id', data.hiring_manager_id).eq('profile_id', session.user.id).maybeSingle()
+      const { data: hm, error: hmErr } = await hmIdByIdAndProfileId(data.hiring_manager_id, session.user.id).maybeSingle()
       if (hmErr) {
         setErr(hmErr.message)
       } else if (!hm) {
@@ -89,11 +87,7 @@ export default function EditRole() {
 
       // Stale-loop nudge banner: pull most recent open nudge for this role.
       if (nudgeMode) {
-        const { data: n } = await supabase.from('stale_loop_nudges')
-          .select('id, gap_payload, response_at')
-          .eq('party', 'hm').eq('subject_id', id)
-          .is('response_at', null)
-          .order('sent_at', { ascending: false }).limit(1).maybeSingle()
+        const { data: n } = await latestOpenNudge('hm', id).maybeSingle()
         if (!cancelled && n) setNudge(n as NudgeRow)
       }
 

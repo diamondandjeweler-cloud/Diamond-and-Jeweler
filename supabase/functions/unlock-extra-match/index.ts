@@ -21,6 +21,9 @@ import { adminClient } from '../_shared/supabase.ts'
 import { enforceRateLimit, RateLimitError } from '../_shared/ratelimit.ts'
 import { withIdempotency } from '../_shared/idempotency.ts'
 import { reportError } from '../_shared/observe.ts'
+import { createLogger } from '../_shared/logger.ts'
+
+const log = createLogger('unlock-extra-match')
 
 interface Body {
   match_type: 'hm_extra' | 'talent_extra'
@@ -209,7 +212,7 @@ async function handler(req: Request): Promise<Response> {
       .update({ payment_intent_id: billId })
       .eq('id', purchase.id)
     if (linkErr) {
-      console.error('Failed to link bill ID to purchase', purchase.id, linkErr)
+      log.error('Failed to link bill ID to purchase', purchase.id, linkErr)
       return { _status: 500, _body: { error: `Bill link failed: ${linkErr.message}` } }
     }
 

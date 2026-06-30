@@ -3,9 +3,13 @@ import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
+import { activeConsentVersions } from '../../data/repositories/consent-versions'
 import { Alert, Button, Card, CardBody, Spinner } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
 import { clearLegalVersionCache, consentSatisfiesVersion, getCurrentLegalVersion, normaliseLegalVersion } from '../../lib/legalVersion'
+import { createLogger } from '../../lib/logger'
+
+const log = createLogger('Consent')
 
 interface ConsentVersion {
   id: string
@@ -28,7 +32,7 @@ export default function Consent() {
   const [currentLegal, setCurrentLegal] = useState<string | null | 'pending'>('pending')
 
   useEffect(() => {
-    void supabase.from('consent_versions').select('*').eq('is_active', true)
+    void activeConsentVersions()
       .then(({ data }) => setVersions((data as ConsentVersion[] | null) ?? []))
     void getCurrentLegalVersion().then(setCurrentLegal)
   }, [])
@@ -124,7 +128,7 @@ export default function Consent() {
         lastErr = e
       }
     }
-    console.error('[Consent] save failed after retries:', lastErr)
+    log.error('[Consent] save failed after retries:', lastErr)
     setError((lastErr as Error)?.message ?? t('consent.networkTimeout'))
     setBusy(false)
   }

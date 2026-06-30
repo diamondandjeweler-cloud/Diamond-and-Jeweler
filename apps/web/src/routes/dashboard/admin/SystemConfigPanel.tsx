@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../../../lib/supabase'
+import { allConfigRows, updateConfigValue } from '../../../data/repositories/system-config'
 import { FormSkeleton } from '../../../components/ListSkeleton'
 import { confirmDialog } from '../../../components/Modal'
+import { createLogger } from '../../../lib/logger'
+
+const log = createLogger('SystemConfigPanel')
 
 interface ConfigRow {
   key: string
@@ -122,10 +125,7 @@ export default function SystemConfigPanel() {
 
   async function reload() {
     setLoading(true)
-    const { data, error } = await supabase
-      .from('system_config')
-      .select('key, value, updated_at')
-      .order('key')
+    const { data, error } = await allConfigRows()
     if (!error) {
       const list = (data ?? []) as ConfigRow[]
       setRows(list)
@@ -179,10 +179,10 @@ export default function SystemConfigPanel() {
       if (!ok) return
     }
     setSavingKey(key)
-    const { error } = await supabase.from('system_config').update({ value: parsed }).eq('key', key)
+    const { error } = await updateConfigValue(key, parsed)
     setSavingKey(null)
     if (error) {
-      console.error('[SystemConfigPanel] save failed:', error)
+      log.error('[SystemConfigPanel] save failed:', error)
       setErrors((x) => ({ ...x, [key]: 'Save failed — check the browser console for details.' }))
       return
     }

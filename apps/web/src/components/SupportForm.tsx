@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useLocation } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { openTicketCountForUser, insertSupportTicket } from '../data/repositories/support-tickets'
 import { useSession } from '../state/useSession'
 
 type Category = 'enquiry' | 'bug' | 'feature' | 'payment'
@@ -37,11 +37,7 @@ export default function SupportForm() {
 
   useEffect(() => {
     if (!session) return
-    supabase
-      .from('support_tickets')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', session.user.id)
-      .in('status', ['open', 'in_progress'])
+    openTicketCountForUser(session.user.id)
       .then(({ count }) => setOpenCount(count ?? 0))
   }, [session, created])
 
@@ -66,7 +62,7 @@ export default function SupportForm() {
     const amountNum = category === 'payment' && paymentAmount.trim()
       ? Number(paymentAmount.replace(/[^0-9.]/g, ''))
       : null
-    const { error } = await supabase.from('support_tickets').insert({
+    const { error } = await insertSupportTicket({
       user_id: session!.user.id,
       category,
       payment_sub_type: category === 'payment' ? paymentSubType : null,

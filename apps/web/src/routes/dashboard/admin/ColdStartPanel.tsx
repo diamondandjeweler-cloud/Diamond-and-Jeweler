@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { matchedTalentIdsForRole, insertMatches } from '../../../data/repositories/matches'
+import { pendingColdStartQueue, markColdStartQueueApplied } from '../../../data/repositories/cold-start-queue'
+import { openToOffersTalentPool } from '../../../data/repositories/talents'
+import { insertMatchHistory } from '../../../data/repositories/match-history'
 import ListSkeleton from '../../../components/ListSkeleton'
 
 interface ColdStartRole {
@@ -35,11 +38,7 @@ export default function ColdStartPanel() {
   async function reloadQueue() {
     setLoading(true)
     const [{ data, error }, { data: tc }] = await Promise.all([
-      supabase
-        .from('cold_start_queue')
-        .select('id, role_id, status, created_at, roles(id, title, required_traits)')
-        .eq('status', 'pending')
-        .order('created_at', { ascending: true }),
+      pendingColdStartQueue(),
       supabase.rpc('active_talent_count'),
     ])
     setActiveTalents(typeof tc === 'number' ? tc : 0)
@@ -77,11 +76,7 @@ export default function ColdStartPanel() {
     setSelected(new Set())
     const { data: existing } = await matchedTalentIdsForRole(roleId)
     const excluded = new Set((existing ?? []).map((m) => m.talent_id))
-    const { data } = await supabase
-      .from('talents')
-      .select('id, profile_id, derived_tags, expected_salary_min, expected_salary_max')
-      .eq('is_open_to_offers', true)
-      .limit(500)
+    const { data } = await openToOffersTalentPool()
     const pool = (data ?? []).filter((t) => !excluded.has(t.id)) as EligibleTalent[]
     setTalents(pool)
   }
@@ -111,10 +106,10 @@ export default function ColdStartPanel() {
     }))
     const { error: insErr } = await insertMatches(insertRows)
     if (insErr) { setErr(insErr.message); setBusy(false); return }
-    await supabase.from('match_history').insert(
+    await insertMatchHistory(
       Array.from(selected).map((tid) => ({ role_id: roleId, talent_id: tid, action: 'manual_admin' })),
     )
-    await supabase.from('cold_start_queue').update({ status: 'applied' }).eq('id', queueId)
+    await markColdStartQueueApplied(queueId)
     setBusy(false); setOpenRoleId(null); setSelected(new Set())
     await reloadQueue()
   }

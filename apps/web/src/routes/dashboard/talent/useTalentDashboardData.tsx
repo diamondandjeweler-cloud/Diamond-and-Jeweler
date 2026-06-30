@@ -8,6 +8,7 @@ import { readDashCache, writeDashCache } from '../../../lib/dashboardCache'
 import { confirmDialog } from '../../../components/Modal'
 import type { InterviewRound, InterviewProposal } from '../../../types/db'
 import { talentMatchesForTalent, talentMatchById, updateMatch } from '../../../data/repositories/matches'
+import { profilePointsById } from '../../../data/repositories/profiles'
 import {
   ACTIVE,
   computeProfileGaps,
@@ -130,7 +131,7 @@ export function useTalentDashboardData() {
         // ran sequentially, costing ~3× the network RTT on dashboard mount.
         const [{ data: talent }, { data: pointsRow }, { data: lastUrgent }] = await Promise.all([
           supabase.from('talents').select('id, extra_matches_used, profile_expires_at, reputation_score, feedback_volume, phs_show_rate, phs_accept_rate, current_employment_status, current_salary, notice_period_days, education_level, has_management_experience, work_authorization, preferred_management_style, expected_salary_min, expected_salary_max, employment_type_preferences, location_matters, career_goal_horizon, job_intention, has_noncompete, salary_structure_preference, role_scope_preference, reason_for_leaving_category, extraction_status').eq('profile_id', userId).maybeSingle(),
-          supabase.from('profiles').select('points').eq('id', userId).maybeSingle(),
+          profilePointsById(userId).maybeSingle(),
           supabase
             .from('urgent_priority_requests')
             .select('id, result_id, completed_at')

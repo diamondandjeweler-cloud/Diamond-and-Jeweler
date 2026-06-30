@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSession } from '../../state/useSession'
-import { supabase } from '../../lib/supabase'
+import { updateProfile } from '../../data/repositories/profiles'
 import { Button, Alert, PageHeader } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
 
@@ -32,10 +32,10 @@ export default function HMSettings() {
     }
     setBusy(true); setSaved(false); setErr(null)
     try {
-      const { error } = await supabase.from('profiles').update({
+      const { error } = await updateProfile(userId, {
         whatsapp_number: trimmed || null,
         whatsapp_opt_in: whatsappOptIn && !!trimmed,
-      }).eq('id', userId)
+      })
       if (error) throw error
       await refresh()
       setSaved(true)

@@ -21,6 +21,7 @@ import { useNavigate } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { insertRole } from '../../data/repositories/roles'
+import { profileEmailById, updateProfile } from '../../data/repositories/profiles'
 import { encryptDob, markOnboardingComplete } from '../../lib/api'
 import { callFunction } from '../../lib/functions'
 import { getLifeChartCharacter, type Gender } from '../../lib/lifeChartCharacter'
@@ -122,11 +123,7 @@ export default function HMOnboarding() {
 
       if (!company) {
         // Also try primary_hr_email match
-        const { data: prof } = await supabase
-          .from('profiles')
-          .select('email')
-          .eq('id', userId)
-          .maybeSingle()
+        const { data: prof } = await profileEmailById(userId).maybeSingle()
         if (prof?.email) {
           const { data: companyByEmail } = await supabase
             .from('companies')
@@ -388,7 +385,7 @@ export default function HMOnboarding() {
       if (accumulated.includes('[PROFILE_READY]')) {
         const savedAt = new Date().toISOString()
         Promise.all([
-          supabase.from('profiles').update({ interview_transcript: { messages: finalMsgs, saved_at: savedAt } }).eq('id', session!.user.id),
+          updateProfile(session!.user.id, { interview_transcript: { messages: finalMsgs, saved_at: savedAt } }),
           supabase.from('hiring_managers').update({ interview_answers: { transcript: finalMsgs } }).eq('profile_id', session!.user.id),
         ]).then(() => { /* best-effort */ })
 
@@ -408,7 +405,7 @@ export default function HMOnboarding() {
         }
         const savedAt = new Date().toISOString()
         Promise.all([
-          supabase.from('profiles').update({ interview_transcript: { messages: partialMsgs, saved_at: savedAt, partial: true } }).eq('id', session!.user.id),
+          updateProfile(session!.user.id, { interview_transcript: { messages: partialMsgs, saved_at: savedAt, partial: true } }),
           supabase.from('hiring_managers').update({ interview_answers: { transcript: partialMsgs } }).eq('profile_id', session!.user.id),
         ]).then(() => {})
         setLog((l) => [
@@ -449,7 +446,7 @@ export default function HMOnboarding() {
           dob: true,
           dob_consented_at: new Date().toISOString(),
         }
-        const { error: consentErr } = await supabase.from('profiles').update({ consents: nextConsents }).eq('id', userId)
+        const { error: consentErr } = await updateProfile(userId, { consents: nextConsents })
         if (consentErr) throw consentErr
       }
 
@@ -562,7 +559,7 @@ export default function HMOnboarding() {
         .eq('id', hmRow.id)
       if (updateErr) throw updateErr
 
-      const { error: profErr } = await supabase.from('profiles').update({ full_name: fullName.trim() }).eq('id', userId)
+      const { error: profErr } = await updateProfile(userId, { full_name: fullName.trim() })
       if (profErr) throw profErr
 
       // Auto-create a draft role from chat data so the HM doesn't re-enter everything.

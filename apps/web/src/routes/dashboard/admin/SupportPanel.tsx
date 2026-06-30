@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
+import { profilesByIds } from '../../../data/repositories/profiles'
 import ListSkeleton from '../../../components/ListSkeleton'
 
 type TicketStatus = 'open' | 'in_progress' | 'resolved'
@@ -67,10 +68,7 @@ export default function SupportPanel() {
     const userIds = [...new Set(tickets.map((t) => t.user_id).filter(Boolean))] as string[]
     const profilesById: Record<string, { email: string; full_name: string }> = {}
     if (userIds.length > 0) {
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('id, email, full_name')
-        .in('id', userIds)
+      const { data: profileData } = await profilesByIds(userIds)
       for (const p of profileData ?? []) profilesById[(p as { id: string; email: string; full_name: string }).id] = { email: (p as { id: string; email: string; full_name: string }).email, full_name: (p as { id: string; email: string; full_name: string }).full_name }
     }
     setTickets(tickets.map((t) => ({ ...t, profiles: t.user_id ? (profilesById[t.user_id] ?? null) : null })) as Ticket[])

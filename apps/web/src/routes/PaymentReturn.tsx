@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { purchasePaymentStatusById } from '../data/repositories/points'
 import { useSession } from '../state/useSession'
 import { Alert, Button, Card, CardBody, PageHeader, Spinner } from '../components/ui'
 import { useSeo } from '../lib/useSeo'
@@ -35,8 +35,7 @@ export default function PaymentReturn() {
       // Poll up to 10 times at 1.5s intervals — webhook usually fires within 2s.
       for (let i = 0; i < 10; i++) {
         if (!alive) return
-        const { data } = await supabase.from(table)
-          .select('payment_status').eq('id', purchaseId).maybeSingle()
+        const { data } = await purchasePaymentStatusById(table, purchaseId).maybeSingle()
         const s = (data?.payment_status as string | undefined) ?? 'pending'
         if (s === 'paid' || s === 'failed') {
           setStatus(s as 'paid' | 'failed')
@@ -73,8 +72,7 @@ export default function PaymentReturn() {
         return
       }
       // Re-poll once.
-      const { data } = await supabase.from(table)
-        .select('payment_status').eq('id', purchaseId).maybeSingle()
+      const { data } = await purchasePaymentStatusById(table, purchaseId).maybeSingle()
       if ((data?.payment_status as string | undefined) === 'paid') {
         setStatus('paid')
         await refresh()

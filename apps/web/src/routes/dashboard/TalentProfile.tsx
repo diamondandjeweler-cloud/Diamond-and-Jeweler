@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
+import { updateProfile } from '../../data/repositories/profiles'
 import { FormSkeleton } from '../../components/ListSkeleton'
 import { PREFERENCE_ASPECTS } from '../../data/preference-aspects'
 import { useTranslation } from 'react-i18next'
@@ -166,10 +167,10 @@ export default function TalentProfile() {
     }
     setWaBusy(true); setWaSaved(false); setErr(null)
     try {
-      const { error } = await supabase.from('profiles').update({
+      const { error } = await updateProfile(session.user.id, {
         whatsapp_number: trimmed || null,
         whatsapp_opt_in: whatsappOptIn && !!trimmed,
-      }).eq('id', session.user.id)
+      })
       if (error) throw error
       await refresh()
       setWaSaved(true)

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { profileConsentsById, updateProfile } from '../data/repositories/profiles'
 import { encryptDob } from '../lib/api'
 import { getLifeChartCharacter, type Gender } from '../lib/lifeChartCharacter'
 import { Button, Alert } from './ui'
@@ -43,20 +44,13 @@ export default function AddHmDobModal({ hmId, profileId, onSaved, onCancel }: Pr
         .eq('id', hmId)
       if (hmErr) throw hmErr
 
-      const { data: prof } = await supabase
-        .from('profiles')
-        .select('consents')
-        .eq('id', profileId)
-        .maybeSingle()
+      const { data: prof } = await profileConsentsById(profileId).maybeSingle()
       const nextConsents = {
         ...((prof?.consents as Record<string, unknown>) ?? {}),
         dob: true,
         dob_consented_at: new Date().toISOString(),
       }
-      const { error: pErr } = await supabase
-        .from('profiles')
-        .update({ consents: nextConsents })
-        .eq('id', profileId)
+      const { error: pErr } = await updateProfile(profileId, { consents: nextConsents })
       if (pErr) throw pErr
 
       onSaved()

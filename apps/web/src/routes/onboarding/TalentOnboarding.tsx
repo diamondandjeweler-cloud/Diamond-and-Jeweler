@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
+import { profileOnboardingDraftById, updateProfile } from '../../data/repositories/profiles'
 import { uploadPrivate } from '../../lib/storage'
 import { encryptDob, markOnboardingComplete } from '../../lib/api'
 import { callFunction } from '../../lib/functions'
@@ -122,11 +123,7 @@ export default function TalentOnboarding() {
     draftCheckRef.current = true
 
     async function checkSavedProgress() {
-      const { data: prof } = await supabase
-        .from('profiles')
-        .select('interview_transcript, full_name, phone')
-        .eq('id', sessionId!)
-        .maybeSingle()
+      const { data: prof } = await profileOnboardingDraftById(sessionId!).maybeSingle()
 
       const savedTranscript = (prof?.interview_transcript as { messages: ApiMessage[]; saved_at: string } | null)
       const raw = draftKey ? localStorage.getItem(draftKey) : null
@@ -387,9 +384,7 @@ export default function TalentOnboarding() {
 
       if (accumulated.includes('[PROFILE_READY]')) {
         // Persist transcript to Supabase immediately — before DOB / docs phases.
-        supabase.from('profiles')
-          .update({ interview_transcript: { messages: finalMsgs, saved_at: new Date().toISOString() } })
-          .eq('id', session!.user.id)
+        updateProfile(session!.user.id, { interview_transcript: { messages: finalMsgs, saved_at: new Date().toISOString() } })
           .then(() => { /* best-effort draft save */ })
 
         setLog((l) => [
@@ -413,9 +408,7 @@ export default function TalentOnboarding() {
             localStorage.setItem(draftKey, JSON.stringify({ ...d, apiMessages: partialMsgs, phase: 'chat' }))
           } catch { /* ignore */ }
         }
-        supabase.from('profiles')
-          .update({ interview_transcript: { messages: partialMsgs, saved_at: new Date().toISOString(), partial: true } })
-          .eq('id', session!.user.id)
+        updateProfile(session!.user.id, { interview_transcript: { messages: partialMsgs, saved_at: new Date().toISOString(), partial: true } })
           .then(() => {})
         setLog((l) => [
           ...l.map((m) => m.id === boId ? { ...m, typing: false } : m),
@@ -535,9 +528,7 @@ export default function TalentOnboarding() {
           ...(clPath ? [{ talent_id: talentId, doc_type: 'cover_letter', storage_path: clPath, file_name: coverLetterFile!.name, purge_after: null }] : []),
         ]
         supabase.from('talent_documents').insert(docRows).then(() => { /* best-effort */ })
-        supabase.from('profiles')
-          .update({ interview_transcript: null })
-          .eq('id', userId)
+        updateProfile(userId, { interview_transcript: null })
           .then(() => { /* best-effort */ })
 
         // 5a. If the talent typed non-negotiables but didn't preview, run extraction
@@ -587,10 +578,7 @@ export default function TalentOnboarding() {
       }
 
       // 4. PII update — must succeed. Runs on both first attempt and retry.
-      const { error: profErr } = await supabase
-        .from('profiles')
-        .update({ full_name: fullName.trim(), phone: phone.trim() })
-        .eq('id', userId)
+      const { error: profErr } = await updateProfile(userId, { full_name: fullName.trim(), phone: phone.trim() })
       if (profErr) throw profErr
 
       await markOnboardingComplete(userId)

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../../../lib/supabase'
+import { adminNotificationLog } from '../../../data/repositories/notifications'
 import { callFunction } from '../../../lib/functions'
 import ListSkeleton from '../../../components/ListSkeleton'
 
@@ -25,11 +25,7 @@ export default function NotificationLogPanel() {
 
   async function reload() {
     setLoading(true)
-    let q = supabase
-      .from('notifications')
-      .select('id, user_id, type, channel, subject, body, read, sent_at, data, profiles(email, full_name)')
-      .order('sent_at', { ascending: false })
-      .limit(100)
+    let q = adminNotificationLog()
     if (channel !== 'all') q = q.eq('channel', channel)
     const { data, error } = await q
     if (error) setErr(error.message)

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../../../lib/supabase'
+import { adminUserList, updateProfile } from '../../../data/repositories/profiles'
 import { callFunction } from '../../../lib/functions'
 import ListSkeleton from '../../../components/ListSkeleton'
 
@@ -37,11 +37,7 @@ export default function UserPanel() {
 
   async function reload() {
     setLoading(true)
-    let query = supabase
-      .from('profiles')
-      .select('id, email, full_name, role, is_banned, onboarding_complete, ghost_score, created_at')
-      .order('created_at', { ascending: false })
-      .limit(200)
+    let query = adminUserList()
     if (filter === 'banned') query = query.eq('is_banned', true)
     if (filter === 'ghosts') query = query.gte('ghost_score', 3)
     if (q.trim()) query = query.or(`email.ilike.%${q}%,full_name.ilike.%${q}%`)
@@ -56,7 +52,7 @@ export default function UserPanel() {
 
   async function setBan(id: string, is_banned: boolean) {
     setRows((xs) => xs.map((r) => (r.id === id ? { ...r, is_banned } : r)))
-    const { error } = await supabase.from('profiles').update({ is_banned }).eq('id', id)
+    const { error } = await updateProfile(id, { is_banned })
     if (error) setErr(error.message)
   }
 

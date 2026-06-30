@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
+import { updateProfile } from '../../data/repositories/profiles'
 import { FormSkeleton } from '../../components/ListSkeleton'
 import { Button, Input, Alert, PageHeader } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
@@ -57,7 +58,7 @@ export default function HMCompanyProfile() {
     setBusy(true); setSaved(false); setErr(null)
     try {
       const [profileRes, hmRes] = await Promise.all([
-        supabase.from('profiles').update({ full_name: nameTrimmed }).eq('id', session.user.id),
+        updateProfile(session.user.id, { full_name: nameTrimmed }),
         supabase.from('hiring_managers').update({ job_title: titleTrimmed }).eq('profile_id', session.user.id),
       ])
       if (profileRes.error) throw profileRes.error

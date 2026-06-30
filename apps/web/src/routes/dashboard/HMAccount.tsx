@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
-import { supabase } from '../../lib/supabase'
+import { updateProfile } from '../../data/repositories/profiles'
 import { Button, Input, Alert, PageHeader } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
 
@@ -20,7 +20,7 @@ export default function HMAccount() {
     if (!trimmed) { setErr('Name cannot be empty.'); return }
     setBusy(true); setSaved(false); setErr(null)
     try {
-      const { error } = await supabase.from('profiles').update({ full_name: trimmed }).eq('id', session.user.id)
+      const { error } = await updateProfile(session.user.id, { full_name: trimmed })
       if (error) throw error
       await refresh()
       setSaved(true)

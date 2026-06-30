@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
+import { inAppNotifications, markNotificationsRead } from '../data/repositories/notifications'
 import { useSession } from '../state/useSession'
 
 interface NotificationRow {
@@ -30,12 +31,7 @@ export default function NotificationBell() {
     let cancelled = false
 
     void (async () => {
-      const { data } = await supabase
-        .from('notifications')
-        .select('id, type, subject, body, read, sent_at')
-        .eq('channel', 'in_app')
-        .order('sent_at', { ascending: false })
-        .limit(20)
+      const { data } = await inAppNotifications()
       if (!cancelled) setItems((data ?? []) as NotificationRow[])
     })()
 
@@ -85,7 +81,7 @@ export default function NotificationBell() {
     if (unreadIds.length === 0) return
     // Optimistic flip first, then reconcile on server error.
     setItems((xs) => xs.map((i) => ({ ...i, read: true })))
-    const { error } = await supabase.from('notifications').update({ read: true }).in('id', unreadIds)
+    const { error } = await markNotificationsRead(unreadIds)
     if (error) {
       console.error('notifications markAllRead failed:', error)
       // Roll back the flag on just the ones we tried to flip.

@@ -8,6 +8,7 @@ import { readDashCache, writeDashCache } from '../../../lib/dashboardCache'
 import { confirmDialog } from '../../../components/Modal'
 import type { InterviewRound, InterviewProposal } from '../../../types/db'
 import { hmCandidatesForManager, hmCandidateById, updateMatch, hiredMatchCountForRoles, activeMatchRoleIds } from '../../../data/repositories/matches'
+import { profilePointsById } from '../../../data/repositories/profiles'
 import { ACTIVE } from './types'
 import type {
   HMCacheSnapshot, CandidateRow, ProfilePreview, ContactInfo, WaitingInfo, RoleExtraInfo,
@@ -158,7 +159,7 @@ export function useHmDashboardData(userId: string | undefined) {
       // Both only depend on session.user.id.
       const [{ data: hm }, { data: pointsRow }] = await Promise.all([
         supabase.from('hiring_managers').select('id, company_id, reputation_score, feedback_volume, phs_offer_accept_rate, hm_quality_factor, hm_cancel_rate, date_of_birth_encrypted').eq('profile_id', userId).maybeSingle(),
-        supabase.from('profiles').select('points').eq('id', userId).maybeSingle(),
+        profilePointsById(userId).maybeSingle(),
       ])
       if (!hm) {
         if (watchdog) { clearTimeout(watchdog); watchdog = null }

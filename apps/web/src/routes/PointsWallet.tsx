@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../state/useSession'
 import { supabase } from '../lib/supabase'
+import { pointTransactionsForUser } from '../data/repositories/points'
 import { Alert, Badge, Button, Card, CardBody, EmptyState, PageHeader, Spinner, Stat } from '../components/ui'
 import { useSeo } from '../lib/useSeo'
 
@@ -49,11 +50,7 @@ export default function PointsWallet() {
     void (async () => {
       try {
         const [ledgerR, pkgR] = await Promise.all([
-          supabase.from('point_transactions')
-            .select('id, delta, reason, created_at')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false })
-            .limit(50),
+          pointTransactionsForUser(userId),
           supabase.from('system_config').select('value').eq('key', 'points_packages').maybeSingle(),
         ])
         if (cancelled) return

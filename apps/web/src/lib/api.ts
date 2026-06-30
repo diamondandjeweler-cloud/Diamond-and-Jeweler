@@ -1,12 +1,9 @@
 import { supabase } from './supabase'
+import { profileById, updateProfile } from '../data/repositories/profiles'
 import type { Profile } from '../types/db'
 
 export async function fetchProfile(userId: string): Promise<Profile | null> {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .maybeSingle()
+  const { data, error } = await profileById(userId).maybeSingle()
   if (error) {
     // F-cache regression — previously this returned null silently, which the
     // session bootstrap then *stored* as the live profile + wiped the
@@ -20,10 +17,7 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
 }
 
 export async function markOnboardingComplete(userId: string) {
-  const { error } = await supabase
-    .from('profiles')
-    .update({ onboarding_complete: true })
-    .eq('id', userId)
+  const { error } = await updateProfile(userId, { onboarding_complete: true })
   if (error) throw error
 }
 

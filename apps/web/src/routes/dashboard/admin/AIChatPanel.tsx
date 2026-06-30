@@ -1,5 +1,6 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
+import { profilesByIds } from '../../../data/repositories/profiles'
 import ListSkeleton from '../../../components/ListSkeleton'
 
 type Endpoint = 'chat-support' | 'chat-onboard'
@@ -94,10 +95,7 @@ export default function AIChatPanel() {
 
     const userIds = [...new Set(rows.map((r) => r.user_id).filter((x): x is string => !!x))]
     if (userIds.length > 0) {
-      const { data: pData } = await supabase
-        .from('profiles')
-        .select('id, email, full_name')
-        .in('id', userIds)
+      const { data: pData } = await profilesByIds(userIds)
       const map: Record<string, Profile> = {}
       for (const p of (pData ?? []) as Array<{ id: string; email: string; full_name: string }>) {
         map[p.id] = { email: p.email, full_name: p.full_name }

@@ -1,15 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import ListSkeleton from '../../../components/ListSkeleton'
-
-interface CompanyRow {
-  id: string
-  name: string
-  registration_number: string
-  primary_hr_email: string
-  business_license_path: string | null
-  created_at: string
-}
+import type { CompanyRow } from '../../../types/db'
 
 export default function VerificationQueue() {
   // PII-bearing list (company HR emails); never cached, just skeleton-on-load.

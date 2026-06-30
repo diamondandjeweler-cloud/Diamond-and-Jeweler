@@ -4,14 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { FormSkeleton } from '../../components/ListSkeleton'
 import { Button, Input, Alert, PageHeader } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
-
-interface CompanyRow {
-  name: string
-  industry: string | null
-  size: string | null
-  website: string | null
-  verified: boolean
-}
+import type { CompanyRow } from '../../types/db'
 
 export default function HMCompanyProfile() {
   useSeo({ title: 'Company profile', noindex: true })

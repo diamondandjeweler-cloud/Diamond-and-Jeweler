@@ -11,35 +11,7 @@ import { Button, Card, Badge, Alert, EmptyState, PageHeader, BadgeTone } from '.
 import ListSkeleton from '../../components/ListSkeleton'
 import { useSeo } from '../../lib/useSeo'
 import { readDashCache, writeDashCache } from '../../lib/dashboardCache'
-
-type RoleStatus = 'active' | 'paused' | 'filled' | 'expired'
-type ModerationStatus = 'pending' | 'approved' | 'flagged' | 'rejected'
-
-interface RoleRow {
-  id: string
-  title: string
-  department: string | null
-  location: string | null
-  work_arrangement: string | null
-  experience_level: string | null
-  salary_min: number | null
-  salary_max: number | null
-  required_traits: string[]
-  required_skills: string[] | null
-  headcount: number | null
-  min_education_level: string | null
-  start_urgency: string | null
-  open_to: string[] | null
-  languages_required: Array<{ code: string; level: string }> | null
-  status: RoleStatus
-  created_at: string
-  vacancy_expires_at: string | null
-  moderation_status: ModerationStatus
-  moderation_reason: string | null
-  moderation_appealed_at: string | null
-  moderation_reviewed_at: string | null
-  match_count?: number
-}
+import type { RoleRow, RoleStatus, ModerationStatus } from '../../types/db'
 
 export default function MyRoles() {
   const { t } = useTranslation()

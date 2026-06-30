@@ -1,15 +1,11 @@
 import { useState } from 'react'
 import type { PublicReasoning } from '../types/db'
+import { fmtMoneyMYR } from '../lib/format'
 
 interface Props {
   reasoning: PublicReasoning | null | undefined
   salaryMin: number | null
   salaryMax: number | null
-}
-
-function fmt(n: number | null) {
-  if (n == null) return '—'
-  return n.toLocaleString('en-MY')
 }
 
 function buildItems(
@@ -24,7 +20,7 @@ function buildItems(
 
   // Always: salary confirmation
   if (salaryMin != null || salaryMax != null) {
-    items.push(`Confirm salary expectation (RM ${fmt(salaryMin)}–${fmt(salaryMax)}/month) is within your approved budget before the first call.`)
+    items.push(`Confirm salary expectation (RM ${fmtMoneyMYR(salaryMin)}–${fmtMoneyMYR(salaryMax)}/month) is within your approved budget before the first call.`)
   }
 
   // Work authorization

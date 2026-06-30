@@ -397,12 +397,12 @@ export default function HMDashboard() {
     function subscribeMatches() {
       if (cancelled || hmRoleIds.length === 0) return
       // Tear down any existing channel synchronously before creating a new one.
-      // Each channel name is unique (Date.now()), so a dropped reference would
-      // leak the prior subscription — removing it here makes resubscribe safe
-      // even if two callers race.
+      // The channel name is stable per user, so removing the prior channel here
+      // keeps resubscribe safe (a stable name cannot double-subscribe) and avoids
+      // the per-mount connection churn the old `-${Date.now()}` suffix caused.
       if (channel) { void supabase.removeChannel(channel); channel = null }
       channel = supabase
-        .channel(`hm-matches-${userId ?? 'anon'}-${Date.now()}`)
+        .channel(`hm-matches-${userId ?? 'anon'}`)
         .on('postgres_changes', {
           event: '*', schema: 'public', table: 'matches',
           filter: `role_id=in.(${hmRoleIds.join(',')})`,

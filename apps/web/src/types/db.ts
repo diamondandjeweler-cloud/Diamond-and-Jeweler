@@ -63,6 +63,28 @@ export interface Company {
   created_at: string
 }
 
+// Lightweight company projection shared by the admin verification queue and the
+// HM company-profile view. Promoted from two divergent inline copies — each view
+// SELECTs a different column subset, so this is the UNION of both: only `name`
+// (present in both projections) is required; every other field is optional so a
+// narrower projection still satisfies the type. Distinct from `Company` (the
+// full row) on purpose.
+//   VerificationQueue projects: id, name, registration_number, primary_hr_email,
+//                               business_license_path, created_at
+//   HMCompanyProfile  projects: name, industry, size, website, verified
+export interface CompanyRow {
+  name: string
+  id: string
+  registration_number?: string
+  primary_hr_email?: string
+  business_license_path?: string | null
+  created_at?: string
+  industry?: string | null
+  size?: string | null
+  website?: string | null
+  verified?: boolean
+}
+
 export interface HiringManager {
   id: string
   profile_id: string
@@ -166,6 +188,55 @@ export interface InterviewProposal {
   picked_slot: number | null
   decline_reason?: string | null
   created_at: string
+}
+
+// Role-row projection shared by the HM "My roles" list and the edit-role form.
+// Promoted from two divergent inline copies — this is the UNION/superset so
+// neither call site loses a field. The two views SELECT overlapping-but-distinct
+// column subsets, so the EditRole-only columns (hiring_manager_id, description,
+// from_onboarding) are optional here; every other field keeps the (required)
+// shape MyRoles relied on, since MyRoles feeds them into required-typed props
+// (e.g. ModerationBadge `status`, VacancyExpiry `expiresAt`). Both call sites
+// build their rows by casting the untyped supabase response, so columns a query
+// omits are tolerated at runtime regardless of optionality.
+// Conflicting field types are reconciled to the NARROWER literal unions from
+// EditRole (its <select> handlers cast to RoleRow['work_arrangement'] /
+// RoleRow['experience_level']); those literals stay assignable to MyRoles'
+// string-join usage, so no precision is lost.
+export type RoleStatus = 'active' | 'paused' | 'filled' | 'expired'
+export type ModerationStatus = 'pending' | 'approved' | 'flagged' | 'rejected'
+
+export interface RoleRow {
+  id: string
+  title: string
+  department: string | null
+  location: string | null
+  work_arrangement: 'remote' | 'hybrid' | 'onsite' | null
+  experience_level: 'entry' | 'junior' | 'mid' | 'senior' | 'lead' | null
+  salary_min: number | null
+  salary_max: number | null
+  required_traits: string[]
+  status: RoleStatus
+
+  // EditRole-only (editable form) columns — absent from the MyRoles projection.
+  hiring_manager_id?: string
+  description?: string | null
+  from_onboarding?: boolean
+
+  // MyRoles list + moderation columns — absent from the EditRole projection.
+  required_skills: string[] | null
+  headcount: number | null
+  min_education_level: string | null
+  start_urgency: string | null
+  open_to: string[] | null
+  languages_required: Array<{ code: string; level: string }> | null
+  created_at: string
+  vacancy_expires_at: string | null
+  moderation_status: ModerationStatus
+  moderation_reason: string | null
+  moderation_appealed_at: string | null
+  moderation_reviewed_at: string | null
+  match_count?: number
 }
 
 // Loose Database type for supabase-js generic. Generate via `supabase gen types`

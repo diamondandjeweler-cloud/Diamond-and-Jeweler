@@ -6,27 +6,12 @@ import { updateRole } from '../../data/repositories/roles'
 import { callFunction } from '../../lib/functions'
 import { FormSkeleton } from '../../components/ListSkeleton'
 import { useSeo } from '../../lib/useSeo'
+import type { RoleRow } from '../../types/db'
 
 const TRAITS = [
   'self_starter','reliable','collaborator','growth_minded','clear_communicator',
   'detail_oriented','adaptable','customer_focused','analytical','accountable',
 ]
-
-interface RoleRow {
-  id: string
-  hiring_manager_id: string
-  title: string
-  description: string | null
-  department: string | null
-  location: string | null
-  work_arrangement: 'remote' | 'hybrid' | 'onsite' | null
-  experience_level: 'entry' | 'junior' | 'mid' | 'senior' | 'lead' | null
-  salary_min: number | null
-  salary_max: number | null
-  required_traits: string[]
-  status: 'active' | 'paused' | 'filled' | 'expired'
-  from_onboarding: boolean
-}
 
 interface GapItem {
   kind: string

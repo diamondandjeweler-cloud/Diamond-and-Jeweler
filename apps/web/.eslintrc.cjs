@@ -55,5 +55,41 @@ module.exports = {
         'react-refresh/only-export-components': 'off',
       },
     },
+    // DEFERRED — data-access seam guard: a no-restricted-syntax WARN on direct
+    // supabase.from(...) / supabase.rpc(...) outside src/data/repositories/* was
+    // trialled but currently flags ~190 unmigrated call sites, drowning the lint
+    // signal. Re-enable it once the repository migration (src/data/repositories/*)
+    // covers the bulk of those calls so the warning count is actionable.
+    // Architectural guard-rail (WARN only): one-way module boundary. Recruitment
+    // code must not import from the restaurant module (lib/restaurant/** or
+    // routes/restaurant/**). The base rule applies across src; the override below
+    // exempts the restaurant files themselves so they can import each other.
+    {
+      files: ['src/**/*.ts', 'src/**/*.tsx'],
+      rules: {
+        'no-restricted-imports': [
+          'warn',
+          {
+            patterns: [
+              {
+                group: [
+                  '**/lib/restaurant/**',
+                  '**/routes/restaurant/**',
+                  '@/lib/restaurant/**',
+                  '@/routes/restaurant/**',
+                ],
+                message:
+                  'recruitment code must not import the restaurant module (one-way boundary)',
+              },
+            ],
+          },
+        ],
+      },
+    },
+    {
+      // The restaurant module is exempt from the boundary — it may import itself.
+      files: ['src/lib/restaurant/**', 'src/routes/restaurant/**'],
+      rules: { 'no-restricted-imports': 'off' },
+    },
   ],
 }

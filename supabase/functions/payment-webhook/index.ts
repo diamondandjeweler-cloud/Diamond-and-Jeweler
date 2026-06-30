@@ -24,12 +24,6 @@ import { timingSafeEqual } from '../_shared/auth.ts'
 import { reportError } from '../_shared/observe.ts'
 
 serve(async (req) => {
-  // TODO(batch2): the post-parse money path below (signature verify, paid flip,
-  // quota grant, tryConsultBooking/tryPointPurchase) is not wrapped in a handler
-  // try/catch, so an uncaught throw there is reported nowhere. Wrapping it would
-  // require re-indenting ~100 lines of money-path code, which violates the
-  // byte-preserving constraint on money paths in this batch — left to a focused
-  // follow-up. The existing top-level parse catch IS wired to reportError.
   const pre = handleOptions(req); if (pre) return pre
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405, headers: corsHeaders })
@@ -51,6 +45,21 @@ serve(async (req) => {
     return new Response('Bad request', { status: 400, headers: corsHeaders })
   }
 
+  // The post-parse money path (signature verify, paid flip, quota grant,
+  // tryConsultBooking/tryPointPurchase) is wrapped so an uncaught throw AFTER a
+  // successful external debit is observed instead of silent. Without this, a
+  // throw here yields a bare ~500 reported nowhere and the row never flips to
+  // paid. We report telemetry and return a controlled 500 so the provider
+  // retries — every success/branch response inside is preserved exactly.
+  try {
+    return await handleMoneyPath(params)
+  } catch (e) {
+    await reportError(e, { fn: 'payment-webhook', stage: 'money-path', content_type: ct })
+    return new Response('Internal error', { status: 500, headers: corsHeaders })
+  }
+})
+
+async function handleMoneyPath(params: Record<string, string>): Promise<Response> {
   // Verify Billplz X-Signature — fail closed if key is not configured.
   // NOTE(swr-money-matcher): this gate is the Billplz path and is intentionally
   // left unchanged here (out of scope: "do not alter the Billplz path"). The new
@@ -178,7 +187,7 @@ serve(async (req) => {
   }).catch(() => { /* best effort */ })
 
   return new Response('OK', { status: 200, headers: corsHeaders })
-})
+}
 
 /**
  * Verify Billplz X-Signature.

@@ -21,6 +21,7 @@ import { profileOnboardingDraftById, updateProfile } from '../../data/repositori
 import { uploadPrivate } from '../../lib/storage'
 import { encryptDob, markOnboardingComplete } from '../../lib/api'
 import { callFunction } from '../../lib/functions'
+import { useDraftForm } from '../../lib/useDraftForm'
 import { getLifeChartCharacter, type Gender } from '../../lib/lifeChartCharacter'
 import ChatShell, { ChatMessage } from '../../components/ChatShell'
 import { Button, Alert } from '../../components/ui'
@@ -220,34 +221,35 @@ export default function TalentOnboarding() {
   // ── Autosave draft whenever key fields change ─────────────────────────────
   // DOB intentionally excluded — never persisted to localStorage in plaintext.
   // apiMessages included so a crash between [PROFILE_READY] and finalise() can
-  // be recovered without re-running the whole chat.
-  useEffect(() => {
-    if (!draftKey || phase === 'basics' || phase === 'resume' || phase === 'done' || phase === 'submit') return
-    try {
-      const prev = JSON.parse(localStorage.getItem(draftKey) || '{}') as Record<string, unknown>
-      localStorage.setItem(draftKey, JSON.stringify({
-        ...prev,
-        phase, fullName, phone, gender: gender || '',
-        ...(apiMessages.length > 1 ? { apiMessages } : {}),
-        race, religion, languages, locationMatters, locationPostcode, openToNewField,
-        dealBreakerItems, minSalaryHard,
-        noWeekendWork, noDrivingLicense, noTravel, noNightShifts,
-        noOwnCar, remoteOnly, noRelocation, noOvertime, noCommissionOnly,
-        skills, languagesProficiency, availableShifts, availableDaysPerWeek,
-        environmentPreferences, candidateTypes,
-        priorityConcernsText, priorityConcernsAtoms,
-      }))
-    } catch { /* ignore storage errors */ }
-  }, [
-    draftKey, phase, fullName, phone, gender, apiMessages,
-    race, religion, languages, locationMatters, locationPostcode, openToNewField,
-    dealBreakerItems, minSalaryHard,
-    noWeekendWork, noDrivingLicense, noTravel, noNightShifts,
-    noOwnCar, remoteOnly, noRelocation, noOvertime, noCommissionOnly,
-    skills, languagesProficiency, availableShifts, availableDaysPerWeek,
-    environmentPreferences, candidateTypes,
-    priorityConcernsText, priorityConcernsAtoms,
-  ])
+  // be recovered without re-running the whole chat. Merged over any prior draft
+  // so unrelated keys (e.g. a mid-chat apiMessages snapshot) survive. Restore is
+  // bespoke (Supabase transcript + multi-phase routing) so it stays inline above.
+  useDraftForm({
+    key: draftKey,
+    enabled: phase !== 'basics' && phase !== 'resume' && phase !== 'done' && phase !== 'submit',
+    merge: true,
+    collect: () => ({
+      phase, fullName, phone, gender: gender || '',
+      ...(apiMessages.length > 1 ? { apiMessages } : {}),
+      race, religion, languages, locationMatters, locationPostcode, openToNewField,
+      dealBreakerItems, minSalaryHard,
+      noWeekendWork, noDrivingLicense, noTravel, noNightShifts,
+      noOwnCar, remoteOnly, noRelocation, noOvertime, noCommissionOnly,
+      skills, languagesProficiency, availableShifts, availableDaysPerWeek,
+      environmentPreferences, candidateTypes,
+      priorityConcernsText, priorityConcernsAtoms,
+    }),
+    deps: [
+      phase, fullName, phone, gender, apiMessages,
+      race, religion, languages, locationMatters, locationPostcode, openToNewField,
+      dealBreakerItems, minSalaryHard,
+      noWeekendWork, noDrivingLicense, noTravel, noNightShifts,
+      noOwnCar, remoteOnly, noRelocation, noOvertime, noCommissionOnly,
+      skills, languagesProficiency, availableShifts, availableDaysPerWeek,
+      environmentPreferences, candidateTypes,
+      priorityConcernsText, priorityConcernsAtoms,
+    ],
+  })
 
   // Seed Bo's greeting when entering the chat phase — no API call needed.
   useEffect(() => {

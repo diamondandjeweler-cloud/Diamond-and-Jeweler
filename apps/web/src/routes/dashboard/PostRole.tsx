@@ -4,6 +4,11 @@ import { fmt } from '../../lib/format'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { updateRole, insertRole } from '../../data/repositories/roles'
+import { hmIdByProfileId } from '../../data/repositories/hiring-managers'
+import { marketRateForRole } from '../../data/repositories/market-rate-cache'
+import {
+  jobPostingDraftByHmId, upsertJobPostingDraft, deleteJobPostingDraftByHmId,
+} from '../../data/repositories/job-posting-drafts'
 import { callFunction } from '../../lib/functions'
 import { useDraftForm } from '../../lib/useDraftForm'
 import { FormSkeleton } from '../../components/ListSkeleton'
@@ -187,8 +192,7 @@ export default function PostRole() {
     if (!userId) { setLoading(false); return }
     let cancelled = false
     void (async () => {
-      const { data: hm, error } = await supabase
-        .from('hiring_managers').select('id').eq('profile_id', userId).maybeSingle()
+      const { data: hm, error } = await hmIdByProfileId(userId).maybeSingle()
       if (cancelled) return
       if (error) { setErr(error.message); setLoading(false); return }
       setHmId(hm?.id ?? null)
@@ -271,8 +275,7 @@ export default function PostRole() {
   useEffect(() => {
     if (!title || !salaryMin || !salaryMax) { setMarketWarning(null); return }
     let cancelled = false
-    supabase.from('market_rate_cache').select('min_salary, max_salary, median_salary')
-      .ilike('job_title', title).eq('location', location).eq('experience_level', experience)
+    marketRateForRole(title, location, experience)
       .limit(1).maybeSingle()
       .then(({ data }) => {
         if (cancelled || !data) { setMarketWarning(null); return }
@@ -314,9 +317,7 @@ export default function PostRole() {
   // DB draft check — only when no localStorage draft was found after hmId loads
   useEffect(() => {
     if (isEdit || !hmId || hasDraft) return
-    supabase.from('job_posting_drafts')
-      .select('draft_data, updated_at')
-      .eq('hm_id', hmId)
+    jobPostingDraftByHmId(hmId)
       .maybeSingle()
       .then(({ data, error }) => {
         if (error) return // tolerate — user simply won't see the restore banner
@@ -334,7 +335,7 @@ export default function PostRole() {
     if (!hmId) return
     setDbDraftSaving(true)
     try {
-      const { error } = await supabase.from('job_posting_drafts').upsert(
+      const { error } = await upsertJobPostingDraft(
         { hm_id: hmId, draft_data: collectDraft() },
         { onConflict: 'hm_id' }
       )
@@ -429,7 +430,7 @@ export default function PostRole() {
       void callFunction('moderate-role', { role_id: savedId }).catch(() => {})
       void callFunction('match-generate', { role_id: savedId }).catch(() => {})
       localStorage.removeItem(DRAFT_KEY)
-      void supabase.from('job_posting_drafts').delete().eq('hm_id', hmId)
+      void deleteJobPostingDraftByHmId(hmId)
       navigate('/hm', { replace: true })
     } catch (e) {
       clearTimeout(timeoutId)
@@ -447,7 +448,7 @@ export default function PostRole() {
           void callFunction('moderate-role', { role_id: checkId }).catch(() => {})
           void callFunction('match-generate', { role_id: checkId }).catch(() => {})
           localStorage.removeItem(DRAFT_KEY)
-          void supabase.from('job_posting_drafts').delete().eq('hm_id', hmId)
+          void deleteJobPostingDraftByHmId(hmId)
           navigate('/hm', { replace: true })
           return
         }
@@ -495,7 +496,7 @@ export default function PostRole() {
         dbDraftOffer={dbDraftOffer}
         onDiscardLocalDraft={() => { localStorage.removeItem(DRAFT_KEY); window.location.reload() }}
         onRestoreCloudDraft={(data) => { applyDraftData(data); setDbDraftOffer(null); setHasDraft(true) }}
-        onDiscardCloudDraft={() => { setDbDraftOffer(null); void supabase.from('job_posting_drafts').delete().eq('hm_id', hmId!) }}
+        onDiscardCloudDraft={() => { setDbDraftOffer(null); void deleteJobPostingDraftByHmId(hmId!) }}
       />
 
       <Card>

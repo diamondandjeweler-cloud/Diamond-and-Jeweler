@@ -167,51 +167,20 @@ async function handler(req: Request): Promise<Response> {
   )
 
   // ---------- v4 §16: ghost-score auto-increment ----------
-  // For each talent or HM whose match just expired with no acceptance,
-  // count their total "ghosted" matches (status=expired + accepted_at NULL)
-  // and bump profiles.ghost_score to floor(ghosted/3), capped at 10. We use a
-  // read-modify-write rather than a raw UPDATE so we only bump upward.
+  // Bump profiles.ghost_score for the talents / HMs whose match just expired,
+  // from their TOTAL ghosted matches (talent: expired + never accepted; HM:
+  // expired + never invited, across all their roles): target = min(10,
+  // floor(ghosted/3)), raised only — never lowered. Batched into ONE set-based
+  // RPC (migration 0168); was ~4 queries per talent + ~5 per role, serially.
   const uniqueTalentIds = [...new Set((expired ?? []).map((m) => m.talent_id).filter(Boolean))]
   const uniqueRoleIds   = [...new Set((expired ?? []).map((m) => m.role_id).filter(Boolean))]
-  const ghostThreshold = 3
 
-  async function bumpProfileGhostScore(profileId: string, ghostedCount: number) {
-    const target = Math.min(10, Math.floor(ghostedCount / ghostThreshold))
-    if (target <= 0) return
-    const { data: cur } = await db.from('profiles')
-      .select('ghost_score').eq('id', profileId).maybeSingle()
-    if ((cur?.ghost_score ?? 0) < target) {
-      await db.from('profiles').update({ ghost_score: target }).eq('id', profileId)
-    }
-  }
-
-  for (const talentId of uniqueTalentIds) {
-    if (!talentId) continue
-    const { count: ghosted } = await db.from('matches')
-      .select('id', { count: 'exact', head: true })
-      .eq('talent_id', talentId).eq('status', 'expired').is('accepted_at', null)
-    if ((ghosted ?? 0) < ghostThreshold) continue
-    const { data: t } = await db.from('talents')
-      .select('profile_id').eq('id', talentId).maybeSingle()
-    if (t?.profile_id) await bumpProfileGhostScore(t.profile_id, ghosted ?? 0)
-  }
-
-  for (const roleId of uniqueRoleIds) {
-    if (!roleId) continue
-    // Ghost an HM when 3+ of their matches across any role expired without an invite.
-    const { data: hmLink } = await db.from('roles')
-      .select('hiring_manager_id').eq('id', roleId).maybeSingle()
-    const hmId = hmLink?.hiring_manager_id
-    if (!hmId) continue
-    const { data: hm } = await db.from('hiring_managers')
-      .select('profile_id').eq('id', hmId).maybeSingle()
-    if (!hm?.profile_id) continue
-    const { count: hmGhosted } = await db.from('matches')
-      .select('id, roles!inner(hiring_manager_id)', { count: 'exact', head: true })
-      .eq('status', 'expired').is('invited_at', null)
-      .eq('roles.hiring_manager_id', hmId)
-    if ((hmGhosted ?? 0) < ghostThreshold) continue
-    await bumpProfileGhostScore(hm.profile_id, hmGhosted ?? 0)
+  if (uniqueTalentIds.length > 0 || uniqueRoleIds.length > 0) {
+    const { error: ghostErr } = await db.rpc('bump_ghost_scores_for_expired', {
+      p_talent_ids: uniqueTalentIds,
+      p_role_ids: uniqueRoleIds,
+    })
+    if (ghostErr) console.error('bump_ghost_scores_for_expired failed', ghostErr.message)
   }
 
   // Re-queue the affected roles instead of a SERIAL fan-out of synchronous

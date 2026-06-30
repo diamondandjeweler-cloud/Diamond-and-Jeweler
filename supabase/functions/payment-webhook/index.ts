@@ -21,8 +21,15 @@ import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { webhookCorsHeaders as corsHeaders, handleWebhookOptions as handleOptions } from '../_shared/cors.ts'
 import { adminClient } from '../_shared/supabase.ts'
 import { timingSafeEqual } from '../_shared/auth.ts'
+import { reportError } from '../_shared/observe.ts'
 
 serve(async (req) => {
+  // TODO(batch2): the post-parse money path below (signature verify, paid flip,
+  // quota grant, tryConsultBooking/tryPointPurchase) is not wrapped in a handler
+  // try/catch, so an uncaught throw there is reported nowhere. Wrapping it would
+  // require re-indenting ~100 lines of money-path code, which violates the
+  // byte-preserving constraint on money paths in this batch — left to a focused
+  // follow-up. The existing top-level parse catch IS wired to reportError.
   const pre = handleOptions(req); if (pre) return pre
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405, headers: corsHeaders })
@@ -39,7 +46,8 @@ serve(async (req) => {
       const form = await req.formData()
       for (const [k, v] of form.entries()) params[k] = String(v)
     }
-  } catch {
+  } catch (e) {
+    await reportError(e, { fn: 'payment-webhook', stage: 'parse-body', content_type: ct })
     return new Response('Bad request', { status: 400, headers: corsHeaders })
   }
 

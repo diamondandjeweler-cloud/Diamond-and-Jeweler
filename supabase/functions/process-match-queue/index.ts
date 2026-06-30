@@ -14,6 +14,7 @@ import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { adminClient } from '../_shared/supabase.ts'
 import { matchForRole, MatchError } from '../_shared/match-core.ts'
 import { requireServiceRole } from '../_shared/auth.ts'
+import { reportError } from '../_shared/observe.ts'
 
 const BATCH_SIZE  = 20  // items claimed per invocation
 const CONCURRENCY = 5   // max parallel matchForRole calls
@@ -65,6 +66,7 @@ serve(async (req) => {
         const msg = err instanceof MatchError ? err.message
           : err instanceof Error ? err.message : String(err)
         console.error(`[process-match-queue] role=${item.role_id} FAILED: ${msg}`)
+        await reportError(err, { fn: 'process-match-queue', role_id: item.role_id, retry_count: item.retry_count })
         await db.rpc('fail_match_queue_item', {
           p_id: item.id, p_error: msg.slice(0, 1000), p_retry_count: item.retry_count,
         })

@@ -18,6 +18,7 @@ import { handleOptions } from '../_shared/cors.ts'
 import { authenticate, json } from '../_shared/auth.ts'
 import { adminClient } from '../_shared/supabase.ts'
 import { logAudit, extractIp } from '../_shared/audit.ts'
+import { reportError } from '../_shared/observe.ts'
 
 interface Body {
   purchase_type: 'extra_match' | 'points'
@@ -121,6 +122,7 @@ serve(async (req) => {
     // A network/DNS/TLS throw (not just a non-2xx) leaves the row flipped to
     // 'refunded' by the CAS above with no money actually moved. Roll it back to
     // 'paid' — same as the !refund.ok path — so a later retry can complete.
+    await reportError(e, { fn: 'admin-refund', purchase_id: body.purchase_id, purchase_type: body.purchase_type })
     await db.from(table)
       .update({ payment_status: 'paid', refunded_at: null, refund_reason: null, refunded_by: null })
       .eq('id', body.purchase_id)

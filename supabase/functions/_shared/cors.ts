@@ -7,11 +7,13 @@ export const corsHeaders: HeadersInit = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-/** Wildcard CORS for server-to-server webhooks (Billplz, Resend, MyInvois, etc.). */
+/**
+ * Headers for server-to-server webhooks (Billplz, Resend, MyInvois, etc.).
+ * These callers are not browsers and never perform a CORS preflight, so no
+ * Access-Control-Allow-* headers are emitted — only the response content type.
+ */
 export const webhookCorsHeaders: HeadersInit = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'content-type, svix-id, svix-timestamp, svix-signature',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'content-type': 'application/json',
 }
 
 /** Short-circuits preflight requests. Returns null for non-OPTIONS. */

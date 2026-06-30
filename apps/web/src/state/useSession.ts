@@ -4,7 +4,10 @@ import { supabase } from '../lib/supabase'
 import { fetchProfile } from '../lib/api'
 import { clearAdminVerified } from '../lib/adminReauth'
 import { clearAllDashCaches } from '../lib/dashboardCache'
+import { createLogger } from '../lib/logger'
 import type { Profile } from '../types/db'
+
+const log = createLogger('session')
 
 interface SessionState {
   session: Session | null
@@ -83,13 +86,13 @@ async function fetchIsHM(userId: string): Promise<boolean> {
     const url = `${base}/rest/v1/hiring_managers?select=id&profile_id=eq.${encodeURIComponent(userId)}&limit=1`
     const r = await fetch(url, { headers: { apikey, Authorization: `Bearer ${token}` } })
     if (!r.ok) {
-      console.error('[session] fetchIsHM failed', r.status)
+      log.error('[session] fetchIsHM failed', r.status)
       return false
     }
     const rows = (await r.json()) as unknown[]
     return Array.isArray(rows) && rows.length > 0
   } catch (e) {
-    console.error('[session] fetchIsHM threw', e)
+    log.error('[session] fetchIsHM threw', e)
     return false
   }
 }
@@ -122,7 +125,7 @@ export const useSession = create<SessionState>((set) => ({
       const validCache = cached && cached.id === data.session.user.id
       const [profile, isHM] = await Promise.all([
         fetchProfile(data.session.user.id).catch((e) => {
-          console.error('[session] fetchProfile failed', e)
+          log.error('[session] fetchProfile failed', e)
           // Same cache-preservation guard as the bootstrap path — never let a
           // transient fetch error overwrite a valid cached profile with null.
           return validCache ? cached : null
@@ -137,7 +140,7 @@ export const useSession = create<SessionState>((set) => ({
       // F-cache regression — don't blow away the session/profile on a
       // network-level failure of getSession(). The user might still have
       // a valid local session that just couldn't be re-verified this round.
-      console.error('[session] refresh failed', e)
+      log.error('[session] refresh failed', e)
       set({ loading: false })
     }
   },
@@ -153,7 +156,7 @@ export const useSession = create<SessionState>((set) => ({
         ),
       ])
     } catch (e) {
-      console.error('[session] signOut failed or timed out', e)
+      log.error('[session] signOut failed or timed out', e)
     }
     clearAdminVerified()
     saveCachedProfile(null)
@@ -290,7 +293,7 @@ export function bootstrapSession() {
   // is unreachable or env vars are wrong. App can then render its real error UI.
   const watchdog = setTimeout(() => {
     if (useSession.getState().loading) {
-      console.error('[session] bootstrap watchdog tripped — forcing loading=false')
+      log.error('[session] bootstrap watchdog tripped — forcing loading=false')
       useSession.setState({ loading: false })
     }
   }, 8000)
@@ -323,7 +326,7 @@ export function bootstrapSession() {
         } else {
           // Transient null — flip loading off but preserve existing session/profile
           // so route guards don't bounce the user mid-action.
-          console.warn('[session] ignoring transient null session for event', event)
+          log.warn('[session] ignoring transient null session for event', event)
           useSession.setState({ loading: false })
         }
         return
@@ -369,7 +372,7 @@ export function bootstrapSession() {
       const [profile, isHM] = await Promise.all([
         withTimeout(
           fetchProfile(session.user.id).catch((e) => {
-            console.error('[session] fetchProfile failed in onAuthStateChange', e)
+            log.error('[session] fetchProfile failed in onAuthStateChange', e)
             return validCache ? cachedProfile : null
           }),
           validCache ? cachedProfile : null,
@@ -413,15 +416,15 @@ export function bootstrapSession() {
             const cur = useSession.getState()
             if (!cur.session || cur.session.user.id !== session2.user.id) return
             if (cur.profile) return
-            console.warn(`[session] profile retry #${i + 1} firing (cache empty, last fetch failed)`)
+            log.warn(`[session] profile retry #${i + 1} firing (cache empty, last fetch failed)`)
             useSession.getState().refresh().catch((err) => {
-              console.error(`[session] profile retry #${i + 1} failed`, err)
+              log.error(`[session] profile retry #${i + 1} failed`, err)
             })
           }, delay)
         })
       }
     } catch (e) {
-      console.error('[session] onAuthStateChange failed', e)
+      log.error('[session] onAuthStateChange failed', e)
       useSession.setState({ loading: false })
     }
   })

@@ -5,8 +5,11 @@ import App from './App'
 import ErrorBoundary from './components/ErrorBoundary'
 import { bootstrapSession } from './state/useSession'
 import { getCurrentLegalVersion } from './lib/legalVersion'
+import { createLogger } from './lib/logger'
 import './index.css'
 import './lib/i18n'
+
+const log = createLogger('main')
 
 // Start both async operations before React renders.
 // bootstrapSession: INITIAL_SESSION fires while React builds the tree.
@@ -80,14 +83,14 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
             if (registration) setInterval(() => { void registration.update().catch(() => {}) }, 60 * 60 * 1000)
           },
           onRegisterError(err) {
-            console.warn('[sw] register failed', err)
+            log.warn('[sw] register failed', err)
           },
         })
       } catch (err) {
-        console.warn('[sw] register threw', err)
+        log.warn('[sw] register threw', err)
       }
     }).catch((err) => {
-      console.warn('[sw] dynamic import failed', err)
+      log.warn('[sw] dynamic import failed', err)
     })
   }
   const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback

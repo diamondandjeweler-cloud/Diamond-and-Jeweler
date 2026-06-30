@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../../../lib/supabase'
+import { configValuesByKeys, updateConfigValue } from '../../../data/repositories/system-config'
 import { Alert, Button } from '../../../components/ui'
 import { FormSkeleton } from '../../../components/ListSkeleton'
 
@@ -49,7 +49,7 @@ export default function PricingPanel() {
       'earn_interviewer_rejects', 'earn_end_review', 'points_per_referral',
       'points_referee_welcome',
     ]
-    const { data } = await supabase.from('system_config').select('key, value').in('key', keys)
+    const { data } = await configValuesByKeys(keys)
     if (data) {
       const m = Object.fromEntries(data.map((r) => [r.key, r.value]))
       if (Array.isArray(m.points_packages)) setPackages(m.points_packages as Package[])
@@ -96,8 +96,7 @@ export default function PricingPanel() {
     ]
 
     for (const row of upserts) {
-      const { error } = await supabase.from('system_config')
-        .update({ value: row.value }).eq('key', row.key)
+      const { error } = await updateConfigValue(row.key, row.value)
       if (error) { setErr(`Failed to save ${row.key}: ${error.message}`); setSaving(false); return }
     }
     setOk(true)

@@ -18,6 +18,16 @@ import type {
   Organization, OrgMember,
 } from './types'
 
+/**
+ * The restaurant-schema client. EVERY table read/write in this module MUST go
+ * through `db` (not the raw `supabase` client) — `supabase.from('orders')`
+ * resolves against the `public` schema, which has its own unrelated `orders`-
+ * style tables and RLS. A call that forgets `.schema('restaurant')` would
+ * therefore hit the wrong schema *silently* (no compile error, no runtime
+ * error) and either leak or corrupt unrelated data. Use `db.from(...)` here;
+ * reserve the bare `supabase` client only for cross-schema concerns
+ * (storage uploads, public RPCs like `create_org`).
+ */
 const db = supabase.schema('restaurant' as never) as unknown as ReturnType<typeof supabase.schema>
 
 /* ============================================================

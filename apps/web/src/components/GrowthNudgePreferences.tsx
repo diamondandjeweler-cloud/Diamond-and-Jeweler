@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useSession } from '../state/useSession'
+import { talentGrowthNudgePrefsByProfileId, updateTalentByProfileId } from '../data/repositories/talents'
 import { Card, Button } from './ui'
 
 interface State {
@@ -23,9 +24,7 @@ export default function GrowthNudgePreferences() {
   useEffect(() => {
     if (!session) return
     let cancelled = false
-    void supabase.from('talents')
-      .select('growth_nudges_opt_in, growth_nudge_snooze_until, last_growth_nudge_at')
-      .eq('profile_id', session.user.id)
+    void talentGrowthNudgePrefsByProfileId(session.user.id)
       .maybeSingle()
       .then(({ data }) => {
         if (cancelled) return
@@ -47,9 +46,7 @@ export default function GrowthNudgePreferences() {
     if (!session || !state || busy) return
     setBusy(true); setErr(null)
     try {
-      const { error } = await supabase.from('talents')
-        .update({ growth_nudges_opt_in: next })
-        .eq('profile_id', session.user.id)
+      const { error } = await updateTalentByProfileId(session.user.id, { growth_nudges_opt_in: next })
       if (error) throw error
       setState({ ...state, optIn: next })
     } catch (e) {
@@ -77,9 +74,7 @@ export default function GrowthNudgePreferences() {
     if (!session || !state || busy) return
     setBusy(true); setErr(null)
     try {
-      const { error } = await supabase.from('talents')
-        .update({ growth_nudge_snooze_until: null })
-        .eq('profile_id', session.user.id)
+      const { error } = await updateTalentByProfileId(session.user.id, { growth_nudge_snooze_until: null })
       if (error) throw error
       setState({ ...state, snoozeUntil: null })
     } catch (e) {

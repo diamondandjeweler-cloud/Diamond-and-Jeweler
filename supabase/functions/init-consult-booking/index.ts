@@ -17,6 +17,9 @@ import { authenticate, json } from '../_shared/auth.ts'
 import { adminClient } from '../_shared/supabase.ts'
 import { enforceRateLimit, RateLimitError } from '../_shared/ratelimit.ts'
 import { reportError } from '../_shared/observe.ts'
+import { createLogger } from '../_shared/logger.ts'
+
+const log = createLogger('init-consult-booking')
 
 interface Body { tier?: 'quick' | 'standard' | 'deep' }
 
@@ -130,7 +133,7 @@ async function handler(req: Request): Promise<Response> {
     const parsed = JSON.parse(text) as Array<{ BillCode?: string }>
     billCode = parsed?.[0]?.BillCode ?? ''
   } catch (e) {
-    console.error('toyyibpay createBill failed', e)
+    log.error('toyyibpay createBill failed', e)
   }
 
   if (!billCode) {

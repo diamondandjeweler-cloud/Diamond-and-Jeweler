@@ -28,7 +28,13 @@ export default defineConfig({
       injectManifest: {
         // Precache all build outputs except sourcemaps.
         globPatterns: ['**/*.{js,css,woff2,svg,png,webp}'],
-        globIgnores: ['**/*.map', '**/workbox-*.js'],
+        // public/core chunks stay precached; authed + restaurant chunks are
+        // runtime-cached on first visit to cut SW install size.
+        globIgnores: [
+          '**/*.map',
+          '**/workbox-*.js',
+          '**/{HMDashboard,TalentDashboard,AdminDashboard,HRDashboard,PostRole,EditRole,MyRoles,InviteHM,TalentProfile,HMCompanyProfile,HMSettings,HMAccount,TalentOnboarding,HMOnboarding,CompanyRegister,CompanyVerify,OrgChartList,OrgChartNew,OrgChartDetail,Kiosk,Orders,Kds,Cashier,Floor,Inventory,Purchasing,Staff,Accounting,Promotions,Audit,Shifts,Branches,Reports,GuestMenu,RestaurantHome,RestaurantLayout,RestaurantAdmin,Track}-*.js',
+        ],
       },
       manifest: false,        // we already ship public/manifest.json
       includeAssets: [],

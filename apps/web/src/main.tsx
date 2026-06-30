@@ -77,7 +77,10 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
           immediate: false,
           onRegisteredSW(_swUrl, registration) {
             // Best-effort: periodic check so long-lived tabs pick up new deploys.
-            if (registration) setInterval(() => { void registration.update().catch(() => {}) }, 60 * 60 * 1000)
+            if (registration) {
+              const id = setInterval(() => { void registration.update().catch(() => {}) }, 60 * 60 * 1000)
+              if (import.meta.hot) import.meta.hot.dispose(() => clearInterval(id))
+            }
           },
           onRegisterError(err) {
             console.warn('[sw] register failed', err)

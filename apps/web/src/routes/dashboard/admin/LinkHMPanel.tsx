@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useSession } from '../../../state/useSession'
-import { supabase } from '../../../lib/supabase'
+import { companyIdByPrimaryHrEmail } from '../../../data/repositories/companies'
+import { floatingHms, linkedHmsForCompany } from '../../../data/repositories/hiring-managers'
+import { pendingLinkRequestHmIdsForCompany } from '../../../data/repositories/company-hm-link-requests'
 import { callFunction } from '../../../lib/functions'
 import ListSkeleton from '../../../components/ListSkeleton'
 import { Button, Alert, Input } from '../../../components/ui'
@@ -37,23 +39,14 @@ export default function LinkHMPanel() {
     if (!userId || !userEmail) { setFloaters([]); setLinked([]); setLoading(false); return }
     setLoading(true)
     try {
-      const { data: comp } = await supabase.from('companies').select('id').eq('primary_hr_email', userEmail).maybeSingle()
+      const { data: comp } = await companyIdByPrimaryHrEmail(userEmail).maybeSingle()
       if (!comp) { setFloaters([]); setLinked([]); setLoading(false); return }
 
       // Floating HMs (no company) — visible via hm_select_hr_floating policy.
-      const { data: floatData } = await supabase
-        .from('hiring_managers')
-        .select('id, job_title, created_at, profiles(full_name, email)')
-        .is('company_id', null)
-        .order('created_at', { ascending: false })
-        .limit(100)
+      const { data: floatData } = await floatingHms()
 
       // Pending requests this company already sent.
-      const { data: pendingReqs } = await supabase
-        .from('company_hm_link_requests')
-        .select('hm_id')
-        .eq('company_id', comp.id)
-        .eq('status', 'pending')
+      const { data: pendingReqs } = await pendingLinkRequestHmIdsForCompany(comp.id)
       const pendingSet = new Set((pendingReqs ?? []).map((r) => r.hm_id))
 
       const enriched = ((floatData ?? []) as unknown as FloatingHM[]).map((hm) => ({
@@ -63,11 +56,7 @@ export default function LinkHMPanel() {
       setFloaters(enriched)
 
       // Already-linked HMs.
-      const { data: linkedData } = await supabase
-        .from('hiring_managers')
-        .select('id, job_title, profiles(full_name, email)')
-        .eq('company_id', comp.id)
-        .order('created_at', { ascending: false })
+      const { data: linkedData } = await linkedHmsForCompany(comp.id)
       setLinked((linkedData ?? []) as unknown as LinkedHM[])
 
       setLoading(false)

@@ -424,6 +424,20 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
 
   const pool = talents ?? []
 
+  // ── Batch the per-candidate age/peak/DOB N+1 into ONE set-based RPC ──────────
+  // get_age_peak_scores (migration 0166) decrypts DOB + runs compute_age_match_score
+  // + get_peak_age_score for the WHOLE candidate pool in a single round-trip, instead
+  // of 3 network RPCs PER candidate (~1,500 round-trips at a 500-candidate pool).
+  // Byte-identical: it calls the same three functions with the same inputs + null
+  // guards (see migration 0166); the decrypted DOB never leaves SQL.
+  const agePeakMap = new Map<string, { age_score: number | null; peak_age_score: number | null }>()
+  if (candidateIds.length > 0) {
+    const { data: apRows } = await db.rpc('get_age_peak_scores', { p_hm_dob: hmDobText, p_talent_ids: candidateIds })
+    for (const r of ((apRows ?? []) as Array<{ talent_id: string; age_score: number | null; peak_age_score: number | null }>)) {
+      agePeakMap.set(r.talent_id, { age_score: r.age_score, peak_age_score: r.peak_age_score })
+    }
+  }
+
   const { data: ghostCfg } = await db.from('system_config').select('value')
     .eq('key', 'ghost_score_threshold').maybeSingle()
   const ghostThreshold = typeof ghostCfg?.value === 'number' ? ghostCfg.value : 3
@@ -739,33 +753,18 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
       }
     }
 
-    // Decrypt talent DOB (shared by age + peak-age-window)
-    let talentDobText: string | null = null
-    if (t.date_of_birth_encrypted) {
-      const { data: decrypted } = await db.rpc('decrypt_dob', { encrypted: t.date_of_birth_encrypted })
-      if (typeof decrypted === 'string') talentDobText = decrypted
-    }
-
-    // Age score
-    let ageScore: number | null = null
-    if (hmDobText && talentDobText) {
-      const { data: ageRaw } = await db.rpc('compute_age_match_score', { hm_dob: hmDobText, talent_dob: talentDobText })
-      if (typeof ageRaw === 'number') ageScore = ageRaw
-    }
+    // Age + peak-age — looked up from the per-generation batch (get_age_peak_scores,
+    // migration 0166) instead of decrypt_dob + compute_age_match_score +
+    // get_peak_age_score PER candidate. Byte-identical: same three functions, same
+    // null guards, computed set-based in one round-trip above.
+    const _ap = agePeakMap.get(t.id)
+    const ageScore: number | null = (_ap && typeof _ap.age_score === 'number') ? _ap.age_score : null
 
     // Monthly boost
     const monthlyBoostScore: number = (talentCharacter && monthlyBoostedChars.has(talentCharacter)) ? 100 : 0
 
     // Peak-age-window
-    let peakAgeScore: number | null = null
-    if (talentDobText && talentCharacter) {
-      const bornDay = new Date(talentDobText).getUTCDate()
-      const usesLunar = (t as unknown as { uses_lunar_calendar: boolean | null }).uses_lunar_calendar === true
-      const { data: peakRaw } = await db.rpc('get_peak_age_score', {
-        p_dob: talentDobText, p_character: talentCharacter, p_born_day: bornDay, p_uses_lunar: usesLunar,
-      })
-      if (typeof peakRaw === 'number') peakAgeScore = peakRaw
-    }
+    const peakAgeScore: number | null = (_ap && typeof _ap.peak_age_score === 'number') ? _ap.peak_age_score : null
 
     // Location — pure (computeLocationScore).
     const locationScore: number | null = computeLocationScore(talentLocMatters, talentPostcode, rolePostcode)

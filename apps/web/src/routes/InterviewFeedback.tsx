@@ -3,6 +3,10 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useSession } from '../state/useSession'
 import { supabase } from '../lib/supabase'
 import { matchForFeedback } from '../data/repositories/matches'
+import { talentIdentityById } from '../data/repositories/talents'
+import { hmIdentityById } from '../data/repositories/hiring-managers'
+import { updateInterview } from '../data/repositories/interviews'
+import { insertFeedbackSubmission } from '../data/repositories/feedback-submissions'
 import LoadingSpinner from '../components/LoadingSpinner'
 
 type Side = 'talent' | 'hm'
@@ -44,15 +48,12 @@ export default function InterviewFeedback() {
       if (!interview) { setErr('No interview row exists for this match yet.'); setLoading(false); return }
 
       // Determine side.
-      const { data: talent } = await supabase
-        .from('talents').select('id, profile_id').eq('id', match.talent_id).maybeSingle()
+      const { data: talent } = await talentIdentityById(match.talent_id).maybeSingle()
       const isTalent = talent?.profile_id === session.user.id
 
-      const { data: hm } = await supabase
-        .from('hiring_managers')
-        .select('id, profile_id')
-        .eq('id', (match.roles as unknown as { hiring_manager_id: string } | null)?.hiring_manager_id ?? '')
-        .maybeSingle()
+      const { data: hm } = await hmIdentityById(
+        (match.roles as unknown as { hiring_manager_id: string } | null)?.hiring_manager_id ?? '',
+      ).maybeSingle()
       const isHM = hm?.profile_id === session.user.id
 
       if (!isTalent && !isHM) { setErr('You are not a participant in this match.'); setLoading(false); return }
@@ -86,13 +87,12 @@ export default function InterviewFeedback() {
     else patch.feedback_manager = rating
     if (notes) patch.notes = notes
 
-    const { error } = await supabase.from('interviews')
-      .update(patch).eq('id', resolved.interview_id)
+    const { error } = await updateInterview(resolved.interview_id, patch)
     if (error) { setBusy(false); setErr(error.message); return }
 
     // Insert into the new feedback_submissions table (better audit + drives points).
     // Idempotent: unique (match_id, from_user_id) prevents double-counting.
-    const { error: fbErr } = await supabase.from('feedback_submissions').insert({
+    const { error: fbErr } = await insertFeedbackSubmission({
       match_id: matchId,
       from_user_id: session.user.id,
       rating,

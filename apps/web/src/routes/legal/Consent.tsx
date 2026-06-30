@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
+import { activeConsentVersions } from '../../data/repositories/consent-versions'
 import { Alert, Button, Card, CardBody, Spinner } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
 import { clearLegalVersionCache, consentSatisfiesVersion, getCurrentLegalVersion, normaliseLegalVersion } from '../../lib/legalVersion'
@@ -28,7 +29,7 @@ export default function Consent() {
   const [currentLegal, setCurrentLegal] = useState<string | null | 'pending'>('pending')
 
   useEffect(() => {
-    void supabase.from('consent_versions').select('*').eq('is_active', true)
+    void activeConsentVersions()
       .then(({ data }) => setVersions((data as ConsentVersion[] | null) ?? []))
     void getCurrentLegalVersion().then(setCurrentLegal)
   }, [])

@@ -119,11 +119,26 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
   // the same output. Only SUCCESSFUL results are cached, so a transient RPC error
   // still retries on the next call exactly as the un-memoized code did.
   const _rpcMemo = new Map<string, unknown>()
+  // Defensive size bound: the memo lives for a single generation and the key
+  // domain is tiny (finite character/year args), so in practice it never grows
+  // past a few hundred entries. The cap + simple FIFO eviction (drop the
+  // oldest-inserted key once we exceed the limit) is purely defensive against a
+  // pathological pool and is behaviour-identical for any realistic generation —
+  // we never come close to the bound, and only SUCCESSFUL results are cached, so
+  // an evicted key just re-fetches exactly as the un-memoized code did.
+  const _RPC_MEMO_MAX = 1000
   async function memoRpc(fn: string, args: Record<string, unknown>): Promise<unknown> {
     const key = fn + ':' + JSON.stringify(args)
     if (_rpcMemo.has(key)) return _rpcMemo.get(key)
     const { data, error } = await db.rpc(fn, args)
-    if (!error) _rpcMemo.set(key, data)
+    if (!error) {
+      if (_rpcMemo.size >= _RPC_MEMO_MAX) {
+        // FIFO eviction: Map preserves insertion order, so the first key is the oldest.
+        const oldest = _rpcMemo.keys().next().value
+        if (oldest !== undefined) _rpcMemo.delete(oldest)
+      }
+      _rpcMemo.set(key, data)
+    }
     return data
   }
 
@@ -487,25 +502,81 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
   const { data: monthlyBoostRaw } = await db.rpc('get_monthly_boost_characters', { p_month: currentMonthFirst })
   const monthlyBoostedChars: Set<string> = new Set(Array.isArray(monthlyBoostRaw) ? monthlyBoostRaw : [])
 
-  // Background overlap check (async, captures role context via closure)
-  async function backgroundOverlaps(jobAreas: unknown): Promise<boolean> {
+  // Alias tokenizer for a talent's job_areas — extracted verbatim from the prior
+  // inline loop in backgroundOverlaps so the hoisted batch query (below) and the
+  // per-candidate path tokenize IDENTICALLY. For each raw job area: lowercase +
+  // trim, push the whole string, then split on /[\s,/&]+/ and push every token of
+  // length >= 3. Returns the de-duplicated alias set (same as the old
+  // `Array.from(new Set(aliases))`).
+  function jobAreaAliases(jobAreas: unknown): string[] {
+    const aliases: string[] = []
+    if (!Array.isArray(jobAreas)) return aliases
+    for (const raw of jobAreas) {
+      const a = String(raw ?? '').toLowerCase().trim()
+      if (!a) continue
+      aliases.push(a)
+      for (const tok of a.split(/[\s,/&]+/)) {
+        if (tok && tok.length >= 3) aliases.push(tok)
+      }
+    }
+    return Array.from(new Set(aliases))
+  }
+
+  // ── Hoisted industry_synonyms batch (B2: kill the per-candidate N+1) ─────────
+  // PRIOR behaviour: backgroundOverlaps() ran a `industry_synonyms.select('canonical')
+  // .in('alias', …)` query PER CALL, and it was called up to TWICE per candidate
+  // (non-compete check + definitive background check) — up to ~1,000 round-trips
+  // for a 500-candidate pool.
+  //
+  // NOW: we collect EVERY candidate's job_areas aliases (tokenized by the SAME
+  // jobAreaAliases() the per-candidate path uses), union them into one Set, run
+  // ONE `industry_synonyms.select('alias, canonical').in('alias', […])`, and build
+  // alias -> canonical[] in memory. backgroundOverlaps() then consults this Map
+  // instead of querying the DB.
+  //
+  // BYTE-IDENTICAL guarantee: the old per-candidate query returned exactly the set
+  // of (alias, canonical) rows whose alias is in that candidate's alias set; the
+  // map lookup below reconstructs precisely those canonicals (same alias keys →
+  // same canonical rows). The `roleCanonicals.has(canonical)` early-return, the
+  // title/industry substring fallback, and every early-return are unchanged. The
+  // hoist runs only when roleCanonicals.size > 0 (the only case the prior code
+  // queried); otherwise the map stays empty and the fallback path is reached
+  // exactly as before.
+  const aliasCanonicalsMap = new Map<string, string[]>()
+  if (roleCanonicals.size > 0) {
+    const allAliases = new Set<string>()
+    for (const t of pool) {
+      const parsedResume = (t as unknown as { parsed_resume: { job_areas?: unknown } | null }).parsed_resume
+      for (const a of jobAreaAliases(parsedResume?.job_areas)) allAliases.add(a)
+    }
+    if (allAliases.size > 0) {
+      const { data: synRows } = await db.from('industry_synonyms').select('alias, canonical')
+        .in('alias', Array.from(allAliases))
+      for (const r of (synRows ?? []) as Array<{ alias: string; canonical: string }>) {
+        const arr = aliasCanonicalsMap.get(r.alias)
+        if (arr) arr.push(r.canonical)
+        else aliasCanonicalsMap.set(r.alias, [r.canonical])
+      }
+    }
+  }
+
+  // Background overlap check (synchronous now — consults the hoisted
+  // aliasCanonicalsMap above instead of querying industry_synonyms per call).
+  // Result is byte-identical to the prior per-candidate DB path: same alias
+  // tokenization (jobAreaAliases), same roleCanonicals.has(canonical) check, same
+  // title/industry substring fallback, same early-returns.
+  function backgroundOverlaps(jobAreas: unknown): boolean {
     if (!Array.isArray(jobAreas) || jobAreas.length === 0) return false
     if (roleCanonicals.size === 0 && !roleTitle && !roleIndustry) return true
     if (roleCanonicals.size > 0) {
-      const aliases: string[] = []
-      for (const raw of jobAreas) {
-        const a = String(raw ?? '').toLowerCase().trim()
-        if (!a) continue
-        aliases.push(a)
-        for (const tok of a.split(/[\s,/&]+/)) {
-          if (tok && tok.length >= 3) aliases.push(tok)
-        }
-      }
+      const aliases = jobAreaAliases(jobAreas)
       if (aliases.length > 0) {
-        const { data: synRows } = await db.from('industry_synonyms').select('canonical')
-          .in('alias', Array.from(new Set(aliases)))
-        for (const r of (synRows ?? []) as Array<{ canonical: string }>) {
-          if (roleCanonicals.has(r.canonical)) return true
+        for (const alias of aliases) {
+          const canonicals = aliasCanonicalsMap.get(alias)
+          if (!canonicals) continue
+          for (const canonical of canonicals) {
+            if (roleCanonicals.has(canonical)) return true
+          }
         }
       }
     }
@@ -597,7 +668,7 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     const educationFit: number | null = computeEducationFit(talentEduLevel, effectiveMinEdu, acceptNoExperience)
 
     // Non-compete check (needs background overlap result)
-    const bgOverlapsForNoncompete = await backgroundOverlaps(
+    const bgOverlapsForNoncompete = backgroundOverlaps(
       (parsedResume as { job_areas?: unknown } | null)?.job_areas
     )
     if (talentHasNoncompete && talentNoncompeteScope === 'same_industry' && bgOverlapsForNoncompete) return null
@@ -677,7 +748,7 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     const talentNeedsRamp = talentStage === 4
 
     // Background fit (definitive call, also used for hard-skip of qual roles)
-    const bgOverlaps = await backgroundOverlaps(talentJobAreas)
+    const bgOverlaps = backgroundOverlaps(talentJobAreas)
     let backgroundScore = 100
     let backgroundNote = 'matches'
     if (!bgOverlaps) {

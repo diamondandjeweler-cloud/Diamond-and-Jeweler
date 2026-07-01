@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { updateMatch, updateMatches, pendingApprovalMatches } from '../../../data/repositories/matches'
+import { getConfigValue, updateConfigValue } from '../../../data/repositories/systemConfig'
 import ListSkeleton from '../../../components/ListSkeleton'
 import { confirmDialog } from '../../../components/Modal'
 
@@ -58,7 +59,7 @@ export default function MatchApprovalPanel() {
 
   async function loadMode() {
     try {
-      const { data } = await supabase.from('system_config').select('value').eq('key', 'match_approval_mode').maybeSingle()
+      const { data } = await getConfigValue('match_approval_mode')
       setAutopilot((data?.value as string | null) === 'autopilot')
     } finally {
       setAutopilotLoading(false)
@@ -226,8 +227,7 @@ export default function MatchApprovalPanel() {
   async function toggleAutopilot() {
     const next = !autopilot
     setAutopilotLoading(true)
-    const { error } = await supabase.from('system_config')
-      .update({ value: next ? '"autopilot"' : '"manual"' }).eq('key', 'match_approval_mode')
+    const { error } = await updateConfigValue('match_approval_mode', next ? '"autopilot"' : '"manual"')
     if (error) { setErr(error.message); setAutopilotLoading(false); return }
 
     // When switching to autopilot, bulk-approve all currently pending matches.

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../../../lib/supabase'
+import { listConfig, updateConfigValue } from '../../../data/repositories/systemConfig'
 import { FormSkeleton } from '../../../components/ListSkeleton'
 import { confirmDialog } from '../../../components/Modal'
 
@@ -122,10 +122,7 @@ export default function SystemConfigPanel() {
 
   async function reload() {
     setLoading(true)
-    const { data, error } = await supabase
-      .from('system_config')
-      .select('key, value, updated_at')
-      .order('key')
+    const { data, error } = await listConfig()
     if (!error) {
       const list = (data ?? []) as ConfigRow[]
       setRows(list)
@@ -179,7 +176,7 @@ export default function SystemConfigPanel() {
       if (!ok) return
     }
     setSavingKey(key)
-    const { error } = await supabase.from('system_config').update({ value: parsed }).eq('key', key)
+    const { error } = await updateConfigValue(key, parsed)
     setSavingKey(null)
     if (error) {
       console.error('[SystemConfigPanel] save failed:', error)

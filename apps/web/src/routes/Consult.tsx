@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { callFunction } from '../lib/functions'
+import { getConfigValues } from '../data/repositories/systemConfig'
 import { Button, Card, Alert, PageHeader } from '../components/ui'
 import LoadingSpinner from '../components/LoadingSpinner'
 import { useSeo } from '../lib/useSeo'
@@ -60,7 +61,7 @@ export default function Consult() {
         'consult_label_quick', 'consult_label_standard', 'consult_label_deep',
         'consult_currency',
       ]
-      const { data } = await supabase.from('system_config').select('key, value').in('key', keys)
+      const { data } = await getConfigValues(keys)
       if (cancelled) return
       const map = new Map<string, unknown>()
       for (const row of (data ?? []) as Array<{ key: string; value: unknown }>) {

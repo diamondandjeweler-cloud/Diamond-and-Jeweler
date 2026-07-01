@@ -8,6 +8,7 @@ import { readDashCache, writeDashCache } from '../../../lib/dashboardCache'
 import { confirmDialog } from '../../../components/Modal'
 import type { InterviewRound, InterviewProposal } from '../../../types/db'
 import { hmCandidatesForManager, hmCandidateById, updateMatch, hiredMatchCountForRoles, activeMatchRoleIds } from '../../../data/repositories/matches'
+import { getConfigValue } from '../../../data/repositories/systemConfig'
 import { profilePointsById } from '../../../data/repositories/profiles'
 import { ACTIVE } from './types'
 import type {
@@ -307,7 +308,7 @@ export function useHmDashboardData(userId: string | undefined) {
       const coldRows = (coldRowsRes as { data: Array<{ role_id: string }> | null }).data ?? []
       if (coldRows.length > 0) {
         const [{ data: cfg }, { data: talentCountResp }] = await Promise.all([
-          supabase.from('system_config').select('value').eq('key', 'waiting_period_thresholds').maybeSingle(),
+          getConfigValue('waiting_period_thresholds'),
           supabase.rpc('active_talent_count'),
         ])
         const thresholds = (cfg?.value as Array<{ min_talents: number; max_talents: number; days: number }> | undefined) ?? []

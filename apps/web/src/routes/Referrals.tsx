@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../state/useSession'
 import { supabase } from '../lib/supabase'
+import { getConfigValues } from '../data/repositories/systemConfig'
 import { Alert, Badge, Button, Card, CardBody, EmptyState, Input, PageHeader, Select, Spinner, Stat } from '../components/ui'
 import { noticeDialog } from '../components/Modal'
 
@@ -52,7 +53,7 @@ export default function Referrals() {
       try {
         const [refsR, cfgR] = await Promise.all([
           supabase.from('referrals').select('id, referred_email, code, status, created_at, reward_claimed_at').eq('referrer_id', userId).order('created_at', { ascending: false }),
-          supabase.from('system_config').select('key, value').in('key', ['points_per_referral', 'points_referee_welcome', 'points_per_extra_match']),
+          getConfigValues(['points_per_referral', 'points_referee_welcome', 'points_per_extra_match']),
         ])
         if (cancelled) return
         setList((refsR.data as Referral[] | null) ?? [])

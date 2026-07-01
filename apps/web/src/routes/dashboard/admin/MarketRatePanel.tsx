@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../../../lib/supabase'
+import { listMarketRates, insertMarketRate, updateMarketRate, deleteMarketRate } from '../../../data/repositories/marketRates'
 import ListSkeleton from '../../../components/ListSkeleton'
 import { confirmDialog } from '../../../components/Modal'
 
@@ -30,9 +30,7 @@ export default function MarketRatePanel() {
 
   async function reload() {
     setLoading(true)
-    const { data, error } = await supabase
-      .from('market_rate_cache')
-      .select('*').order('job_title').order('experience_level')
+    const { data, error } = await listMarketRates()
     if (error) setErr(error.message)
     else setRows((data ?? []) as MarketRow[])
     setLoading(false)
@@ -54,9 +52,7 @@ export default function MarketRatePanel() {
 
   async function saveEdit() {
     if (!editing) return
-    const { error } = await supabase.from('market_rate_cache')
-      .update({ ...draft, snapshot_date: new Date().toISOString().slice(0, 10) })
-      .eq('id', editing)
+    const { error } = await updateMarketRate(editing, { ...draft, snapshot_date: new Date().toISOString().slice(0, 10) })
     if (error) { setErr(error.message); return }
     setEditing(null)
     await reload()
@@ -69,7 +65,7 @@ export default function MarketRatePanel() {
       confirmLabel: 'Delete',
       tone: 'danger',
     }))) return
-    const { error } = await supabase.from('market_rate_cache').delete().eq('id', id)
+    const { error } = await deleteMarketRate(id)
     if (error) setErr(error.message)
     else await reload()
   }
@@ -77,7 +73,7 @@ export default function MarketRatePanel() {
   async function createRow() {
     setErr(null)
     if (!draft.job_title) { setErr('Job title required'); return }
-    const { error } = await supabase.from('market_rate_cache').insert({ ...draft })
+    const { error } = await insertMarketRate({ ...draft })
     if (error) { setErr(error.message); return }
     setCreating(false)
     setDraft(EMPTY)

@@ -5,6 +5,7 @@ import { useSession } from '../state/useSession'
 import { supabase } from '../lib/supabase'
 import { getConfigValues } from '../data/repositories/systemConfig'
 import { createReferral, generateReferralCode, referralsForReferrer } from '../data/repositories/referrals'
+import { listRolesForRedeemPicker } from '../data/repositories/roles'
 import { Alert, Badge, Button, Card, CardBody, EmptyState, Input, PageHeader, Select, Spinner, Stat } from '../components/ui'
 import { noticeDialog } from '../components/Modal'
 
@@ -72,10 +73,7 @@ export default function Referrals() {
           const { data: hm } = await supabase.from('hiring_managers')
             .select('id').eq('profile_id', userId).maybeSingle()
           if (hm?.id) {
-            const { data: roleRows } = await supabase.from('roles')
-              .select('id, title, status, extra_matches_used')
-              .eq('hiring_manager_id', hm.id)
-              .order('created_at', { ascending: false })
+            const { data: roleRows } = await listRolesForRedeemPicker(hm.id)
             if (!cancelled && roleRows) {
               setRoles(roleRows as RoleOption[])
               const firstActive = (roleRows as RoleOption[]).find((r) => r.status === 'active' && (r.extra_matches_used ?? 0) < 3)

@@ -3,7 +3,8 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation, Trans } from 'react-i18next'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
-import { updateRole } from '../../data/repositories/roles'
+import { updateRole, getRoleForEdit } from '../../data/repositories/roles'
+import { getOpenHmNudgeForRole, recordStaleLoopResponse } from '../../data/repositories/staleLoopNudges'
 import { callFunction } from '../../lib/functions'
 import { FormSkeleton } from '../../components/ListSkeleton'
 import { useSeo } from '../../lib/useSeo'
@@ -66,10 +67,7 @@ export default function EditRole() {
     if (!id || !session) return
     let cancelled = false
     void (async () => {
-      const { data, error } = await supabase
-        .from('roles')
-        .select('id, hiring_manager_id, title, description, department, location, work_arrangement, experience_level, salary_min, salary_max, required_traits, status, from_onboarding')
-        .eq('id', id).single()
+      const { data, error } = await getRoleForEdit(id)
       if (cancelled) return
       if (error) { setErr(error.message); setLoading(false); return }
       // Ownership check
@@ -89,11 +87,7 @@ export default function EditRole() {
 
       // Stale-loop nudge banner: pull most recent open nudge for this role.
       if (nudgeMode) {
-        const { data: n } = await supabase.from('stale_loop_nudges')
-          .select('id, gap_payload, response_at')
-          .eq('party', 'hm').eq('subject_id', id)
-          .is('response_at', null)
-          .order('sent_at', { ascending: false }).limit(1).maybeSingle()
+        const { data: n } = await getOpenHmNudgeForRole(id)
         if (!cancelled && n) setNudge(n as NudgeRow)
       }
 
@@ -151,11 +145,8 @@ export default function EditRole() {
     // Record the HM's response to the stale-loop nudge so we can close the loop.
     if (nudge) {
       const kind = appliedKinds.size > 0 ? 'revised' : 'declined'
-      void supabase.rpc('fn_stale_loop_record_response', {
-        p_nudge_id: nudge.id,
-        p_response_kind: kind,
-        p_response_payload: { applied: Array.from(appliedKinds) },
-      }).then(() => { /* fire-and-forget */ })
+      void recordStaleLoopResponse(nudge.id, kind, { applied: Array.from(appliedKinds) })
+        .then(() => { /* fire-and-forget */ })
     }
 
     setBusy(false)

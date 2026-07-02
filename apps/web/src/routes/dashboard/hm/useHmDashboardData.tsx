@@ -10,6 +10,7 @@ import type { InterviewRound, InterviewProposal } from '../../../types/db'
 import { hmCandidatesForManager, hmCandidateById, updateMatch, hiredMatchCountForRoles, activeMatchRoleIds } from '../../../data/repositories/matches'
 import { interviewRoundsForMatches, hmInterviewProposalsForMatches } from '../../../data/repositories/interviews'
 import { getConfigValue } from '../../../data/repositories/systemConfig'
+import { countActiveRolesForHm, listRolesForHmDashboard, getOnboardingDraftRoleForHm } from '../../../data/repositories/roles'
 import { companyVerifiedById, pendingLinkRequestForHm } from '../../../data/repositories/companies'
 import { profilePointsById } from '../../../data/repositories/profiles'
 import { ACTIVE } from './types'
@@ -181,14 +182,9 @@ export function useHmDashboardData(userId: string | undefined) {
 
       const [companyOrLink, { count }, { data: roleRows }, { data: onboardingDraft }] = await Promise.all([
         companyOrLinkPromise,
-        supabase.from('roles').select('id', { count: 'exact', head: true })
-          .eq('hiring_manager_id', hm.id).eq('status', 'active'),
-        supabase.from('roles')
-          .select('id, title, status, extra_matches_used, created_at')
-          .eq('hiring_manager_id', hm.id)
-          .limit(200),
-        supabase.from('roles').select('id, title, industry, salary_min, salary_max, work_arrangement, required_traits').eq('hiring_manager_id', hm.id)
-          .eq('from_onboarding', true).eq('status', 'paused').maybeSingle(),
+        countActiveRolesForHm(hm.id),
+        listRolesForHmDashboard(hm.id),
+        getOnboardingDraftRoleForHm(hm.id),
       ])
       if (!cancelled && onboardingDraft) setOnboardingDraftRole(onboardingDraft as typeof onboardingDraft & { required_traits: string[] })
 

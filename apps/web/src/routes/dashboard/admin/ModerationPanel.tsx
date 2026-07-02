@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { supabase } from '../../../lib/supabase'
 import { callFunction } from '../../../lib/functions'
+import { countRolesByModerationStatus, listRolesForModeration } from '../../../data/repositories/roles'
+import { listRoleModerationEvents, adminDecideRoleModeration } from '../../../data/repositories/roleModeration'
 import ListSkeleton from '../../../components/ListSkeleton'
 
 type ModStatus = 'pending' | 'flagged' | 'rejected' | 'approved'
@@ -109,8 +110,7 @@ export default function ModerationPanel() {
     const buckets: Array<'flagged' | 'rejected' | 'pending'> = ['flagged', 'rejected', 'pending']
     const out = { flagged: 0, rejected: 0, pending: 0 }
     await Promise.all(buckets.map(async (s) => {
-      const { count } = await supabase.from('roles').select('id', { count: 'exact', head: true })
-        .eq('moderation_status', s)
+      const { count } = await countRolesByModerationStatus(s)
       out[s] = count ?? 0
     }))
     setCounts(out)
@@ -120,25 +120,7 @@ export default function ModerationPanel() {
     setLoading(true)
     setErr(null)
     try {
-      const { data, error } = await supabase
-        .from('roles')
-        .select(`
-          id, title, description, industry, department, location, employment_type,
-          salary_min, salary_max, hourly_rate, is_commission_based, status, created_at,
-          moderation_status, moderation_score, moderation_category, moderation_reason,
-          moderation_provider, moderation_checked_at, moderation_appeal_text,
-          moderation_appealed_at,
-          hiring_managers!inner(
-            id, profile_id,
-            companies(name),
-            profiles!hiring_managers_profile_id_fkey(email, full_name)
-          )
-        `)
-        .eq('moderation_status', tab)
-        .order('moderation_appealed_at', { ascending: false, nullsFirst: false })
-        .order('created_at', { ascending: false })
-        .limit(100)
-        .abortSignal(AbortSignal.timeout(20_000))
+      const { data, error } = await listRolesForModeration(tab, AbortSignal.timeout(20_000))
       if (error) setErr(error.message)
       else setRows((data ?? []) as unknown as FlaggedRole[])
     } catch (e) {
@@ -156,12 +138,7 @@ export default function ModerationPanel() {
 
   async function loadEvents(roleId: string) {
     if (events[roleId]) return
-    const { data } = await supabase
-      .from('role_moderation_events')
-      .select('id, event_type, prev_status, new_status, score, category, reason, provider, created_at')
-      .eq('role_id', roleId)
-      .order('created_at', { ascending: false })
-      .limit(20)
+    const { data } = await listRoleModerationEvents(roleId)
     setEvents((prev) => ({ ...prev, [roleId]: (data ?? []) as ModEvent[] }))
   }
 
@@ -181,12 +158,7 @@ export default function ModerationPanel() {
         : 'Reviewed by admin — does not meet platform policy.'
     )
     setProcessing(role.id)
-    const { error } = await supabase.rpc('admin_decide_role_moderation', {
-      p_role_id: role.id,
-      p_decision: decision,
-      p_reason: reason,
-      p_category: role.moderation_category,
-    })
+    const { error } = await adminDecideRoleModeration(role.id, decision, reason, role.moderation_category)
     if (error) {
       setErr(error.message)
       setProcessing(null)

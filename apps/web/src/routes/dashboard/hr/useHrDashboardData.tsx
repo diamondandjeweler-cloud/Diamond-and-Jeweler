@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useSession } from '../../../state/useSession'
 import { supabase } from '../../../lib/supabase'
 import { companyIdByHrEmail, companyIdById } from '../../../data/repositories/companies'
+import { listRolesForHms } from '../../../data/repositories/roles'
 import { hrPendingMatches, hrOutcomesPendingMatches, updateMatch } from '../../../data/repositories/matches'
 import { updateInterview, insertInterview, hrScheduledInterviewsForRoles } from '../../../data/repositories/interviews'
 import { readDashCache, writeDashCache } from '../../../lib/dashboardCache'
@@ -115,11 +116,7 @@ export function useHrDashboardData() {
       // §2 — One query for roles (id, title, hm_id) covers BOTH per-HM role
       // counts AND the open-roles list. Previously we ran two near-identical
       // queries sequentially.
-      const { data: rolesData } = await supabase
-        .from('roles')
-        .select('id, title, hiring_manager_id')
-        .in('hiring_manager_id', hmIds)
-        .order('created_at', { ascending: false })
+      const { data: rolesData } = await listRolesForHms(hmIds)
 
       const roleCountMap = new Map<string, number>()
       for (const r of (rolesData ?? []) as Array<{ id: string; hiring_manager_id: string }>) {

@@ -10,6 +10,7 @@ import type { InterviewRound, InterviewProposal } from '../../../types/db'
 import { talentMatchesForTalent, talentMatchById, updateMatch } from '../../../data/repositories/matches'
 import { interviewRoundsForMatches, talentInterviewProposalsForMatches } from '../../../data/repositories/interviews'
 import { profilePointsById } from '../../../data/repositories/profiles'
+import { getUrgentRoleCard } from '../../../data/repositories/roles'
 import {
   ACTIVE,
   computeProfileGaps,
@@ -172,10 +173,7 @@ export function useTalentDashboardData() {
         // page reload (BUG 5 fix). Only for find_job requests, last 24h, with
         // a result_id that still points at an active role.
         const urgentRolePromise = lastUrgent?.result_id
-          ? supabase.from('roles')
-              .select('id, title, description, salary_min, salary_max, location, work_arrangement, status')
-              .eq('id', lastUrgent.result_id)
-              .maybeSingle()
+          ? getUrgentRoleCard(lastUrgent.result_id)
           : Promise.resolve({ data: null })
 
         const [{ data, error }, urgentRoleRes] = await Promise.all([

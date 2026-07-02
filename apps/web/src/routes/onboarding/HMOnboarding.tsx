@@ -20,7 +20,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
-import { insertRole } from '../../data/repositories/roles'
+import { insertRole, getOnboardingDraftRoleId } from '../../data/repositories/roles'
 import { companyIdByCreator, companyIdByHrEmail } from '../../data/repositories/companies'
 import { profileEmailById, updateProfile } from '../../data/repositories/profiles'
 import { encryptDob, markOnboardingComplete } from '../../lib/api'
@@ -558,8 +558,7 @@ export default function HMOnboarding() {
       // Auto-create a draft role from chat data so the HM doesn't re-enter everything.
       // Only insert if no paused onboarding draft already exists (idempotent on retry).
       if (extracted.role_type) {
-        const { data: existingDraft } = await supabase.from('roles')
-          .select('id').eq('hiring_manager_id', hmRow.id).eq('from_onboarding', true).eq('status', 'paused').maybeSingle()
+        const { data: existingDraft } = await getOnboardingDraftRoleId(hmRow.id)
         if (!existingDraft) {
           const workArr = (() => {
             const w = (extracted.work_arrangement_offered ?? '').toLowerCase()

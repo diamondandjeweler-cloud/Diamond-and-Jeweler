@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { activeMatchCountForRole } from '../../data/repositories/matches'
-import { updateRole } from '../../data/repositories/roles'
+import { updateRole, listRolesWithModerationForHm } from '../../data/repositories/roles'
+import { appealRoleModeration } from '../../data/repositories/roleModeration'
 import { callFunction } from '../../lib/functions'
 import { Button, Card, Badge, Alert, EmptyState, PageHeader, BadgeTone } from '../../components/ui'
 import ListSkeleton from '../../components/ListSkeleton'
@@ -39,10 +40,7 @@ export default function MyRoles() {
       return
     }
     setAppeal({ ...appeal, busy: true, err: null })
-    const { error } = await supabase.rpc('appeal_role_moderation', {
-      p_role_id: appeal.role.id,
-      p_appeal_text: text,
-    })
+    const { error } = await appealRoleModeration(appeal.role.id, text)
     if (error) {
       setAppeal({ ...appeal, busy: false, err: error.message })
       return
@@ -66,11 +64,7 @@ export default function MyRoles() {
         setLoading(false); return
       }
 
-      const { data: roles, error } = await supabase
-        .from('roles')
-        .select('id, title, department, location, work_arrangement, experience_level, salary_min, salary_max, required_traits, required_skills, headcount, min_education_level, start_urgency, open_to, languages_required, status, created_at, vacancy_expires_at, moderation_status, moderation_reason, moderation_appealed_at, moderation_reviewed_at')
-        .eq('hiring_manager_id', hm.id)
-        .order('created_at', { ascending: false })
+      const { data: roles, error } = await listRolesWithModerationForHm(hm.id)
       if (error) {
         setErr(error.message)
         // Preserve any cached rows on error — null sentinel never replaces real data.

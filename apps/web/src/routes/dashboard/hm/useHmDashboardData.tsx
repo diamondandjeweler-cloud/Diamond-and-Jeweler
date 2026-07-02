@@ -8,6 +8,7 @@ import { readDashCache, writeDashCache } from '../../../lib/dashboardCache'
 import { confirmDialog } from '../../../components/Modal'
 import type { InterviewRound, InterviewProposal } from '../../../types/db'
 import { hmCandidatesForManager, hmCandidateById, updateMatch, hiredMatchCountForRoles, activeMatchRoleIds } from '../../../data/repositories/matches'
+import { interviewRoundsForMatches, hmInterviewProposalsForMatches } from '../../../data/repositories/interviews'
 import { getConfigValue } from '../../../data/repositories/systemConfig'
 import { companyVerifiedById, pendingLinkRequestForHm } from '../../../data/repositories/companies'
 import { profilePointsById } from '../../../data/repositories/profiles'
@@ -78,11 +79,7 @@ export function useHmDashboardData(userId: string | undefined) {
 
   const loadRounds = useCallback(async (matchIds: string[]) => {
     if (matchIds.length === 0) return
-    const { data, error } = await supabase
-      .from('interview_rounds')
-      .select('id, match_id, round_number, scheduled_at, interview_url, status')
-      .in('match_id', matchIds)
-      .order('round_number', { ascending: true })
+    const { data, error } = await interviewRoundsForMatches(matchIds)
     if (error) { setErr(error.message); return }
     if (!data) return
     const grouped: Record<string, InterviewRound[]> = {}
@@ -95,11 +92,7 @@ export function useHmDashboardData(userId: string | undefined) {
 
   const loadProposals = useCallback(async (matchIds: string[]) => {
     if (matchIds.length === 0) return
-    const { data, error } = await supabase
-      .from('interview_proposals')
-      .select('id, match_id, round_number, slot_1_at, slot_2_at, slot_3_at, status, picked_slot, decline_reason, created_at')
-      .in('match_id', matchIds)
-      .order('created_at', { ascending: false })
+    const { data, error } = await hmInterviewProposalsForMatches(matchIds)
     if (error) { setErr(error.message); return }
     if (!data) return
     const grouped: Record<string, InterviewProposal[]> = {}

@@ -29,3 +29,14 @@ export function pointTransactionsForUser(userId: string) {
 export function purchasePaymentStatusById(table: PurchaseTable, purchaseId: string) {
   return supabase.from(table).select('payment_status').eq('id', purchaseId)
 }
+
+/** RPC: award points (server-side ledger write, deduped by p_idempotency_key); callers treat as best-effort. */
+export function awardPoints(params: {
+  p_user_id: string
+  p_delta: number
+  p_reason: string
+  p_reference: Record<string, unknown>
+  p_idempotency_key: string
+}) {
+  return supabase.rpc('award_points', params)
+}

@@ -4,7 +4,7 @@ import { useSession } from '../../../state/useSession'
 import { supabase } from '../../../lib/supabase'
 import { companyIdByHrEmail, companyIdById } from '../../../data/repositories/companies'
 import { hrPendingMatches, hrOutcomesPendingMatches, updateMatch } from '../../../data/repositories/matches'
-import { updateInterview, insertInterview } from '../../../data/repositories/interviews'
+import { updateInterview, insertInterview, hrScheduledInterviewsForRoles } from '../../../data/repositories/interviews'
 import { readDashCache, writeDashCache } from '../../../lib/dashboardCache'
 import type {
   HRCacheSnapshot, PendingRow, ScheduledRow, HMRow, OpenRoleRow,
@@ -159,10 +159,7 @@ export function useHrDashboardData() {
       const [{ data: pendingData, error: pendErr }, { data: scheduledData }, { data: completedMatches }] = await Promise.all([
         hrPendingMatches(roleIds)
           .order('invited_at', { ascending: true }),
-        supabase.from('interviews')
-          .select('id, scheduled_at, format, status, match_id, meeting_url, meeting_provider, matches!inner(role_id, talent_id, roles(title))')
-          .in('matches.role_id', roleIds).in('status', ['scheduled', 'confirmed'])
-          .order('scheduled_at', { ascending: true }),
+        hrScheduledInterviewsForRoles(roleIds),
         // Outcomes pending: interviews finished but no feedback row yet from
         // either side. Counted at the matches level (not interviews) so a
         // re-scheduled interview doesn't double-count.

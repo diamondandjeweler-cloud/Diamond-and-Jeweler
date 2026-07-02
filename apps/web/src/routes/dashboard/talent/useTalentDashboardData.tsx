@@ -8,6 +8,7 @@ import { readDashCache, writeDashCache } from '../../../lib/dashboardCache'
 import { confirmDialog } from '../../../components/Modal'
 import type { InterviewRound, InterviewProposal } from '../../../types/db'
 import { talentMatchesForTalent, talentMatchById, updateMatch } from '../../../data/repositories/matches'
+import { interviewRoundsForMatches, talentInterviewProposalsForMatches } from '../../../data/repositories/interviews'
 import { profilePointsById } from '../../../data/repositories/profiles'
 import {
   ACTIVE,
@@ -74,11 +75,7 @@ export function useTalentDashboardData() {
 
   const loadRounds = useCallback(async (matchIds: string[]) => {
     if (matchIds.length === 0) return
-    const { data, error } = await supabase
-      .from('interview_rounds')
-      .select('id, match_id, round_number, scheduled_at, interview_url, status')
-      .in('match_id', matchIds)
-      .order('round_number', { ascending: true })
+    const { data, error } = await interviewRoundsForMatches(matchIds)
     if (!mountedRef.current) return
     if (error) { setErr(error.message); return }
     if (!data) return
@@ -92,11 +89,7 @@ export function useTalentDashboardData() {
 
   const loadProposals = useCallback(async (matchIds: string[]) => {
     if (matchIds.length === 0) return
-    const { data, error } = await supabase
-      .from('interview_proposals')
-      .select('id, match_id, round_number, slot_1_at, slot_2_at, slot_3_at, status, picked_slot, created_at')
-      .in('match_id', matchIds)
-      .order('created_at', { ascending: false })
+    const { data, error } = await talentInterviewProposalsForMatches(matchIds)
     if (!mountedRef.current) return
     if (error) { setErr(error.message); return }
     if (!data) return

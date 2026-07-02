@@ -3,6 +3,8 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useSession } from '../state/useSession'
 import { supabase } from '../lib/supabase'
 import { matchForFeedback } from '../data/repositories/matches'
+import { updateInterview, interviewFeedbackFlagsByMatch, insertFeedbackSubmission } from '../data/repositories/interviews'
+import { awardPoints } from '../data/repositories/points'
 import LoadingSpinner from '../components/LoadingSpinner'
 
 type Side = 'talent' | 'hm'
@@ -39,8 +41,7 @@ export default function InterviewFeedback() {
       if (cancelled) return
       if (error || !match) { setErr(error?.message ?? 'Match not found'); setLoading(false); return }
 
-      const { data: interview } = await supabase
-        .from('interviews').select('id, feedback_talent, feedback_manager').eq('match_id', matchId).maybeSingle()
+      const { data: interview } = await interviewFeedbackFlagsByMatch(matchId).maybeSingle()
       if (!interview) { setErr('No interview row exists for this match yet.'); setLoading(false); return }
 
       // Determine side.
@@ -86,13 +87,12 @@ export default function InterviewFeedback() {
     else patch.feedback_manager = rating
     if (notes) patch.notes = notes
 
-    const { error } = await supabase.from('interviews')
-      .update(patch).eq('id', resolved.interview_id)
+    const { error } = await updateInterview(resolved.interview_id, patch)
     if (error) { setBusy(false); setErr(error.message); return }
 
     // Insert into the new feedback_submissions table (better audit + drives points).
     // Idempotent: unique (match_id, from_user_id) prevents double-counting.
-    const { error: fbErr } = await supabase.from('feedback_submissions').insert({
+    const { error: fbErr } = await insertFeedbackSubmission({
       match_id: matchId,
       from_user_id: session.user.id,
       rating,
@@ -104,7 +104,7 @@ export default function InterviewFeedback() {
     if (!fbErr) {
       // Award points (best-effort — failure shouldn't block UI)
       try {
-        await supabase.rpc('award_points', {
+        await awardPoints({
           p_user_id: session.user.id,
           p_delta: 5,
           p_reason: 'feedback_submitted',

@@ -1,5 +1,6 @@
 import { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import Logo from './Logo'
 
 export type AuthVariant = 'talent' | 'hiring'
 
@@ -91,7 +92,12 @@ export default function AuthShell({
 
           {/* Logo */}
           <Link to="/" className="inline-flex items-center gap-2 mb-8" aria-label="DNJ home">
-            <Logo gradFrom={cfg.logoGradFrom} gradTo={cfg.logoGradTo} />
+            <Logo
+              size={28}
+              gradFrom={cfg.logoGradFrom}
+              gradTo={cfg.logoGradTo}
+              gradId={`logo-grad-${cfg.logoGradFrom.replace('#', '')}`}
+            />
             <span className="font-sans font-semibold text-xl tracking-wide" style={{ color: '#0a0a0f' }}>
               DNJ
             </span>
@@ -199,33 +205,3 @@ export default function AuthShell({
   )
 }
 
-function Logo({ gradFrom, gradTo }: { gradFrom: string; gradTo: string }) {
-  const id = `logo-grad-${gradFrom.replace('#', '')}`
-  return (
-    <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden>
-      <defs>
-        <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor={gradFrom} />
-          <stop offset="1" stopColor={gradTo} />
-        </linearGradient>
-      </defs>
-      <rect width="32" height="32" rx="8" fill={`url(#${id})`} />
-      <polygon
-        points="7,15 16,5 25,15"
-        fill="rgba(245,247,255,0.18)"
-        stroke="#f5f7ff"
-        strokeWidth="1.4"
-        strokeLinejoin="round"
-      />
-      <line x1="7" y1="15" x2="25" y2="15" stroke="#f5f7ff" strokeWidth="1" opacity="0.7" />
-      <polygon
-        points="7,15 25,15 16,28"
-        fill="rgba(245,247,255,0.32)"
-        stroke="#f5f7ff"
-        strokeWidth="1.4"
-        strokeLinejoin="round"
-      />
-      <circle cx="13" cy="10" r="1" fill="#f5f7ff" opacity="0.75" />
-    </svg>
-  )
-}

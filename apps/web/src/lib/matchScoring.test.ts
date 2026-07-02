@@ -1,8 +1,8 @@
 /**
  * Golden-vector + invariant tests for the matcher's final-score composition.
  *
- * Imports the pure scorer from the edge `_shared` module across the package
- * boundary (the same relative-import seam matchReasoning.test.ts uses). This is
+ * Imports the pure scorer through the shared-domain matcher barrel
+ * (src/shared/domain/matcher), which re-exports the edge `_shared` module. This is
  * the first automated coverage of the money-adjacent scoring math the audit
  * flagged as having ZERO tests — it pins the behaviour so a future weight tweak
  * or PHS change can't silently regress.
@@ -21,7 +21,7 @@ import {
   computeCultureFit,
   type ScoreDim,
   type PhsContext,
-} from '../../../../supabase/functions/_shared/match-scoring'
+} from '../shared/domain/matcher'
 
 /** A neutral PHS context: rule-based fallbacks, no ghost, no active-window boost. */
 function baseCtx(over: Partial<PhsContext> = {}): PhsContext {

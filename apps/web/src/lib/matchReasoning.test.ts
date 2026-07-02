@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildPublicReasoning, type ReasoningCandidate } from '../../../../supabase/functions/_shared/match-reasoning'
+import { buildPublicReasoning, type ReasoningCandidate } from '../shared/domain/matcher'
 
 // ---------------------------------------------------------------------------
 // Unit tests for the matcher's public-reasoning layer (extracted from

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
-import { updateMatch, updateMatches, pendingApprovalMatches } from '../../../data/repositories/matches'
+import { updateMatch, updateMatches, pendingApprovalMatches, getPendingMatchReasoning, decryptDob } from '../../../data/repositories/matches'
 import { getConfigValue, updateConfigValue } from '../../../data/repositories/systemConfig'
 import ListSkeleton from '../../../components/ListSkeleton'
 import { confirmDialog } from '../../../components/Modal'
@@ -86,7 +86,7 @@ export default function MatchApprovalPanel() {
       // above). Read them through the is_admin()-gated SECURITY DEFINER RPC and
       // merge by match id. A failure here is non-fatal — the approval queue still
       // renders, just without the scoring detail.
-      const { data: reasoning, error: rErr } = await supabase.rpc('get_pending_match_reasoning')
+      const { data: reasoning, error: rErr } = await getPendingMatchReasoning()
       if (rErr) {
         console.error('get_pending_match_reasoning failed', rErr)
         setRows(base.map((m) => ({ ...m, life_chart_score: null, internal_reasoning: null })))
@@ -145,8 +145,8 @@ export default function MatchApprovalPanel() {
     // degrades gracefully instead.
     try {
       const [hmResult, talentResult] = await Promise.all([
-        hmEnc ? supabase.rpc('decrypt_dob', { encrypted: hmEnc }) : Promise.resolve({ data: null, error: null }),
-        talentEnc ? supabase.rpc('decrypt_dob', { encrypted: talentEnc }) : Promise.resolve({ data: null, error: null }),
+        hmEnc ? decryptDob(hmEnc) : Promise.resolve({ data: null, error: null }),
+        talentEnc ? decryptDob(talentEnc) : Promise.resolve({ data: null, error: null }),
       ])
       if (hmResult.error || talentResult.error) {
         console.warn('[approvals] decrypt_dob failed', hmResult.error || talentResult.error)

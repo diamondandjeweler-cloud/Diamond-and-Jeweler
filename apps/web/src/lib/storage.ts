@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { logCvDownload } from '../data/repositories/matches'
 
 // Allowed file types and their magic byte signatures.
 // Each entry: [extension, mimeType, byteOffset, expectedBytes]
@@ -99,7 +100,7 @@ export async function signedResumeUrlForMatch(
 ): Promise<string> {
   // If the audit emit fails, the download must NOT proceed (PDPA defensibility:
   // every download must have a log row). The thrown error propagates to the caller.
-  const { error: auditErr } = await supabase.rpc('log_cv_download', { p_match_id: matchId })
+  const { error: auditErr } = await logCvDownload(matchId)
   if (auditErr) {
     // Don't expose internal error text to caller; surface as a generic deny.
     throw new Error(auditErr.message || 'cv_download_audit_failed')

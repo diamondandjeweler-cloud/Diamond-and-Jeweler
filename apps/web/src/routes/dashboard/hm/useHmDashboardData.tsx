@@ -7,7 +7,8 @@ import { formatError } from '../../../lib/errors'
 import { readDashCache, writeDashCache } from '../../../lib/dashboardCache'
 import { confirmDialog } from '../../../components/Modal'
 import type { InterviewRound, InterviewProposal } from '../../../types/db'
-import { hmCandidatesForManager, hmCandidateById, updateMatch, hiredMatchCountForRoles, activeMatchRoleIds } from '../../../data/repositories/matches'
+import { hmCandidatesForManager, hmCandidateById, updateMatch, hiredMatchCountForRoles, activeMatchRoleIds, getMatchProfilePreviews, getTalentContact } from '../../../data/repositories/matches'
+import { pendingColdStartRoleIds } from '../../../data/repositories/coldStart'
 import { interviewRoundsForMatches, hmInterviewProposalsForMatches } from '../../../data/repositories/interviews'
 import { getConfigValue } from '../../../data/repositories/systemConfig'
 import { countActiveRolesForHm, listRolesForHmDashboard, getOnboardingDraftRoleForHm } from '../../../data/repositories/roles'
@@ -109,7 +110,7 @@ export function useHmDashboardData(userId: string | undefined) {
     // One round-trip for all cards (was one RPC per card). Unauthorized/missing
     // ids are omitted by the RPC, so we backfill them with the null preview —
     // identical to the per-id path which swallowed those errors to null.
-    const { data } = await supabase.rpc('get_match_profile_previews', { p_match_ids: matchIds })
+    const { data } = await getMatchProfilePreviews(matchIds)
     if (!mountedRef.current) return
     const byId = new Map(
       ((data ?? []) as Array<{ match_id: string } & ProfilePreview>).map((r) => [
@@ -235,8 +236,7 @@ export function useHmDashboardData(userId: string | undefined) {
         : Promise.resolve({ data: [] as Array<{ role_id: string }> })
 
       const coldRowsPromise = hmRoleIds.length > 0
-        ? supabase.from('cold_start_queue').select('role_id')
-            .in('role_id', hmRoleIds).eq('status', 'pending')
+        ? pendingColdStartRoleIds(hmRoleIds)
         : Promise.resolve({ data: [] as Array<{ role_id: string }> })
 
       const [hiredRes, { data: matchData, error }, activeCountsRes, coldRowsRes] = await Promise.all([
@@ -602,7 +602,7 @@ export function useHmDashboardData(userId: string | undefined) {
     }
     setErr(null)
     try {
-      const { data, error } = await supabase.rpc('get_talent_contact', { p_match_id: matchId })
+      const { data, error } = await getTalentContact(matchId)
       if (!mountedRef.current) return
       if (error) { setErr(error.message); return }
       const row = Array.isArray(data) ? data[0] : data

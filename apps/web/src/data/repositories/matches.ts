@@ -130,7 +130,46 @@ export function pendingApprovalMatches() {
     .eq('status', 'pending_approval')
 }
 
+// ── Match-pipeline RPC wrappers ──────────────────────────────────────────────
+// Builder-returning like the reads above: callers keep their own await /
+// Promise.all placement / error handling, payload shapes are verbatim.
+
+/** Admin match list via the SECURITY DEFINER get_admin_matches RPC (F8). */
+export function getAdminMatches(pStatus: string | null, pLimit: number) {
+  return supabase.rpc('get_admin_matches', { p_status: pStatus, p_limit: pLimit })
+}
+
+/** Admin-only scoring detail (life_chart_score/internal_reasoning) for pending approvals — is_admin()-gated RPC. */
+export function getPendingMatchReasoning() {
+  return supabase.rpc('get_pending_match_reasoning')
+}
+
+/** Decrypt an encrypted DOB (admin-gated RPC; caller keeps its ternary Promise.resolve fallback). */
+export function decryptDob(encrypted: string) {
+  return supabase.rpc('decrypt_dob', { encrypted })
+}
+
+/** Profile previews for a set of match ids in one round-trip. */
+export function getMatchProfilePreviews(matchIds: string[]) {
+  return supabase.rpc('get_match_profile_previews', { p_match_ids: matchIds })
+}
+
+/** Talent contact reveal for a match (status-gated RPC). */
+export function getTalentContact(matchId: string) {
+  return supabase.rpc('get_talent_contact', { p_match_id: matchId })
+}
+
+/** PDPA CV-download audit emit — callers MUST block the download when this errors. */
+export function logCvDownload(matchId: string) {
+  return supabase.rpc('log_cv_download', { p_match_id: matchId })
+}
+
 // ── Mutations ────────────────────────────────────────────────────────────────
+/** Insert match_history audit rows (admin cold-start manual pairing; caller ignores the result by design). */
+export function insertMatchHistory(rows: Record<string, unknown>[]) {
+  return supabase.from('match_history').insert(rows)
+}
+
 /** Patch a match row by id (status transitions etc.) — reused across HR/HM. */
 export function updateMatch(matchId: string, patch: Record<string, unknown>) {
   return supabase.from('matches').update(patch).eq('id', matchId)

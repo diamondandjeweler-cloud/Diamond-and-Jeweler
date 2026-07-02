@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../../../lib/supabase'
-import { updateMatch } from '../../../data/repositories/matches'
+import { updateMatch, getAdminMatches } from '../../../data/repositories/matches'
 import ListSkeleton from '../../../components/ListSkeleton'
 import { confirmDialog } from '../../../components/Modal'
 import { formatError } from '../../../lib/errors'
@@ -38,10 +37,7 @@ export default function MatchPanel() {
     setLoading(true)
     setErr(null)
     try {
-      const { data, error } = await supabase.rpc('get_admin_matches', {
-        p_status: statusFilter === 'all' ? null : statusFilter,
-        p_limit: 100,
-      })
+      const { data, error } = await getAdminMatches(statusFilter === 'all' ? null : statusFilter, 100)
       if (error) throw error
       setRows((data ?? []) as MatchAdminRow[])
     } catch (e) {

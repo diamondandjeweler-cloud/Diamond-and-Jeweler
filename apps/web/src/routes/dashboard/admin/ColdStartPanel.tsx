@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
-import { matchedTalentIdsForRole, insertMatches } from '../../../data/repositories/matches'
+import { matchedTalentIdsForRole, insertMatches, insertMatchHistory } from '../../../data/repositories/matches'
+import { pendingColdStartQueue, markColdStartApplied } from '../../../data/repositories/coldStart'
 import ListSkeleton from '../../../components/ListSkeleton'
 
 interface ColdStartRole {
@@ -35,11 +36,7 @@ export default function ColdStartPanel() {
   async function reloadQueue() {
     setLoading(true)
     const [{ data, error }, { data: tc }] = await Promise.all([
-      supabase
-        .from('cold_start_queue')
-        .select('id, role_id, status, created_at, roles(id, title, required_traits)')
-        .eq('status', 'pending')
-        .order('created_at', { ascending: true }),
+      pendingColdStartQueue(),
       supabase.rpc('active_talent_count'),
     ])
     setActiveTalents(typeof tc === 'number' ? tc : 0)
@@ -111,10 +108,10 @@ export default function ColdStartPanel() {
     }))
     const { error: insErr } = await insertMatches(insertRows)
     if (insErr) { setErr(insErr.message); setBusy(false); return }
-    await supabase.from('match_history').insert(
+    await insertMatchHistory(
       Array.from(selected).map((tid) => ({ role_id: roleId, talent_id: tid, action: 'manual_admin' })),
     )
-    await supabase.from('cold_start_queue').update({ status: 'applied' }).eq('id', queueId)
+    await markColdStartApplied(queueId)
     setBusy(false); setOpenRoleId(null); setSelected(new Set())
     await reloadQueue()
   }

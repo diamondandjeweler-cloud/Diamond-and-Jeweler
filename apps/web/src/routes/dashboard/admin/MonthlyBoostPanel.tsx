@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
+import { boostSubmittedAtForMonth } from '../../../data/repositories/monthlyBoost'
 
 const ALL_CHARACTERS = ['W', 'E-', 'W+', 'W-', 'E', 'G+', 'G-', 'E+', 'F'] as const
 type Character = typeof ALL_CHARACTERS[number]
@@ -45,11 +46,7 @@ export default function MonthlyBoostPanel() {
     setErr(null)
     setSuccess(false)
     setChecking(true)
-    supabase
-      .from('monthly_character_boost')
-      .select('submitted_at')
-      .eq('month', month)
-      .maybeSingle()
+    boostSubmittedAtForMonth(month)
       .then(({ data }) => {
         setSubmittedAt(data?.submitted_at ?? null)
         setChecking(false)

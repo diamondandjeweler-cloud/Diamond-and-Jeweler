@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { supabase } from './supabase'
 import { useSession } from '../state/useSession'
+import { upsertPushSubscription, type PushSubscriptionJson } from '../data/repositories/pushSubscriptions'
 
 const SUBSCRIBED_KEY = 'dnj-push-subscribed'
 const ASK_DELAY_MS   = 60_000  // wait 60 s after login before nudging
@@ -50,14 +50,9 @@ export function usePushSubscription() {
         applicationServerKey: urlBase64ToUint8Array(vapidKey),
       })
 
-      const subJson = sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } }
+      const subJson = sub.toJSON() as PushSubscriptionJson
 
-      const { error } = await supabase
-        .from('push_subscriptions')
-        .upsert(
-          { user_id: session.user.id, endpoint: subJson.endpoint, subscription: subJson },
-          { onConflict: 'user_id,endpoint' }
-        )
+      const { error } = await upsertPushSubscription(session.user.id, subJson)
       if (error) throw error
 
       localStorage.setItem(SUBSCRIBED_KEY, '1')

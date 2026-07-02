@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { supabase } from '../lib/supabase'
 import { callFunction } from '../lib/functions'
+import { consultBookingStatusById } from '../data/repositories/consults'
 import { getConfigValues } from '../data/repositories/systemConfig'
 import { Button, Card, Alert, PageHeader } from '../components/ui'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -88,10 +88,7 @@ export default function Consult() {
   useEffect(() => {
     if (!onReturn) return
     let cancelled = false
-    void supabase.from('consult_bookings')
-      .select('status, video_url')
-      .eq('id', onReturn)
-      .maybeSingle()
+    void consultBookingStatusById(onReturn)
       .then(({ data }) => {
         if (cancelled || !data) return
         setReturnInfo({ status: (data as { status: string }).status, videoUrl: (data as { video_url: string | null }).video_url })

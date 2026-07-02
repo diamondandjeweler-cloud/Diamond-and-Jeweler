@@ -8,8 +8,8 @@ import {
   useCallback, useEffect, useMemo, useRef, useState, type ReactNode,
 } from 'react'
 import { Input, Select } from '../ui'
-import { supabase } from '../../lib/supabase'
 import { callFunction } from '../../lib/functions'
+import { listSkillTaxonomy } from '../../data/repositories/skillTaxonomy'
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /*  FormSection — collapsible wrapper                                         */
@@ -81,9 +81,7 @@ export function SkillChipInput({
 
   useEffect(() => {
     let cancelled = false
-    supabase.from('skill_taxonomy')
-      .select('slug, display_en, category, aliases')
-      .order('display_en')
+    listSkillTaxonomy()
       .then(({ data }) => {
         if (cancelled) return
         setPool((data ?? []) as SkillRow[])

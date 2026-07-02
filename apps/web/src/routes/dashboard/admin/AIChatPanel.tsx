@@ -1,6 +1,6 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
-import { supabase } from '../../../lib/supabase'
 import { listAiChatMessages } from '../../../data/repositories/aiChat'
+import { insertTicket } from '../../../data/repositories/supportTickets'
 import { profilesByIds } from '../../../data/repositories/profiles'
 import ListSkeleton from '../../../components/ListSkeleton'
 
@@ -186,7 +186,7 @@ export default function AIChatPanel() {
         content: m.content,
       }))
       const summary = `[Flagged from admin] ${c.first_question.slice(0, 140)}`
-      const { error } = await supabase.from('support_tickets').insert({
+      const { error } = await insertTicket({
         user_id:  c.user_id,
         category: 'enquiry',
         summary,

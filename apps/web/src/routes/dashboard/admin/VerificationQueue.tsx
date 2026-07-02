@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
+import { listUnverifiedCompanies, markCompanyVerified } from '../../../data/repositories/companies'
 import ListSkeleton from '../../../components/ListSkeleton'
 import type { CompanyRow } from '../../../types/db'
 
@@ -10,12 +11,7 @@ export default function VerificationQueue() {
 
   useEffect(() => {
     let cancelled = false
-    supabase
-      .from('companies')
-      .select('id, name, registration_number, primary_hr_email, business_license_path, created_at')
-      .eq('verified', false)
-      .order('created_at', { ascending: true })
-      .limit(100)
+    listUnverifiedCompanies()
       .then(({ data, error }) => {
         if (cancelled) return
         if (error) { setErr(error.message); setRows([]); return }
@@ -25,10 +21,7 @@ export default function VerificationQueue() {
   }, [])
 
   async function verify(id: string) {
-    const { error } = await supabase
-      .from('companies')
-      .update({ verified: true, verified_at: new Date().toISOString() })
-      .eq('id', id)
+    const { error } = await markCompanyVerified(id)
     if (error) setErr(error.message)
     else setRows((rs) => (rs ?? []).filter((r) => r.id !== id))
   }

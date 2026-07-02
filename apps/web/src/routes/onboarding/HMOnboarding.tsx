@@ -21,6 +21,7 @@ import { useNavigate } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { insertRole } from '../../data/repositories/roles'
+import { companyIdByCreator, companyIdByHrEmail } from '../../data/repositories/companies'
 import { profileEmailById, updateProfile } from '../../data/repositories/profiles'
 import { encryptDob, markOnboardingComplete } from '../../lib/api'
 import { callFunction } from '../../lib/functions'
@@ -115,21 +116,13 @@ export default function HMOnboarding() {
       if (hmRow) return // all good
 
       // No HM row — try to find a company this user owns
-      const { data: company } = await supabase
-        .from('companies')
-        .select('id')
-        .eq('created_by', userId)
-        .maybeSingle()
+      const { data: company } = await companyIdByCreator(userId)
 
       if (!company) {
         // Also try primary_hr_email match
         const { data: prof } = await profileEmailById(userId).maybeSingle()
         if (prof?.email) {
-          const { data: companyByEmail } = await supabase
-            .from('companies')
-            .select('id')
-            .eq('primary_hr_email', prof.email)
-            .maybeSingle()
+          const { data: companyByEmail } = await companyIdByHrEmail(prof.email)
           if (companyByEmail) {
             await supabase.from('hiring_managers').upsert(
               { profile_id: userId, company_id: companyByEmail.id, job_title: 'Hiring Manager' },

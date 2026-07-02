@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation, Trans } from 'react-i18next'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
+import { insertCompany } from '../../data/repositories/companies'
 import { uploadPrivate } from '../../lib/storage'
 import { markOnboardingComplete } from '../../lib/api'
 
@@ -68,7 +69,7 @@ export default function CompanyRegister() {
         : regNo
 
       const { data, error } = await Promise.race([
-        supabase.from('companies').insert({
+        insertCompany({
           name,
           registration_number: registrationNumber,
           business_license_path: licensePath,
@@ -77,7 +78,7 @@ export default function CompanyRegister() {
           industry: industry || null,
           primary_hr_email: profile?.email ?? session!.user.email!,
           created_by: userId,
-        }).select('id').single(),
+        }),
         timeout<{ data: { id: string } | null; error: unknown }>(15000, t('companyRegister.opSave')),
       ])
       if (error) throw error

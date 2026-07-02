@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSession } from '../../../state/useSession'
 import { supabase } from '../../../lib/supabase'
+import { companyIdByHrEmail, pendingLinkRequestHmIds } from '../../../data/repositories/companies'
 import { callFunction } from '../../../lib/functions'
 import ListSkeleton from '../../../components/ListSkeleton'
 import { Button, Alert, Input } from '../../../components/ui'
@@ -37,7 +38,7 @@ export default function LinkHMPanel() {
     if (!userId || !userEmail) { setFloaters([]); setLinked([]); setLoading(false); return }
     setLoading(true)
     try {
-      const { data: comp } = await supabase.from('companies').select('id').eq('primary_hr_email', userEmail).maybeSingle()
+      const { data: comp } = await companyIdByHrEmail(userEmail)
       if (!comp) { setFloaters([]); setLinked([]); setLoading(false); return }
 
       // Floating HMs (no company) — visible via hm_select_hr_floating policy.
@@ -49,11 +50,7 @@ export default function LinkHMPanel() {
         .limit(100)
 
       // Pending requests this company already sent.
-      const { data: pendingReqs } = await supabase
-        .from('company_hm_link_requests')
-        .select('hm_id')
-        .eq('company_id', comp.id)
-        .eq('status', 'pending')
+      const { data: pendingReqs } = await pendingLinkRequestHmIds(comp.id)
       const pendingSet = new Set((pendingReqs ?? []).map((r) => r.hm_id))
 
       const enriched = ((floatData ?? []) as unknown as FloatingHM[]).map((hm) => ({

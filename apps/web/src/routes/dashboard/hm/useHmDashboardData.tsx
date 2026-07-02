@@ -9,6 +9,7 @@ import { confirmDialog } from '../../../components/Modal'
 import type { InterviewRound, InterviewProposal } from '../../../types/db'
 import { hmCandidatesForManager, hmCandidateById, updateMatch, hiredMatchCountForRoles, activeMatchRoleIds } from '../../../data/repositories/matches'
 import { getConfigValue } from '../../../data/repositories/systemConfig'
+import { companyVerifiedById, pendingLinkRequestForHm } from '../../../data/repositories/companies'
 import { profilePointsById } from '../../../data/repositories/profiles'
 import { ACTIVE } from './types'
 import type {
@@ -180,13 +181,9 @@ export function useHmDashboardData(userId: string | undefined) {
       // all fire in parallel. They share hm.id and don't depend on each other.
       const cid = (hm as unknown as { company_id: string | null }).company_id
       const companyOrLinkPromise = cid
-        ? supabase.from('companies').select('verified').eq('id', cid).maybeSingle()
+        ? companyVerifiedById(cid)
             .then((res) => ({ kind: 'company' as const, data: res.data }))
-        : supabase.from('company_hm_link_requests')
-            .select('id, companies(name)')
-            .eq('hm_id', hm.id)
-            .eq('status', 'pending')
-            .maybeSingle()
+        : pendingLinkRequestForHm(hm.id)
             .then((res) => ({ kind: 'linkReq' as const, data: res.data }))
 
       const [companyOrLink, { count }, { data: roleRows }, { data: onboardingDraft }] = await Promise.all([

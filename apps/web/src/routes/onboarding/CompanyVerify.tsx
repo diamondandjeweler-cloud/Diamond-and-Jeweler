@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
-import { supabase } from '../../lib/supabase'
+import { companyForVerifyById, updateCompanyById } from '../../data/repositories/companies'
 import { uploadPrivate } from '../../lib/storage'
 
 export default function CompanyVerify() {
@@ -30,11 +30,7 @@ export default function CompanyVerify() {
   // Load company record
   useEffect(() => {
     if (!companyId || !session) return
-    supabase
-      .from('companies')
-      .select('id, name, registration_number, verified')
-      .eq('id', companyId)
-      .maybeSingle()
+    companyForVerifyById(companyId)
       .then(({ data, error }) => {
         if (error || !data) {
           setLoadErr('Company not found. The link may be invalid or expired.')
@@ -73,10 +69,7 @@ export default function CompanyVerify() {
       const update: Record<string, unknown> = { registration_number: regNo.trim() }
       if (licensePath) update.business_license_path = licensePath
 
-      const { error } = await supabase
-        .from('companies')
-        .update(update)
-        .eq('id', company.id)
+      const { error } = await updateCompanyById(company.id, update)
       if (error) throw error
 
       setDone(true)

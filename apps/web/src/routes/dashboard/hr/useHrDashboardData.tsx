@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../../state/useSession'
 import { supabase } from '../../../lib/supabase'
+import { companyIdByHrEmail, companyIdById } from '../../../data/repositories/companies'
 import { hrPendingMatches, hrOutcomesPendingMatches, updateMatch } from '../../../data/repositories/matches'
 import { updateInterview, insertInterview } from '../../../data/repositories/interviews'
 import { readDashCache, writeDashCache } from '../../../lib/dashboardCache'
@@ -64,7 +65,7 @@ export function useHrDashboardData() {
       // queries queue silently behind the refresh and appear to hang.
       await supabase.auth.getSession()
       if (cancelled) { clearTimeout(loadTimeout); return }
-      const { data: comp } = await supabase.from('companies').select('id').eq('primary_hr_email', userEmail).maybeSingle()
+      const { data: comp } = await companyIdByHrEmail(userEmail)
       if (!comp) {
         // No company row yet — surface empty lists (not skeletons) so the
         // EmptyState UI takes over instead of permanent shimmer.
@@ -272,7 +273,7 @@ export function useHrDashboardData() {
       // Refresh both the page-local HM list and the global isHM flag (drives
       // sidebar HM links + RoleGate access to /hm routes).
       await refreshIsHM()
-      const { data: comp } = await supabase.from('companies').select('id').eq('id', companyId).maybeSingle()
+      const { data: comp } = await companyIdById(companyId)
       if (comp) {
         const { data: hmRows } = await supabase
           .from('hiring_managers')

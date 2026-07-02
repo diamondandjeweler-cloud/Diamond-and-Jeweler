@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../state/useSession'
-import { supabase } from '../../lib/supabase'
+import { activeConsentVersions, recordConsent } from '../../data/repositories/consents'
 import { Alert, Button, Card, CardBody, Spinner } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
 import { clearLegalVersionCache, consentSatisfiesVersion, getCurrentLegalVersion, normaliseLegalVersion } from '../../lib/legalVersion'
@@ -28,7 +28,7 @@ export default function Consent() {
   const [currentLegal, setCurrentLegal] = useState<string | null | 'pending'>('pending')
 
   useEffect(() => {
-    void supabase.from('consent_versions').select('*').eq('is_active', true)
+    void activeConsentVersions()
       .then(({ data }) => setVersions((data as ConsentVersion[] | null) ?? []))
     void getCurrentLegalVersion().then(setCurrentLegal)
   }, [])
@@ -90,10 +90,7 @@ export default function Consent() {
     // bypasses RLS entirely; authorisation is preserved by writing only
     // the row matching auth.uid(). See migrations/0101_record_consent_rpc.sql.
     const writeOnce = async () => {
-      const { error: e1 } = await supabase.rpc('record_consent', {
-        p_version: recordedVersion,
-        p_ip_hash: ipHash,
-      })
+      const { error: e1 } = await recordConsent(recordedVersion, ipHash)
       if (e1) throw e1
     }
 

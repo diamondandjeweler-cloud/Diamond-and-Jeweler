@@ -13,7 +13,7 @@
 // CACHE: legal_version is fetched once per session and cached in
 // localStorage so we don't hit Supabase on every protected route render.
 
-import { supabase } from './supabase'
+import { getConfigValueStrict } from '../data/repositories/systemConfig'
 
 const CACHE_KEY = 'dnj-legal-version-v1'
 // 1 hour — legal version changes are rare; users re-consent manually when one happens,
@@ -67,11 +67,7 @@ export async function getCurrentLegalVersion(): Promise<string | null> {
   if (inflightFetch) return inflightFetch
 
   inflightFetch = (async () => {
-    const { data, error } = await supabase
-      .from('system_config')
-      .select('value')
-      .eq('key', 'legal_version')
-      .single()
+    const { data, error } = await getConfigValueStrict('legal_version')
     if (error || !data) return null
 
     const raw = (data.value as unknown) as string | { value?: string } | null

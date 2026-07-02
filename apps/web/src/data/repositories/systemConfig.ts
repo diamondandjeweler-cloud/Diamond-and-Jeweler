@@ -5,13 +5,14 @@ import { supabase } from '../../lib/supabase'
 // points.ts — every function returns the query BUILDER, so callers keep their
 // own terminal operator (.maybeSingle / .then / await) and each .select
 // projection is passed through verbatim from the original call site.
-//
-// NOTE: lib/legalVersion.ts intentionally keeps its own session-cached `.single()`
-// read of the `legal_version` key; that infra module is migrated separately.
-
 /** One config row by key → { data: { value } | null, error }. */
 export function getConfigValue(key: string) {
   return supabase.from('system_config').select('value').eq('key', key).maybeSingle()
+}
+
+/** One config row by key, erroring when absent (`.single()` — lib/legalVersion.ts cache read). */
+export function getConfigValueStrict(key: string) {
+  return supabase.from('system_config').select('value').eq('key', key).single()
 }
 
 /** Config rows for a set of keys → { data: Array<{ key, value }> | null, error }. */

@@ -3,6 +3,7 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useSession } from '../state/useSession'
 import { supabase } from '../lib/supabase'
 import { matchForFeedback } from '../data/repositories/matches'
+import { talentOwnershipById } from '../data/repositories/talents'
 import { updateInterview, interviewFeedbackFlagsByMatch, insertFeedbackSubmission } from '../data/repositories/interviews'
 import { awardPoints } from '../data/repositories/points'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -45,8 +46,7 @@ export default function InterviewFeedback() {
       if (!interview) { setErr('No interview row exists for this match yet.'); setLoading(false); return }
 
       // Determine side.
-      const { data: talent } = await supabase
-        .from('talents').select('id, profile_id').eq('id', match.talent_id).maybeSingle()
+      const { data: talent } = await talentOwnershipById(match.talent_id)
       const isTalent = talent?.profile_id === session.user.id
 
       const { data: hm } = await supabase

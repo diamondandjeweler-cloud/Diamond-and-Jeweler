@@ -7,8 +7,8 @@
 // type role without hand-tuning per persona.
 
 import { useEffect, useState } from 'react'
-import { supabase } from '../../../lib/supabase'
 import { useSession } from '../../../state/useSession'
+import { testerTalents, updateTalentById } from '../../../data/repositories/talents'
 import { formatError } from '../../../lib/errors'
 import ListSkeleton from '../../../components/ListSkeleton'
 
@@ -103,17 +103,7 @@ export default function DevSeedPanel() {
   async function load() {
     setLoading(true); setErr(null)
     try {
-      const { data, error } = await supabase
-        .from('talents')
-        .select(`
-          id,
-          profile_id,
-          parsed_resume,
-          interview_answers,
-          profiles!inner (email, full_name)
-        `)
-        .like('profiles.email', '%@' + TEST_DOMAIN)
-        .order('created_at', { ascending: true })
+      const { data, error } = await testerTalents('%@' + TEST_DOMAIN)
       if (error) throw error
       type Row = {
         id: string
@@ -153,15 +143,12 @@ export default function DevSeedPanel() {
       const parts = slug.split('.')
       const industry = (parts[2] ?? 'general').replace(/_/g, ' ')
 
-      const { error } = await supabase
-        .from('talents')
-        .update({
-          parsed_resume: defaultParsedResume(t.full_name, industry),
-          interview_answers: defaultInterviewAnswers(industry),
-          extraction_status: 'complete',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', t.talent_id)
+      const { error } = await updateTalentById(t.talent_id, {
+        parsed_resume: defaultParsedResume(t.full_name, industry),
+        interview_answers: defaultInterviewAnswers(industry),
+        extraction_status: 'complete',
+        updated_at: new Date().toISOString(),
+      })
       if (error) throw error
       setMsg(`Seeded ${t.full_name} (${industry}).`)
       await load()
@@ -175,15 +162,12 @@ export default function DevSeedPanel() {
   async function clearTalent(t: TesterTalent) {
     setBusyId(t.talent_id); setMsg(null); setErr(null)
     try {
-      const { error } = await supabase
-        .from('talents')
-        .update({
-          parsed_resume: null,
-          interview_answers: null,
-          extraction_status: 'pending',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', t.talent_id)
+      const { error } = await updateTalentById(t.talent_id, {
+        parsed_resume: null,
+        interview_answers: null,
+        extraction_status: 'pending',
+        updated_at: new Date().toISOString(),
+      })
       if (error) throw error
       setMsg(`Cleared ${t.full_name}.`)
       await load()

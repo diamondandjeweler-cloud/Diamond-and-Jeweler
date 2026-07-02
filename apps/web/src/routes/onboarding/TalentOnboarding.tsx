@@ -18,6 +18,8 @@ import { useNavigate } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { profileOnboardingDraftById, updateProfile } from '../../data/repositories/profiles'
+import { upsertTalent } from '../../data/repositories/talents'
+import { insertTalentDocuments } from '../../data/repositories/talentDocuments'
 import { uploadPrivate } from '../../lib/storage'
 import { encryptDob, markOnboardingComplete } from '../../lib/api'
 import { callFunction } from '../../lib/functions'
@@ -477,7 +479,7 @@ export default function TalentOnboarding() {
         // 2. Upsert the talents row (not insert) so that a page-refresh retry
         //    after the ref is reset doesn't hit the profile_id UNIQUE constraint.
         //    The async worker fills extracted fields and flips is_open_to_offers.
-        const { data: talentRow, error: insErr } = await supabase.from('talents').upsert({
+        const { data: talentRow, error: insErr } = await upsertTalent({
           profile_id: userId,
           date_of_birth_encrypted: dobEncrypted,
           gender: gender || null,
@@ -517,7 +519,7 @@ export default function TalentOnboarding() {
           candidate_types: candidateTypes,
           priority_concerns_text: priorityConcernsText.trim() || null,
           priority_concerns_atoms: priorityConcernsAtoms,
-        }, { onConflict: 'profile_id' }).select('id').single()
+        })
         if (insErr) throw insErr
         talentIdRef.current = talentRow.id
         talentId = talentRow.id
@@ -527,7 +529,7 @@ export default function TalentOnboarding() {
           { talent_id: talentId, doc_type: 'resume', storage_path: resumePath, file_name: resumeFile!.name, purge_after: null },
           ...(clPath ? [{ talent_id: talentId, doc_type: 'cover_letter', storage_path: clPath, file_name: coverLetterFile!.name, purge_after: null }] : []),
         ]
-        supabase.from('talent_documents').insert(docRows).then(() => { /* best-effort */ })
+        insertTalentDocuments(docRows).then(() => { /* best-effort */ })
         updateProfile(userId, { interview_transcript: null })
           .then(() => { /* best-effort */ })
 

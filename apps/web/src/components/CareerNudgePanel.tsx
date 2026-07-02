@@ -10,7 +10,7 @@
  */
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { getCareerNudge } from '../data/repositories/talents'
 import { useSession } from '../state/useSession'
 import { Card } from './ui'
 import type { CareerNudge } from '../shared/domain/lifeChart/yearLuck'
@@ -27,7 +27,7 @@ export default function CareerNudgePanel({ side }: Props) {
   useEffect(() => {
     if (!session) return
     let cancelled = false
-    void supabase.rpc('get_career_nudge', { p_year: new Date().getFullYear() })
+    void getCareerNudge(new Date().getFullYear())
       .then(({ data }) => {
         if (cancelled) return
         setNudge((data as CareerNudge) ?? null)

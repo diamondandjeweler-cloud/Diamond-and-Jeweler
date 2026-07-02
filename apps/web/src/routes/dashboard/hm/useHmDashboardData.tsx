@@ -11,6 +11,7 @@ import { hmCandidatesForManager, hmCandidateById, updateMatch, hiredMatchCountFo
 import { pendingColdStartRoleIds } from '../../../data/repositories/coldStart'
 import { interviewRoundsForMatches, hmInterviewProposalsForMatches } from '../../../data/repositories/interviews'
 import { getConfigValue } from '../../../data/repositories/systemConfig'
+import { activeTalentCount } from '../../../data/repositories/talents'
 import { countActiveRolesForHm, listRolesForHmDashboard, getOnboardingDraftRoleForHm } from '../../../data/repositories/roles'
 import { companyVerifiedById, pendingLinkRequestForHm } from '../../../data/repositories/companies'
 import { profilePointsById } from '../../../data/repositories/profiles'
@@ -295,7 +296,7 @@ export function useHmDashboardData(userId: string | undefined) {
       if (coldRows.length > 0) {
         const [{ data: cfg }, { data: talentCountResp }] = await Promise.all([
           getConfigValue('waiting_period_thresholds'),
-          supabase.rpc('active_talent_count'),
+          activeTalentCount(),
         ])
         const thresholds = (cfg?.value as Array<{ min_talents: number; max_talents: number; days: number }> | undefined) ?? []
         const n = typeof talentCountResp === 'number' ? talentCountResp : 0

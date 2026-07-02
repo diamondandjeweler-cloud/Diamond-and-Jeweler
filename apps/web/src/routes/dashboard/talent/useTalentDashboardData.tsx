@@ -11,6 +11,8 @@ import { talentMatchesForTalent, talentMatchById, updateMatch } from '../../../d
 import { interviewRoundsForMatches, talentInterviewProposalsForMatches } from '../../../data/repositories/interviews'
 import { profilePointsById } from '../../../data/repositories/profiles'
 import { getUrgentRoleCard } from '../../../data/repositories/roles'
+import { talentDashboardSnapshotByProfileId, talentExtractionStatusByProfileId, talentIdByProfileId, updateTalentById } from '../../../data/repositories/talents'
+import { lastCompletedFindJobRequest } from '../../../data/repositories/urgentRequests'
 import {
   ACTIVE,
   computeProfileGaps,
@@ -124,18 +126,9 @@ export function useTalentDashboardData() {
         // Phase 1 — fire all session-only queries in parallel. Previously these
         // ran sequentially, costing ~3× the network RTT on dashboard mount.
         const [{ data: talent }, { data: pointsRow }, { data: lastUrgent }] = await Promise.all([
-          supabase.from('talents').select('id, extra_matches_used, profile_expires_at, reputation_score, feedback_volume, phs_show_rate, phs_accept_rate, current_employment_status, current_salary, notice_period_days, education_level, has_management_experience, work_authorization, preferred_management_style, expected_salary_min, expected_salary_max, employment_type_preferences, location_matters, career_goal_horizon, job_intention, has_noncompete, salary_structure_preference, role_scope_preference, reason_for_leaving_category, extraction_status').eq('profile_id', userId).maybeSingle(),
+          talentDashboardSnapshotByProfileId(userId),
           profilePointsById(userId).maybeSingle(),
-          supabase
-            .from('urgent_priority_requests')
-            .select('id, result_id, completed_at')
-            .eq('user_id', userId)
-            .eq('request_type', 'find_job')
-            .eq('status', 'completed')
-            .gte('created_at', new Date(Date.now() - 24 * 3600 * 1000).toISOString())
-            .order('completed_at', { ascending: false })
-            .limit(1)
-            .maybeSingle(),
+          lastCompletedFindJobRequest(userId, new Date(Date.now() - 24 * 3600 * 1000).toISOString()),
         ])
         if (cancelled) return
         if (!talent) {
@@ -289,11 +282,7 @@ export function useTalentDashboardData() {
     if (extractionStatus !== 'pending' && extractionStatus !== 'processing') return
     let cancelled = false
     const tick = async () => {
-      const { data } = await supabase
-        .from('talents')
-        .select('extraction_status')
-        .eq('profile_id', userId)
-        .maybeSingle()
+      const { data } = await talentExtractionStatusByProfileId(userId)
       if (cancelled) return
       const next = (data as { extraction_status: string | null } | null)?.extraction_status ?? null
       if (next && next !== extractionStatus) setExtractionStatus(next)
@@ -323,15 +312,15 @@ export function useTalentDashboardData() {
     if (!session) return
     setReviving(true); setErr(null)
     try {
-      const { data: talentRow } = await supabase.from('talents').select('id').eq('profile_id', session.user.id).maybeSingle()
+      const { data: talentRow } = await talentIdByProfileId(session.user.id)
       if (!mountedRef.current) return
       if (!talentRow) return
       const newExpiry = new Date(Date.now() + 45 * 86400000).toISOString()
-      const { error } = await supabase.from('talents').update({
+      const { error } = await updateTalentById(talentRow.id, {
         profile_expires_at: newExpiry,
         is_open_to_offers: true,
         ghost_score: 0,
-      }).eq('id', talentRow.id)
+      })
       if (!mountedRef.current) return
       if (error) throw error
       setProfileExpiresAt(newExpiry)

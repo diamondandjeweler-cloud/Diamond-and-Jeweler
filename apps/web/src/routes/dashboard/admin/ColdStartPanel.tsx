@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../../../lib/supabase'
 import { matchedTalentIdsForRole, insertMatches, insertMatchHistory } from '../../../data/repositories/matches'
+import { activeTalentCount, coldStartTalentPool } from '../../../data/repositories/talents'
 import { pendingColdStartQueue, markColdStartApplied } from '../../../data/repositories/coldStart'
 import ListSkeleton from '../../../components/ListSkeleton'
 
@@ -37,7 +37,7 @@ export default function ColdStartPanel() {
     setLoading(true)
     const [{ data, error }, { data: tc }] = await Promise.all([
       pendingColdStartQueue(),
-      supabase.rpc('active_talent_count'),
+      activeTalentCount(),
     ])
     setActiveTalents(typeof tc === 'number' ? tc : 0)
     if (error) { setErr(error.message); setLoading(false); return }
@@ -74,11 +74,7 @@ export default function ColdStartPanel() {
     setSelected(new Set())
     const { data: existing } = await matchedTalentIdsForRole(roleId)
     const excluded = new Set((existing ?? []).map((m) => m.talent_id))
-    const { data } = await supabase
-      .from('talents')
-      .select('id, profile_id, derived_tags, expected_salary_min, expected_salary_max')
-      .eq('is_open_to_offers', true)
-      .limit(500)
+    const { data } = await coldStartTalentPool()
     const pool = (data ?? []).filter((t) => !excluded.has(t.id)) as EligibleTalent[]
     setTalents(pool)
   }

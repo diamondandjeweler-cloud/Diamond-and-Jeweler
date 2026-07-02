@@ -4,7 +4,7 @@
  * to age, timing, or any internal scoring signal.
  */
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { growthNudgePrefsByProfileId, updateTalentByProfileId, snoozeGrowthNudges } from '../data/repositories/talents'
 import { useSession } from '../state/useSession'
 import { Card, Button } from './ui'
 
@@ -23,10 +23,7 @@ export default function GrowthNudgePreferences() {
   useEffect(() => {
     if (!session) return
     let cancelled = false
-    void supabase.from('talents')
-      .select('growth_nudges_opt_in, growth_nudge_snooze_until, last_growth_nudge_at')
-      .eq('profile_id', session.user.id)
-      .maybeSingle()
+    void growthNudgePrefsByProfileId(session.user.id)
       .then(({ data }) => {
         if (cancelled) return
         const row = data as {
@@ -47,9 +44,7 @@ export default function GrowthNudgePreferences() {
     if (!session || !state || busy) return
     setBusy(true); setErr(null)
     try {
-      const { error } = await supabase.from('talents')
-        .update({ growth_nudges_opt_in: next })
-        .eq('profile_id', session.user.id)
+      const { error } = await updateTalentByProfileId(session.user.id, { growth_nudges_opt_in: next })
       if (error) throw error
       setState({ ...state, optIn: next })
     } catch (e) {
@@ -63,7 +58,7 @@ export default function GrowthNudgePreferences() {
     if (!session || !state || busy) return
     setBusy(true); setErr(null)
     try {
-      const { data, error } = await supabase.rpc('snooze_growth_nudges', { p_months: months })
+      const { data, error } = await snoozeGrowthNudges(months)
       if (error) throw error
       setState({ ...state, snoozeUntil: typeof data === 'string' ? data : new Date(Date.now() + months * 30 * 86400000).toISOString() })
     } catch (e) {
@@ -77,9 +72,7 @@ export default function GrowthNudgePreferences() {
     if (!session || !state || busy) return
     setBusy(true); setErr(null)
     try {
-      const { error } = await supabase.from('talents')
-        .update({ growth_nudge_snooze_until: null })
-        .eq('profile_id', session.user.id)
+      const { error } = await updateTalentByProfileId(session.user.id, { growth_nudge_snooze_until: null })
       if (error) throw error
       setState({ ...state, snoozeUntil: null })
     } catch (e) {

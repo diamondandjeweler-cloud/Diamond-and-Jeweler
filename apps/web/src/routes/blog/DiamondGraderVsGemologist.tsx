@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useSeo } from '../../lib/useSeo'
 import RelatedLinks from '../../components/RelatedLinks'
+import BlogArticleShell from './BlogArticleShell'
 
 const POST_KEYWORDS =
   'diamond grader vs gemologist, diamond grader Malaysia, gemologist Malaysia, GIA diamond grader, GIA gemologist, gemology career Malaysia, diamond grading career, gemology certification, jewelry career path, 4Cs grading, diamond appraiser, gem appraiser, AIGS gemologist, HRD diamond grader, jewelry industry careers'
@@ -52,32 +53,27 @@ export default function DiamondGraderVsGemologist() {
   })
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0B1220] text-[#0B1220] dark:text-white font-sans">
-      <header className="border-b border-gray-100 dark:border-gray-700 dark:bg-[#0B1742]">
-        <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2" aria-label="DNJ home">
-            <span className="font-extrabold tracking-tight text-[20px]">DNJ</span>
-            <span className="text-[10px] tracking-[0.22em] text-gray-500">DIAMOND &amp; JEWELER</span>
-          </Link>
-          <Link to="/careers" className="text-sm text-[#1B2A6B] underline underline-offset-4">All careers</Link>
-        </div>
-      </header>
-
-      <main className="max-w-3xl mx-auto px-6 py-10">
-        <nav aria-label="Breadcrumb" className="text-xs text-gray-500 mb-4">
-          <Link to="/" className="hover:text-[#0B1220]">Home</Link>
-          <span className="mx-2">/</span>
-          <Link to="/careers" className="hover:text-[#0B1220]">Careers</Link>
-          <span className="mx-2">/</span>
-          <span aria-current="page" className="text-gray-700">Diamond Grader vs Gemologist</span>
-        </nav>
-
-        <article>
-          <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2">CAREERS · LUXURY · 2026</p>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
-            Diamond Grader vs Gemologist — Career Path in Malaysia
-          </h1>
-          <p className="text-xs text-gray-500 mb-6">Published <time dateTime={PUBLISHED}>{PUBLISHED}</time> · 7 min read</p>
+    <BlogArticleShell
+      breadcrumbLabel="Diamond Grader vs Gemologist"
+      eyebrow="CAREERS · LUXURY · 2026"
+      title="Diamond Grader vs Gemologist — Career Path in Malaysia"
+      published={PUBLISHED}
+      readMinutes={7}
+      afterArticle={
+        <RelatedLinks
+          roles={['diamond-grader', 'gemologist', 'jeweler', 'jewelry-designer']}
+          locations={['kuala-lumpur', 'petaling-jaya']}
+          hires={[
+            { slug: 'diamond-grader', label: 'Hire diamond graders' },
+            { slug: 'gemologist', label: 'Hire gemologists' },
+          ]}
+          blog={[
+            { slug: 'urgent-hiring-malaysia-2026', label: 'Urgent Hiring Near Me 2026' },
+            { slug: 'cadet-pilot-program-malaysia-guide', label: 'Cadet Pilot Program Malaysia 2026' },
+          ]}
+        />
+      }
+    >
 
           <p className="text-gray-700 leading-relaxed mb-4">
             Two of the most respected — and most confused — careers in Malaysia's luxury and jewelry industry are
@@ -200,31 +196,6 @@ export default function DiamondGraderVsGemologist() {
               </Link>
             </div>
           </div>
-        </article>
-
-        <RelatedLinks
-          roles={['diamond-grader', 'gemologist', 'jeweler', 'jewelry-designer']}
-          locations={['kuala-lumpur', 'petaling-jaya']}
-          hires={[
-            { slug: 'diamond-grader', label: 'Hire diamond graders' },
-            { slug: 'gemologist', label: 'Hire gemologists' },
-          ]}
-          blog={[
-            { slug: 'urgent-hiring-malaysia-2026', label: 'Urgent Hiring Near Me 2026' },
-            { slug: 'cadet-pilot-program-malaysia-guide', label: 'Cadet Pilot Program Malaysia 2026' },
-          ]}
-        />
-      </main>
-
-      <footer className="border-t border-gray-100 mt-10 py-6 text-center text-xs text-gray-500">
-        <Link to="/" className="hover:text-[#0B1220]">Home</Link>
-        <span className="mx-2">·</span>
-        <Link to="/careers" className="hover:text-[#0B1220]">Careers</Link>
-        <span className="mx-2">·</span>
-        <Link to="/privacy" className="hover:text-[#0B1220]">Privacy</Link>
-        <span className="mx-2">·</span>
-        <Link to="/terms" className="hover:text-[#0B1220]">Terms</Link>
-      </footer>
-    </div>
+    </BlogArticleShell>
   )
 }

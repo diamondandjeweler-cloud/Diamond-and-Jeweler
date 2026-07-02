@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useSeo } from '../../lib/useSeo'
 import RelatedLinks from '../../components/RelatedLinks'
+import BlogArticleShell from './BlogArticleShell'
 
 const POST_KEYWORDS =
   'cadet pilot program, cadet pilot Malaysia, cadet pilot 2026, fresh graduate pilot, pilot trainee program, no experience pilot, SPM cadet pilot, diploma cadet pilot, pilot fresh graduate, aviation career Malaysia, airline pilot Malaysia, pilot job vacancy, pilot job Malaysia, AirAsia cadet, MAS cadet, Batik Air cadet, MyAirline cadet, class 1 medical, ATPL Malaysia, CPL Malaysia, frozen ATPL, ICAO English level 4'
@@ -70,32 +71,24 @@ export default function CadetPilotGuide() {
   })
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0B1220] text-[#0B1220] dark:text-white font-sans">
-      <header className="border-b border-gray-100 dark:border-gray-700 dark:bg-[#0B1742]">
-        <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2" aria-label="DNJ home">
-            <span className="font-extrabold tracking-tight text-[20px]">DNJ</span>
-            <span className="text-[10px] tracking-[0.22em] text-gray-500">DIAMOND &amp; JEWELER</span>
-          </Link>
-          <Link to="/careers" className="text-sm text-[#1B2A6B] underline underline-offset-4">All careers</Link>
-        </div>
-      </header>
-
-      <main className="max-w-3xl mx-auto px-6 py-10">
-        <nav aria-label="Breadcrumb" className="text-xs text-gray-500 mb-4">
-          <Link to="/" className="hover:text-[#0B1220]">Home</Link>
-          <span className="mx-2">/</span>
-          <Link to="/careers" className="hover:text-[#0B1220]">Careers</Link>
-          <span className="mx-2">/</span>
-          <span aria-current="page" className="text-gray-700">Cadet Pilot Program Guide</span>
-        </nav>
-
-        <article>
-          <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2">CAREERS · AVIATION · 2026</p>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
-            Cadet Pilot Program Malaysia 2026 — Full Guide
-          </h1>
-          <p className="text-xs text-gray-500 mb-6">Published <time dateTime={PUBLISHED}>{PUBLISHED}</time> · 8 min read</p>
+    <BlogArticleShell
+      breadcrumbLabel="Cadet Pilot Program Guide"
+      eyebrow="CAREERS · AVIATION · 2026"
+      title="Cadet Pilot Program Malaysia 2026 — Full Guide"
+      published={PUBLISHED}
+      readMinutes={8}
+      afterArticle={
+        <RelatedLinks
+          roles={['pilot', 'cadet-pilot', 'customer-service', 'admin-executive']}
+          locations={['kuala-lumpur', 'penang', 'johor-bahru']}
+          hires={[{ slug: 'pilot', label: 'Hire pilots' }]}
+          blog={[
+            { slug: 'urgent-hiring-malaysia-2026', label: 'Urgent Hiring Near Me 2026' },
+            { slug: 'diamond-grader-vs-gemologist', label: 'Diamond Grader vs Gemologist' },
+          ]}
+        />
+      }
+    >
 
           <p className="text-gray-700 leading-relaxed mb-4">
             Wanted to be a pilot but unsure where to start? The <strong>cadet pilot program</strong> is Malaysia's
@@ -201,28 +194,6 @@ export default function CadetPilotGuide() {
               Apply now — match with airline partners
             </Link>
           </div>
-        </article>
-
-        <RelatedLinks
-          roles={['pilot', 'cadet-pilot', 'customer-service', 'admin-executive']}
-          locations={['kuala-lumpur', 'penang', 'johor-bahru']}
-          hires={[{ slug: 'pilot', label: 'Hire pilots' }]}
-          blog={[
-            { slug: 'urgent-hiring-malaysia-2026', label: 'Urgent Hiring Near Me 2026' },
-            { slug: 'diamond-grader-vs-gemologist', label: 'Diamond Grader vs Gemologist' },
-          ]}
-        />
-      </main>
-
-      <footer className="border-t border-gray-100 mt-10 py-6 text-center text-xs text-gray-500">
-        <Link to="/" className="hover:text-[#0B1220]">Home</Link>
-        <span className="mx-2">·</span>
-        <Link to="/careers" className="hover:text-[#0B1220]">Careers</Link>
-        <span className="mx-2">·</span>
-        <Link to="/privacy" className="hover:text-[#0B1220]">Privacy</Link>
-        <span className="mx-2">·</span>
-        <Link to="/terms" className="hover:text-[#0B1220]">Terms</Link>
-      </footer>
-    </div>
+    </BlogArticleShell>
   )
 }

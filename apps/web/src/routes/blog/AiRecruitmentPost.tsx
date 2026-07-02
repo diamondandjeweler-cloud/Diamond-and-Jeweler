@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useSeo } from '../../lib/useSeo'
 import RelatedLinks from '../../components/RelatedLinks'
+import BlogArticleShell from './BlogArticleShell'
 
 const POST_KEYWORDS =
   'AI recruitment, AI recruitment Malaysia, AI job matching, curated recruitment, how AI hiring works, AI-curated matching, recruitment platform Malaysia, talent matching, three matches per role, passive talent, AI compatibility engine, modern recruitment, job matching platform'
@@ -82,34 +83,25 @@ export default function AiRecruitmentPost() {
   })
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0B1220] text-[#0B1220] dark:text-white font-sans">
-      <header className="border-b border-gray-100 dark:border-gray-700 dark:bg-[#0B1742]">
-        <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2" aria-label="DNJ home">
-            <span className="font-extrabold tracking-tight text-[20px]">DNJ</span>
-            <span className="text-[10px] tracking-[0.22em] text-gray-500">DIAMOND &amp; JEWELER</span>
-          </Link>
-          <Link to="/careers" className="text-sm text-[#1B2A6B] underline underline-offset-4">All careers</Link>
-        </div>
-      </header>
-
-      <main className="max-w-3xl mx-auto px-6 py-10">
-        <nav aria-label="Breadcrumb" className="text-xs text-gray-500 mb-4">
-          <Link to="/" className="hover:text-[#0B1220]">Home</Link>
-          <span className="mx-2">/</span>
-          <Link to="/careers" className="hover:text-[#0B1220]">Careers</Link>
-          <span className="mx-2">/</span>
-          <span aria-current="page" className="text-gray-700">How AI Recruitment Works</span>
-        </nav>
-
-        <article>
-          <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2">CAREERS · INSIGHTS · 2026</p>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
-            How AI Recruitment Works — Three Matches Beat Hundreds
-          </h1>
-          <p className="text-xs text-gray-500 mb-6">Published <time dateTime={PUBLISHED}>{PUBLISHED}</time> · 6 min read</p>
-
-          <p className="text-gray-700 leading-relaxed mb-4">
+    <BlogArticleShell
+      breadcrumbLabel="How AI Recruitment Works"
+      eyebrow="CAREERS · INSIGHTS · 2026"
+      title="How AI Recruitment Works — Three Matches Beat Hundreds"
+      published={PUBLISHED}
+      readMinutes={6}
+      afterArticle={
+        <RelatedLinks
+          roles={['pilot', 'jeweler', 'diamond-grader', 'software-developer']}
+          locations={['kuala-lumpur', 'petaling-jaya', 'penang']}
+          hires={[{ slug: 'sales-team', label: 'Hire a sales team' }]}
+          blog={[
+            { slug: 'urgent-hiring-malaysia-2026', label: 'Urgent Hiring Near Me 2026' },
+            { slug: 'luxury-retail-jobs-malaysia', label: 'Luxury Retail Jobs in KL' },
+          ]}
+        />
+      }
+    >
+      <p className="text-gray-700 leading-relaxed mb-4">
             "AI recruitment" gets used loosely. For job seekers it can sound like a black box deciding your
             future; for employers, like a gimmick. The reality is more mundane and more useful: AI is good at
             one specific thing — <strong>matching</strong> — and when it does that job well, everyone spends
@@ -189,28 +181,6 @@ export default function AiRecruitmentPost() {
               </Link>
             </div>
           </div>
-        </article>
-
-        <RelatedLinks
-          roles={['pilot', 'jeweler', 'diamond-grader', 'software-developer']}
-          locations={['kuala-lumpur', 'petaling-jaya', 'penang']}
-          hires={[{ slug: 'sales-team', label: 'Hire a sales team' }]}
-          blog={[
-            { slug: 'urgent-hiring-malaysia-2026', label: 'Urgent Hiring Near Me 2026' },
-            { slug: 'luxury-retail-jobs-malaysia', label: 'Luxury Retail Jobs in KL' },
-          ]}
-        />
-      </main>
-
-      <footer className="border-t border-gray-100 mt-10 py-6 text-center text-xs text-gray-500">
-        <Link to="/" className="hover:text-[#0B1220]">Home</Link>
-        <span className="mx-2">·</span>
-        <Link to="/careers" className="hover:text-[#0B1220]">Careers</Link>
-        <span className="mx-2">·</span>
-        <Link to="/privacy" className="hover:text-[#0B1220]">Privacy</Link>
-        <span className="mx-2">·</span>
-        <Link to="/terms" className="hover:text-[#0B1220]">Terms</Link>
-      </footer>
-    </div>
+    </BlogArticleShell>
   )
 }

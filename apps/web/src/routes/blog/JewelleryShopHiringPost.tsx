@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useSeo } from '../../lib/useSeo'
 import RelatedLinks from '../../components/RelatedLinks'
+import BlogArticleShell from './BlogArticleShell'
 
 const POST_KEYWORDS =
   'jewellery shop hiring Malaysia, jewelry shop hiring, jewellery shop jobs, jewelry retail hiring, hire jewellery staff, jewellery sales associate, bench jeweler hiring, jewellery shop career, jewelry store jobs Malaysia, jewellery retail Kuala Lumpur, what jewellery shops look for'
@@ -52,34 +53,28 @@ export default function JewelleryShopHiringPost() {
   })
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0B1220] text-[#0B1220] dark:text-white font-sans">
-      <header className="border-b border-gray-100 dark:border-gray-700 dark:bg-[#0B1742]">
-        <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2" aria-label="DNJ home">
-            <span className="font-extrabold tracking-tight text-[20px]">DNJ</span>
-            <span className="text-[10px] tracking-[0.22em] text-gray-500">DIAMOND &amp; JEWELER</span>
-          </Link>
-          <Link to="/careers" className="text-sm text-[#1B2A6B] underline underline-offset-4">All careers</Link>
-        </div>
-      </header>
-
-      <main className="max-w-3xl mx-auto px-6 py-10">
-        <nav aria-label="Breadcrumb" className="text-xs text-gray-500 mb-4">
-          <Link to="/" className="hover:text-[#0B1220]">Home</Link>
-          <span className="mx-2">/</span>
-          <Link to="/careers" className="hover:text-[#0B1220]">Careers</Link>
-          <span className="mx-2">/</span>
-          <span aria-current="page" className="text-gray-700">Jewellery Shop Hiring Malaysia</span>
-        </nav>
-
-        <article>
-          <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2">CAREERS · JEWELRY · 2026</p>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
-            Jewellery Shop Hiring Malaysia — What Companies Look For
-          </h1>
-          <p className="text-xs text-gray-500 mb-6">Published <time dateTime={PUBLISHED}>{PUBLISHED}</time> · 6 min read</p>
-
-          <p className="text-gray-700 leading-relaxed mb-4">
+    <BlogArticleShell
+      breadcrumbLabel="Jewellery Shop Hiring Malaysia"
+      eyebrow="CAREERS · JEWELRY · 2026"
+      title="Jewellery Shop Hiring Malaysia — What Companies Look For"
+      published={PUBLISHED}
+      readMinutes={6}
+      afterArticle={
+        <RelatedLinks
+          roles={['jeweler', 'diamond-grader', 'gemologist', 'luxury-retail']}
+          locations={['kuala-lumpur', 'petaling-jaya', 'penang']}
+          hires={[
+            { slug: 'jeweler', label: 'Hire jewellers' },
+            { slug: 'luxury-retail-staff', label: 'Hire luxury retail staff' },
+          ]}
+          blog={[
+            { slug: 'diamond-grader-vs-gemologist', label: 'Diamond Grader vs Gemologist' },
+            { slug: 'luxury-retail-jobs-malaysia', label: 'Luxury Retail Jobs in KL' },
+          ]}
+        />
+      }
+    >
+      <p className="text-gray-700 leading-relaxed mb-4">
             Jewellery shops are a distinctive corner of Malaysia's retail world. The products are high-value, the
             clientele is relationship-driven, and trust matters more than in almost any other shopfront. That
             shapes who jewellery shops hire — and what they look for. This guide works two ways: a practical map
@@ -158,31 +153,6 @@ export default function JewelleryShopHiringPost() {
               </Link>
             </div>
           </div>
-        </article>
-
-        <RelatedLinks
-          roles={['jeweler', 'diamond-grader', 'gemologist', 'luxury-retail']}
-          locations={['kuala-lumpur', 'petaling-jaya', 'penang']}
-          hires={[
-            { slug: 'jeweler', label: 'Hire jewellers' },
-            { slug: 'luxury-retail-staff', label: 'Hire luxury retail staff' },
-          ]}
-          blog={[
-            { slug: 'diamond-grader-vs-gemologist', label: 'Diamond Grader vs Gemologist' },
-            { slug: 'luxury-retail-jobs-malaysia', label: 'Luxury Retail Jobs in KL' },
-          ]}
-        />
-      </main>
-
-      <footer className="border-t border-gray-100 mt-10 py-6 text-center text-xs text-gray-500">
-        <Link to="/" className="hover:text-[#0B1220]">Home</Link>
-        <span className="mx-2">·</span>
-        <Link to="/careers" className="hover:text-[#0B1220]">Careers</Link>
-        <span className="mx-2">·</span>
-        <Link to="/privacy" className="hover:text-[#0B1220]">Privacy</Link>
-        <span className="mx-2">·</span>
-        <Link to="/terms" className="hover:text-[#0B1220]">Terms</Link>
-      </footer>
-    </div>
+    </BlogArticleShell>
   )
 }

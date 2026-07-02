@@ -7,10 +7,10 @@ import LoadingSpinner from './components/LoadingSpinner'
 import RouteSkeleton from './components/RouteSkeleton'
 import ProtectedRoute from './components/ProtectedRoute'
 import { prefetchRoleHome, prefetchPublicNext } from './lib/prefetch'
-import OnboardingGate from './components/OnboardingGate'
 import AdminGate from './components/AdminGate'
 import ConsentGate from './components/ConsentGate'
 import RoleGate from './components/RoleGate'
+import Guarded from './components/Guarded'
 import Landing from './routes/Landing'
 import { LOCATION_SLUGS, HIRE_SLUGS } from './data/silo-data'
 import PwaInstallBanner from './components/PwaInstallBanner'
@@ -209,22 +209,24 @@ export default function App() {
           <Route path="/onboarding/hm"      element={<ConsentGate><HMOnboarding /></ConsentGate>} />
           <Route path="/onboarding/company" element={<ConsentGate><CompanyRegister /></ConsentGate>} />
 
-          {/* Dashboards (consent + onboarding gated) */}
-          <Route path="/talent" element={<RoleGate allow={['talent']}><ConsentGate><OnboardingGate><TalentDashboard /></OnboardingGate></ConsentGate></RoleGate>} />
-          <Route path="/talent/profile" element={<RoleGate allow={['talent']}><ConsentGate><OnboardingGate><TalentProfile /></OnboardingGate></ConsentGate></RoleGate>} />
-          <Route path="/hm"     element={<RoleGate allow={['hiring_manager']} alsoAllowHRwithHM><ConsentGate><OnboardingGate><HMDashboard /></OnboardingGate></ConsentGate></RoleGate>} />
-          <Route path="/hm/post-role" element={<RoleGate allow={['hiring_manager']} alsoAllowHRwithHM><ConsentGate><OnboardingGate><PostRole /></OnboardingGate></ConsentGate></RoleGate>} />
-          <Route path="/hm/post-role/:id" element={<RoleGate allow={['hiring_manager']} alsoAllowHRwithHM><ConsentGate><OnboardingGate><PostRole /></OnboardingGate></ConsentGate></RoleGate>} />
-          <Route path="/hm/roles" element={<RoleGate allow={['hiring_manager']} alsoAllowHRwithHM><ConsentGate><OnboardingGate><MyRoles /></OnboardingGate></ConsentGate></RoleGate>} />
-          <Route path="/hm/roles/:id/edit" element={<RoleGate allow={['hiring_manager']} alsoAllowHRwithHM><ConsentGate><OnboardingGate><EditRole /></OnboardingGate></ConsentGate></RoleGate>} />
-          <Route path="/hm/company" element={<RoleGate allow={['hiring_manager']} alsoAllowHRwithHM><ConsentGate><OnboardingGate><HMCompanyProfile /></OnboardingGate></ConsentGate></RoleGate>} />
-          <Route path="/hm/settings" element={<RoleGate allow={['hiring_manager']} alsoAllowHRwithHM><ConsentGate><OnboardingGate><HMSettings /></OnboardingGate></ConsentGate></RoleGate>} />
-          <Route path="/hm/account" element={<RoleGate allow={['hiring_manager']} alsoAllowHRwithHM><ConsentGate><OnboardingGate><HMAccount /></OnboardingGate></ConsentGate></RoleGate>} />
-          <Route path="/hm/org-chart" element={<RoleGate allow={['hiring_manager']} alsoAllowHRwithHM><ConsentGate><OnboardingGate><OrgChartList /></OnboardingGate></ConsentGate></RoleGate>} />
-          <Route path="/hm/org-chart/new" element={<RoleGate allow={['hiring_manager']} alsoAllowHRwithHM><ConsentGate><OnboardingGate><OrgChartNew /></OnboardingGate></ConsentGate></RoleGate>} />
-          <Route path="/hm/org-chart/:id" element={<RoleGate allow={['hiring_manager']} alsoAllowHRwithHM><ConsentGate><OnboardingGate><OrgChartDetail /></OnboardingGate></ConsentGate></RoleGate>} />
-          <Route path="/hr"     element={<RoleGate allow={['hr_admin']}><ConsentGate><OnboardingGate><HRDashboard /></OnboardingGate></ConsentGate></RoleGate>} />
-          <Route path="/hr/invite" element={<RoleGate allow={['hr_admin']}><ConsentGate><OnboardingGate><InviteHM /></OnboardingGate></ConsentGate></RoleGate>} />
+          {/* Dashboards (consent + onboarding gated) — the RoleGate→ConsentGate
+              →OnboardingGate triple is composed into one <Guarded> wrapper.
+              Byte-identical to the hand-stacked form; see Guarded.test.tsx. */}
+          <Route path="/talent" element={<Guarded roles={['talent']}><TalentDashboard /></Guarded>} />
+          <Route path="/talent/profile" element={<Guarded roles={['talent']}><TalentProfile /></Guarded>} />
+          <Route path="/hm"     element={<Guarded roles={['hiring_manager']} alsoAllowHRwithHM><HMDashboard /></Guarded>} />
+          <Route path="/hm/post-role" element={<Guarded roles={['hiring_manager']} alsoAllowHRwithHM><PostRole /></Guarded>} />
+          <Route path="/hm/post-role/:id" element={<Guarded roles={['hiring_manager']} alsoAllowHRwithHM><PostRole /></Guarded>} />
+          <Route path="/hm/roles" element={<Guarded roles={['hiring_manager']} alsoAllowHRwithHM><MyRoles /></Guarded>} />
+          <Route path="/hm/roles/:id/edit" element={<Guarded roles={['hiring_manager']} alsoAllowHRwithHM><EditRole /></Guarded>} />
+          <Route path="/hm/company" element={<Guarded roles={['hiring_manager']} alsoAllowHRwithHM><HMCompanyProfile /></Guarded>} />
+          <Route path="/hm/settings" element={<Guarded roles={['hiring_manager']} alsoAllowHRwithHM><HMSettings /></Guarded>} />
+          <Route path="/hm/account" element={<Guarded roles={['hiring_manager']} alsoAllowHRwithHM><HMAccount /></Guarded>} />
+          <Route path="/hm/org-chart" element={<Guarded roles={['hiring_manager']} alsoAllowHRwithHM><OrgChartList /></Guarded>} />
+          <Route path="/hm/org-chart/new" element={<Guarded roles={['hiring_manager']} alsoAllowHRwithHM><OrgChartNew /></Guarded>} />
+          <Route path="/hm/org-chart/:id" element={<Guarded roles={['hiring_manager']} alsoAllowHRwithHM><OrgChartDetail /></Guarded>} />
+          <Route path="/hr"     element={<Guarded roles={['hr_admin']}><HRDashboard /></Guarded>} />
+          <Route path="/hr/invite" element={<Guarded roles={['hr_admin']}><InviteHM /></Guarded>} />
           <Route path="/admin"  element={<AdminGate><AdminDashboard /></AdminGate>} />
           <Route path="/data-requests" element={<DataRequests />} />
           <Route path="/feedback/:matchId" element={<InterviewFeedback />} />

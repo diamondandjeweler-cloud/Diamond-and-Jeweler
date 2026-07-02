@@ -55,11 +55,33 @@ module.exports = {
         'react-refresh/only-export-components': 'off',
       },
     },
-    // DEFERRED — data-access seam guard: a no-restricted-syntax WARN on direct
-    // supabase.from(...) / supabase.rpc(...) outside src/data/repositories/* was
-    // trialled but currently flags ~190 unmigrated call sites, drowning the lint
-    // signal. Re-enable it once the repository migration (src/data/repositories/*)
-    // covers the bulk of those calls so the warning count is actionable.
+    // Data-access seam guard (Phase 2 clean-arch, ENABLED at error): direct
+    // supabase.from(...) / supabase.rpc(...) belongs in src/data/repositories/*.
+    // The repository migration reached zero raw call sites in recruitment
+    // surfaces, so this is now a hard rule. lib/restaurant/** is exempt — it IS
+    // the restaurant bounded-context's data layer (routes/restaurant is already
+    // excluded via ignorePatterns above).
+    {
+      files: ['src/**/*.ts', 'src/**/*.tsx'],
+      excludedFiles: ['src/data/repositories/**', 'src/lib/restaurant/**'],
+      rules: {
+        'no-restricted-syntax': [
+          'error',
+          {
+            selector:
+              "CallExpression[callee.object.name='supabase'][callee.property.name='from']",
+            message:
+              'Direct supabase.from() outside src/data/repositories — add or reuse a repository function instead (data-access seam).',
+          },
+          {
+            selector:
+              "CallExpression[callee.object.name='supabase'][callee.property.name='rpc']",
+            message:
+              'Direct supabase.rpc() outside src/data/repositories — add or reuse a repository function instead (data-access seam).',
+          },
+        ],
+      },
+    },
     // Architectural guard-rail (WARN only): one-way module boundary. Recruitment
     // code must not import from the restaurant module (lib/restaurant/** or
     // routes/restaurant/**). The base rule applies across src; the override below

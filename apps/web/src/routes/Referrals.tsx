@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useSession } from '../state/useSession'
 import { supabase } from '../lib/supabase'
 import { getConfigValues } from '../data/repositories/systemConfig'
+import { createReferral, generateReferralCode, referralsForReferrer } from '../data/repositories/referrals'
 import { Alert, Badge, Button, Card, CardBody, EmptyState, Input, PageHeader, Select, Spinner, Stat } from '../components/ui'
 import { noticeDialog } from '../components/Modal'
 
@@ -52,7 +53,7 @@ export default function Referrals() {
     void (async () => {
       try {
         const [refsR, cfgR] = await Promise.all([
-          supabase.from('referrals').select('id, referred_email, code, status, created_at, reward_claimed_at').eq('referrer_id', userId).order('created_at', { ascending: false }),
+          referralsForReferrer(userId),
           getConfigValues(['points_per_referral', 'points_referee_welcome', 'points_per_extra_match']),
         ])
         if (cancelled) return
@@ -110,13 +111,13 @@ export default function Referrals() {
       const timedOut = () => new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('Request timed out. Please try again.')), 10000)
       )
-      const { data: code } = await Promise.race([supabase.rpc('generate_referral_code').then(r => r), timedOut()])
+      const { data: code } = await Promise.race([generateReferralCode().then(r => r), timedOut()])
       const { data, error } = await Promise.race([
-        supabase.from('referrals').insert({
+        createReferral({
           referrer_id: session.user.id,
           referred_email: email.trim().toLowerCase(),
           code: (code as string) ?? Math.random().toString(36).slice(2, 10).toUpperCase(),
-        }).select().single().then(r => r),
+        }).then(r => r),
         timedOut(),
       ])
       if (error) throw error

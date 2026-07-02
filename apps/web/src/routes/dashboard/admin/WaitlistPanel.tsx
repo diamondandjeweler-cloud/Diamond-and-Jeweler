@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../../../lib/supabase'
+import { approveWaitlistEntry, listWaitlist } from '../../../data/repositories/waitlist'
 import ListSkeleton from '../../../components/ListSkeleton'
 
 interface WaitlistRow {
@@ -18,11 +18,7 @@ export default function WaitlistPanel() {
 
   useEffect(() => {
     let cancelled = false
-    supabase
-      .from('waitlist')
-      .select('id, email, full_name, intended_role, approved, created_at')
-      .order('created_at', { ascending: false })
-      .limit(500)
+    listWaitlist()
       .then(({ data, error }) => {
         if (cancelled) return
         if (error) { setErr(error.message); setRows([]); return }
@@ -32,10 +28,7 @@ export default function WaitlistPanel() {
   }, [])
 
   async function approve(id: string) {
-    const { error } = await supabase
-      .from('waitlist')
-      .update({ approved: true, approved_at: new Date().toISOString() })
-      .eq('id', id)
+    const { error } = await approveWaitlistEntry(id)
     if (error) setErr(error.message)
     else setRows((rs) => (rs ?? []).map((r) => (r.id === id ? { ...r, approved: true } : r)))
   }

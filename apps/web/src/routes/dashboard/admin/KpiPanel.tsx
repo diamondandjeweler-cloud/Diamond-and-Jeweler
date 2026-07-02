@@ -1,4 +1,4 @@
-import { supabase } from '../../../lib/supabase'
+import { getAdminKpis } from '../../../data/repositories/admin'
 import { formatError } from '../../../lib/errors'
 import { readDashCache, writeDashCache } from '../../../lib/dashboardCache'
 import { useQuery } from '../../../lib/useQuery'
@@ -32,7 +32,7 @@ const TRACKED_STATUSES = [
 // even for admin callers. The RPC bypasses RLS entirely and gates on
 // is_admin() inside its body — see migrations/0100_admin_kpis_rpc.sql.
 async function fetchKpis(): Promise<Kpis> {
-  const { data, error } = await supabase.rpc('get_admin_kpis')
+  const { data, error } = await getAdminKpis()
   if (error) throw error
   if (!data) throw new Error('get_admin_kpis returned no data')
   return data as Kpis

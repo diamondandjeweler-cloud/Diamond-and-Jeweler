@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { supabase } from '../../../lib/supabase'
+import { getAdminAuditLog } from '../../../data/repositories/admin'
 import ListSkeleton from '../../../components/ListSkeleton'
 import { formatError } from '../../../lib/errors'
 import { useQuery } from '../../../lib/useQuery'
@@ -48,7 +48,7 @@ async function fetchAuditLog(
   // The RPC accepts uuid params — only forward a value when the input is
   // a well-formed UUID; ignore otherwise so partial typing doesn't 400.
   const uuidValue = trimmed && UUID_RE.test(trimmed) ? trimmed : null
-  const { data, error } = await supabase.rpc('get_admin_audit_log', {
+  const { data, error } = await getAdminAuditLog({
     p_action:     actionFilter || null,
     // The original UI did an OR on actor_id/subject_id with one input;
     // RPC takes both — we pass the same UUID to both, then dedupe.

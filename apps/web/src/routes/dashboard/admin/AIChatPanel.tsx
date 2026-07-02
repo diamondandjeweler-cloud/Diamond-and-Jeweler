@@ -1,5 +1,6 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
+import { listAiChatMessages } from '../../../data/repositories/aiChat'
 import { profilesByIds } from '../../../data/repositories/profiles'
 import ListSkeleton from '../../../components/ListSkeleton'
 
@@ -73,11 +74,7 @@ export default function AIChatPanel() {
   const reload = useCallback(async () => {
     setLoading(true)
     setErr(null)
-    let q = supabase
-      .from('ai_chat_messages')
-      .select('id, conversation_id, user_id, endpoint, role, content, provider, model, input_tokens, output_tokens, user_role, created_at')
-      .order('created_at', { ascending: false })
-      .limit(FETCH_LIMIT)
+    let q = listAiChatMessages(FETCH_LIMIT)
 
     if (dateRange !== 'all') {
       const days = dateRange === 'today' ? 1 : dateRange === '7d' ? 7 : 30

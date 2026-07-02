@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../../../lib/supabase'
+import { insertTag, listTags, setTagActive } from '../../../data/repositories/tagDictionary'
 import ListSkeleton from '../../../components/ListSkeleton'
 
 interface TagRow {
@@ -20,10 +20,7 @@ export default function TagPanel() {
   useEffect(() => { void reload() }, [])
 
   async function reload() {
-    const { data, error } = await supabase
-      .from('tag_dictionary')
-      .select('id, tag_name, category, weight_multiplier, is_active')
-      .order('tag_name')
+    const { data, error } = await listTags()
     if (error) setErr(error.message)
     else setRows((data ?? []) as TagRow[])
     setLoading(false)
@@ -31,7 +28,7 @@ export default function TagPanel() {
 
   async function addTag() {
     if (!newTag.trim()) return
-    const { error } = await supabase.from('tag_dictionary').insert({
+    const { error } = await insertTag({
       tag_name: newTag.trim(),
       category: newCat,
       weight_multiplier: 1.0,
@@ -41,10 +38,7 @@ export default function TagPanel() {
   }
 
   async function toggleActive(r: TagRow) {
-    const { error } = await supabase
-      .from('tag_dictionary')
-      .update({ is_active: !r.is_active })
-      .eq('id', r.id)
+    const { error } = await setTagActive(r.id, !r.is_active)
     if (error) setErr(error.message)
     else await reload()
   }

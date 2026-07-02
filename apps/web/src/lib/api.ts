@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { profileById, updateProfile } from '../data/repositories/profiles'
+import { addWaitlistEntry } from '../data/repositories/waitlist'
 import type { Profile } from '../types/db'
 
 export async function fetchProfile(userId: string): Promise<Profile | null> {
@@ -39,13 +40,11 @@ export async function submitWaitlist(
   intendedRole: 'talent' | 'hr_admin',
   note?: string,
 ) {
-  const { error } = await supabase
-    .from('waitlist')
-    .insert({
-      email,
-      full_name: fullName,
-      intended_role: intendedRole,
-      note: note ?? null,
-    })
+  const { error } = await addWaitlistEntry({
+    email,
+    full_name: fullName,
+    intended_role: intendedRole,
+    note: note ?? null,
+  })
   if (error) throw error
 }

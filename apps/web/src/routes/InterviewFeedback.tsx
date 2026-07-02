@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useSession } from '../state/useSession'
-import { supabase } from '../lib/supabase'
 import { matchForFeedback } from '../data/repositories/matches'
+import { hmProfileLinkById } from '../data/repositories/hiringManagers'
 import { talentOwnershipById } from '../data/repositories/talents'
 import { updateInterview, interviewFeedbackFlagsByMatch, insertFeedbackSubmission } from '../data/repositories/interviews'
 import { awardPoints } from '../data/repositories/points'
@@ -49,11 +49,7 @@ export default function InterviewFeedback() {
       const { data: talent } = await talentOwnershipById(match.talent_id)
       const isTalent = talent?.profile_id === session.user.id
 
-      const { data: hm } = await supabase
-        .from('hiring_managers')
-        .select('id, profile_id')
-        .eq('id', (match.roles as unknown as { hiring_manager_id: string } | null)?.hiring_manager_id ?? '')
-        .maybeSingle()
+      const { data: hm } = await hmProfileLinkById((match.roles as unknown as { hiring_manager_id: string } | null)?.hiring_manager_id ?? '')
       const isHM = hm?.profile_id === session.user.id
 
       if (!isTalent && !isHM) { setErr('You are not a participant in this match.'); setLoading(false); return }

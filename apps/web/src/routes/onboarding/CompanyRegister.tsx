@@ -4,6 +4,7 @@ import { useTranslation, Trans } from 'react-i18next'
 import { useSession } from '../../state/useSession'
 import { supabase } from '../../lib/supabase'
 import { insertCompany } from '../../data/repositories/companies'
+import { upsertHmCompanyLink } from '../../data/repositories/hiringManagers'
 import { uploadPrivate } from '../../lib/storage'
 import { markOnboardingComplete } from '../../lib/api'
 
@@ -84,10 +85,7 @@ export default function CompanyRegister() {
       if (error) throw error
 
       if (isHM && data?.id) {
-        const { error: hmErr } = await supabase.from('hiring_managers').upsert(
-          { profile_id: userId, company_id: data.id, job_title: 'Hiring Manager' },
-          { onConflict: 'profile_id' },
-        )
+        const { error: hmErr } = await upsertHmCompanyLink(userId, data.id)
         if (hmErr) throw hmErr
       }
 

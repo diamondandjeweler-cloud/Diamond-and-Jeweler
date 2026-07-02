@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation, Trans } from 'react-i18next'
 import { useSession } from '../../state/useSession'
-import { supabase } from '../../lib/supabase'
 import { updateRole, getRoleForEdit } from '../../data/repositories/roles'
+import { hmIdByIdAndProfileId } from '../../data/repositories/hiringManagers'
 import { getOpenHmNudgeForRole, recordStaleLoopResponse } from '../../data/repositories/staleLoopNudges'
 import { callFunction } from '../../lib/functions'
 import { FormSkeleton } from '../../components/ListSkeleton'
@@ -71,8 +71,7 @@ export default function EditRole() {
       if (cancelled) return
       if (error) { setErr(error.message); setLoading(false); return }
       // Ownership check
-      const { data: hm, error: hmErr } = await supabase.from('hiring_managers')
-        .select('id').eq('id', data.hiring_manager_id).eq('profile_id', session.user.id).maybeSingle()
+      const { data: hm, error: hmErr } = await hmIdByIdAndProfileId(data.hiring_manager_id, session.user.id)
       if (hmErr) {
         setErr(hmErr.message)
       } else if (!hm) {

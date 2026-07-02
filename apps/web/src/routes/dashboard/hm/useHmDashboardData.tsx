@@ -15,6 +15,7 @@ import { activeTalentCount } from '../../../data/repositories/talents'
 import { countActiveRolesForHm, listRolesForHmDashboard, getOnboardingDraftRoleForHm } from '../../../data/repositories/roles'
 import { companyVerifiedById, pendingLinkRequestForHm } from '../../../data/repositories/companies'
 import { profilePointsById } from '../../../data/repositories/profiles'
+import { hmDashboardRowByProfileId } from '../../../data/repositories/hiringManagers'
 import { ACTIVE } from './types'
 import type {
   HMCacheSnapshot, CandidateRow, ProfilePreview, ContactInfo, WaitingInfo, RoleExtraInfo,
@@ -159,7 +160,7 @@ export function useHmDashboardData(userId: string | undefined) {
       // Phase 1 — hiring_managers + profiles.points fire in parallel.
       // Both only depend on session.user.id.
       const [{ data: hm }, { data: pointsRow }] = await Promise.all([
-        supabase.from('hiring_managers').select('id, company_id, reputation_score, feedback_volume, phs_offer_accept_rate, hm_quality_factor, hm_cancel_rate, date_of_birth_encrypted').eq('profile_id', userId).maybeSingle(),
+        hmDashboardRowByProfileId(userId),
         profilePointsById(userId).maybeSingle(),
       ])
       if (!hm) {

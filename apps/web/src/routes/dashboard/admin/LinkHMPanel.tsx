@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSession } from '../../../state/useSession'
-import { supabase } from '../../../lib/supabase'
 import { companyIdByHrEmail, pendingLinkRequestHmIds } from '../../../data/repositories/companies'
+import { listFloatingHms, listLinkedHmsForCompany } from '../../../data/repositories/hiringManagers'
 import { callFunction } from '../../../lib/functions'
 import ListSkeleton from '../../../components/ListSkeleton'
 import { Button, Alert, Input } from '../../../components/ui'
@@ -42,12 +42,7 @@ export default function LinkHMPanel() {
       if (!comp) { setFloaters([]); setLinked([]); setLoading(false); return }
 
       // Floating HMs (no company) — visible via hm_select_hr_floating policy.
-      const { data: floatData } = await supabase
-        .from('hiring_managers')
-        .select('id, job_title, created_at, profiles(full_name, email)')
-        .is('company_id', null)
-        .order('created_at', { ascending: false })
-        .limit(100)
+      const { data: floatData } = await listFloatingHms()
 
       // Pending requests this company already sent.
       const { data: pendingReqs } = await pendingLinkRequestHmIds(comp.id)
@@ -60,11 +55,7 @@ export default function LinkHMPanel() {
       setFloaters(enriched)
 
       // Already-linked HMs.
-      const { data: linkedData } = await supabase
-        .from('hiring_managers')
-        .select('id, job_title, profiles(full_name, email)')
-        .eq('company_id', comp.id)
-        .order('created_at', { ascending: false })
+      const { data: linkedData } = await listLinkedHmsForCompany(comp.id)
       setLinked((linkedData ?? []) as unknown as LinkedHM[])
 
       setLoading(false)

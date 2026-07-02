@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom'
 import { fmt } from '../../lib/format'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../state/useSession'
-import { supabase } from '../../lib/supabase'
 import { activeMatchCountForRole } from '../../data/repositories/matches'
+import { hmIdByProfileId } from '../../data/repositories/hiringManagers'
 import { updateRole, listRolesWithModerationForHm } from '../../data/repositories/roles'
 import { appealRoleModeration } from '../../data/repositories/roleModeration'
 import { callFunction } from '../../lib/functions'
@@ -56,7 +56,7 @@ export default function MyRoles() {
   async function reload() {
     setLoading(true)
     try {
-      const { data: hm } = await supabase.from('hiring_managers').select('id').eq('profile_id', userId!).maybeSingle()
+      const { data: hm } = await hmIdByProfileId(userId!)
       if (!hm) {
         // No HM row — settle to empty so EmptyState renders instead of indefinite skeleton.
         setRows([])

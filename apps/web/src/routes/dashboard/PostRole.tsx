@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { fmt } from '../../lib/format'
 import { useSession } from '../../state/useSession'
-import { supabase } from '../../lib/supabase'
 import { updateRole, insertRole, getRoleDraft, saveRoleDraft, deleteRoleDraft, getRoleFullById, getRoleCommitCheck } from '../../data/repositories/roles'
+import { hmIdByProfileId } from '../../data/repositories/hiringManagers'
 import { getMarketRate } from '../../data/repositories/marketRates'
 import { callFunction } from '../../lib/functions'
 import { FormSkeleton } from '../../components/ListSkeleton'
@@ -188,8 +188,7 @@ export default function PostRole() {
     if (!userId) { setLoading(false); return }
     let cancelled = false
     void (async () => {
-      const { data: hm, error } = await supabase
-        .from('hiring_managers').select('id').eq('profile_id', userId).maybeSingle()
+      const { data: hm, error } = await hmIdByProfileId(userId)
       if (cancelled) return
       if (error) { setErr(error.message); setLoading(false); return }
       setHmId(hm?.id ?? null)

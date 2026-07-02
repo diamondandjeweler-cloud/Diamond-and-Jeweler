@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 import { getConfigValues } from '../data/repositories/systemConfig'
 import { createReferral, generateReferralCode, referralsForReferrer } from '../data/repositories/referrals'
 import { listRolesForRedeemPicker } from '../data/repositories/roles'
+import { hmIdByProfileId } from '../data/repositories/hiringManagers'
 import { Alert, Badge, Button, Card, CardBody, EmptyState, Input, PageHeader, Select, Spinner, Stat } from '../components/ui'
 import { noticeDialog } from '../components/Modal'
 
@@ -70,8 +71,7 @@ export default function Referrals() {
 
         // For HMs, fetch their active roles so the redeem picker can be a dropdown.
         if (profile?.role === 'hiring_manager') {
-          const { data: hm } = await supabase.from('hiring_managers')
-            .select('id').eq('profile_id', userId).maybeSingle()
+          const { data: hm } = await hmIdByProfileId(userId)
           if (hm?.id) {
             const { data: roleRows } = await listRolesForRedeemPicker(hm.id)
             if (!cancelled && roleRows) {

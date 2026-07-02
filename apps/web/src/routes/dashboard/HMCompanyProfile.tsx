@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../state/useSession'
-import { supabase } from '../../lib/supabase'
 import { updateProfile } from '../../data/repositories/profiles'
+import { hmCompanyProfileByProfileId, updateHmJobTitleByProfileId } from '../../data/repositories/hiringManagers'
 import { FormSkeleton } from '../../components/ListSkeleton'
 import { Button, Input, Alert, PageHeader } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
@@ -27,11 +27,7 @@ export default function HMCompanyProfile() {
     let cancelled = false
     async function load() {
       try {
-        const { data, error } = await supabase
-          .from('hiring_managers')
-          .select('job_title, companies(name, industry, size, website, verified)')
-          .eq('profile_id', userId)
-          .maybeSingle()
+        const { data, error } = await hmCompanyProfileByProfileId(userId)
         if (cancelled) return
         setLoading(false)
         if (error) { setErr(error.message); return }
@@ -61,7 +57,7 @@ export default function HMCompanyProfile() {
     try {
       const [profileRes, hmRes] = await Promise.all([
         updateProfile(session.user.id, { full_name: nameTrimmed }),
-        supabase.from('hiring_managers').update({ job_title: titleTrimmed }).eq('profile_id', session.user.id),
+        updateHmJobTitleByProfileId(session.user.id, titleTrimmed),
       ])
       if (profileRes.error) throw profileRes.error
       if (hmRes.error) throw hmRes.error

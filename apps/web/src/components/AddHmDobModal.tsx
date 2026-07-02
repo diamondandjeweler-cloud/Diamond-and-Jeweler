@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { supabase } from '../lib/supabase'
 import { profileConsentsById, updateProfile } from '../data/repositories/profiles'
+import { updateHmById } from '../data/repositories/hiringManagers'
 import { encryptDob } from '../lib/api'
 import { getLifeChartCharacter, type Gender } from '../shared/domain/lifeChart/lifeChartCharacter'
 import { Button, Alert } from './ui'
@@ -34,14 +34,11 @@ export default function AddHmDobModal({ hmId, profileId, onSaved, onCancel }: Pr
       const dobEncrypted = await encryptDob(dob)
       const lifeChartCharacter = getLifeChartCharacter(dob, gender)
 
-      const { error: hmErr } = await supabase
-        .from('hiring_managers')
-        .update({
-          date_of_birth_encrypted: dobEncrypted,
-          gender,
-          life_chart_character: lifeChartCharacter,
-        })
-        .eq('id', hmId)
+      const { error: hmErr } = await updateHmById({
+        date_of_birth_encrypted: dobEncrypted,
+        gender,
+        life_chart_character: lifeChartCharacter,
+      }, hmId)
       if (hmErr) throw hmErr
 
       const { data: prof } = await profileConsentsById(profileId).maybeSingle()

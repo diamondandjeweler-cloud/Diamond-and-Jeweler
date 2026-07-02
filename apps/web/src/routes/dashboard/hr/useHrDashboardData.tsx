@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useSession } from '../../../state/useSession'
 import { supabase } from '../../../lib/supabase'
 import { companyIdByHrEmail, companyIdById } from '../../../data/repositories/companies'
+import { hmsWithNamesByCompanyId, insertHm } from '../../../data/repositories/hiringManagers'
 import { listRolesForHms } from '../../../data/repositories/roles'
 import { hrPendingMatches, hrOutcomesPendingMatches, updateMatch } from '../../../data/repositories/matches'
 import { updateInterview, insertInterview, hrScheduledInterviewsForRoles } from '../../../data/repositories/interviews'
@@ -78,10 +79,7 @@ export function useHrDashboardData() {
       setCompanyId(comp.id)
 
       // §1 — All hiring managers in the company, with their profile names.
-      const { data: hmRows } = await supabase
-        .from('hiring_managers')
-        .select('id, profile_id, job_title, profiles!inner(full_name)')
-        .eq('company_id', comp.id)
+      const { data: hmRows } = await hmsWithNamesByCompanyId(comp.id)
       const hmIds = (hmRows ?? []).map((h) => h.id)
 
       if (hmIds.length === 0) {
@@ -258,21 +256,14 @@ export function useHrDashboardData() {
     if (!session || !companyId) return
     setAddMeBusy(true); setAddMeErr(null)
     try {
-      const { error } = await supabase.from('hiring_managers').insert({
-        profile_id: session.user.id,
-        company_id: companyId,
-        job_title: addMeJobTitle.trim(),
-      })
+      const { error } = await insertHm(session.user.id, companyId, addMeJobTitle.trim())
       if (error) throw error
       // Refresh both the page-local HM list and the global isHM flag (drives
       // sidebar HM links + RoleGate access to /hm routes).
       await refreshIsHM()
       const { data: comp } = await companyIdById(companyId)
       if (comp) {
-        const { data: hmRows } = await supabase
-          .from('hiring_managers')
-          .select('id, profile_id, job_title, profiles!inner(full_name)')
-          .eq('company_id', companyId)
+        const { data: hmRows } = await hmsWithNamesByCompanyId(companyId)
         const userId = session.user.id
         const newHms: HMRow[] = ((hmRows ?? []) as unknown as Array<{
           id: string; profile_id: string; job_title: string; profiles: { full_name: string } | null

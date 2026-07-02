@@ -23,6 +23,7 @@ import { supabase } from '../../lib/supabase'
 import { insertRole, getOnboardingDraftRoleId } from '../../data/repositories/roles'
 import { companyIdByCreator, companyIdByHrEmail } from '../../data/repositories/companies'
 import { profileEmailById, updateProfile } from '../../data/repositories/profiles'
+import { hmIdByProfileId, upsertHmCompanyLink, updateHmInterviewTranscript, updateHmById } from '../../data/repositories/hiringManagers'
 import { encryptDob, markOnboardingComplete } from '../../lib/api'
 import { callFunction } from '../../lib/functions'
 import { getLifeChartCharacter, type Gender } from '../../shared/domain/lifeChart/lifeChartCharacter'
@@ -107,11 +108,7 @@ export default function HMOnboarding() {
     let mounted = true
 
     async function preflight() {
-      const { data: hmRow } = await supabase
-        .from('hiring_managers')
-        .select('id')
-        .eq('profile_id', userId)
-        .maybeSingle()
+      const { data: hmRow } = await hmIdByProfileId(userId)
 
       if (hmRow) return // all good
 
@@ -124,10 +121,7 @@ export default function HMOnboarding() {
         if (prof?.email) {
           const { data: companyByEmail } = await companyIdByHrEmail(prof.email)
           if (companyByEmail) {
-            await supabase.from('hiring_managers').upsert(
-              { profile_id: userId, company_id: companyByEmail.id, job_title: 'Hiring Manager' },
-              { onConflict: 'profile_id' },
-            )
+            await upsertHmCompanyLink(userId, companyByEmail.id)
             return // healed
           }
         }
@@ -136,10 +130,7 @@ export default function HMOnboarding() {
       }
 
       // Found a company — insert the missing HM row silently
-      await supabase.from('hiring_managers').upsert(
-        { profile_id: userId, company_id: company.id, job_title: 'Hiring Manager' },
-        { onConflict: 'profile_id' },
-      )
+      await upsertHmCompanyLink(userId, company.id)
       // healed — no error shown, onboarding proceeds
     }
 
@@ -379,7 +370,7 @@ export default function HMOnboarding() {
         const savedAt = new Date().toISOString()
         Promise.all([
           updateProfile(session!.user.id, { interview_transcript: { messages: finalMsgs, saved_at: savedAt } }),
-          supabase.from('hiring_managers').update({ interview_answers: { transcript: finalMsgs } }).eq('profile_id', session!.user.id),
+          updateHmInterviewTranscript(session!.user.id, finalMsgs),
         ]).then(() => { /* best-effort */ })
 
         setLog((l) => [...l, {
@@ -399,7 +390,7 @@ export default function HMOnboarding() {
         const savedAt = new Date().toISOString()
         Promise.all([
           updateProfile(session!.user.id, { interview_transcript: { messages: partialMsgs, saved_at: savedAt, partial: true } }),
-          supabase.from('hiring_managers').update({ interview_answers: { transcript: partialMsgs } }).eq('profile_id', session!.user.id),
+          updateHmInterviewTranscript(session!.user.id, partialMsgs),
         ]).then(() => {})
         setLog((l) => [
           ...l.map((m) => m.id === boId ? { ...m, typing: false } : m),
@@ -480,15 +471,13 @@ export default function HMOnboarding() {
       }
       if (extracted.error) throw new Error(`Profile extraction failed: ${extracted.error}`)
 
-      const { data: hmRow, error: hmErr } = await supabase.from('hiring_managers').select('id').eq('profile_id', userId).maybeSingle()
+      const { data: hmRow, error: hmErr } = await hmIdByProfileId(userId)
       if (hmErr) throw hmErr
       if (!hmRow) throw new Error(t('hmOnboard.noHmRecord'))
 
       const lifeChartCharacter = gender ? getLifeChartCharacter(dob, gender) : null
 
-      const { error: updateErr } = await supabase
-        .from('hiring_managers')
-        .update({
+      const { error: updateErr } = await updateHmById({
           date_of_birth_encrypted: dobEncrypted,
           gender: gender || null,
           life_chart_character: lifeChartCharacter,
@@ -548,8 +537,7 @@ export default function HMOnboarding() {
             requires_own_transport: hmRequiresOwnTransport,
             has_commission: hmHasCommission,
           },
-        })
-        .eq('id', hmRow.id)
+        }, hmRow.id)
       if (updateErr) throw updateErr
 
       const { error: profErr } = await updateProfile(userId, { full_name: fullName.trim() })

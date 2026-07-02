@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../../../lib/supabase'
+import { adminDataRequestsBase, updateDataRequest } from '../../../data/repositories/dataRequests'
 import { callFunction } from '../../../lib/functions'
 import ListSkeleton from '../../../components/ListSkeleton'
 
@@ -26,10 +26,7 @@ export default function DsrPanel() {
 
   async function reload() {
     setLoading(true)
-    let q = supabase
-      .from('data_requests')
-      .select('id, user_id, request_type, status, notes, correction_proposal, created_at, resolved_at, profiles!data_requests_user_id_fkey(email, full_name)')
-      .order('created_at', { ascending: false })
+    let q = adminDataRequestsBase()
     if (filter === 'pending') q = q.in('status', ['pending', 'in_review'])
     const { data, error } = await q.limit(100)
     if (error) {
@@ -51,7 +48,7 @@ export default function DsrPanel() {
     if (status === 'completed' || status === 'rejected') {
       patch.resolved_at = new Date().toISOString()
     }
-    const { error } = await supabase.from('data_requests').update(patch).eq('id', r.id)
+    const { error } = await updateDataRequest(r.id, patch)
     if (error) {
       console.error('[DsrPanel] setStatus failed:', error)
       setErr('Could not update this request. Check the browser console for details.')

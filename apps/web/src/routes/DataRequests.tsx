@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../state/useSession'
-import { supabase } from '../lib/supabase'
+import { createDataRequest, listOwnDataRequests } from '../data/repositories/dataRequests'
+import { listSubjectAccessLog } from '../data/repositories/auditLog'
 import LoadingSpinner from '../components/LoadingSpinner'
 import { useSeo } from '../lib/useSeo'
 
@@ -71,17 +72,8 @@ export default function DataRequests() {
     let cancelled = false
     void (async () => {
       const [dsrRes, auditRes] = await Promise.all([
-        supabase
-          .from('data_requests')
-          .select('id, request_type, status, notes, correction_proposal, resolved_at, created_at')
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('audit_log')
-          .select('id, actor_role, action, resource_type, created_at')
-          .eq('subject_id', session!.user.id)
-          .in('action', ['admin_profile_view', 'admin_talent_view', 'admin_file_view', 'dsr_completed', 'dsr_export_downloaded', 'file_viewed'])
-          .order('created_at', { ascending: false })
-          .limit(100),
+        listOwnDataRequests(),
+        listSubjectAccessLog(session!.user.id),
       ])
       if (!cancelled) {
         setHistory((dsrRes.data ?? []) as DsrRow[])
@@ -142,16 +134,12 @@ export default function DataRequests() {
     }
 
     setBusy(true)
-    const { data, error } = await supabase
-      .from('data_requests')
-      .insert({
-        user_id: session.user.id,
-        request_type: requestType,
-        notes: notes || null,
-        correction_proposal,
-      })
-      .select()
-      .single()
+    const { data, error } = await createDataRequest({
+      user_id: session.user.id,
+      request_type: requestType,
+      notes: notes || null,
+      correction_proposal,
+    })
     setBusy(false)
     if (error) { setErr(error.message); return }
     setHistory((xs) => [data as DsrRow, ...xs])

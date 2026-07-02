@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
-import { supabase } from '../../lib/supabase'
+import { listOrgConsultations } from '../../data/repositories/orgConsultations'
 import { Badge, Button, Card, EmptyState, PageHeader, type BadgeTone } from '../../components/ui'
 import ListSkeleton from '../../components/ListSkeleton'
 import { useSeo } from '../../lib/useSeo'
@@ -44,10 +44,7 @@ export default function OrgChartList() {
   useEffect(() => {
     let cancelled = false
     async function load() {
-      const { data, error } = await supabase
-        .from('org_consultations')
-        .select('*')
-        .order('created_at', { ascending: false })
+      const { data, error } = await listOrgConsultations()
       if (cancelled) return
       if (error) {
         setErr(error.message)

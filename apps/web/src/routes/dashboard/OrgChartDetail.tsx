@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
-import { supabase } from '../../lib/supabase'
+import { getOrgConsultationById, updateOrgConsultation } from '../../data/repositories/orgConsultations'
 import { Alert, Badge, Button, Card, Field, Input, PageHeader, Select, Textarea } from '../../components/ui'
 import { confirmDialog } from '../../components/Modal'
 import { useSeo } from '../../lib/useSeo'
@@ -44,11 +44,7 @@ export default function OrgChartDetail() {
 
   const load = useCallback(async () => {
     if (!Number.isFinite(id)) return
-    const { data, error } = await supabase
-      .from('org_consultations')
-      .select('*')
-      .eq('id', id)
-      .single()
+    const { data, error } = await getOrgConsultationById(id)
     if (error) { setErr(error.message); return }
     setRow(data as OrgConsultationRow)
     setNotes(data?.consultant_notes ?? '')
@@ -65,7 +61,7 @@ export default function OrgChartDetail() {
   async function patch(updates: Partial<OrgConsultationRow>) {
     if (!row) return
     setBusy(true); setErr(null)
-    const { error } = await supabase.from('org_consultations').update(updates).eq('id', row.id)
+    const { error } = await updateOrgConsultation(row.id, updates)
     setBusy(false)
     if (error) { setErr(error.message); return }
     await load()

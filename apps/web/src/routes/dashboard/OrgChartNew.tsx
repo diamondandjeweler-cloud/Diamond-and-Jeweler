@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
-import { supabase } from '../../lib/supabase'
+import { insertOrgConsultation } from '../../data/repositories/orgConsultations'
 import { Alert, Button, Card, Field, Input, PageHeader } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
 import { ORG_TIERS, orgTierForSize } from '../../lib/orgChart'
@@ -28,26 +28,22 @@ export default function OrgChartNew() {
     if (!tier) { setErr('Team size must be between 1 and 50.'); return }
 
     setBusy(true)
-    const { data, error } = await supabase
-      .from('org_consultations')
-      .insert({
-        client_company: company.trim(),
-        client_contact_name: contactName.trim() || null,
-        client_contact_phone: contactPhone.trim() || null,
-        client_contact_email: contactEmail.trim() || null,
-        client_industry: industry.trim() || null,
-        team_size: teamSize,
-        tier_code: tier.code,
-        price_myr: tier.price,
-        payment_status: 'unpaid',
-        status: 'collecting',
-        members: [],
-        pairs: [],
-        analysis: {},
-        // consultant_id/created_by left null — UUID profile linkage handled in a follow-up migration
-      })
-      .select('id')
-      .single()
+    const { data, error } = await insertOrgConsultation({
+      client_company: company.trim(),
+      client_contact_name: contactName.trim() || null,
+      client_contact_phone: contactPhone.trim() || null,
+      client_contact_email: contactEmail.trim() || null,
+      client_industry: industry.trim() || null,
+      team_size: teamSize,
+      tier_code: tier.code,
+      price_myr: tier.price,
+      payment_status: 'unpaid',
+      status: 'collecting',
+      members: [],
+      pairs: [],
+      analysis: {},
+      // consultant_id/created_by left null — UUID profile linkage handled in a follow-up migration
+    })
     setBusy(false)
 
     if (error) { setErr(error.message); return }

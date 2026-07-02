@@ -6,6 +6,26 @@ import { clearAdminVerified } from '../lib/adminReauth'
 import { clearAllDashCaches } from '../lib/dashboardCache'
 import type { Profile } from '../types/db'
 
+// ===========================================================================
+// Session STORE (Phase 5 clean-arch) — this file now holds ONLY the session/
+// profile/isHM/loading STATE + the store methods (refresh/signOut/setProfile/
+// refreshIsHM) and the small set of helpers those methods invoke.
+//
+// The infrastructure ORCHESTRATION (PKCE scrub, auth-state listener, watchdog,
+// visibility re-warm, retry ladder, HMR dispose) lives in
+// `src/app/bootstrap/sessionBootstrap.ts`. `bootstrapSession` is re-exported
+// from here so the ~47 existing `import { useSession, bootstrapSession } from
+// '../state/useSession'` sites keep working byte-identically.
+//
+// The helpers exported below (enforceBan, clearProfileRetries,
+// pushProfileRetryTimer, cache load/save, cookie set/clear, fetchIsHM) are
+// SHARED between the store methods and the bootstrap module. They live here —
+// with the store — precisely to avoid a store<->bootstrap import cycle: the
+// bootstrap module imports the store (and these helpers); the store never
+// imports the bootstrap module except for the leaf-safe `bootstrapSession`
+// re-export at the bottom.
+// ===========================================================================
+
 interface SessionState {
   session: Session | null
   profile: Profile | null
@@ -28,7 +48,7 @@ interface SessionState {
 // Real authorization (admin role, RLS scopes) still lives in AdminGate +
 // Supabase RLS — the edge gate only confirms the request comes from a
 // holder of a non-expired Supabase JWT.
-function setAuthHintCookie(accessToken?: string | null) {
+export function setAuthHintCookie(accessToken?: string | null) {
   try {
     const secure = location.protocol === 'https:' ? '; Secure' : ''
     // Backwards-compat presence cookie — not sensitive, fine as readable JS cookie.
@@ -47,7 +67,7 @@ function setAuthHintCookie(accessToken?: string | null) {
   } catch { /* tolerate */ }
 }
 
-function clearAuthHintCookie() {
+export function clearAuthHintCookie() {
   try {
     const secure = location.protocol === 'https:' ? '; Secure' : ''
     document.cookie = `dnj-auth=; Path=/; Max-Age=0; SameSite=Lax${secure}`
@@ -61,7 +81,7 @@ function clearAuthHintCookie() {
   } catch { /* tolerate */ }
 }
 
-async function fetchIsHM(userId: string): Promise<boolean> {
+export async function fetchIsHM(userId: string): Promise<boolean> {
   // IMPORTANT: this uses an explicit authenticated REST fetch rather than the
   // supabase-js query builder. Empirically (verified live), the builder's
   // `.from('hiring_managers').eq('profile_id', me)` returns 0 rows here even
@@ -69,7 +89,10 @@ async function fetchIsHM(userId: string): Promise<boolean> {
   // access token + apikey returns it. The builder appears not to attach the
   // user token to this particular request, yielding an anon-scoped false
   // negative that wrongly bounces "Switch to HM view". Reading the token from
-  // getSession() and attaching it ourselves is deterministic.
+  // getSession() and attaching it ourselves is deterministic. (This is a raw
+  // PostgREST fetch, NOT supabase.from/.rpc, so the seam guard does not flag it;
+  // it is shared with the bootstrap listener, so it lives here to avoid a
+  // store<->bootstrap cycle.)
   try {
     // getSession() transparently refreshes an expired/near-expiry token. With
     // the in-tab serializing lock (lib/supabase.ts) this no longer races the
@@ -181,14 +204,14 @@ export const useSession = create<SessionState>((set) => ({
 const PROFILE_CACHE_KEY = 'dnj.profile_cache'
 const ISHM_CACHE_KEY = 'dnj.ishm_cache'
 
-function loadCachedProfile(): Profile | null {
+export function loadCachedProfile(): Profile | null {
   try {
     const raw = sessionStorage.getItem(PROFILE_CACHE_KEY)
     return raw ? (JSON.parse(raw) as Profile) : null
   } catch { return null }
 }
 
-function saveCachedProfile(profile: Profile | null) {
+export function saveCachedProfile(profile: Profile | null) {
   try {
     if (profile) sessionStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile))
     else sessionStorage.removeItem(PROFILE_CACHE_KEY)
@@ -197,7 +220,7 @@ function saveCachedProfile(profile: Profile | null) {
 
 interface IsHMCacheEntry { userId: string; isHM: boolean }
 
-function loadCachedIsHM(userId: string): boolean | null {
+export function loadCachedIsHM(userId: string): boolean | null {
   try {
     const raw = localStorage.getItem(ISHM_CACHE_KEY)
     if (!raw) return null
@@ -208,7 +231,7 @@ function loadCachedIsHM(userId: string): boolean | null {
   } catch { return null }
 }
 
-function saveCachedIsHM(userId: string | null, isHM: boolean) {
+export function saveCachedIsHM(userId: string | null, isHM: boolean) {
   try {
     // Only persist a POSITIVE result. A false is frequently a transient
     // auth-context false-negative on the hiring_managers select; caching it
@@ -220,34 +243,14 @@ function saveCachedIsHM(userId: string | null, isHM: boolean) {
   } catch { /* tolerate */ }
 }
 
-// Re-warm the auth session whenever the tab regains focus. Background tabs
-// throttle timers, so supabase-js's auto-refresh can miss a token rotation
-// while hidden — and the noopLock in lib/supabase.ts removes the cross-tab
-// coordination that would otherwise catch up. A token then expires unnoticed;
-// the next query 401s ("JWT expired") and the app appears frozen until a
-// manual reload. getSession() refreshes a stale token on demand, so calling it
-// on visibility/focus restores a valid token before the user's next action.
-let visibilityRewarmWired = false
-function wireVisibilityRewarm() {
-  if (visibilityRewarmWired || typeof document === 'undefined') return
-  visibilityRewarmWired = true
-  const rewarm = () => {
-    if (document.visibilityState !== 'visible') return
-    // getSession() returns the stored session and transparently refreshes it
-    // if the access token is expired/near-expiry. Fire-and-forget.
-    void supabase.auth.getSession().catch(() => { /* tolerate */ })
-  }
-  document.addEventListener('visibilitychange', rewarm)
-  window.addEventListener('focus', rewarm)
-}
-
 // A banned user keeps a technically-valid JWT, and RLS still returns their own
 // profile row, so without this client gate they'd route straight into a working
 // dashboard. (Sensitive server actions are already blocked server-side:
 // _shared/auth authenticate() rejects is_banned, and RLS scopes every read to
 // the caller's own rows.) On detecting is_banned we clear the local session and
-// hard-redirect to the /banned notice. Called from both profile-resolve points.
-function enforceBan(): void {
+// hard-redirect to the /banned notice. Called from both profile-resolve points
+// (refresh() here + the bootstrap auth-state listener).
+export function enforceBan(): void {
   try { void supabase.auth.signOut() } catch { /* tolerate */ }
   saveCachedProfile(null)
   saveCachedIsHM(null, false)
@@ -263,192 +266,24 @@ function enforceBan(): void {
   }
 }
 
-let bootstrapped = false
 // U4 — track the profile-retry ladder's timers so they can be cancelled on
-// logout / user-switch. Without this, the setTimeout calls scheduled below keep
-// firing refresh() after the session is gone (orphaned timers).
+// logout / user-switch. Without this, the setTimeout calls scheduled by the
+// bootstrap listener keep firing refresh() after the session is gone (orphaned
+// timers). clearProfileRetries is called from BOTH signOut() (store) and the
+// bootstrap listener; pushProfileRetryTimer lets the bootstrap listener register
+// its scheduled timers against this shared array.
 let profileRetryTimers: ReturnType<typeof setTimeout>[] = []
-function clearProfileRetries() {
+export function clearProfileRetries() {
   profileRetryTimers.forEach(clearTimeout)
   profileRetryTimers = []
 }
-export function bootstrapSession() {
-  if (bootstrapped) return
-  bootstrapped = true
-  wireVisibilityRewarm()
-
-  // Wipe stale PKCE verifiers from prior abandoned sign-ins. A verifier is only
-  // valid between the redirect-to-Google and the callback exchange; if one is
-  // present at boot on any non-callback route, it's leftover from an aborted
-  // flow and will poison the next OAuth (Google issues a fresh code that won't
-  // match the stale verifier, exchange fails silently, 6-10s watchdog fires).
-  try {
-    const onCallback = typeof window !== 'undefined'
-      && window.location.pathname.startsWith('/auth/callback')
-    if (!onCallback) {
-      Object.keys(localStorage).forEach((k) => {
-        if (k.includes('code-verifier') || k.endsWith('-pkce')) localStorage.removeItem(k)
-      })
-    }
-  } catch { /* tolerate */ }
-
-  // Single source of truth: rely on onAuthStateChange's INITIAL_SESSION event.
-  // Calling refresh() in parallel races with the auth-token lock.
-
-  // Watchdog: never let the splash spinner hang past 8s, even if Supabase
-  // is unreachable or env vars are wrong. App can then render its real error UI.
-  const watchdog = setTimeout(() => {
-    if (useSession.getState().loading) {
-      console.error('[session] bootstrap watchdog tripped — forcing loading=false')
-      useSession.setState({ loading: false })
-    }
-  }, 8000)
-
-  // Dedupe key — supabase-js fires onAuthStateChange repeatedly (INITIAL_SESSION,
-  // TOKEN_REFRESHED, USER_UPDATED, sometimes back-to-back). Without this, every
-  // event triggers another fetchProfile + fetchIsHM round-trip, which is what
-  // showed up as duplicate /profiles and /hiring_managers calls in DevTools.
-  let lastFetchedFor: string | null = null
-  const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-    clearTimeout(watchdog)
-    try {
-      // F7 — only react to definitive sign-out events. supabase-js fires
-      // onAuthStateChange with `session: null` for several reasons (USER_UPDATED
-      // mid-call, transient TOKEN_REFRESHED before the new token lands, network
-      // hiccups) — historically that wiped state and made any RLS-failing query
-      // (e.g. the Approvals embed) feel like an auto-logout. Now we only blank
-      // session state on SIGNED_OUT or USER_DELETED, plus the very first
-      // INITIAL_SESSION when there's genuinely no persisted session.
-      if (!session) {
-        // supabase-js's AuthChangeEvent union narrows away SIGNED_OUT/USER_DELETED
-        // in some versions, so we widen via Set<string> to keep the runtime check
-        // intact regardless of type-defs.
-        const definitiveEvents = new Set<string>(['SIGNED_OUT', 'USER_DELETED', 'INITIAL_SESSION'])
-        const definitive = definitiveEvents.has(event as unknown as string)
-        if (definitive) {
-          lastFetchedFor = null
-          clearProfileRetries()
-          clearAuthHintCookie()
-          useSession.setState({ session: null, profile: null, isHM: false, loading: false })
-        } else {
-          // Transient null — flip loading off but preserve existing session/profile
-          // so route guards don't bounce the user mid-action.
-          console.warn('[session] ignoring transient null session for event', event)
-          useSession.setState({ loading: false })
-        }
-        return
-      }
-      // Set the session immediately so route guards see auth state, even
-      // before profile resolves. Serve stale profile from cache so
-      // ConsentGate/RoleHome pass through without a spinner while the
-      // fresh fetch runs in the background (stale-while-revalidate).
-      setAuthHintCookie(session.access_token)
-      // Dedupe: if we already fetched profile/isHM for this user in this tab,
-      // skip the round-trip. Token refreshes (USER_UPDATED, TOKEN_REFRESHED)
-      // would otherwise re-issue the same queries every few minutes.
-      const dedupeKey = session.user.id
-      if (lastFetchedFor === dedupeKey) {
-        useSession.setState({ session, loading: false })
-        return
-      }
-      lastFetchedFor = dedupeKey
-      const cachedProfile = loadCachedProfile()
-      // Only serve cached profile for the current session user. A stale cache
-      // from a different user (e.g., previous occupant of a shared browser, or
-      // a re-seeded test account with a new UUID) would cause wrong-role routing
-      // before the authoritative DB fetch completes.
-      const validCache = cachedProfile && cachedProfile.id === session.user.id
-      const cachedIsHM = loadCachedIsHM(session.user.id)
-      // Don't serve a cached profile that is already flagged banned — the fresh
-      // fetch below will enforceBan() authoritatively, but skip the optimistic
-      // dashboard paint in the meantime.
-      if (validCache && cachedProfile.is_banned) { enforceBan(); return }
-      useSession.setState({
-        session,
-        loading: false,
-        ...(validCache ? { profile: cachedProfile } : {}),
-        ...(cachedIsHM != null ? { isHM: cachedIsHM } : {}),
-      })
-      // Both fetches are guarded by a 12 s timeout. If the Supabase auth token
-      // refresh hangs (e.g. Cloudflare latency), these promises would otherwise
-      // block forever — keeping profile=null and trapping the user on a spinner.
-      // On timeout we fall back to the stale cached profile so the gate can pass.
-      const FETCH_TIMEOUT = 12_000
-      const withTimeout = <T,>(p: Promise<T>, fallback: T): Promise<T> =>
-        Promise.race([p, new Promise<T>((res) => setTimeout(() => res(fallback), FETCH_TIMEOUT))])
-      const [profile, isHM] = await Promise.all([
-        withTimeout(
-          fetchProfile(session.user.id).catch((e) => {
-            console.error('[session] fetchProfile failed in onAuthStateChange', e)
-            return validCache ? cachedProfile : null
-          }),
-          validCache ? cachedProfile : null,
-        ),
-        withTimeout(fetchIsHM(session.user.id).catch(() => false), false),
-      ])
-      // Don't sign out on profile fetch failure — it cancels in-flight auth flows
-      // (e.g. PKCE callback) and leaves the user stuck on "Check your email".
-      // Onboarding/consent gates handle missing profiles gracefully.
-      //
-      // Cache-preservation guard: if the fresh fetch returned null (transient
-      // Supabase error, RLS hiccup, network timeout) but we had a valid cached
-      // profile for this same user, keep the cached value. Overwriting it with
-      // null wipes localStorage and causes the next reload to start cold —
-      // which was the "spinner hang on /hr" regression that broke prod after
-      // the dashboard-refactor deploy.
-      const finalProfile = profile ?? (validCache ? cachedProfile : null)
-      if (finalProfile?.is_banned) { enforceBan(); return }
-      useSession.setState({ profile: finalProfile, isHM })
-      // Only persist a NON-null profile. Persisting null on a transient error
-      // would defeat the cache-preservation guard above on the next reload.
-      if (finalProfile) saveCachedProfile(finalProfile)
-      saveCachedIsHM(session.user.id, isHM)
-      // If the profile didn't resolve at all (no cache, fetch failed) — clear
-      // the dedup key so a subsequent TOKEN_REFRESHED or refresh() call gets
-      // another shot at fetching it. Otherwise the user is trapped on the
-      // spinner until they manually reload.
-      if (!finalProfile) {
-        lastFetchedFor = null
-        // Proactive retry ladder — TOKEN_REFRESHED only fires ~hourly, so
-        // without this the user stays on the spinner indefinitely. Retry
-        // refresh() at 3s, 8s, 18s (jittered). After the third attempt the
-        // surrounding gate UI (ConsentGate retry escape hatch / route-level
-        // error boundary) takes over and offers manual sign-out.
-        const session2 = session
-        const retryDelays = [3_000, 5_000, 10_000]
-        // U4 — cancel any prior batch before scheduling a fresh one, and track
-        // each timer id so logout / user-switch can clear them (see
-        // clearProfileRetries). Prevents orphaned retries firing post-logout.
-        clearProfileRetries()
-        retryDelays.forEach((delay, i) => {
-          const timer = setTimeout(() => {
-            // Bail if user signed out, navigated to a different session, or
-            // profile arrived in the meantime.
-            const cur = useSession.getState()
-            if (!cur.session || cur.session.user.id !== session2.user.id) return
-            if (cur.profile) return
-            console.warn(`[session] profile retry #${i + 1} firing (cache empty, last fetch failed)`)
-            useSession.getState().refresh().catch((err) => {
-              console.error(`[session] profile retry #${i + 1} failed`, err)
-            })
-          }, delay)
-          profileRetryTimers.push(timer)
-        })
-      }
-    } catch (e) {
-      console.error('[session] onAuthStateChange failed', e)
-      useSession.setState({ loading: false })
-    }
-  })
-
-  // HMR cleanup: unsubscribe the auth listener when the module is hot-replaced
-  // so the next bootstrap call starts with a clean slate instead of accumulating
-  // duplicate listeners. Production builds ignore import.meta.hot.
-  if (import.meta.hot) {
-    import.meta.hot.dispose(() => {
-      bootstrapped = false
-      visibilityRewarmWired = false
-      authSubscription.unsubscribe()
-    })
-  }
+export function pushProfileRetryTimer(timer: ReturnType<typeof setTimeout>) {
+  profileRetryTimers.push(timer)
 }
+
+// Re-export bootstrapSession from the extracted bootstrap module so the existing
+// `import { useSession, bootstrapSession } from '../state/useSession'` sites
+// (main.tsx, App.tsx, ~47 consumers) keep working unchanged. This is a
+// leaf-safe re-export: bootstrapSession is a function invoked at runtime, so the
+// store<->bootstrap module cycle resolves fine under ESM.
+export { bootstrapSession } from '../app/bootstrap/sessionBootstrap'

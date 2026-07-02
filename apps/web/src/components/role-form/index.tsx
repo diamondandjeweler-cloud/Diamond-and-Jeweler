@@ -418,6 +418,60 @@ export function ScheduleBlock({
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */
+/*  ChipToggleGroup — shared pill multi-select primitive                      */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+export interface ChipToggleOption { slug: string; label: string }
+
+/**
+ * Presentational pill-toggle group. Renders a `flex flex-wrap gap-2` row of
+ * rounded-full buttons, one per option, each toggling its slug's membership in
+ * `value`. Optional `label`/`hint` render above; optional `footer` (e.g. an
+ * empty-state note) renders below. Backs OpenToSelect / EligibilitySelect /
+ * AvailableShifts — the markup is byte-identical to their former inline copies.
+ */
+export function ChipToggleGroup({
+  value, onChange, options, label, hint, footer,
+}: {
+  value: string[]
+  onChange: (next: string[]) => void
+  options: readonly ChipToggleOption[]
+  label?: ReactNode
+  hint?: ReactNode
+  footer?: ReactNode
+}) {
+  const toggle = (slug: string) =>
+    onChange(value.includes(slug) ? value.filter((v) => v !== slug) : [...value, slug])
+
+  return (
+    <div className="space-y-2">
+      {label && <div className="field-label">{label}</div>}
+      {hint && <div className="field-hint">{hint}</div>}
+      <div className="flex flex-wrap gap-2">
+        {options.map((opt) => {
+          const active = value.includes(opt.slug)
+          return (
+            <button
+              key={opt.slug}
+              type="button"
+              onClick={() => toggle(opt.slug)}
+              className={`text-sm px-3 py-1.5 rounded-full border transition ${
+                active
+                  ? 'bg-ink-900 text-white border-ink-900'
+                  : 'bg-white text-ink-700 border-ink-200 hover:border-ink-400 hover:text-ink-900'
+              }`}
+            >
+              {opt.label}
+            </button>
+          )
+        })}
+      </div>
+      {footer}
+    </div>
+  )
+}
+
+/* ────────────────────────────────────────────────────────────────────────── */
 /*  OpenToSelect (career-scope multi-select)                                  */
 /* ────────────────────────────────────────────────────────────────────────── */
 
@@ -438,36 +492,17 @@ export function OpenToSelect({
   hint?: string
   side?: 'role' | 'talent'
 }) {
-  const toggle = (slug: string) =>
-    onChange(value.includes(slug) ? value.filter((v) => v !== slug) : [...value, slug])
-
   return (
-    <div className="space-y-2">
-      {label && <div className="field-label">{label}</div>}
-      {hint && <div className="field-hint">{hint}</div>}
-      <div className="flex flex-wrap gap-2">
-        {OPEN_TO_OPTIONS.map((opt) => {
-          const active = value.includes(opt.slug)
-          return (
-            <button
-              key={opt.slug}
-              type="button"
-              onClick={() => toggle(opt.slug)}
-              className={`text-sm px-3 py-1.5 rounded-full border transition ${
-                active
-                  ? 'bg-ink-900 text-white border-ink-900'
-                  : 'bg-white text-ink-700 border-ink-200 hover:border-ink-400 hover:text-ink-900'
-              }`}
-            >
-              {opt.label}
-            </button>
-          )
-        })}
-      </div>
-      {side === 'role' && value.length === 0 && (
+    <ChipToggleGroup
+      value={value}
+      onChange={onChange}
+      options={OPEN_TO_OPTIONS}
+      label={label}
+      hint={hint}
+      footer={side === 'role' && value.length === 0 && (
         <div className="text-xs text-ink-400 italic">Empty = no restriction (all candidate types welcome).</div>
       )}
-    </div>
+    />
   )
 }
 
@@ -491,35 +526,14 @@ export function EligibilitySelect({
   value: string[]
   onChange: (next: string[]) => void
 }) {
-  const toggle = (slug: string) =>
-    onChange(value.includes(slug) ? value.filter((v) => v !== slug) : [...value, slug])
-
   return (
-    <div className="space-y-2">
-      <div className="field-label">Legal eligibility</div>
-      <div className="field-hint">
-        Whitelist of work-authorization types. Leave all unchecked to use your company's default eligibility.
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {WORK_AUTH_OPTIONS.map((opt) => {
-          const active = value.includes(opt.slug)
-          return (
-            <button
-              key={opt.slug}
-              type="button"
-              onClick={() => toggle(opt.slug)}
-              className={`text-sm px-3 py-1.5 rounded-full border transition ${
-                active
-                  ? 'bg-ink-900 text-white border-ink-900'
-                  : 'bg-white text-ink-700 border-ink-200 hover:border-ink-400 hover:text-ink-900'
-              }`}
-            >
-              {opt.label}
-            </button>
-          )
-        })}
-      </div>
-    </div>
+    <ChipToggleGroup
+      value={value}
+      onChange={onChange}
+      options={WORK_AUTH_OPTIONS}
+      label="Legal eligibility"
+      hint="Whitelist of work-authorization types. Leave all unchecked to use your company's default eligibility."
+    />
   )
 }
 
@@ -659,31 +673,12 @@ export function AvailableShifts({
   value: string[]
   onChange: (next: string[]) => void
 }) {
-  const toggle = (slug: string) =>
-    onChange(value.includes(slug) ? value.filter((v) => v !== slug) : [...value, slug])
-
   return (
-    <div className="space-y-2">
-      <div className="field-label">Shifts I can work</div>
-      <div className="flex flex-wrap gap-2">
-        {SHIFT_OPTIONS.map((opt) => {
-          const active = value.includes(opt.slug)
-          return (
-            <button
-              key={opt.slug}
-              type="button"
-              onClick={() => toggle(opt.slug)}
-              className={`text-sm px-3 py-1.5 rounded-full border transition ${
-                active
-                  ? 'bg-ink-900 text-white border-ink-900'
-                  : 'bg-white text-ink-700 border-ink-200 hover:border-ink-400 hover:text-ink-900'
-              }`}
-            >
-              {opt.label}
-            </button>
-          )
-        })}
-      </div>
-    </div>
+    <ChipToggleGroup
+      value={value}
+      onChange={onChange}
+      options={SHIFT_OPTIONS}
+      label="Shifts I can work"
+    />
   )
 }

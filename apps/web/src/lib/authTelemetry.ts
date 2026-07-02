@@ -9,7 +9,7 @@
 //   - user_agent
 // The full email and password are NEVER sent.
 
-import { supabase } from './supabase'
+import { logAuthFailureRpc } from '../data/repositories/authTelemetry'
 
 function emailDomain(email: string): string {
   const at = email.lastIndexOf('@')
@@ -20,11 +20,11 @@ function emailDomain(email: string): string {
 export function logAuthFailure(email: string, reason: string): void {
   // Fire-and-forget. Never await; never throw.
   try {
-    void supabase.rpc('log_auth_failure', {
-      p_email_domain: emailDomain(email),
-      p_reason: reason.slice(0, 200),
-      p_user_agent: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 200) : null,
-    })
+    void logAuthFailureRpc(
+      emailDomain(email),
+      reason.slice(0, 200),
+      typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 200) : null,
+    )
   } catch {
     /* swallow — telemetry must not affect auth UX */
   }

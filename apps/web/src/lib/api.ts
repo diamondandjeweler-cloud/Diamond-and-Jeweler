@@ -1,5 +1,4 @@
-import { supabase } from './supabase'
-import { profileById, updateProfile } from '../data/repositories/profiles'
+import { encryptDobRpc, profileById, updateProfile } from '../data/repositories/profiles'
 import { addWaitlistEntry } from '../data/repositories/waitlist'
 import type { Profile } from '../types/db'
 
@@ -27,7 +26,7 @@ export async function markOnboardingComplete(userId: string) {
  * Returns the base64-encoded ciphertext ready to store in date_of_birth_encrypted.
  */
 export async function encryptDob(dobIsoDate: string): Promise<string> {
-  const { data, error } = await supabase.rpc('encrypt_dob', { dob_text: dobIsoDate })
+  const { data, error } = await encryptDobRpc(dobIsoDate)
   if (error) throw error
   // Supabase returns bytea as a hex-prefixed string or base64 depending on driver;
   // for consistency, cast to string here. The column type is bytea.

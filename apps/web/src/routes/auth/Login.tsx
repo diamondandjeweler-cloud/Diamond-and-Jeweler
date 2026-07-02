@@ -10,6 +10,7 @@ import { useSession } from '../../state/useSession'
 import Turnstile from '../../components/Turnstile'
 import { useSeo } from '../../lib/useSeo'
 import { logAuthFailure } from '../../lib/authTelemetry'
+import { checkLoginRateLimit, recordLoginAttempt } from '../../data/repositories/authTelemetry'
 
 export default function Login() {
   const { t } = useTranslation()
@@ -103,7 +104,7 @@ export default function Login() {
     setWaitingForCaptcha(false)
 
     // Server-side rate limit check — authoritative, survives localStorage clears / incognito
-    const { data: rl } = await supabase.rpc('check_login_rate_limit', { p_email: email })
+    const { data: rl } = await checkLoginRateLimit(email)
     const rlData = rl as { locked: boolean; retry_after_seconds?: number } | null
     if (rlData?.locked) {
       setBusy(false)
@@ -121,7 +122,7 @@ export default function Login() {
     ])
 
     // Record outcome server-side — fire and forget
-    void supabase.rpc('record_login_attempt', { p_email: email, p_succeeded: !error })
+    void recordLoginAttempt(email, !error)
 
     setBusy(false)
     if (error) {

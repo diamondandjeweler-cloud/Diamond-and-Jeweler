@@ -66,3 +66,9 @@ export function adminUserList() {
 export function updateProfile(userId: string, patch: Record<string, unknown>) {
   return supabase.from('profiles').update(patch).eq('id', userId)
 }
+
+// ── RPCs ──────────────────────────────────────────────────────────────────────
+/** RPC: encrypt a DOB via encrypt_dob(text) → bytea (write-side counterpart of decrypt_dob; caller awaits). */
+export function encryptDobRpc(dobIsoDate: string) {
+  return supabase.rpc('encrypt_dob', { dob_text: dobIsoDate })
+}

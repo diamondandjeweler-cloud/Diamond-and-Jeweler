@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase, siteUrl } from '../../lib/supabase'
+import { updateProfile } from '../../data/repositories/profiles'
 import Consent from '../../components/Consent'
 import AuthShell from '../../components/AuthShell'
 import { Button, Input, PasswordInput, Alert } from '../../components/ui'
@@ -133,10 +134,7 @@ export default function SignUp() {
         // that AuthCallback hits.
         if (role !== 'talent') {
           try {
-            await supabase
-              .from('profiles')
-              .update({ role })
-              .eq('id', data.session.user.id)
+            await updateProfile(data.session.user.id, { role })
           } catch (e) {
             console.error('[signup] role update failed', e)
           }

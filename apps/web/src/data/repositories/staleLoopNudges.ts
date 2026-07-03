@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase'
+import type { Json } from '../../types/db.generated'
 
 // ── Stale-loop nudges: re-engagement prompts + response recording ────────────
 // Builder-return convention (mirrors roles.ts / systemConfig.ts) — callers
@@ -14,7 +15,7 @@ export function getOpenHmNudgeForRole(roleId: string) {
 }
 
 /** Record a party's response to a nudge (RPC `fn_stale_loop_record_response`); fire-and-forget callers keep their void/.then. */
-export function recordStaleLoopResponse(nudgeId: string, responseKind: string, responsePayload: unknown) {
+export function recordStaleLoopResponse(nudgeId: string, responseKind: string, responsePayload: Json) {
   return supabase.rpc('fn_stale_loop_record_response', {
     p_nudge_id: nudgeId,
     p_response_kind: responseKind,

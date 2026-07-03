@@ -34,11 +34,11 @@ export default function AddHmDobModal({ hmId, profileId, onSaved, onCancel }: Pr
       const dobEncrypted = await encryptDob(dob)
       const lifeChartCharacter = getLifeChartCharacter(dob, gender)
 
-      const { error: hmErr } = await updateHmById({
+      const { error: hmErr } = await updateHmById(hmId, {
         date_of_birth_encrypted: dobEncrypted,
         gender,
         life_chart_character: lifeChartCharacter,
-      }, hmId)
+      })
       if (hmErr) throw hmErr
 
       const { data: prof } = await profileConsentsById(profileId).maybeSingle()

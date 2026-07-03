@@ -95,6 +95,6 @@ export function updateHmInterviewTranscript(profileId: string, transcript: unkno
 }
 
 /** Apply a caller-built update payload to an HM row by id (HMOnboarding profile save / AddHmDobModal DOB save). */
-export function updateHmById(payload: Record<string, unknown>, hmId: string) {
+export function updateHmById(hmId: string, payload: Record<string, unknown>) {
   return supabase.from('hiring_managers').update(payload).eq('id', hmId)
 }

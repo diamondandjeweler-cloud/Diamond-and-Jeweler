@@ -79,6 +79,14 @@ module.exports = {
             message:
               'Direct supabase.rpc() outside src/data/repositories — add or reuse a repository function instead (data-access seam).',
           },
+          {
+            // Also catch schema-scoped access, e.g. supabase.schema('x').from(...),
+            // which bypasses the two selectors above (callee.object is a CallExpression).
+            selector:
+              "CallExpression[callee.property.name=/^(from|rpc)$/][callee.object.callee.object.name='supabase'][callee.object.callee.property.name='schema']",
+            message:
+              'Direct supabase.schema().from()/.rpc() outside src/data/repositories — route it through a repository function (data-access seam).',
+          },
         ],
       },
     },

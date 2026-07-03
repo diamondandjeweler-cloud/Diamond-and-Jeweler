@@ -374,7 +374,7 @@ export default function HMOnboarding() {
 
       const lifeChartCharacter = gender ? getLifeChartCharacter(dob, gender) : null
 
-      const { error: updateErr } = await updateHmById({
+      const { error: updateErr } = await updateHmById(hmRow.id, {
           date_of_birth_encrypted: dobEncrypted,
           gender: gender || null,
           life_chart_character: lifeChartCharacter,
@@ -434,7 +434,7 @@ export default function HMOnboarding() {
             requires_own_transport: hmRequiresOwnTransport,
             has_commission: hmHasCommission,
           },
-        }, hmRow.id)
+        })
       if (updateErr) throw updateErr
 
       const { error: profErr } = await updateProfile(userId, { full_name: fullName.trim() })

@@ -9,7 +9,7 @@ import { confirmDialog } from '../../../components/Modal'
 import type { InterviewRound, InterviewProposal } from '../../../types/db'
 import { talentMatchesForTalent, talentMatchById, updateMatch } from '../../../data/repositories/matches'
 import { interviewRoundsForMatches, talentInterviewProposalsForMatches } from '../../../data/repositories/interviews'
-import { profilePointsById } from '../../../data/repositories/profiles'
+import { profilePointsById, updateProfile } from '../../../data/repositories/profiles'
 import { getUrgentRoleCard } from '../../../data/repositories/roles'
 import { talentDashboardSnapshotByProfileId, talentExtractionStatusByProfileId, talentIdByProfileId, updateTalentById } from '../../../data/repositories/talents'
 import { lastCompletedFindJobRequest } from '../../../data/repositories/urgentRequests'
@@ -315,20 +315,18 @@ export function useTalentDashboardData() {
       if (!mountedRef.current) return
       if (!talentRow) return
       const newExpiry = new Date(Date.now() + 45 * 86400000).toISOString()
-      // LATENT BUG (recorded, not fixed in this type-only pass): `ghost_score`
-      // is a column on `profiles`, NOT `talents`, so the untyped client silently
-      // drops this write. Typing the Update surfaces it as TS2353. Runtime is
-      // left byte-identical; boundary-cast keeps the gate green while the bug is
-      // tracked for a separate behavioural fix (should write ghost_score via
-      // updateProfile, or drop it here).
-      const revivePatch = {
+      const { error } = await updateTalentById(talentRow.id, {
         profile_expires_at: newExpiry,
         is_open_to_offers: true,
-        ghost_score: 0,
-      } as unknown as Parameters<typeof updateTalentById>[1]
-      const { error } = await updateTalentById(talentRow.id, revivePatch)
+      })
       if (!mountedRef.current) return
       if (error) throw error
+      // ghost_score lives on `profiles`, not `talents` — reset it on the profile
+      // row so reviving actually clears the ghost state. (Previously it was sent
+      // in the talents patch and silently dropped by the untyped client.)
+      const { error: ghostErr } = await updateProfile(session.user.id, { ghost_score: 0 })
+      if (!mountedRef.current) return
+      if (ghostErr) throw ghostErr
       setProfileExpiresAt(newExpiry)
       setReviveStep('idle')
     } catch (e) {

@@ -16,7 +16,8 @@ export function latestResumeDocument(talentId: string) {
     .select('storage_path, file_name')
     .eq('talent_id', talentId)
     .eq('doc_type', 'resume')
-    .order('created_at', { ascending: false })
+    // talent_documents has no created_at column — the newest upload is uploaded_at.
+    .order('uploaded_at', { ascending: false })
     .limit(1)
     .maybeSingle()
     .returns<Pick<TalentDocumentRow, 'storage_path' | 'file_name'>>()

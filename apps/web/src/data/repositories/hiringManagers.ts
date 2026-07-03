@@ -1,4 +1,9 @@
 import { supabase } from '../../lib/supabase'
+import type { Database } from '../../types/db.generated'
+
+type HmRow = Database['public']['Tables']['hiring_managers']['Row']
+type HmInsert = Database['public']['Tables']['hiring_managers']['Insert']
+type HmUpdate = Database['public']['Tables']['hiring_managers']['Update']
 
 // ── hiring_managers: HM identity, company link + onboarding profile rows ─────
 // Centralizes reads/writes of the hiring_managers table. Mirrors systemConfig.ts
@@ -8,13 +13,13 @@ import { supabase } from '../../lib/supabase'
 
 /** HM id for a profile → { data: { id } | null } (MyRoles / PostRole / Referrals / HMOnboarding). */
 export function hmIdByProfileId(profileId: string) {
-  return supabase.from('hiring_managers').select('id').eq('profile_id', profileId).maybeSingle()
+  return supabase.from('hiring_managers').select('id').eq('profile_id', profileId).maybeSingle().returns<Pick<HmRow, 'id'>>()
 }
 
 /** Ownership check: HM id matching BOTH the role's hiring_manager_id and the caller's profile (EditRole). */
 export function hmIdByIdAndProfileId(hmId: string, profileId: string) {
   return supabase.from('hiring_managers')
-    .select('id').eq('id', hmId).eq('profile_id', profileId).maybeSingle()
+    .select('id').eq('id', hmId).eq('profile_id', profileId).maybeSingle().returns<Pick<HmRow, 'id'>>()
 }
 
 /** HM id + profile_id by row id → participant-side check (InterviewFeedback). */
@@ -24,6 +29,7 @@ export function hmProfileLinkById(hmId: string) {
     .select('id, profile_id')
     .eq('id', hmId)
     .maybeSingle()
+    .returns<Pick<HmRow, 'id' | 'profile_id'>>()
 }
 
 /** HM job title with embedded company details for a profile (HMCompanyProfile; caller guards non-null at runtime). */
@@ -37,7 +43,7 @@ export function hmCompanyProfileByProfileId(profileId: string | undefined) {
 
 /** HM dashboard row (company link + reputation stats + encrypted DOB) for a profile (useHmDashboardData; PDPA: projection verbatim). */
 export function hmDashboardRowByProfileId(profileId: string) {
-  return supabase.from('hiring_managers').select('id, company_id, reputation_score, feedback_volume, phs_offer_accept_rate, hm_quality_factor, hm_cancel_rate, date_of_birth_encrypted').eq('profile_id', profileId).maybeSingle()
+  return supabase.from('hiring_managers').select('id, company_id, reputation_score, feedback_volume, phs_offer_accept_rate, hm_quality_factor, hm_cancel_rate, date_of_birth_encrypted').eq('profile_id', profileId).maybeSingle().returns<Pick<HmRow, 'id' | 'company_id' | 'reputation_score' | 'feedback_volume' | 'phs_offer_accept_rate' | 'hm_quality_factor' | 'hm_cancel_rate' | 'date_of_birth_encrypted'>>()
 }
 
 /** Floating HMs (no company yet), newest first, capped at 100 (admin LinkHMPanel). */
@@ -73,28 +79,32 @@ export function insertHm(profileId: string, companyId: string, jobTitle: string)
     profile_id: profileId,
     company_id: companyId,
     job_title: jobTitle,
-  })
+  } satisfies HmInsert)
 }
 
 /** Upsert the HM↔company link keyed on profile_id (CompanyRegister + HMOnboarding self-heal). */
 export function upsertHmCompanyLink(profileId: string, companyId: string) {
   return supabase.from('hiring_managers').upsert(
-    { profile_id: profileId, company_id: companyId, job_title: 'Hiring Manager' },
+    { profile_id: profileId, company_id: companyId, job_title: 'Hiring Manager' } satisfies HmInsert,
     { onConflict: 'profile_id' },
   )
 }
 
 /** Update the HM's job title by profile id (HMCompanyProfile save; builder passed into Promise.all). */
 export function updateHmJobTitleByProfileId(profileId: string, jobTitle: string) {
-  return supabase.from('hiring_managers').update({ job_title: jobTitle }).eq('profile_id', profileId)
+  return supabase.from('hiring_managers').update({ job_title: jobTitle } satisfies HmUpdate).eq('profile_id', profileId)
 }
 
 /** Save the onboarding chat transcript on the HM row (HMOnboarding; builder passed into Promise.all — no await here). */
 export function updateHmInterviewTranscript(profileId: string, transcript: unknown[]) {
-  return supabase.from('hiring_managers').update({ interview_answers: { transcript } }).eq('profile_id', profileId)
+  // interview_answers is a jsonb column; the caller passes an interface-typed
+  // transcript array (ApiMessage[]) which is structurally valid JSON but which
+  // TS won't accept as Json (interfaces lack an index signature). Cast the
+  // payload at the boundary — no runtime change.
+  return supabase.from('hiring_managers').update({ interview_answers: { transcript } } as HmUpdate).eq('profile_id', profileId)
 }
 
 /** Apply a caller-built update payload to an HM row by id (HMOnboarding profile save / AddHmDobModal DOB save). */
-export function updateHmById(hmId: string, payload: Record<string, unknown>) {
+export function updateHmById(hmId: string, payload: HmUpdate) {
   return supabase.from('hiring_managers').update(payload).eq('id', hmId)
 }

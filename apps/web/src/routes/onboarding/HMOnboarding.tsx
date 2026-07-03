@@ -24,6 +24,9 @@ import { insertRole, getOnboardingDraftRoleId } from '../../data/repositories/ro
 import { companyIdByCreator, companyIdByHrEmail } from '../../data/repositories/companies'
 import { profileEmailById, updateProfile } from '../../data/repositories/profiles'
 import { hmIdByProfileId, upsertHmCompanyLink, updateHmInterviewTranscript, updateHmById } from '../../data/repositories/hiringManagers'
+import type { Database } from '../../types/db.generated'
+
+type HmUpdate = Database['public']['Tables']['hiring_managers']['Update']
 import { encryptDob, markOnboardingComplete } from '../../lib/api'
 import { callFunction } from '../../lib/functions'
 import { getLifeChartCharacter, type Gender } from '../../shared/domain/lifeChart/lifeChartCharacter'
@@ -434,7 +437,12 @@ export default function HMOnboarding() {
             requires_own_transport: hmRequiresOwnTransport,
             has_commission: hmHasCommission,
           },
-        })
+          // interview_answers.transcript is interface-typed (ApiMessage[]) and the
+          // other jsonb columns (must_haves, role_constraints, culture_offers,
+          // leadership_tags) are structurally valid JSON that TS rejects only
+          // because interfaces lack an index signature. Cast at the repo boundary
+          // — no runtime change.
+        } as unknown as HmUpdate)
       if (updateErr) throw updateErr
 
       const { error: profErr } = await updateProfile(userId, { full_name: fullName.trim() })

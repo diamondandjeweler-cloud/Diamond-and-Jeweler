@@ -1,4 +1,8 @@
 import { supabase } from '../../lib/supabase'
+import type { Database } from '../../types/db.generated'
+
+type DataRequestRow = Database['public']['Tables']['data_requests']['Row']
+type DataRequestUpdate = Database['public']['Tables']['data_requests']['Update']
 
 // ── data_requests: PDPA data subject requests (DSR) ──────────────────────────
 // Centralizes reads/writes of the data_requests table for the admin DSR panel
@@ -16,7 +20,7 @@ export function adminDataRequestsBase() {
 }
 
 /** Patch one data request's status fields by id → { error }. */
-export function updateDataRequest(id: string, patch: Record<string, unknown>) {
+export function updateDataRequest(id: string, patch: DataRequestUpdate) {
   return supabase.from('data_requests').update(patch).eq('id', id)
 }
 
@@ -26,6 +30,7 @@ export function listOwnDataRequests() {
     .from('data_requests')
     .select('id, request_type, status, notes, correction_proposal, resolved_at, created_at')
     .order('created_at', { ascending: false })
+    .returns<Pick<DataRequestRow, 'id' | 'request_type' | 'status' | 'notes' | 'correction_proposal' | 'resolved_at' | 'created_at'>[]>()
 }
 
 /** Insert a new data request, returning the created row (`.select().single()`). */

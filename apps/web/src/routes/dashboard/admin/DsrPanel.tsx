@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { adminDataRequestsBase, updateDataRequest } from '../../../data/repositories/dataRequests'
+import type { Database } from '../../../types/db.generated'
+
+type DataRequestUpdate = Database['public']['Tables']['data_requests']['Update']
 import { callFunction } from '../../../lib/functions'
 import ListSkeleton from '../../../components/ListSkeleton'
 
@@ -44,7 +47,7 @@ export default function DsrPanel() {
   async function setStatus(r: DsrRow, status: 'in_review' | 'completed' | 'rejected') {
     setWorking(r.id); setErr(null)
 
-    const patch: Record<string, unknown> = { status }
+    const patch: DataRequestUpdate = { status }
     if (status === 'completed' || status === 'rejected') {
       patch.resolved_at = new Date().toISOString()
     }

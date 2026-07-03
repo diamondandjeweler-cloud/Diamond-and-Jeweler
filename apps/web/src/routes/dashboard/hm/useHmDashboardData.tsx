@@ -168,14 +168,14 @@ export function useHmDashboardData(userId: string | undefined) {
         setLoading(false); return
       }
       if (!cancelled) {
-        setHmId((hm as unknown as { id: string }).id)
-        setHmHasDob((hm as unknown as { date_of_birth_encrypted: string | null }).date_of_birth_encrypted != null)
+        setHmId(hm.id)
+        setHmHasDob(hm.date_of_birth_encrypted != null)
         setPointsBalance(pointsRow?.points ?? 0)
       }
 
       // Phase 2 — company-context lookup, active-role count, and role list
       // all fire in parallel. They share hm.id and don't depend on each other.
-      const cid = (hm as unknown as { company_id: string | null }).company_id
+      const cid = hm.company_id
       const companyOrLinkPromise = cid
         ? companyVerifiedById(cid)
             .then((res) => ({ kind: 'company' as const, data: res.data }))
@@ -202,11 +202,11 @@ export function useHmDashboardData(userId: string | undefined) {
       }
 
       if (!cancelled) setHmReputation({
-        reputation_score: (hm as unknown as { reputation_score: number | null }).reputation_score ?? null,
-        feedback_volume: (hm as unknown as { feedback_volume: number }).feedback_volume ?? 0,
-        phs_offer_accept_rate: (hm as unknown as { phs_offer_accept_rate: number | null }).phs_offer_accept_rate ?? null,
-        hm_quality_factor: (hm as unknown as { hm_quality_factor: number | null }).hm_quality_factor ?? null,
-        hm_cancel_rate: (hm as unknown as { hm_cancel_rate: number | null }).hm_cancel_rate ?? null,
+        reputation_score: hm.reputation_score ?? null,
+        feedback_volume: hm.feedback_volume ?? 0,
+        phs_offer_accept_rate: hm.phs_offer_accept_rate ?? null,
+        hm_quality_factor: hm.hm_quality_factor ?? null,
+        hm_cancel_rate: hm.hm_cancel_rate ?? null,
       })
 
       if (!cancelled) setRoleCount(count ?? 0)

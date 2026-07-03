@@ -1,4 +1,7 @@
 import { supabase } from '../../lib/supabase'
+import type { Database, Json } from '../../types/db.generated'
+
+type PointTransactionRow = Database['public']['Tables']['point_transactions']['Row']
 
 // ── Points / purchases reads ─────────────────────────────────────────────────
 // Centralizes the Diamond-Points money tables: the point_transactions ledger and
@@ -19,6 +22,7 @@ export function pointTransactionsForUser(userId: string) {
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(50)
+    .returns<Pick<PointTransactionRow, 'id' | 'delta' | 'reason' | 'created_at'>[]>()
 }
 
 /**
@@ -27,7 +31,13 @@ export function pointTransactionsForUser(userId: string) {
  * both. Caller adds .maybeSingle().
  */
 export function purchasePaymentStatusById(table: PurchaseTable, purchaseId: string) {
-  return supabase.from(table).select('payment_status').eq('id', purchaseId)
+  // Both purchase tables share `payment_status: string`; project it explicitly so
+  // callers get a typed field without depending on which table was passed.
+  return supabase
+    .from(table)
+    .select('payment_status')
+    .eq('id', purchaseId)
+    .returns<{ payment_status: string }[]>()
 }
 
 /** RPC: award points (server-side ledger write, deduped by p_idempotency_key); callers treat as best-effort. */
@@ -35,7 +45,7 @@ export function awardPoints(params: {
   p_user_id: string
   p_delta: number
   p_reason: string
-  p_reference: Record<string, unknown>
+  p_reference: Json
   p_idempotency_key: string
 }) {
   return supabase.rpc('award_points', params)

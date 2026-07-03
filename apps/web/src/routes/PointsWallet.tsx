@@ -55,7 +55,7 @@ export default function PointsWallet() {
           getConfigValue('points_packages'),
         ])
         if (cancelled) return
-        setLedger((ledgerR.data as LedgerRow[] | null) ?? [])
+        setLedger(ledgerR.data ?? [])
         if (Array.isArray(pkgR.data?.value)) setPackages(pkgR.data!.value as Package[])
       } finally {
         if (!cancelled) setLoading(false)

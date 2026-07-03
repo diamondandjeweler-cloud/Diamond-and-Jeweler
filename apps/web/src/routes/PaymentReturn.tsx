@@ -36,7 +36,7 @@ export default function PaymentReturn() {
       for (let i = 0; i < 10; i++) {
         if (!alive) return
         const { data } = await purchasePaymentStatusById(table, purchaseId).maybeSingle()
-        const s = (data?.payment_status as string | undefined) ?? 'pending'
+        const s = data?.payment_status ?? 'pending'
         if (s === 'paid' || s === 'failed') {
           setStatus(s as 'paid' | 'failed')
           if (s === 'paid') await refresh()
@@ -73,7 +73,7 @@ export default function PaymentReturn() {
       }
       // Re-poll once.
       const { data } = await purchasePaymentStatusById(table, purchaseId).maybeSingle()
-      if ((data?.payment_status as string | undefined) === 'paid') {
+      if (data?.payment_status === 'paid') {
         setStatus('paid')
         await refresh()
       }

@@ -61,7 +61,7 @@ export default function Referrals() {
         if (cancelled) return
         setList(refsR.data ?? [])
         const cfg = new Map<string, unknown>(
-          ((cfgR.data as { key: string; value: unknown }[] | null) ?? []).map((row) => [row.key, row.value])
+          (cfgR.data ?? []).map((row) => [row.key, row.value])
         )
         setPointsCfg({
           perReferral: typeof cfg.get('points_per_referral') === 'number' ? (cfg.get('points_per_referral') as number) : 19,

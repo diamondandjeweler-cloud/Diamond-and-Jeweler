@@ -64,7 +64,7 @@ export default function Consult() {
       const { data } = await getConfigValues(keys)
       if (cancelled) return
       const map = new Map<string, unknown>()
-      for (const row of (data ?? []) as Array<{ key: string; value: unknown }>) {
+      for (const row of data ?? []) {
         map.set(row.key, row.value)
       }
       const cur = typeof map.get('consult_currency') === 'string' ? map.get('consult_currency') as string : 'RM'
@@ -91,7 +91,7 @@ export default function Consult() {
     void consultBookingStatusById(onReturn)
       .then(({ data }) => {
         if (cancelled || !data) return
-        setReturnInfo({ status: (data as { status: string }).status, videoUrl: (data as { video_url: string | null }).video_url })
+        setReturnInfo({ status: data.status, videoUrl: data.video_url })
       })
     return () => { cancelled = true }
   }, [onReturn])

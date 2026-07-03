@@ -32,7 +32,7 @@ export default function MarketRatePanel() {
     setLoading(true)
     const { data, error } = await listMarketRates()
     if (error) setErr(error.message)
-    else setRows((data ?? []) as MarketRow[])
+    else setRows(data ?? [])
     setLoading(false)
   }
   useEffect(() => { void reload() }, [])

@@ -77,7 +77,12 @@ export default function DataRequests() {
       ])
       if (!cancelled) {
         setHistory((dsrRes.data ?? []) as DsrRow[])
-        setAuditLog((auditRes.data ?? []) as AuditRow[])
+        // Repo now types this row from the generated schema, which diverges from the
+        // local AuditRow here (schema `id` is number/bigint not string, and
+        // `actor_role` is nullable). Both are display-only (id is a React key, coerced
+        // to string; actor_role renders as text) so runtime is unaffected — route the
+        // narrowing through `unknown` rather than change the render contract.
+        setAuditLog((auditRes.data ?? []) as unknown as AuditRow[])
         setLoading(false)
       }
     })()

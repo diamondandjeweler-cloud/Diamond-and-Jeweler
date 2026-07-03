@@ -15,7 +15,7 @@ export default function VerificationQueue() {
       .then(({ data, error }) => {
         if (cancelled) return
         if (error) { setErr(error.message); setRows([]); return }
-        setRows((data ?? []) as CompanyRow[])
+        setRows(data ?? [])
       })
     return () => { cancelled = true }
   }, [])

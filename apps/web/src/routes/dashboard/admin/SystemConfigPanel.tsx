@@ -124,7 +124,7 @@ export default function SystemConfigPanel() {
     setLoading(true)
     const { data, error } = await listConfig()
     if (!error) {
-      const list = (data ?? []) as ConfigRow[]
+      const list: ConfigRow[] = data ?? []
       setRows(list)
       const d: Record<string, string> = {}
       list.forEach((r) => { d[r.key] = JSON.stringify(r.value, null, 2) })

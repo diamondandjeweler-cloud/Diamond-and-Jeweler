@@ -1,5 +1,7 @@
 import { supabase } from '../../lib/supabase'
-import type { Json } from '../../types/db.generated'
+import type { Database, Json } from '../../types/db.generated'
+
+type StaleLoopNudgeRow = Database['public']['Tables']['stale_loop_nudges']['Row']
 
 // ── Stale-loop nudges: re-engagement prompts + response recording ────────────
 // Builder-return convention (mirrors roles.ts / systemConfig.ts) — callers
@@ -12,6 +14,7 @@ export function getOpenHmNudgeForRole(roleId: string) {
     .eq('party', 'hm').eq('subject_id', roleId)
     .is('response_at', null)
     .order('sent_at', { ascending: false }).limit(1).maybeSingle()
+    .returns<Pick<StaleLoopNudgeRow, 'id' | 'gap_payload' | 'response_at'>>()
 }
 
 /** Record a party's response to a nudge (RPC `fn_stale_loop_record_response`); fire-and-forget callers keep their void/.then. */

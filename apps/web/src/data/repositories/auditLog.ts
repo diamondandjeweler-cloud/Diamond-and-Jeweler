@@ -1,4 +1,7 @@
 import { supabase } from '../../lib/supabase'
+import type { Database } from '../../types/db.generated'
+
+type AuditLogRow = Database['public']['Tables']['audit_log']['Row']
 
 // ── audit_log: PDPA access-log reads ─────────────────────────────────────────
 // Centralizes reads of the audit_log table for the user-facing access log on
@@ -15,4 +18,5 @@ export function listSubjectAccessLog(subjectId: string) {
     .in('action', ['admin_profile_view', 'admin_talent_view', 'admin_file_view', 'dsr_completed', 'dsr_export_downloaded', 'file_viewed'])
     .order('created_at', { ascending: false })
     .limit(100)
+    .returns<Pick<AuditLogRow, 'id' | 'actor_role' | 'action' | 'resource_type' | 'created_at'>[]>()
 }

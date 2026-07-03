@@ -56,7 +56,9 @@ export default function PointsWallet() {
         ])
         if (cancelled) return
         setLedger(ledgerR.data ?? [])
-        if (Array.isArray(pkgR.data?.value)) setPackages(pkgR.data!.value as Package[])
+        // `value` is now typed Json at the repo seam; narrow the runtime-guarded jsonb
+        // array to the domain Package shape (Json[] → Package[] needs the unknown hop).
+        if (Array.isArray(pkgR.data?.value)) setPackages(pkgR.data!.value as unknown as Package[])
       } finally {
         if (!cancelled) setLoading(false)
       }

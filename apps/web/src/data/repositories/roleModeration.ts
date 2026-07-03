@@ -1,4 +1,7 @@
 import { supabase } from '../../lib/supabase'
+import type { Database } from '../../types/db.generated'
+
+type RoleModerationEventRow = Database['public']['Tables']['role_moderation_events']['Row']
 
 // ── Role moderation: audit events + appeal/decision RPCs ─────────────────────
 // Mirrors roles.ts / systemConfig.ts — every function returns the query/RPC
@@ -13,6 +16,7 @@ export function listRoleModerationEvents(roleId: string) {
     .eq('role_id', roleId)
     .order('created_at', { ascending: false })
     .limit(20)
+    .returns<Pick<RoleModerationEventRow, 'id' | 'event_type' | 'prev_status' | 'new_status' | 'score' | 'category' | 'reason' | 'provider' | 'created_at'>[]>()
 }
 
 /** HM appeals a moderation decision on their role (RPC `appeal_role_moderation`). */

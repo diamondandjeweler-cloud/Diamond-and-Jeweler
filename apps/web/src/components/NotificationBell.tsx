@@ -32,7 +32,7 @@ export default function NotificationBell() {
 
     void (async () => {
       const { data } = await inAppNotifications()
-      if (!cancelled) setItems((data ?? []) as NotificationRow[])
+      if (!cancelled) setItems(data ?? [])
     })()
 
     const channel = supabase

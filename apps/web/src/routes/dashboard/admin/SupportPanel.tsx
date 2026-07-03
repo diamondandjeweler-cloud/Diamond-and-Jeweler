@@ -66,7 +66,7 @@ export default function SupportPanel() {
     const profilesById: Record<string, { email: string; full_name: string }> = {}
     if (userIds.length > 0) {
       const { data: profileData } = await profilesByIds(userIds)
-      for (const p of profileData ?? []) profilesById[(p as { id: string; email: string; full_name: string }).id] = { email: (p as { id: string; email: string; full_name: string }).email, full_name: (p as { id: string; email: string; full_name: string }).full_name }
+      for (const p of profileData ?? []) profilesById[p.id] = { email: p.email, full_name: p.full_name }
     }
     setTickets(tickets.map((t) => ({ ...t, profiles: t.user_id ? (profilesById[t.user_id] ?? null) : null })) as Ticket[])
     setLoading(false)

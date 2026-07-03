@@ -1,6 +1,7 @@
 import { supabase } from '../../lib/supabase'
 import type { Database } from '../../types/db.generated'
 
+type MarketRateRow = Database['public']['Tables']['market_rate_cache']['Row']
 type MarketRateInsert = Database['public']['Tables']['market_rate_cache']['Insert']
 type MarketRateUpdate = Database['public']['Tables']['market_rate_cache']['Update']
 
@@ -14,12 +15,12 @@ type MarketRateUpdate = Database['public']['Tables']['market_rate_cache']['Updat
 export function getMarketRate(title: string, location: string, experience: string) {
   return supabase.from('market_rate_cache').select('min_salary, max_salary, median_salary')
     .ilike('job_title', title).eq('location', location).eq('experience_level', experience)
-    .limit(1).maybeSingle()
+    .limit(1).maybeSingle().returns<Pick<MarketRateRow, 'min_salary' | 'max_salary' | 'median_salary'>>()
 }
 
 /** All benchmark rows for the admin editor, ordered by title then level. */
 export function listMarketRates() {
-  return supabase.from('market_rate_cache').select('*').order('job_title').order('experience_level')
+  return supabase.from('market_rate_cache').select('*').order('job_title').order('experience_level').returns<MarketRateRow[]>()
 }
 
 /** Insert a benchmark row. */

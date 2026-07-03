@@ -139,7 +139,7 @@ export default function ModerationPanel() {
   async function loadEvents(roleId: string) {
     if (events[roleId]) return
     const { data } = await listRoleModerationEvents(roleId)
-    setEvents((prev) => ({ ...prev, [roleId]: (data ?? []) as ModEvent[] }))
+    setEvents((prev) => ({ ...prev, [roleId]: data ?? [] }))
   }
 
   function toggleExpand(r: FlaggedRole) {

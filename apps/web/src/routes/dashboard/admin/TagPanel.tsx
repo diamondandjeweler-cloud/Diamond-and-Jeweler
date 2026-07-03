@@ -22,7 +22,7 @@ export default function TagPanel() {
   async function reload() {
     const { data, error } = await listTags()
     if (error) setErr(error.message)
-    else setRows((data ?? []) as TagRow[])
+    else setRows(data ?? [])
     setLoading(false)
   }
 

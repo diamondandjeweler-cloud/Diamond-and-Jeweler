@@ -52,7 +52,9 @@ export default function PricingPanel() {
     const { data } = await getConfigValues(keys)
     if (data) {
       const m = Object.fromEntries(data.map((r) => [r.key, r.value]))
-      if (Array.isArray(m.points_packages)) setPackages(m.points_packages as Package[])
+      // `value` is now typed Json at the repo seam; narrow the runtime-guarded jsonb
+      // array to the domain Package shape (Json[] → Package[] needs the unknown hop).
+      if (Array.isArray(m.points_packages)) setPackages(m.points_packages as unknown as Package[])
       if (typeof m.extra_match_price_rm === 'number') setSingleMatchPriceRm(String(m.extra_match_price_rm))
       if (typeof m.points_per_extra_match === 'number') setRedemptionCost(String(m.points_per_extra_match))
       if (typeof m.free_matches_quota === 'number') setFreeQuota(String(m.free_matches_quota))

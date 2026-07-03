@@ -107,7 +107,7 @@ export default function TalentProfile() {
         const { data, error } = await latestResumeDocument(talent.id)
         if (error) throw error
         if (!data) { setDocMsg('No resume on file.'); return }
-        doc = { storage_path: data.storage_path as string, file_name: data.file_name as string }
+        doc = { storage_path: data.storage_path, file_name: data.file_name as string }
         cachedResumeRef.current = doc
       }
       const url = await signedUrl('resumes', doc.storage_path, 60)

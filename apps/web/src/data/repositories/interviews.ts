@@ -1,4 +1,10 @@
 import { supabase } from '../../lib/supabase'
+import type { Database } from '../../types/db.generated'
+
+// One alias per table this file writes.
+type InterviewInsert = Database['public']['Tables']['interviews']['Insert']
+type InterviewUpdate = Database['public']['Tables']['interviews']['Update']
+type FeedbackSubmissionInsert = Database['public']['Tables']['feedback_submissions']['Insert']
 
 // ── Interviews, rounds, proposals, feedback ──────────────────────────────────
 // Completes write-centralization across the recruitment-core tables (matches,
@@ -10,12 +16,12 @@ import { supabase } from '../../lib/supabase'
 // await / .then / terminal operators.
 
 /** Patch an interview row by id (e.g. mark completed). */
-export function updateInterview(interviewId: string, patch: Record<string, unknown>) {
+export function updateInterview(interviewId: string, patch: InterviewUpdate) {
   return supabase.from('interviews').update(patch).eq('id', interviewId)
 }
 
 /** Insert an interview row (HR schedules an interview). */
-export function insertInterview(row: Record<string, unknown>) {
+export function insertInterview(row: InterviewInsert) {
   return supabase.from('interviews').insert(row)
 }
 
@@ -61,11 +67,6 @@ export function interviewFeedbackFlagsByMatch(matchId: string) {
 }
 
 /** Insert a feedback_submissions row — caller inspects error.code === '23505' for idempotency. */
-export function insertFeedbackSubmission(row: {
-  match_id: string
-  from_user_id: string
-  rating: number
-  comment: string | null
-}) {
+export function insertFeedbackSubmission(row: FeedbackSubmissionInsert) {
   return supabase.from('feedback_submissions').insert(row)
 }

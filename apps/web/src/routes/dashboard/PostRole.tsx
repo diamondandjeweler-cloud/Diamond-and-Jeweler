@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { fmt } from '../../lib/format'
 import { useSession } from '../../state/useSession'
 import { updateRole, insertRole, getRoleDraft, saveRoleDraft, deleteRoleDraft, getRoleFullById, getRoleCommitCheck } from '../../data/repositories/roles'
+import type { Database } from '../../types/db.generated'
 import { hmIdByProfileId } from '../../data/repositories/hiringManagers'
 import { getMarketRate } from '../../data/repositories/marketRates'
 import { callFunction } from '../../lib/functions'
@@ -414,9 +415,12 @@ export default function PostRole() {
       }
 
       const savedId = isEdit ? editRoleId! : roleId
+      // languages_required / non_negotiables_atoms are interface[] (LanguageReq[]/NNAtom[])
+      // that are structurally valid JSON but lack the index signature the generated Json
+      // type demands — boundary-cast the payload; runtime object is unchanged.
       const { error: insErr } = isEdit
-        ? await updateRole(editRoleId!, payload).abortSignal(controller.signal)
-        : await insertRole({ id: roleId, ...payload }).abortSignal(controller.signal)
+        ? await updateRole(editRoleId!, payload as unknown as Database['public']['Tables']['roles']['Update']).abortSignal(controller.signal)
+        : await insertRole({ id: roleId, ...payload } as unknown as Database['public']['Tables']['roles']['Insert']).abortSignal(controller.signal)
       clearTimeout(timeoutId)
 
       if (insErr) throw insErr

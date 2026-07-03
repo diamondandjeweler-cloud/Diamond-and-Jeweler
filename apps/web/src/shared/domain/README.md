@@ -24,6 +24,7 @@ layer cannot accumulate framework or I/O dependencies.
 | `lifeChart/lifeChartCharacter.ts` | Character derivation from DOB + gender (pure). |
 | `lifeChart/yearLuck.ts` | Year-luck stage → career-nudge category (pure; internal stage numbers never surfaced). |
 | `identity/displayName.ts` | Given-name parsing + display-name formatting (pure). |
+| `onboarding/chatStream.ts` | SSE frame decoding + `[PROFILE_READY]` sentinel handling for the Bo onboarding chat (pure; shared by the Talent + HM wizards via `useOnboardingChat`). |
 
 Each module keeps its co-located `*.test.ts` golden-vector suite, which doubles
 as the characterization net guaranteeing behavior was preserved across the move

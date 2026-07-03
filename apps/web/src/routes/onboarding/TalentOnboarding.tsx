@@ -31,6 +31,7 @@ import {
   type LanguageReq, type NNAtom,
 } from '../../components/role-form'
 import { type Phase, type ApiMessage, computeUsesLunarCalendar } from './talent/helpers'
+import { useOnboardingChat } from './useOnboardingChat'
 import { ProgressStep, FileRow } from './talent/StepBits'
 import DobStep from './talent/DobStep'
 import DealBreakersStep from './talent/DealBreakersStep'
@@ -51,13 +52,10 @@ export default function TalentOnboarding() {
   const [phone, setPhone] = useState('')
   const [log, setLog] = useState<ChatMessage[]>([])
   const [apiMessages, setApiMessages] = useState<ApiMessage[]>([])
-  const [input, setInput] = useState('')
-  const [isStreaming, setIsStreaming] = useState(false)
-  const abortCtrlRef = useRef<AbortController | null>(null)
   const phaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // Abort any in-flight SSE stream and clear any pending phase timer when the component unmounts.
+  // Clear any pending phase timer when the component unmounts. (The shared
+  // useOnboardingChat hook separately aborts any in-flight SSE stream.)
   useEffect(() => () => {
-    abortCtrlRef.current?.abort()
     if (phaseTimerRef.current !== null) clearTimeout(phaseTimerRef.current)
   }, [])
   const chatInputRef = useRef<HTMLTextAreaElement>(null)
@@ -99,13 +97,6 @@ export default function TalentOnboarding() {
   const [err, setErr] = useState<string | null>(null)
   const [dobAttempted, setDobAttempted] = useState(false)
 
-  // Refocus chat input after each streaming response completes
-  useEffect(() => {
-    if (!isStreaming && phase === 'chat') {
-      chatInputRef.current?.focus()
-    }
-  }, [isStreaming, phase])
-
   const idRef = useRef(0)
   const nextId = () => `m${++idRef.current}`
   // Stable conversation id for the whole onboarding chat — every turn shares it
@@ -118,6 +109,59 @@ export default function TalentOnboarding() {
 
   // ── Draft key ────────────────────────────────────────────────────────────────
   const draftKey = sessionId ? `dnj.onboard.${sessionId}` : null
+
+  // ── Shared Bo chat-streaming engine ───────────────────────────────────────────
+  const { input, setInput, isStreaming, sendMessage, stop } = useOnboardingChat({
+    phase,
+    log,
+    setLog,
+    apiMessages,
+    setApiMessages,
+    nextId,
+    conversationIdRef,
+    config: {
+      slowWarning: t('talentOnboard.aiSlowWarning'),
+      chatError: t('talentOnboard.chatError'),
+      progressSaved: t('talentOnboard.progressSaved'),
+      buildRequestBody: () => ({ dob: dob || undefined, gender: gender || undefined }),
+      onDraftComplete: () => {
+        if (!draftKey) return
+        try {
+          // Chat done — wipe mid-chat snapshot; Supabase has the real record.
+          const d = JSON.parse(localStorage.getItem(draftKey) || '{}') as Record<string, unknown>
+          const { apiMessages: _a, ...rest } = d
+          localStorage.setItem(draftKey, JSON.stringify(rest))
+        } catch { /* ignore storage errors */ }
+      },
+      onDraftPartial: (msgs) => {
+        if (!draftKey) return
+        try {
+          const d = JSON.parse(localStorage.getItem(draftKey) || '{}') as Record<string, unknown>
+          localStorage.setItem(draftKey, JSON.stringify({ ...d, apiMessages: msgs, phase: 'chat' }))
+        } catch { /* ignore */ }
+      },
+      persistTranscript: (msgs, { partial }) => {
+        // Persist transcript to Supabase immediately — before DOB / docs phases.
+        updateProfile(session!.user.id, {
+          interview_transcript: { messages: msgs, saved_at: new Date().toISOString(), ...(partial ? { partial: true } : {}) },
+        }).then(() => { /* best-effort draft save */ })
+      },
+      onProfileReady: () => {
+        setLog((l) => [
+          ...l,
+          { id: nextId(), from: 'system', content: t('talentOnboard.chatDoneMessage') },
+        ])
+        phaseTimerRef.current = setTimeout(() => setPhase('dob'), 600)
+      },
+    },
+  })
+
+  // Refocus chat input after each streaming response completes
+  useEffect(() => {
+    if (!isStreaming && phase === 'chat') {
+      chatInputRef.current?.focus()
+    }
+  }, [isStreaming, phase])
 
   // ── On mount: restore saved progress ────────────────────────────────────────
   useEffect(() => {
@@ -269,167 +313,6 @@ export default function TalentOnboarding() {
     } catch (e) {
       setSwitchErr(e instanceof Error ? e.message : t('talentOnboard.switchFailed'))
       setSwitching(false)
-    }
-  }
-
-  async function sendMessage(text: string) {
-    if (isStreaming || !text.trim() || phase !== 'chat') return
-    const trimmed = text.trim()
-    setInput('')
-
-    setLog((l) => [...l, { id: nextId(), from: 'you', content: trimmed }])
-    const newApiMsgs: ApiMessage[] = [...apiMessages, { role: 'user', content: trimmed }]
-    setApiMessages(newApiMsgs)
-
-    const boId = nextId()
-    setLog((l) => [...l, { id: boId, from: 'system', content: '', typing: true }])
-    setIsStreaming(true)
-    let accumulated = ''
-
-    // Show a soft warning after 10s if no chunk has arrived yet.
-    const warnMsgId = nextId()
-    let warnCleared = false
-    let warnTimer: ReturnType<typeof setTimeout> | undefined
-    const clearWarn = () => {
-      if (warnCleared) return
-      warnCleared = true
-      clearTimeout(warnTimer)
-      setLog((l) => l.filter((m) => m.id !== warnMsgId))
-    }
-
-    try {
-      const { data: authData } = await supabase.auth.getSession()
-      const token = authData.session?.access_token
-      if (!token) throw new Error('Not authenticated')
-
-      // Abort the whole request (connect + stream) if silent for 25s, or user clicks Stop.
-      const abortCtrl = new AbortController()
-      abortCtrlRef.current = abortCtrl
-      let stallTimer: ReturnType<typeof setTimeout> | undefined
-      const resetStall = () => {
-        clearTimeout(stallTimer)
-        stallTimer = setTimeout(() => abortCtrl.abort(), 25_000)
-      }
-      resetStall()
-
-      warnTimer = setTimeout(() => {
-        setLog((l) => [...l, {
-          id: warnMsgId, from: 'system',
-          content: t('talentOnboard.aiSlowWarning'),
-        }])
-      }, 10_000)
-
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-onboard`,
-        {
-          method: 'POST',
-          signal: abortCtrl.signal,
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ messages: newApiMsgs, dob: dob || undefined, gender: gender || undefined, conversation_id: conversationIdRef.current }),
-        },
-      )
-      if (!res.ok) throw new Error(`Server error ${res.status}`)
-
-      const reader = res.body!.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-
-      outer: for (;;) {
-        const { done, value } = await reader.read()
-        if (done) break
-        clearWarn()
-        resetStall()
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() ?? ''
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          const raw = line.slice(6).trim()
-          if (raw === '[DONE]') break outer
-          try {
-            const evt = JSON.parse(raw)
-            if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
-              accumulated += evt.delta.text
-              const display = accumulated.includes('[PROFILE_READY]')
-                ? accumulated.replace('[PROFILE_READY]', '').trimEnd()
-                : accumulated.replace(/\[PROFILE_[A-Z_\]]*$/, '').trimEnd()
-              setLog((l) =>
-                l.map((m) => (m.id === boId ? { ...m, content: display, typing: false } : m)),
-              )
-            }
-            if (evt.type === 'message_stop') break outer
-          } catch { /* skip malformed SSE lines */ }
-        }
-      }
-      clearTimeout(stallTimer)
-
-      const finalMsgs: ApiMessage[] = [...newApiMsgs, { role: 'assistant', content: accumulated }]
-      setApiMessages(finalMsgs)
-
-      if (draftKey) {
-        try {
-          if (accumulated.includes('[PROFILE_READY]')) {
-            // Chat done — wipe mid-chat snapshot; Supabase has the real record.
-            const d = JSON.parse(localStorage.getItem(draftKey) || '{}') as Record<string, unknown>
-            const { apiMessages: _a, ...rest } = d
-            localStorage.setItem(draftKey, JSON.stringify(rest))
-          } else {
-            const d = JSON.parse(localStorage.getItem(draftKey) || '{}') as Record<string, unknown>
-            localStorage.setItem(draftKey, JSON.stringify({ ...d, apiMessages: finalMsgs, phase: 'chat' }))
-          }
-        } catch { /* ignore storage errors */ }
-      }
-
-      if (accumulated.includes('[PROFILE_READY]')) {
-        // Persist transcript to Supabase immediately — before DOB / docs phases.
-        updateProfile(session!.user.id, { interview_transcript: { messages: finalMsgs, saved_at: new Date().toISOString() } })
-          .then(() => { /* best-effort draft save */ })
-
-        setLog((l) => [
-          ...l,
-          {
-            id: nextId(),
-            from: 'system',
-            content: t('talentOnboard.chatDoneMessage'),
-          },
-        ])
-        phaseTimerRef.current = setTimeout(() => setPhase('dob'), 600)
-      }
-    } catch (err) {
-      const isAbort = err instanceof Error && err.name === 'AbortError'
-      if (isAbort && accumulated.trim()) {
-        const partialMsgs: ApiMessage[] = [...newApiMsgs, { role: 'assistant', content: accumulated }]
-        setApiMessages(partialMsgs)
-        if (draftKey) {
-          try {
-            const d = JSON.parse(localStorage.getItem(draftKey) || '{}') as Record<string, unknown>
-            localStorage.setItem(draftKey, JSON.stringify({ ...d, apiMessages: partialMsgs, phase: 'chat' }))
-          } catch { /* ignore */ }
-        }
-        updateProfile(session!.user.id, { interview_transcript: { messages: partialMsgs, saved_at: new Date().toISOString(), partial: true } })
-          .then(() => {})
-        setLog((l) => [
-          ...l.map((m) => m.id === boId ? { ...m, typing: false } : m),
-          { id: nextId(), from: 'system', content: t('talentOnboard.progressSaved') },
-        ])
-      } else if (isAbort) {
-        setLog((l) => l.map((m) => m.id === boId ? { ...m, content: '', typing: false } : m))
-      } else {
-        setLog((l) =>
-          l.map((m) =>
-            m.id === boId
-              ? { ...m, content: t('talentOnboard.chatError'), typing: false }
-              : m,
-          ),
-        )
-      }
-    } finally {
-      clearWarn()
-      setIsStreaming(false)
     }
   }
 
@@ -735,7 +618,7 @@ export default function TalentOnboarding() {
               type="button"
               size="sm"
               variant="secondary"
-              onClick={() => abortCtrlRef.current?.abort()}
+              onClick={() => stop()}
             >
               {t('talentOnboard.stop')}
             </Button>

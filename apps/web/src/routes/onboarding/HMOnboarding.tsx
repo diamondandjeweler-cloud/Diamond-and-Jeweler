@@ -30,6 +30,7 @@ import { getLifeChartCharacter, type Gender } from '../../shared/domain/lifeChar
 import ChatShell, { ChatMessage } from '../../components/ChatShell'
 import { Button, Alert } from '../../components/ui'
 import { type Phase, type ApiMessage, headlineForPhase, progressPctForPhase } from './hm/helpers'
+import { useOnboardingChat } from './useOnboardingChat'
 import BasicsStep from './hm/BasicsStep'
 import MustHavesStep from './hm/MustHavesStep'
 import DemographicsStep from './hm/DemographicsStep'
@@ -51,13 +52,10 @@ export default function HMOnboarding() {
   const [jobTitle, setJobTitle] = useState('')
   const [log, setLog] = useState<ChatMessage[]>([])
   const [apiMessages, setApiMessages] = useState<ApiMessage[]>([])
-  const [input, setInput] = useState('')
-  const [isStreaming, setIsStreaming] = useState(false)
-  const abortCtrlRef = useRef<AbortController | null>(null)
   const phaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // Abort any in-flight SSE stream and clear any pending phase timer when the component unmounts.
+  // Clear any pending phase timer when the component unmounts. (The shared
+  // useOnboardingChat hook separately aborts any in-flight SSE stream.)
   useEffect(() => () => {
-    abortCtrlRef.current?.abort()
     if (phaseTimerRef.current !== null) clearTimeout(phaseTimerRef.current)
   }, [])
   const chatInputRef = useRef<HTMLTextAreaElement>(null)
@@ -138,12 +136,6 @@ export default function HMOnboarding() {
     return () => { mounted = false }
   }, [session?.user.id])
 
-  useEffect(() => {
-    if (!isStreaming && phase === 'chat') {
-      chatInputRef.current?.focus()
-    }
-  }, [isStreaming, phase])
-
   const idRef = useRef(0)
   const nextId = () => `m${++idRef.current}`
   const conversationIdRef = useRef<string>(crypto.randomUUID())
@@ -152,6 +144,55 @@ export default function HMOnboarding() {
   const inFlightRef = useRef(false)
   const draftCheckRef = useRef(false)
   const draftKey = session ? `dnj.hm-onboard.${session.user.id}` : null
+
+  // ── Shared Bo chat-streaming engine ───────────────────────────────────────────
+  const { input, setInput, isStreaming, sendMessage, stop } = useOnboardingChat({
+    phase,
+    log,
+    setLog,
+    apiMessages,
+    setApiMessages,
+    nextId,
+    conversationIdRef,
+    config: {
+      slowWarning: t('hmOnboard.chatSlowWarning'),
+      chatError: t('hmOnboard.chatError'),
+      progressSaved: t('hmOnboard.chatProgressSaved'),
+      buildRequestBody: () => ({ mode: 'hm' }),
+      onDraftComplete: () => {
+        if (!draftKey) return
+        try { localStorage.removeItem(draftKey) } catch { /* ignore */ }
+      },
+      onDraftPartial: (msgs) => {
+        if (!draftKey) return
+        try {
+          localStorage.setItem(draftKey, JSON.stringify({ fullName, jobTitle, apiMessages: msgs }))
+        } catch { /* ignore */ }
+      },
+      persistTranscript: (msgs, { partial }) => {
+        const savedAt = new Date().toISOString()
+        Promise.all([
+          updateProfile(session!.user.id, {
+            interview_transcript: { messages: msgs, saved_at: savedAt, ...(partial ? { partial: true } : {}) },
+          }),
+          updateHmInterviewTranscript(session!.user.id, msgs),
+        ]).then(() => { /* best-effort */ })
+      },
+      onProfileReady: () => {
+        setLog((l) => [...l, {
+          id: nextId(), from: 'system',
+          content: t('hmOnboard.chatAlmostDone'),
+        }])
+        phaseTimerRef.current = setTimeout(() => setPhase('mustHaves'), 600)
+      },
+    },
+  })
+
+  useEffect(() => {
+    if (!isStreaming && phase === 'chat') {
+      chatInputRef.current?.focus()
+    }
+  }, [isStreaming, phase])
 
   // On mount: restore all saved progress from localStorage.
   useEffect(() => {
@@ -262,150 +303,6 @@ export default function HMOnboarding() {
       <span className="font-semibold">{t('hmOnboard.diamondPointsInfo')}</span>
     </div>
   ) : null
-
-  async function sendMessage(text: string) {
-    if (isStreaming || !text.trim() || phase !== 'chat') return
-    const trimmed = text.trim()
-    setInput('')
-
-    setLog((l) => [...l, { id: nextId(), from: 'you', content: trimmed }])
-    const newApiMsgs: ApiMessage[] = [...apiMessages, { role: 'user', content: trimmed }]
-    setApiMessages(newApiMsgs)
-
-    const boId = nextId()
-    setLog((l) => [...l, { id: boId, from: 'system', content: '', typing: true }])
-    setIsStreaming(true)
-    let accumulated = ''
-
-    // Show a soft warning after 10s if no chunk has arrived yet.
-    const warnMsgId = nextId()
-    let warnCleared = false
-    let warnTimer: ReturnType<typeof setTimeout> | undefined
-    const clearWarn = () => {
-      if (warnCleared) return
-      warnCleared = true
-      clearTimeout(warnTimer)
-      setLog((l) => l.filter((m) => m.id !== warnMsgId))
-    }
-
-    try {
-      const { data: authData } = await supabase.auth.getSession()
-      const token = authData.session?.access_token
-      if (!token) throw new Error('Not authenticated')
-
-      // Abort the whole request (connect + stream) if silent for 25s, or user clicks Stop.
-      const abortCtrl = new AbortController()
-      abortCtrlRef.current = abortCtrl
-      let stallTimer: ReturnType<typeof setTimeout> | undefined
-      const resetStall = () => {
-        clearTimeout(stallTimer)
-        stallTimer = setTimeout(() => abortCtrl.abort(), 25_000)
-      }
-      resetStall()
-
-      warnTimer = setTimeout(() => {
-        setLog((l) => [...l, {
-          id: warnMsgId, from: 'system',
-          content: t('hmOnboard.chatSlowWarning'),
-        }])
-      }, 10_000)
-
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-onboard`,
-        {
-          method: 'POST',
-          signal: abortCtrl.signal,
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ messages: newApiMsgs, mode: 'hm', conversation_id: conversationIdRef.current }),
-        },
-      )
-      if (!res.ok) throw new Error(`Server error ${res.status}`)
-
-      const reader = res.body!.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-
-      outer: for (;;) {
-        const { done, value } = await reader.read()
-        if (done) break
-        clearWarn()
-        resetStall()
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() ?? ''
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          const raw = line.slice(6).trim()
-          if (raw === '[DONE]') break outer
-          try {
-            const evt = JSON.parse(raw)
-            if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
-              accumulated += evt.delta.text
-              const display = accumulated.includes('[PROFILE_READY]')
-                ? accumulated.replace('[PROFILE_READY]', '').trimEnd()
-                : accumulated.replace(/\[PROFILE_[A-Z_\]]*$/, '').trimEnd()
-              setLog((l) => l.map((m) => (m.id === boId ? { ...m, content: display, typing: false } : m)))
-            }
-            if (evt.type === 'message_stop') break outer
-          } catch { /* skip malformed SSE lines */ }
-        }
-      }
-      clearTimeout(stallTimer)
-
-      const finalMsgs: ApiMessage[] = [...newApiMsgs, { role: 'assistant', content: accumulated }]
-      setApiMessages(finalMsgs)
-
-      if (draftKey) {
-        try {
-          if (accumulated.includes('[PROFILE_READY]')) {
-            localStorage.removeItem(draftKey)
-          } else {
-            localStorage.setItem(draftKey, JSON.stringify({ fullName, jobTitle, apiMessages: finalMsgs }))
-          }
-        } catch { /* ignore */ }
-      }
-
-      if (accumulated.includes('[PROFILE_READY]')) {
-        const savedAt = new Date().toISOString()
-        Promise.all([
-          updateProfile(session!.user.id, { interview_transcript: { messages: finalMsgs, saved_at: savedAt } }),
-          updateHmInterviewTranscript(session!.user.id, finalMsgs),
-        ]).then(() => { /* best-effort */ })
-
-        setLog((l) => [...l, {
-          id: nextId(), from: 'system',
-          content: t('hmOnboard.chatAlmostDone'),
-        }])
-        phaseTimerRef.current = setTimeout(() => setPhase('mustHaves'), 600)
-      }
-    } catch (err) {
-      const isAbort = err instanceof Error && err.name === 'AbortError'
-      if (isAbort && accumulated.trim()) {
-        const partialMsgs: ApiMessage[] = [...newApiMsgs, { role: 'assistant', content: accumulated }]
-        setApiMessages(partialMsgs)
-        if (draftKey) {
-          try { localStorage.setItem(draftKey, JSON.stringify({ fullName, jobTitle, apiMessages: partialMsgs })) } catch { /* ignore */ }
-        }
-        const savedAt = new Date().toISOString()
-        Promise.all([
-          updateProfile(session!.user.id, { interview_transcript: { messages: partialMsgs, saved_at: savedAt, partial: true } }),
-          updateHmInterviewTranscript(session!.user.id, partialMsgs),
-        ]).then(() => {})
-        setLog((l) => [
-          ...l.map((m) => m.id === boId ? { ...m, typing: false } : m),
-          { id: nextId(), from: 'system', content: t('hmOnboard.chatProgressSaved') },
-        ])
-      } else if (isAbort) {
-        setLog((l) => l.map((m) => m.id === boId ? { ...m, content: '', typing: false } : m))
-      } else {
-        setLog((l) => l.map((m) => m.id === boId ? { ...m, content: t('hmOnboard.chatError'), typing: false } : m))
-      }
-    } finally {
-      clearWarn()
-      setIsStreaming(false)
-    }
-  }
 
   async function finalise() {
     if (!session) return
@@ -631,7 +528,7 @@ export default function HMOnboarding() {
             autoFocus
           />
           {isStreaming ? (
-            <Button type="button" size="sm" variant="secondary" onClick={() => abortCtrlRef.current?.abort()}>{t('hmOnboard.stop')}</Button>
+            <Button type="button" size="sm" variant="secondary" onClick={() => stop()}>{t('hmOnboard.stop')}</Button>
           ) : (
             <Button type="submit" disabled={!input.trim()} size="sm">{t('common.send')}</Button>
           )}

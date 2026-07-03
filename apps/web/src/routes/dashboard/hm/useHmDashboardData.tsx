@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../../../lib/supabase'
 import { callFunction } from '../../../lib/functions'
 import { formatError } from '../../../lib/errors'
-import { readDashCache, writeDashCache } from '../../../lib/dashboardCache'
+import { writeDashCache } from '../../../lib/dashboardCache'
 import { confirmDialog } from '../../../components/Modal'
 import type { InterviewRound, InterviewProposal } from '../../../types/db'
 import { hmCandidatesForManager, hmCandidateById, updateMatch, hiredMatchCountForRoles, activeMatchRoleIds, getMatchProfilePreviews, getTalentContact } from '../../../data/repositories/matches'
@@ -16,6 +16,7 @@ import { countActiveRolesForHm, listRolesForHmDashboard, getOnboardingDraftRoleF
 import { companyVerifiedById, pendingLinkRequestForHm } from '../../../data/repositories/companies'
 import { profilePointsById } from '../../../data/repositories/profiles'
 import { hmDashboardRowByProfileId } from '../../../data/repositories/hiringManagers'
+import { useMountedRef, useReloadTimer, useDashCacheSnapshot } from '../useDashboardResource'
 import { ACTIVE } from './types'
 import type {
   HMCacheSnapshot, CandidateRow, ProfilePreview, ContactInfo, WaitingInfo, RoleExtraInfo,
@@ -34,7 +35,7 @@ export function useHmDashboardData(userId: string | undefined) {
   // Hydrate KPI counts from local snapshot so the headline numbers don't
   // shimmer on returning visits. The candidate list itself is null-init'd
   // and skeletoned until fresh data arrives.
-  const cachedSnap = useState(() => readDashCache<HMCacheSnapshot>('hm_dashboard', userId))[0]
+  const cachedSnap = useDashCacheSnapshot<HMCacheSnapshot>('hm_dashboard', userId)
   const [roleCount, setRoleCount] = useState<number | null>(cachedSnap?.roleCount ?? null)
   const [candidates, setCandidates] = useState<CandidateRow[] | null>(null)
   const [oldestRoleOver24h, setOldestRoleOver24h] = useState(false)
@@ -48,10 +49,8 @@ export function useHmDashboardData(userId: string | undefined) {
   const [unlockingRoleId, setUnlockingRoleId] = useState<string | null>(null)
   const [redeemingRoleId, setRedeemingRoleId] = useState<string | null>(null)
   const [unlockMsg, setUnlockMsg] = useState<{ roleId: string; tone: 'green' | 'red'; text: string } | null>(null)
-  const reloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  useEffect(() => () => { if (reloadTimerRef.current !== null) clearTimeout(reloadTimerRef.current) }, [])
-  const mountedRef = useRef(true)
-  useEffect(() => () => { mountedRef.current = false }, [])
+  const reloadTimerRef = useReloadTimer()
+  const mountedRef = useMountedRef()
   const [urgentRoleId, setUrgentRoleId] = useState<string | null>(null)
   const [urgentBusy, setUrgentBusy] = useState(false)
   const [urgentMsg, setUrgentMsg] = useState<{ tone: 'green' | 'amber' | 'red'; text: React.ReactNode } | null>(null)
@@ -130,7 +129,7 @@ export function useHmDashboardData(userId: string | undefined) {
       }
       return next
     })
-  }, [])
+  }, [mountedRef])
 
   useEffect(() => {
     let cancelled = false
@@ -546,7 +545,7 @@ export function useHmDashboardData(userId: string | undefined) {
     window.setTimeout(() => setRespondMsg((m) => (m && m.tone === 'green' ? null : m)), 4500)
     const event_type = next === 'invited_by_manager' ? 'accept_interview' : 'reject_with_reason'
     try { await callFunction('award-points', { event_type, match_id: id }) } catch { /* tolerate */ }
-  }, [companyVerified, t, candidates])
+  }, [companyVerified, t, candidates, mountedRef])
 
   const doAction = useCallback(async (matchId: string, action: string, extra?: Record<string, unknown>) => {
     if (['schedule_round', 'make_offer', 'mark_hired'].includes(action) && companyVerified === false) {
@@ -595,7 +594,7 @@ export function useHmDashboardData(userId: string | undefined) {
     } finally {
       if (mountedRef.current) setActionBusy(null)
     }
-  }, [companyVerified, t, candidates, loadRounds, loadProposals])
+  }, [companyVerified, t, candidates, loadRounds, loadProposals, mountedRef])
 
   const revealContact = useCallback(async (matchId: string) => {
     if (companyVerified === false) {
@@ -613,7 +612,7 @@ export function useHmDashboardData(userId: string | undefined) {
       if (!mountedRef.current) return
       setErr(e instanceof Error ? e.message : t('hmDash.contactRetrieveFailed'))
     }
-  }, [companyVerified, t])
+  }, [companyVerified, t, mountedRef])
 
   const submitFeedback = useCallback(async (matchId: string) => {
     const fb = feedbackState[matchId]
@@ -639,7 +638,7 @@ export function useHmDashboardData(userId: string | undefined) {
       setFeedbackState((s) => ({ ...s, [matchId]: { ...s[matchId], saving: false } }))
       setErr(e instanceof Error ? e.message : t('hmDash.feedbackSaveFailed'))
     }
-  }, [feedbackState, t])
+  }, [feedbackState, t, mountedRef])
 
   // Shell always renders; sections skeleton themselves. Cached counts (if any)
   // keep the KPI strip from shimmering on returning visits.

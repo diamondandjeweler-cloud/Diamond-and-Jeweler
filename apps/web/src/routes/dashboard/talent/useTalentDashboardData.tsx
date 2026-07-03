@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../../state/useSession'
 import { supabase } from '../../../lib/supabase'
 import { callFunction } from '../../../lib/functions'
-import { readDashCache, writeDashCache } from '../../../lib/dashboardCache'
+import { writeDashCache } from '../../../lib/dashboardCache'
 import { confirmDialog } from '../../../components/Modal'
 import type { InterviewRound, InterviewProposal } from '../../../types/db'
 import { talentMatchesForTalent, talentMatchById, updateMatch } from '../../../data/repositories/matches'
@@ -13,6 +13,7 @@ import { profilePointsById } from '../../../data/repositories/profiles'
 import { getUrgentRoleCard } from '../../../data/repositories/roles'
 import { talentDashboardSnapshotByProfileId, talentExtractionStatusByProfileId, talentIdByProfileId, updateTalentById } from '../../../data/repositories/talents'
 import { lastCompletedFindJobRequest } from '../../../data/repositories/urgentRequests'
+import { useMountedRef, useReloadTimer, useDashCacheSnapshot } from '../useDashboardResource'
 import {
   ACTIVE,
   computeProfileGaps,
@@ -36,7 +37,7 @@ export function useTalentDashboardData() {
   const navigate = useNavigate()
   // Cached counts hydrate the KPI strip instantly. `matches` itself remains
   // null until fresh data arrives, but the headline numbers don't shimmer.
-  const cachedSnap = useState(() => readDashCache<TalentCacheSnapshot>('talent_dashboard', session?.user.id))[0]
+  const cachedSnap = useDashCacheSnapshot<TalentCacheSnapshot>('talent_dashboard', session?.user.id)
   const [matches, setMatches] = useState<MatchRow[] | null>(null)
   // `loading` state was previously gating the whole render via early-return
   // spinner. With the shell-always-rendered refactor, the boolean was unused
@@ -63,10 +64,8 @@ export function useTalentDashboardData() {
   const [profileExpiresAt, setProfileExpiresAt] = useState<string | null>(null)
   const [reviving, setReviving] = useState(false)
   const [reviveStep, setReviveStep] = useState<'idle' | 'confirm'>('idle')
-  const reloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  useEffect(() => () => { if (reloadTimerRef.current !== null) clearTimeout(reloadTimerRef.current) }, [])
-  const mountedRef = useRef(true)
-  useEffect(() => () => { mountedRef.current = false }, [])
+  const reloadTimerRef = useReloadTimer()
+  const mountedRef = useMountedRef()
   const [talentReputation, setTalentReputation] = useState<{ reputation_score: number | null; feedback_volume: number; phs_show_rate: number | null; phs_accept_rate: number | null } | null>(null)
   const [profileGaps, setProfileGaps] = useState<string[]>([])
   const [talentFeedbackState, setTalentFeedbackState] = useState<Record<string, TalentFeedbackEntry>>({})

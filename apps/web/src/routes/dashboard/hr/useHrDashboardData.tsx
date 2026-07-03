@@ -7,7 +7,8 @@ import { hmsWithNamesByCompanyId, insertHm } from '../../../data/repositories/hi
 import { listRolesForHms } from '../../../data/repositories/roles'
 import { hrPendingMatches, hrOutcomesPendingMatches, updateMatch } from '../../../data/repositories/matches'
 import { updateInterview, insertInterview, hrScheduledInterviewsForRoles } from '../../../data/repositories/interviews'
-import { readDashCache, writeDashCache } from '../../../lib/dashboardCache'
+import { writeDashCache } from '../../../lib/dashboardCache'
+import { useDashCacheSnapshot } from '../useDashboardResource'
 import type {
   HRCacheSnapshot, PendingRow, ScheduledRow, HMRow, OpenRoleRow,
 } from './types'
@@ -28,7 +29,7 @@ export function useHrDashboardData() {
   // Hydrate from localStorage so returning users see their last-known KPI
   // numbers + lists instantly. `null` = "still loading from network, show
   // skeleton". A loaded-but-empty array shows the EmptyState card.
-  const cached = useState(() => readDashCache<HRCacheSnapshot>('hr_dashboard', userId))[0]
+  const cached = useDashCacheSnapshot<HRCacheSnapshot>('hr_dashboard', userId)
   const [pending, setPending] = useState<PendingRow[] | null>(null)
   const [scheduled, setScheduled] = useState<ScheduledRow[] | null>(null)
   const [outcomesPending, setOutcomesPending] = useState<number | null>(cached?.outcomesPending ?? null)

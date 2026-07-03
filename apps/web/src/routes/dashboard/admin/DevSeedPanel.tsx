@@ -9,6 +9,7 @@
 import { useEffect, useState } from 'react'
 import { useSession } from '../../../state/useSession'
 import { testerTalents, updateTalentById } from '../../../data/repositories/talents'
+import type { Json } from '../../../types/db.generated'
 import { formatError } from '../../../lib/errors'
 import ListSkeleton from '../../../components/ListSkeleton'
 
@@ -144,7 +145,9 @@ export default function DevSeedPanel() {
       const industry = (parts[2] ?? 'general').replace(/_/g, ' ')
 
       const { error } = await updateTalentById(t.talent_id, {
-        parsed_resume: defaultParsedResume(t.full_name, industry),
+        // defaultParsedResume is typed `unknown`; the value is a plain
+        // JSON-shaped literal. Boundary-cast to Json (no runtime change).
+        parsed_resume: defaultParsedResume(t.full_name, industry) as Json,
         interview_answers: defaultInterviewAnswers(industry),
         extraction_status: 'complete',
         updated_at: new Date().toISOString(),

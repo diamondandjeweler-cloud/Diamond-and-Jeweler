@@ -1,4 +1,9 @@
 import { supabase } from '../../lib/supabase'
+import type { Database } from '../../types/db.generated'
+
+type TalentRow = Database['public']['Tables']['talents']['Row']
+type TalentInsert = Database['public']['Tables']['talents']['Insert']
+type TalentUpdate = Database['public']['Tables']['talents']['Update']
 
 // ── Talents domain ───────────────────────────────────────────────────────────
 // Centralizes reads/writes of the talents table plus the talent-side RPCs
@@ -14,11 +19,12 @@ export function talentProfileByProfileId(profileId: string) {
     .select('id, expected_salary_min, expected_salary_max, is_open_to_offers, privacy_mode, whitelist_companies, preference_ratings, parsed_resume, extraction_status, extraction_error, extraction_started_at, photo_url')
     .eq('profile_id', profileId)
     .maybeSingle()
+    .returns<Pick<TalentRow, 'id' | 'expected_salary_min' | 'expected_salary_max' | 'is_open_to_offers' | 'privacy_mode' | 'whitelist_companies' | 'preference_ratings' | 'parsed_resume' | 'extraction_status' | 'extraction_error' | 'extraction_started_at' | 'photo_url'>>()
 }
 
 /** Wide talent snapshot for the talent dashboard KPI/gap strip → maybeSingle. */
 export function talentDashboardSnapshotByProfileId(profileId: string) {
-  return supabase.from('talents').select('id, extra_matches_used, profile_expires_at, reputation_score, feedback_volume, phs_show_rate, phs_accept_rate, current_employment_status, current_salary, notice_period_days, education_level, has_management_experience, work_authorization, preferred_management_style, expected_salary_min, expected_salary_max, employment_type_preferences, location_matters, career_goal_horizon, job_intention, has_noncompete, salary_structure_preference, role_scope_preference, reason_for_leaving_category, extraction_status').eq('profile_id', profileId).maybeSingle()
+  return supabase.from('talents').select('id, extra_matches_used, profile_expires_at, reputation_score, feedback_volume, phs_show_rate, phs_accept_rate, current_employment_status, current_salary, notice_period_days, education_level, has_management_experience, work_authorization, preferred_management_style, expected_salary_min, expected_salary_max, employment_type_preferences, location_matters, career_goal_horizon, job_intention, has_noncompete, salary_structure_preference, role_scope_preference, reason_for_leaving_category, extraction_status').eq('profile_id', profileId).maybeSingle().returns<Pick<TalentRow, 'id' | 'extra_matches_used' | 'profile_expires_at' | 'reputation_score' | 'feedback_volume' | 'phs_show_rate' | 'phs_accept_rate' | 'current_employment_status' | 'current_salary' | 'notice_period_days' | 'education_level' | 'has_management_experience' | 'work_authorization' | 'preferred_management_style' | 'expected_salary_min' | 'expected_salary_max' | 'employment_type_preferences' | 'location_matters' | 'career_goal_horizon' | 'job_intention' | 'has_noncompete' | 'salary_structure_preference' | 'role_scope_preference' | 'reason_for_leaving_category' | 'extraction_status'>>()
 }
 
 /** extraction_status only — 10s polling tick while extraction is in flight → maybeSingle. */
@@ -28,17 +34,18 @@ export function talentExtractionStatusByProfileId(profileId: string) {
     .select('extraction_status')
     .eq('profile_id', profileId)
     .maybeSingle()
+    .returns<Pick<TalentRow, 'extraction_status'>>()
 }
 
 /** Talent id lookup by owning profile (profile revive) → maybeSingle. */
 export function talentIdByProfileId(profileId: string) {
-  return supabase.from('talents').select('id').eq('profile_id', profileId).maybeSingle()
+  return supabase.from('talents').select('id').eq('profile_id', profileId).maybeSingle().returns<Pick<TalentRow, 'id'>>()
 }
 
 /** Ownership check for the interview-feedback page (id + profile_id) → maybeSingle. */
 export function talentOwnershipById(talentId: string) {
   return supabase
-    .from('talents').select('id, profile_id').eq('id', talentId).maybeSingle()
+    .from('talents').select('id, profile_id').eq('id', talentId).maybeSingle().returns<Pick<TalentRow, 'id' | 'profile_id'>>()
 }
 
 /** Open-to-offers talent pool for admin cold-start manual pairing (cap 500). */
@@ -48,6 +55,7 @@ export function coldStartTalentPool() {
     .select('id, profile_id, derived_tags, expected_salary_min, expected_salary_max')
     .eq('is_open_to_offers', true)
     .limit(500)
+    .returns<Pick<TalentRow, 'id' | 'profile_id' | 'derived_tags' | 'expected_salary_min' | 'expected_salary_max'>[]>()
 }
 
 /** Tester talents (profiles!inner email match) for the dev seed panel; caller passes the LIKE pattern. */
@@ -71,22 +79,23 @@ export function growthNudgePrefsByProfileId(profileId: string) {
     .select('growth_nudges_opt_in, growth_nudge_snooze_until, last_growth_nudge_at')
     .eq('profile_id', profileId)
     .maybeSingle()
+    .returns<Pick<TalentRow, 'growth_nudges_opt_in' | 'growth_nudge_snooze_until' | 'last_growth_nudge_at'>>()
 }
 
 // ── Mutations ────────────────────────────────────────────────────────────────
 /** Patch a talent row by id — base builder; callers may chain .select()/.single(). */
-export function updateTalentById(talentId: string, patch: Record<string, unknown>) {
+export function updateTalentById(talentId: string, patch: TalentUpdate) {
   return supabase.from('talents').update(patch).eq('id', talentId)
 }
 
 /** Patch a talent row by owning profile id (growth-nudge prefs). */
-export function updateTalentByProfileId(profileId: string, patch: Record<string, unknown>) {
+export function updateTalentByProfileId(profileId: string, patch: TalentUpdate) {
   return supabase.from('talents').update(patch).eq('profile_id', profileId)
 }
 
 /** Upsert the talents row at onboarding (payload built at call site) → select('id').single(). */
-export function upsertTalent(payload: Record<string, unknown>) {
-  return supabase.from('talents').upsert(payload, { onConflict: 'profile_id' }).select('id').single()
+export function upsertTalent(payload: TalentInsert) {
+  return supabase.from('talents').upsert(payload, { onConflict: 'profile_id' }).select('id').single().returns<Pick<TalentRow, 'id'>>()
 }
 
 // ── RPC wrappers ─────────────────────────────────────────────────────────────

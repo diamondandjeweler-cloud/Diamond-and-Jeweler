@@ -1,4 +1,8 @@
 import { supabase } from '../../lib/supabase'
+import type { Database } from '../../types/db.generated'
+
+type ProfileRow = Database['public']['Tables']['profiles']['Row']
+type ProfileUpdate = Database['public']['Tables']['profiles']['Update']
 
 // ── Profile reads & writes ───────────────────────────────────────────────────
 // `profiles` is the most hand-queried table in the app: every dashboard, the
@@ -15,37 +19,37 @@ import { supabase } from '../../lib/supabase'
 // ── Reads ─────────────────────────────────────────────────────────────────────
 /** Full profile row by id (session bootstrap — caller adds .maybeSingle()). */
 export function profileById(userId: string) {
-  return supabase.from('profiles').select('*').eq('id', userId)
+  return supabase.from('profiles').select('*').eq('id', userId).returns<ProfileRow[]>()
 }
 
 /** Profile role only, by id (auth-callback never-downgrade guard — caller adds .single()). */
 export function profileRoleById(userId: string) {
-  return supabase.from('profiles').select('role').eq('id', userId)
+  return supabase.from('profiles').select('role').eq('id', userId).returns<Pick<ProfileRow, 'role'>[]>()
 }
 
 /** Profile point balance by id (dashboard wallet badge — caller adds .maybeSingle()). */
 export function profilePointsById(userId: string) {
-  return supabase.from('profiles').select('points').eq('id', userId)
+  return supabase.from('profiles').select('points').eq('id', userId).returns<Pick<ProfileRow, 'points'>[]>()
 }
 
 /** Profile consents JSON by id (DOB consent merge — caller adds .maybeSingle()). */
 export function profileConsentsById(userId: string) {
-  return supabase.from('profiles').select('consents').eq('id', userId)
+  return supabase.from('profiles').select('consents').eq('id', userId).returns<Pick<ProfileRow, 'consents'>[]>()
 }
 
 /** Profile email by id (HM onboarding company-by-email lookup — caller adds .maybeSingle()). */
 export function profileEmailById(userId: string) {
-  return supabase.from('profiles').select('email').eq('id', userId)
+  return supabase.from('profiles').select('email').eq('id', userId).returns<Pick<ProfileRow, 'email'>[]>()
 }
 
 /** Saved onboarding draft fields by id (talent onboarding resume — caller adds .maybeSingle()). */
 export function profileOnboardingDraftById(userId: string) {
-  return supabase.from('profiles').select('interview_transcript, full_name, phone').eq('id', userId)
+  return supabase.from('profiles').select('interview_transcript, full_name, phone').eq('id', userId).returns<Pick<ProfileRow, 'interview_transcript' | 'full_name' | 'phone'>[]>()
 }
 
 /** Identity tuples for a set of user ids (admin panels — caller awaits directly). */
 export function profilesByIds(userIds: string[]) {
-  return supabase.from('profiles').select('id, email, full_name').in('id', userIds)
+  return supabase.from('profiles').select('id, email, full_name').in('id', userIds).returns<Pick<ProfileRow, 'id' | 'email' | 'full_name'>[]>()
 }
 
 /**
@@ -59,11 +63,13 @@ export function adminUserList() {
     .select('id, email, full_name, role, is_banned, onboarding_complete, ghost_score, created_at')
     .order('created_at', { ascending: false })
     .limit(200)
+  // No .returns<>() here: callers (UserPanel) chain .eq/.gte/.or filter clauses
+  // after this builder, which .returns() (a transform builder) does not expose.
 }
 
 // ── Writes ────────────────────────────────────────────────────────────────────
 /** Patch a profile by id (generic update — onboarding, settings, account edits). */
-export function updateProfile(userId: string, patch: Record<string, unknown>) {
+export function updateProfile(userId: string, patch: ProfileUpdate) {
   return supabase.from('profiles').update(patch).eq('id', userId)
 }
 

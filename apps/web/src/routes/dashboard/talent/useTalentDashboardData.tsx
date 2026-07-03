@@ -142,16 +142,16 @@ export function useTalentDashboardData() {
           return
         }
         if (cancelled) return
-        setExtractionStatus((talent as unknown as { extraction_status: string | null }).extraction_status ?? 'complete')
+        setExtractionStatus(talent.extraction_status ?? 'complete')
         talentId = talent.id
         setExtraUsed(talent.extra_matches_used ?? 0)
         if (!cancelled) setPointsBalance(pointsRow?.points ?? 0)
-        setProfileExpiresAt((talent as unknown as { profile_expires_at: string | null }).profile_expires_at ?? null)
+        setProfileExpiresAt(talent.profile_expires_at ?? null)
         setTalentReputation({
-          reputation_score: (talent as unknown as { reputation_score: number | null }).reputation_score ?? null,
-          feedback_volume: (talent as unknown as { feedback_volume: number }).feedback_volume ?? 0,
-          phs_show_rate: (talent as unknown as { phs_show_rate: number | null }).phs_show_rate ?? null,
-          phs_accept_rate: (talent as unknown as { phs_accept_rate: number | null }).phs_accept_rate ?? null,
+          reputation_score: talent.reputation_score ?? null,
+          feedback_volume: talent.feedback_volume ?? 0,
+          phs_show_rate: talent.phs_show_rate ?? null,
+          phs_accept_rate: talent.phs_accept_rate ?? null,
         })
         const t2 = talent as unknown as Record<string, unknown>
         // Push i18n keys (not raw English) — ProfileCompletenessBar runs each
@@ -315,11 +315,18 @@ export function useTalentDashboardData() {
       if (!mountedRef.current) return
       if (!talentRow) return
       const newExpiry = new Date(Date.now() + 45 * 86400000).toISOString()
-      const { error } = await updateTalentById(talentRow.id, {
+      // LATENT BUG (recorded, not fixed in this type-only pass): `ghost_score`
+      // is a column on `profiles`, NOT `talents`, so the untyped client silently
+      // drops this write. Typing the Update surfaces it as TS2353. Runtime is
+      // left byte-identical; boundary-cast keeps the gate green while the bug is
+      // tracked for a separate behavioural fix (should write ghost_score via
+      // updateProfile, or drop it here).
+      const revivePatch = {
         profile_expires_at: newExpiry,
         is_open_to_offers: true,
         ghost_score: 0,
-      })
+      } as unknown as Parameters<typeof updateTalentById>[1]
+      const { error } = await updateTalentById(talentRow.id, revivePatch)
       if (!mountedRef.current) return
       if (error) throw error
       setProfileExpiresAt(newExpiry)

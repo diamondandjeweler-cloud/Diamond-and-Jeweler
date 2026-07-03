@@ -24,7 +24,7 @@ import { insertRole, getOnboardingDraftRoleId } from '../../data/repositories/ro
 import { companyIdByCreator, companyIdByHrEmail } from '../../data/repositories/companies'
 import { profileEmailById, updateProfile } from '../../data/repositories/profiles'
 import { hmIdByProfileId, upsertHmCompanyLink, updateHmInterviewTranscript, updateHmById } from '../../data/repositories/hiringManagers'
-import type { Database } from '../../types/db.generated'
+import type { Database, Json } from '../../types/db.generated'
 
 type HmUpdate = Database['public']['Tables']['hiring_managers']['Update']
 import { encryptDob, markOnboardingComplete } from '../../lib/api'
@@ -176,7 +176,9 @@ export default function HMOnboarding() {
         const savedAt = new Date().toISOString()
         Promise.all([
           updateProfile(session!.user.id, {
-            interview_transcript: { messages: msgs, saved_at: savedAt, ...(partial ? { partial: true } : {}) },
+            // ApiMessage[] is valid JSON; interface lacks an index signature so TS
+            // needs a boundary cast (no runtime change).
+            interview_transcript: { messages: msgs, saved_at: savedAt, ...(partial ? { partial: true } : {}) } as unknown as Json,
           }),
           updateHmInterviewTranscript(session!.user.id, msgs),
         ]).then(() => { /* best-effort */ })

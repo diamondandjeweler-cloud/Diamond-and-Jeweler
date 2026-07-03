@@ -1,5 +1,6 @@
 import { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import Logo from './Logo'
 
 export type AuthVariant = 'talent' | 'hiring'
@@ -44,6 +45,7 @@ export default function AuthShell({
   panelTitle?: string
   panelBullets?: string[]
 }) {
+  const { t } = useTranslation()
   const cfg = VARIANT_CONFIG[variant]
 
   const defaultPanelTitle =
@@ -192,11 +194,11 @@ export default function AuthShell({
           <div className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
             © 2026 DNJ ·{' '}
             <Link to="/privacy" className="hover:text-white transition-colors duration-150">
-              Privacy
+              {t('footer.privacy')}
             </Link>{' '}
             ·{' '}
             <Link to="/terms" className="hover:text-white transition-colors duration-150">
-              Terms
+              {t('footer.terms')}
             </Link>
           </div>
         </div>

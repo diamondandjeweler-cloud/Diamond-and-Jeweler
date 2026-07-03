@@ -1,4 +1,9 @@
 import { supabase } from '../../lib/supabase'
+import type { Database } from '../../types/db.generated'
+
+type MatchInsert = Database['public']['Tables']['matches']['Insert']
+type MatchUpdate = Database['public']['Tables']['matches']['Update']
+type MatchHistoryInsert = Database['public']['Tables']['match_history']['Insert']
 
 // ── Match queries (recruitment) ──────────────────────────────────────────────
 // First slice of the data-access layer. AUDIT CLEAN_ARCH: ~149 direct supabase
@@ -166,21 +171,21 @@ export function logCvDownload(matchId: string) {
 
 // ── Mutations ────────────────────────────────────────────────────────────────
 /** Insert match_history audit rows (admin cold-start manual pairing; caller ignores the result by design). */
-export function insertMatchHistory(rows: Record<string, unknown>[]) {
+export function insertMatchHistory(rows: MatchHistoryInsert[]) {
   return supabase.from('match_history').insert(rows)
 }
 
 /** Patch a match row by id (status transitions etc.) — reused across HR/HM. */
-export function updateMatch(matchId: string, patch: Record<string, unknown>) {
+export function updateMatch(matchId: string, patch: MatchUpdate) {
   return supabase.from('matches').update(patch).eq('id', matchId)
 }
 
 /** Patch many matches by id (bulk approve / status transitions — admin). */
-export function updateMatches(matchIds: string[], patch: Record<string, unknown>) {
+export function updateMatches(matchIds: string[], patch: MatchUpdate) {
   return supabase.from('matches').update(patch).in('id', matchIds)
 }
 
 /** Insert match rows (admin cold-start). */
-export function insertMatches(rows: Record<string, unknown>[]) {
+export function insertMatches(rows: MatchInsert[]) {
   return supabase.from('matches').insert(rows)
 }

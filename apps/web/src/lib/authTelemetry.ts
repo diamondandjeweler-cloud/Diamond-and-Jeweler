@@ -20,11 +20,13 @@ function emailDomain(email: string): string {
 export function logAuthFailure(email: string, reason: string): void {
   // Fire-and-forget. Never await; never throw.
   try {
+    // .then() dispatches the lazy PostgREST builder (a bare void never fires the
+    // request); both outcomes swallowed so telemetry never affects auth UX.
     void logAuthFailureRpc(
       emailDomain(email),
       reason.slice(0, 200),
       typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 200) : null,
-    )
+    ).then(() => {}, () => {})
   } catch {
     /* swallow — telemetry must not affect auth UX */
   }

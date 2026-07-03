@@ -121,8 +121,10 @@ export default function Login() {
       timeout,
     ])
 
-    // Record outcome server-side — fire and forget
-    void recordLoginAttempt(email, !error)
+    // Record outcome server-side — fire and forget (must actually execute: a
+    // PostgREST builder is a lazy thenable, so .then() is what dispatches the
+    // request; both outcomes swallowed so telemetry never affects auth UX).
+    void recordLoginAttempt(email, !error).then(() => {}, () => {})
 
     setBusy(false)
     if (error) {

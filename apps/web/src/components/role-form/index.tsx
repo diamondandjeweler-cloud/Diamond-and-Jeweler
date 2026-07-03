@@ -84,7 +84,7 @@ export function SkillChipInput({
     listSkillTaxonomy()
       .then(({ data }) => {
         if (cancelled) return
-        setPool((data ?? []) as SkillRow[])
+        setPool(data ?? [])
       })
     return () => { cancelled = true }
   }, [])

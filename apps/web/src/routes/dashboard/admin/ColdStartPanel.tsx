@@ -41,12 +41,7 @@ export default function ColdStartPanel() {
     ])
     setActiveTalents(typeof tc === 'number' ? tc : 0)
     if (error) { setErr(error.message); setLoading(false); return }
-    const mapped: ColdStartRole[] = ((data ?? []) as unknown as Array<{
-      id: string
-      role_id: string
-      created_at: string
-      roles: { title: string; required_traits: string[] } | null
-    }>).map((q) => ({
+    const mapped: ColdStartRole[] = (data ?? []).map((q) => ({
       queue_id: q.id,
       role_id: q.role_id,
       title: q.roles?.title ?? '(unknown role)',

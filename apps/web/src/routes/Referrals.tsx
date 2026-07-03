@@ -59,7 +59,7 @@ export default function Referrals() {
           getConfigValues(['points_per_referral', 'points_referee_welcome', 'points_per_extra_match']),
         ])
         if (cancelled) return
-        setList((refsR.data as Referral[] | null) ?? [])
+        setList(refsR.data ?? [])
         const cfg = new Map<string, unknown>(
           ((cfgR.data as { key: string; value: unknown }[] | null) ?? []).map((row) => [row.key, row.value])
         )

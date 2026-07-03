@@ -1,4 +1,12 @@
 import { supabase } from '../../lib/supabase'
+import type { Database } from '../../types/db.generated'
+
+type ReferralRow = Database['public']['Tables']['referrals']['Row']
+/** Projected columns returned by {@link referralsForReferrer} (kept beside the SELECT). */
+type ReferralListRow = Pick<
+  ReferralRow,
+  'id' | 'referred_email' | 'code' | 'status' | 'created_at' | 'reward_claimed_at'
+>
 
 // ── Referrals ────────────────────────────────────────────────────────────────
 // Centralizes the referrals table and the generate_referral_code RPC. Mirrors
@@ -14,6 +22,7 @@ export function referralsForReferrer(userId: string) {
     .select('id, referred_email, code, status, created_at, reward_claimed_at')
     .eq('referrer_id', userId)
     .order('created_at', { ascending: false })
+    .returns<ReferralListRow[]>()
 }
 
 /** RPC: mint a unique referral code server-side → { data: string | null, error }. */

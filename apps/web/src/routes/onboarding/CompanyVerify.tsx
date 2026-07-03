@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
-import { companyForVerifyById, updateCompanyById } from '../../data/repositories/companies'
+import { companyForVerifyById, updateCompanyById, type CompanyUpdate } from '../../data/repositories/companies'
 import { uploadPrivate } from '../../lib/storage'
 
 export default function CompanyVerify() {
@@ -66,7 +66,7 @@ export default function CompanyVerify() {
       }
 
       setStep('saving')
-      const update: Record<string, unknown> = { registration_number: regNo.trim() }
+      const update: CompanyUpdate = { registration_number: regNo.trim() }
       if (licensePath) update.business_license_path = licensePath
 
       const { error } = await updateCompanyById(company.id, update)

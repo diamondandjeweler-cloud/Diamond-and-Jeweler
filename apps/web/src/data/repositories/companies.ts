@@ -1,4 +1,7 @@
 import { supabase } from '../../lib/supabase'
+import type { Database } from '../../types/db.generated'
+
+export type CompanyUpdate = Database['public']['Tables']['companies']['Update']
 
 // ── Companies + company↔HM link requests ─────────────────────────────────────
 // Centralizes reads/writes of the companies and company_hm_link_requests
@@ -71,7 +74,7 @@ export function insertCompany(payload: NewCompany) {
 }
 
 /** Apply a dynamically-built update ({ registration_number } + optional business_license_path) by id → { error } (CompanyVerify). */
-export function updateCompanyById(id: string, update: Record<string, unknown>) {
+export function updateCompanyById(id: string, update: CompanyUpdate) {
   return supabase.from('companies').update(update).eq('id', id)
 }
 

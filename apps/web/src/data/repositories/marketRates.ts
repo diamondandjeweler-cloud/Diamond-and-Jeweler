@@ -1,4 +1,8 @@
 import { supabase } from '../../lib/supabase'
+import type { Database } from '../../types/db.generated'
+
+type MarketRateInsert = Database['public']['Tables']['market_rate_cache']['Insert']
+type MarketRateUpdate = Database['public']['Tables']['market_rate_cache']['Update']
 
 // ── market_rate_cache: salary benchmarks ─────────────────────────────────────
 // Powers the market-rate warning shown during role creation and the admin
@@ -19,12 +23,12 @@ export function listMarketRates() {
 }
 
 /** Insert a benchmark row. */
-export function insertMarketRate(row: Record<string, unknown>) {
+export function insertMarketRate(row: MarketRateInsert) {
   return supabase.from('market_rate_cache').insert(row)
 }
 
 /** Patch a benchmark row by id. */
-export function updateMarketRate(id: string, patch: Record<string, unknown>) {
+export function updateMarketRate(id: string, patch: MarketRateUpdate) {
   return supabase.from('market_rate_cache').update(patch).eq('id', id)
 }
 

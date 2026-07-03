@@ -1,4 +1,8 @@
 import { supabase } from '../../lib/supabase'
+import type { Database } from '../../types/db.generated'
+
+type SupportTicketInsert = Database['public']['Tables']['support_tickets']['Insert']
+type SupportTicketUpdate = Database['public']['Tables']['support_tickets']['Update']
 
 // ── support_tickets: user support requests + admin triage ─────────────────────
 // Centralizes reads/writes of the support_tickets table. Mirrors systemConfig.ts
@@ -24,11 +28,11 @@ export function ticketListBase() {
 }
 
 /** Insert one fully-built ticket row (payload constructed verbatim at the call site) → { error }. */
-export function insertTicket(row: Record<string, unknown>) {
+export function insertTicket(row: SupportTicketInsert) {
   return supabase.from('support_tickets').insert(row)
 }
 
 /** Patch one ticket by id (status/resolved_at/admin_notes) → { error }. */
-export function updateTicket(id: string, patch: Record<string, unknown>) {
+export function updateTicket(id: string, patch: SupportTicketUpdate) {
   return supabase.from('support_tickets').update(patch).eq('id', id)
 }

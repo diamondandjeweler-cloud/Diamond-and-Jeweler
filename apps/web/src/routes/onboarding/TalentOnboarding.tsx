@@ -412,7 +412,10 @@ export default function TalentOnboarding() {
           { talent_id: talentId, doc_type: 'resume', storage_path: resumePath, file_name: resumeFile!.name, purge_after: null },
           ...(clPath ? [{ talent_id: talentId, doc_type: 'cover_letter', storage_path: clPath, file_name: coverLetterFile!.name, purge_after: null }] : []),
         ]
-        insertTalentDocuments(docRows).then(() => { /* best-effort */ })
+        // resumePath/clPath are typed `string | null`, but the submit button is gated on
+        // a present resumeFile (and clPath is included only when truthy), so storage_path is
+        // non-null at runtime; cast to the repo's Insert contract without changing the value.
+        insertTalentDocuments(docRows as Parameters<typeof insertTalentDocuments>[0]).then(() => { /* best-effort */ })
         updateProfile(userId, { interview_transcript: null })
           .then(() => { /* best-effort */ })
 

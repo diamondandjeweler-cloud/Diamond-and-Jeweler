@@ -1,4 +1,7 @@
 import { supabase } from '../../lib/supabase'
+import type { Database } from '../../types/db.generated'
+
+type TagDictionaryInsert = Database['public']['Tables']['tag_dictionary']['Insert']
 
 // ── tag_dictionary: matching-tag admin CRUD ──────────────────────────────────
 // Centralizes the tag_dictionary table (admin TagPanel). Mirrors systemConfig.ts
@@ -15,7 +18,7 @@ export function listTags() {
 }
 
 /** Insert a new tag row (payload built verbatim at the call site) → { error }. */
-export function insertTag(row: { tag_name: string; category: string; weight_multiplier: number }) {
+export function insertTag(row: TagDictionaryInsert) {
   return supabase.from('tag_dictionary').insert(row)
 }
 

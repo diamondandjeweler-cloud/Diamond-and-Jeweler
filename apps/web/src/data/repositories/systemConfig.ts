@@ -1,4 +1,7 @@
 import { supabase } from '../../lib/supabase'
+import type { Database } from '../../types/db.generated'
+
+type SystemConfigUpdate = Database['public']['Tables']['system_config']['Update']
 
 // ── system_config: platform key/value settings (jsonb `value` column) ─────────
 // Centralizes reads/writes of the system_config table. Mirrors matches.ts /
@@ -27,5 +30,8 @@ export function listConfig() {
 
 /** Update one config row's jsonb value by key → { error }. */
 export function updateConfigValue(key: string, value: unknown) {
-  return supabase.from('system_config').update({ value }).eq('key', key)
+  // `value` is a permissive jsonb entrypoint (callers pass JSON.parse output / typed
+  // primitives); cast the payload to the generated Update so the write is typed at
+  // the seam without narrowing the caller-facing `unknown` param.
+  return supabase.from('system_config').update({ value } as SystemConfigUpdate).eq('key', key)
 }

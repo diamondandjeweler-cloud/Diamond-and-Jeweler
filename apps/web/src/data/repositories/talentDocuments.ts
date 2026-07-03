@@ -1,4 +1,7 @@
 import { supabase } from '../../lib/supabase'
+import type { Database } from '../../types/db.generated'
+
+type TalentDocumentInsert = Database['public']['Tables']['talent_documents']['Insert']
 
 // ── talent_documents: resume / cover-letter storage metadata ─────────────────
 // Mirrors matches.ts / systemConfig.ts — functions return the query BUILDER so
@@ -18,6 +21,6 @@ export function latestResumeDocument(talentId: string) {
 }
 
 /** Insert one or more talent_documents rows (payload built at call site; onboarding caller keeps its best-effort .then). */
-export function insertTalentDocuments(rows: Record<string, unknown> | Record<string, unknown>[]) {
+export function insertTalentDocuments(rows: TalentDocumentInsert | TalentDocumentInsert[]) {
   return supabase.from('talent_documents').insert(rows)
 }

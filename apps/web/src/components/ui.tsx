@@ -136,6 +136,18 @@ export function Field({
   label, hint, error, required, children,
 }: FieldBase & { children: ReactNode }) {
   const id = useId()
+  const hintId = `${id}-hint`
+  const errId = `${id}-err`
+  // Associate the control with its hint/error text so screen readers announce it,
+  // and flag it invalid when errored. Previously only `id` was injected, so the
+  // visible hint/error was silent to assistive tech.
+  const describedBy = [hint ? hintId : null, error ? errId : null].filter(Boolean).join(' ') || undefined
+  const a11yProps = {
+    id,
+    'aria-describedby': describedBy,
+    'aria-invalid': error ? true : undefined,
+    'aria-errormessage': error ? errId : undefined,
+  }
   return (
     <div className="field mb-3">
       {label && (
@@ -143,8 +155,8 @@ export function Field({
           {label}{required && <span className="text-red-500 ml-0.5">*</span>}
         </label>
       )}
-      {isValidElement(children) ? cloneElement(children as ReactElement, { id }) : children}
-      {error ? <p className="field-error">{error}</p> : hint ? <p className="field-hint dark:text-gray-400">{hint}</p> : null}
+      {isValidElement(children) ? cloneElement(children as ReactElement, a11yProps) : children}
+      {error ? <p id={errId} className="field-error" role="alert">{error}</p> : hint ? <p id={hintId} className="field-hint dark:text-gray-400">{hint}</p> : null}
     </div>
   )
 }
@@ -181,6 +193,9 @@ Select.displayName = 'Select'
 export const PasswordInput = forwardRef<HTMLInputElement, Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> & FieldBase>(
   ({ label, hint, error, required, className, ...rest }, ref) => {
     const id = useId()
+    const hintId = `${id}-hint`
+    const errId = `${id}-err`
+    const describedBy = [hint ? hintId : null, error ? errId : null].filter(Boolean).join(' ') || undefined
     const [show, setShow] = useState(false)
     return (
       <div className="field mb-3">
@@ -196,6 +211,9 @@ export const PasswordInput = forwardRef<HTMLInputElement, Omit<InputHTMLAttribut
             type={show ? 'text' : 'password'}
             className={`w-full pr-10 ${className ?? ''}`}
             required={required}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={describedBy}
+            aria-errormessage={error ? errId : undefined}
             {...rest}
           />
           <button
@@ -208,7 +226,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, Omit<InputHTMLAttribut
             {show ? <EyeOffIcon /> : <EyeIcon />}
           </button>
         </div>
-        {error ? <p className="field-error">{error}</p> : hint ? <p className="field-hint dark:text-gray-400">{hint}</p> : null}
+        {error ? <p id={errId} className="field-error" role="alert">{error}</p> : hint ? <p id={hintId} className="field-hint dark:text-gray-400">{hint}</p> : null}
       </div>
     )
   },

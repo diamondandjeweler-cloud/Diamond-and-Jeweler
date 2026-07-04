@@ -257,69 +257,87 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root { color-scheme: dark; }
+/* Dark theme — driven by the `.dark` class on <html>, which is set pre-paint in
+   index.html (from localStorage 'dnj-theme' or OS preference) and flipped by
+   DarkModeToggle. Previously these rules lived under
+   `@media (prefers-color-scheme: dark)`, so the in-app toggle only restyled the
+   `dark:` utilities on JSX and left base components (.card/.stat/inputs/…) stuck
+   to the OS setting — a broken half-dark UI whenever the user's choice diverged
+   from their OS. Keying on `.dark` makes the toggle authoritative everywhere.
+   OS-default users are unaffected: index.html adds `.dark` for them pre-paint. */
+.dark { color-scheme: dark; }
 
-  body {
-    background:
-      radial-gradient(1200px 600px at 100% -10%, rgba(84,104,239,0.08), transparent 60%),
-      radial-gradient(800px 500px at -10% 110%, rgba(199,154,59,0.06), transparent 70%),
-      #18181b;
-    color: #e4e4e7;
+.dark body {
+  background:
+    radial-gradient(1200px 600px at 100% -10%, rgba(84,104,239,0.08), transparent 60%),
+    radial-gradient(800px 500px at -10% 110%, rgba(199,154,59,0.06), transparent 70%),
+    #18181b;
+  color: #e4e4e7;
+}
+
+.dark h1, .dark h2, .dark h3, .dark h4 { color: #e4e4e7; }
+
+.dark input:not([type="checkbox"]):not([type="radio"]),
+.dark select,
+.dark textarea {
+  background-color: #27272a;
+  border-color: #3f3f46;
+  color: #e4e4e7;
+}
+.dark input:not([type="checkbox"]):not([type="radio"])::placeholder,
+.dark textarea::placeholder { color: #71717a; }
+.dark input:not([type="checkbox"]):not([type="radio"]):disabled,
+.dark select:disabled,
+.dark textarea:disabled { background-color: #1c1c1e; color: #52525b; }
+
+.dark .card { background-color: #27272a; border-color: rgba(63,63,70,0.7); }
+.dark .card-elevated {
+  background-color: #27272a;
+  border-color: rgba(63,63,70,0.7);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -10px rgba(0,0,0,0.4);
+}
+
+.dark .app-shell-header { background-color: rgba(24,24,27,0.85); border-color: #3f3f46; }
+
+.dark .btn-secondary { background-color: #27272a; border-color: #3f3f46; color: #d4d4d8; }
+.dark .btn-secondary:hover { background-color: #3f3f46; border-color: #52525b; }
+.dark .btn-ghost { color: #a1a1aa; }
+.dark .btn-ghost:hover { background-color: #27272a; }
+
+.dark .pillnav { background-color: #27272a; border-color: rgba(63,63,70,0.8); }
+.dark .pillnav-item { color: #71717a; }
+.dark .pillnav-item:hover { color: #e4e4e7; }
+.dark .pillnav-item.active { background-color: #3f3f46; color: #e4e4e7; }
+
+.dark .tabstrip { border-color: #3f3f46; }
+.dark .tab { color: #71717a; }
+.dark .tab:hover { color: #e4e4e7; }
+.dark .tab.active { color: #818cf8; border-color: #818cf8; }
+
+.dark .badge-gray { background-color: #27272a; color: #a1a1aa; }
+
+.dark .chip { background-color: #27272a; border-color: #3f3f46; color: #d4d4d8; }
+.dark .chip.active { background-color: #3f3f46; color: #e4e4e7; border-color: #3f3f46; }
+
+.dark .divider { border-color: #3f3f46; }
+
+.dark .stat { background-color: #27272a; }
+.dark .stat::before { background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 50%); }
+.dark .stat-label { color: #71717a; }
+.dark .stat-hint { color: #71717a; }
+
+.dark ::-webkit-scrollbar-thumb { background: #3f3f46; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+.dark ::selection { background: rgba(84,104,239,0.35); color: #e4e4e7; }
+
+/* Respect users who prefer reduced motion — neutralise shimmer, live-dot pulse,
+   fade-in, slide-up and spinners globally (WCAG 2.3.3 Animation from Interactions).
+   Unlayered + !important so it overrides component/utility animations. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
-
-  h1, h2, h3, h4 { color: #e4e4e7; }
-
-  input:not([type="checkbox"]):not([type="radio"]),
-  select,
-  textarea {
-    background-color: #27272a;
-    border-color: #3f3f46;
-    color: #e4e4e7;
-  }
-  input:not([type="checkbox"]):not([type="radio"])::placeholder,
-  textarea::placeholder { color: #71717a; }
-  input:not([type="checkbox"]):not([type="radio"]):disabled,
-  select:disabled,
-  textarea:disabled { background-color: #1c1c1e; color: #52525b; }
-
-  .card { background-color: #27272a; border-color: rgba(63,63,70,0.7); }
-  .card-elevated {
-    background-color: #27272a;
-    border-color: rgba(63,63,70,0.7);
-    box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -10px rgba(0,0,0,0.4);
-  }
-
-  .app-shell-header { background-color: rgba(24,24,27,0.85); border-color: #3f3f46; }
-
-  .btn-secondary { background-color: #27272a; border-color: #3f3f46; color: #d4d4d8; }
-  .btn-secondary:hover { background-color: #3f3f46; border-color: #52525b; }
-  .btn-ghost { color: #a1a1aa; }
-  .btn-ghost:hover { background-color: #27272a; }
-
-  .pillnav { background-color: #27272a; border-color: rgba(63,63,70,0.8); }
-  .pillnav-item { color: #71717a; }
-  .pillnav-item:hover { color: #e4e4e7; }
-  .pillnav-item.active { background-color: #3f3f46; color: #e4e4e7; }
-
-  .tabstrip { border-color: #3f3f46; }
-  .tab { color: #71717a; }
-  .tab:hover { color: #e4e4e7; }
-  .tab.active { color: #818cf8; border-color: #818cf8; }
-
-  .badge-gray { background-color: #27272a; color: #a1a1aa; }
-
-  .chip { background-color: #27272a; border-color: #3f3f46; color: #d4d4d8; }
-  .chip.active { background-color: #3f3f46; color: #e4e4e7; border-color: #3f3f46; }
-
-  .divider { border-color: #3f3f46; }
-
-  .stat { background-color: #27272a; }
-  .stat::before { background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 50%); }
-  .stat-label { color: #71717a; }
-  .stat-hint { color: #71717a; }
-
-  ::-webkit-scrollbar-thumb { background: #3f3f46; }
-  ::-webkit-scrollbar-thumb:hover { background: #52525b; }
-  ::selection { background: rgba(84,104,239,0.35); color: #e4e4e7; }
 }

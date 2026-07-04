@@ -60,9 +60,32 @@ Do not merge refactors / UI polish while users = 0; put that energy into launch.
   sanitiser's own protective regex). The real fix is moving sanitisation server-side (moat
   decision #4) so the vocabulary never reaches the browser.
 
-## Recent changes (2026-07-04 session)
+## Launch-QA snapshot — run against prod 2026-07-05
 
-- `ci(secrecy)`: locale JSON (en/ms/zh) now scanned for forbidden terms — `37ff57b`.
-- `refactor(types)`: removed the orphaned `Database` type — `a3d987c`.
+Ran the `qa/` launch harness against production (read-only + authz-verification subset;
+skipped active write-probes `03`/`14` and the LLM checks). Result: **10/14 clean, authz
+boundary verified holding in prod.**
 
-_Last updated: 2026-07-04._
+- ✅ **Authz holds in prod:** RLS on 16 tables + anon blocked (`02`), 4/4 forged JWTs rejected
+  (`04`), 33 testers invisible to anon (`11`). DOB encryption holds — no plaintext DOB in bundle
+  or API (`13`). TLS/headers, SSL/DNS (80d to expiry), SEO, backups (7 retained, 22h old), and
+  108 email templates all clean.
+- ✅ **Fixed + shipped:** dependency vulns (`09`) — `react-router` open-redirect, `form-data`
+  CRLF, `ws`, `js-yaml`, `@babel/core` (commit `5a24c8c`, verified green).
+- ⚠️ **`12-dsr-tenant-isolation` gives a false FAIL** — the probe sends `apikey`+`Authorization`
+  together, which Supabase's current gateway rejects ("Conflicting API keys"). This is a **stale
+  QA harness** (`qa/lib/http.mjs`), NOT a DSR vuln — `dsr-export` correctly 401'd a malformed
+  request. Needs a harness auth update to the new `sb_` key model before it can test isolation again.
+- ⚠️ **`01-bazi-secrecy` FAILs on the client-bundle sanitiser** (see open items) — not a leak.
+
+Deferred (need a decision/owner): dev-only vuln chain (`vite@8`/`vitest@4` major bump);
+active write-probes `03`/`14`; the DSR-harness key fix.
+
+## Recent changes
+
+**2026-07-05:** `fix(deps)` runtime dependency vulns patched — `5a24c8c`. Launch-QA snapshot above.
+
+**2026-07-04:** `ci(secrecy)` locale JSON scanned — `37ff57b`; `refactor(types)` dropped orphaned
+`Database` type — `a3d987c`; `docs(legal)` LAWYER_PACKET.md — `9cc2a27`; STATUS findings — `b19bbbe`.
+
+_Last updated: 2026-07-05._

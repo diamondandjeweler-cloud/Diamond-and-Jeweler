@@ -78,8 +78,8 @@ function DecisionCardImpl({
         }
       }}
       className="group relative block px-6 md:px-8 pt-5 pb-6 text-center transition-all duration-300
-                 bg-gradient-to-b from-white to-[#fafbff]
-                 ring-1 ring-[#e8edff]
+                 bg-gradient-to-b from-white to-[#fafbff] dark:from-[#111827] dark:to-[#0d1528]
+                 ring-1 ring-[#e8edff] dark:ring-[#1e2d52]
                  shadow-[0_2px_4px_rgba(20,21,17,0.04),0_14px_36px_-14px_rgba(39,48,110,0.12)]
                  hover:shadow-[0_4px_8px_rgba(20,21,17,0.05),0_24px_48px_-12px_rgba(39,48,110,0.22)]
                  hover:-translate-y-0.5
@@ -97,7 +97,7 @@ function DecisionCardImpl({
         {title}
       </h2>
       <div className="mx-auto mb-3 h-px w-14 bg-gradient-to-r from-transparent via-[#C9A24D] to-transparent opacity-70" />
-      <p className="text-[13px] text-gray-600 max-w-xs mx-auto mb-4 leading-snug">
+      <p className="text-[13px] text-gray-600 dark:text-gray-400 max-w-xs mx-auto mb-4 leading-snug">
         {description.split('. ').map((s, i, arr) => (
           <span key={i} className="block">
             {s}{i < arr.length - 1 ? '.' : ''}

@@ -338,7 +338,7 @@ export const SocialProofStrip = memo(SocialProofStripImpl)
 function ReferralSectionImpl() {
   const { t } = useTranslation()
   return (
-    <section className="py-12 px-6 bg-white" aria-labelledby="referral-heading">
+    <section className="py-12 px-6 bg-white dark:bg-[#0d1528]" aria-labelledby="referral-heading">
       <div className="max-w-4xl mx-auto">
         <div
           className="rounded-2xl p-8 text-center"

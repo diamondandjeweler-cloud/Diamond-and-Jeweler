@@ -298,6 +298,14 @@ jobs:
             | grep -viE '^[^:]+:[0-9]+:[[:space:]]*import' \
             | grep -viE 'lifeChartCharacter|LifeChartCharacter|life_chart_character|life_chart_bucket' \
             || true)
+          # i18n locale JSON (en/ms/zh) is pure user-visible copy — every string
+          # ships to a user, yet the .tsx scope above never covered it. Scan it too.
+          # Use WORD BOUNDARIES here: the naive 'bazi' substring false-positives on
+          # the Malay word 'membazirkan' (to waste). Boundaries match standalone
+          # forbidden terms only; 八字 is CJK so boundaries do not apply to it.
+          locale_files=$(find apps/web/src/locales -type f -name '*.json' 2>/dev/null)
+          locale_hits=$(grep -inE '\b(bazi|life[ -]?chart|fortune)\b|八字' $locale_files 2>/dev/null || true)
+          hits=$(printf '%s\n%s' "$hits" "$locale_hits" | grep -vE '^[[:space:]]*$' || true)
           if [ -n "$hits" ]; then
             echo "✗ Forbidden secrecy term(s) found on user-visible surface(s):"
             echo "$hits" | sed 's/^/    /'

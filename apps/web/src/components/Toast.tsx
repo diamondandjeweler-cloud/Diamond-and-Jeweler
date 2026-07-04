@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -72,6 +73,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     },
     [dismiss],
   )
+
+  // Clear any pending auto-dismiss timers when the provider unmounts.
+  useEffect(() => {
+    const map = timers.current
+    return () => {
+      map.forEach((t) => clearTimeout(t))
+      map.clear()
+    }
+  }, [])
 
   const api = useMemo<ToastApi>(
     () => ({

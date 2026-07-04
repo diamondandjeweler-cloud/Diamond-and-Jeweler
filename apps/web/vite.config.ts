@@ -76,7 +76,11 @@ export default defineConfig({
             norm.includes('/react-dom/') ||
             norm.includes('/scheduler/') ||
             norm.includes('/use-sync-external-store/') ||
-            norm.includes('/swr/')
+            norm.includes('/swr/') ||
+            // @radix-ui/* call React.forwardRef at module-eval time, so they must
+            // share React's chunk — otherwise they read forwardRef off an
+            // undefined React and the whole app white-screens in the prod build.
+            norm.includes('/@radix-ui/')
           ) return 'vendor-react'
           return 'vendor'
         },

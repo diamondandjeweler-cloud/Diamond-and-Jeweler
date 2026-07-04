@@ -50,7 +50,15 @@ Do not merge refactors / UI polish while users = 0; put that energy into launch.
 - Wire `cron_deadman_check` to off-platform escalation (notify/Resend), not just an in-DB row.
 - ToyyibPay consult callback is dead (401'd before it runs) — wire a real `toyyibpay-webhook`
   or delete it; consults are a parking candidate anyway.
-- Parameterize `createClient<Database>` so table reads are compile-checked (untyped today).
+- **`createClient<Database>` is NOT a quick win** (attempted 2026-07-04, reverted): the generic
+  breaks all `src/routes/restaurant/*` because the restaurant tables aren't in `db.generated.ts`,
+  and it slows `tsc` past a 2-min timeout. Needs restaurant tables in the generated types (or the
+  restaurant extraction) first, then per-call cleanup — a real refactor, not a one-liner.
+- **The secret vocabulary ships in the client bundle** (`lib/orgChartSanitiser.ts` regex map
+  `[/bazi/gi, 'temperament pattern']` → visible in `dist/assets/OrgChartDetail-*.js`). Because of
+  this, `qa/scripts/01-bazi-secrecy.mjs` cannot be a blocking CI gate (it correctly flags the
+  sanitiser's own protective regex). The real fix is moving sanitisation server-side (moat
+  decision #4) so the vocabulary never reaches the browser.
 
 ## Recent changes (2026-07-04 session)
 

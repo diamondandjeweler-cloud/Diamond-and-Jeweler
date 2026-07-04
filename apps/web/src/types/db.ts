@@ -238,14 +238,3 @@ export interface RoleRow {
   moderation_reviewed_at: string | null
   match_count?: number
 }
-
-// Loose Database type for supabase-js generic. Generate via `supabase gen types`
-// for strict typing once the project is live.
-export type Database = {
-  public: {
-    Tables: Record<string, { Row: unknown; Insert: unknown; Update: unknown }>
-    Views: Record<string, { Row: unknown }>
-    Functions: Record<string, unknown>
-    Enums: Record<string, string>
-  }
-}

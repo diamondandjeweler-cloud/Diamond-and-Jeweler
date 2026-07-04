@@ -10,6 +10,8 @@ import { appealRoleModeration } from '../../data/repositories/roleModeration'
 import { callFunction } from '../../lib/functions'
 import { Button, Card, Badge, Alert, EmptyState, PageHeader, BadgeTone } from '../../components/ui'
 import ListSkeleton from '../../components/ListSkeleton'
+import { Async } from '../../components/patterns/Async'
+import { useToast } from '../../components/Toast'
 import { useSeo } from '../../lib/useSeo'
 import { readDashCache, writeDashCache } from '../../lib/dashboardCache'
 import type { RoleRow, RoleStatus, ModerationStatus } from '../../types/db'
@@ -18,6 +20,7 @@ export default function MyRoles() {
   const { t } = useTranslation()
   useSeo({ title: t('myRoles.seoTitle'), noindex: true })
   const { session } = useSession()
+  const toast = useToast()
   const userId = session?.user.id
   // Hydrate the role list synchronously from the per-user cache so the page
   // renders with content on returning visits. null = "still fetching", []
@@ -28,9 +31,16 @@ export default function MyRoles() {
   // The render path no longer reads it (skeleton renders from `rows == null`).
   // Kept as a no-op so reload()/submitAppeal()'s setLoading() calls don't need
   // structural changes.
-  const setLoading = (_v: boolean) => { /* no-op; rows == null drives skeleton */ }
+  const setLoading = (_v: boolean) => {
+    /* no-op; rows == null drives skeleton */
+  }
   const [err, setErr] = useState<string | null>(null)
-  const [appeal, setAppeal] = useState<{ role: RoleRow; text: string; busy: boolean; err: string | null } | null>(null)
+  const [appeal, setAppeal] = useState<{
+    role: RoleRow
+    text: string
+    busy: boolean
+    err: string | null
+  } | null>(null)
 
   async function submitAppeal() {
     if (!appeal) return
@@ -50,8 +60,10 @@ export default function MyRoles() {
   }
 
   // reload uses `userId` (stable string) so TOKEN_REFRESHED doesn't trigger a re-run.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (userId) void reload() }, [userId])
+  useEffect(() => {
+    if (userId) void reload()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId])
 
   async function reload() {
     setLoading(true)
@@ -61,7 +73,8 @@ export default function MyRoles() {
         // No HM row — settle to empty so EmptyState renders instead of indefinite skeleton.
         setRows([])
         writeDashCache<RoleRow[]>('my_roles', userId, [])
-        setLoading(false); return
+        setLoading(false)
+        return
       }
 
       const { data: roles, error } = await listRolesWithModerationForHm(hm.id)
@@ -69,14 +82,17 @@ export default function MyRoles() {
         setErr(error.message)
         // Preserve any cached rows on error — null sentinel never replaces real data.
         setRows((cur) => cur ?? [])
-        setLoading(false); return
+        setLoading(false)
+        return
       }
 
       const roleList = (roles ?? []) as RoleRow[]
-      const withCounts = await Promise.all(roleList.map(async (r) => {
-        const { count } = await activeMatchCountForRole(r.id)
-        return { ...r, match_count: count ?? 0 }
-      }))
+      const withCounts = await Promise.all(
+        roleList.map(async (r) => {
+          const { count } = await activeMatchCountForRole(r.id)
+          return { ...r, match_count: count ?? 0 }
+        }),
+      )
       setRows(withCounts)
       writeDashCache<RoleRow[]>('my_roles', userId, withCounts)
     } catch (e) {
@@ -92,22 +108,28 @@ export default function MyRoles() {
     setRows((xs) => (xs ?? []).map((r) => (r.id === id ? { ...r, status: next } : r)))
     const { error } = await updateRole(id, { status: next })
     if (error) {
-      setErr(error.message)
+      toast.error(error.message)
       setRows((xs) => (xs ?? []).map((r) => (r.id === id ? { ...r, status: prev ?? r.status } : r)))
       return
     }
     if (next === 'active') {
-      try { await callFunction('match-generate', { role_id: id }) } catch (e) {
-        setErr(t('myRoles.matchGenFailed'))
+      try {
+        await callFunction('match-generate', { role_id: id })
+      } catch {
+        toast.error(t('myRoles.matchGenFailed'))
       }
     }
   }
 
   async function extendVacancy(id: string) {
     const newExpiry = new Date(Date.now() + 45 * 86400000).toISOString()
-    setRows((xs) => (xs ?? []).map((r) => (r.id === id ? { ...r, vacancy_expires_at: newExpiry } : r)))
+    setRows((xs) =>
+      (xs ?? []).map((r) => (r.id === id ? { ...r, vacancy_expires_at: newExpiry } : r)),
+    )
     const { error } = await updateRole(id, { vacancy_expires_at: newExpiry })
-    if (error) { setErr(error.message) }
+    if (error) {
+      toast.error(error.message)
+    }
   }
 
   // Shell renders immediately; the list section renders skeleton -> empty -> data.
@@ -116,10 +138,18 @@ export default function MyRoles() {
       <PageHeader
         title={t('myRoles.title')}
         description={t('myRoles.description')}
-        actions={<Link to="/hm/post-role" className="btn-primary">{t('myRoles.postRole')}</Link>}
+        actions={
+          <Link to="/hm/post-role" className="btn-primary">
+            {t('myRoles.postRole')}
+          </Link>
+        }
       />
 
-      {err && <div className="mb-6"><Alert tone="red">{err}</Alert></div>}
+      {err && (
+        <div className="mb-6">
+          <Alert tone="red">{err}</Alert>
+        </div>
+      )}
 
       {appeal && (
         <div className="fixed inset-0 z-50 p-4 flex items-center justify-center">
@@ -136,7 +166,10 @@ export default function MyRoles() {
             aria-labelledby="appeal-modal-title"
             className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full p-6"
           >
-            <h3 id="appeal-modal-title" className="text-lg font-semibold text-ink-900 dark:text-white mb-1">
+            <h3
+              id="appeal-modal-title"
+              className="text-lg font-semibold text-ink-900 dark:text-white mb-1"
+            >
               {t('myRoles.appealTitle')}
             </h3>
             <p className="text-sm text-ink-600 dark:text-gray-300 mb-3">
@@ -156,7 +189,9 @@ export default function MyRoles() {
               placeholder={t('myRoles.appealPlaceholder')}
               className="w-full text-sm border border-ink-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded p-2 mb-2"
             />
-            <p className="text-xs text-ink-400 dark:text-gray-400 mb-3 text-right">{appeal.text.length} / 2000</p>
+            <p className="text-xs text-ink-400 dark:text-gray-400 mb-3 text-right">
+              {appeal.text.length} / 2000
+            </p>
             {appeal.err && <p className="text-sm text-red-600 mb-2">{appeal.err}</p>}
             <div className="flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setAppeal(null)} disabled={appeal.busy}>
@@ -170,76 +205,121 @@ export default function MyRoles() {
         </div>
       )}
 
-      {rows == null ? (
-        <ListSkeleton rows={3} variant="card" />
-      ) : rows.length === 0 ? (
-        <Card>
-          <EmptyState
-            title={t('myRoles.emptyTitle')}
-            description={t('myRoles.emptyDescription')}
-            action={<Link to="/hm/post-role" className="btn-primary">{t('myRoles.postFirstRole')}</Link>}
-          />
-        </Card>
-      ) : (
-        <div className="space-y-3">
-          {rows.map((r) => (
-            <Card key={r.id} hoverable>
-              <div className="p-5 flex flex-wrap gap-4 justify-between items-start">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                    <h3 className="font-display text-lg text-ink-900 dark:text-white">{r.title}</h3>
-                    <StatusBadge status={r.status} />
-                    <ModerationBadge status={r.moderation_status} />
-                    <span className="text-xs text-ink-500 dark:text-gray-400">
-                      {t('myRoles.activeMatches', { count: r.match_count ?? 0 })}
-                    </span>
-                  </div>
-                  <ModerationNotice
-                    role={r}
-                    onAppeal={() => setAppeal({ role: r, text: '', busy: false, err: null })}
-                  />
-                  <p className="text-sm text-ink-600 dark:text-gray-300">
-                    {[r.department, r.location, r.work_arrangement, r.experience_level].filter(Boolean).join(' · ')}
-                  </p>
-                  {(r.salary_min || r.salary_max) && (
-                    <p className="text-sm text-ink-700 dark:text-gray-300 mt-0.5">
-                      RM {fmt(r.salary_min)} – {fmt(r.salary_max)}
-                      <span className="text-ink-400 dark:text-gray-400"> {t('myRoles.perMonth')}</span>
-                    </p>
-                  )}
-                  {r.required_traits.length > 0 && (
-                    <div className="mt-2.5 flex flex-wrap gap-1.5">
-                      {r.required_traits.map((t) => (
-                        <span key={t} className="text-xs bg-ink-100 dark:bg-gray-700 text-ink-700 dark:text-gray-300 px-2 py-0.5 rounded-md">
-                          {t.replace(/_/g, ' ')}
-                        </span>
-                      ))}
+      <Async
+        data={rows ?? undefined}
+        isLoading={rows == null}
+        onRetry={() => void reload()}
+        loading={<ListSkeleton rows={3} variant="card" />}
+        empty={
+          <Card>
+            <EmptyState
+              title={t('myRoles.emptyTitle')}
+              description={t('myRoles.emptyDescription')}
+              action={
+                <Link to="/hm/post-role" className="btn-primary">
+                  {t('myRoles.postFirstRole')}
+                </Link>
+              }
+            />
+          </Card>
+        }
+      >
+        {(list) => (
+          <div className="space-y-3">
+            {list.map((r) => (
+              <Card key={r.id} hoverable>
+                <div className="p-5 flex flex-wrap gap-4 justify-between items-start">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                      <h3 className="font-display text-lg text-ink-900 dark:text-white">
+                        {r.title}
+                      </h3>
+                      <StatusBadge status={r.status} />
+                      <ModerationBadge status={r.moderation_status} />
+                      <span className="text-xs text-ink-500 dark:text-gray-400">
+                        {t('myRoles.activeMatches', { count: r.match_count ?? 0 })}
+                      </span>
                     </div>
-                  )}
-                  <RoleStructuredSummary role={r} />
-                  <VacancyExpiry expiresAt={r.vacancy_expires_at} status={r.status} />
+                    <ModerationNotice
+                      role={r}
+                      onAppeal={() => setAppeal({ role: r, text: '', busy: false, err: null })}
+                    />
+                    <p className="text-sm text-ink-600 dark:text-gray-300">
+                      {[r.department, r.location, r.work_arrangement, r.experience_level]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </p>
+                    {(r.salary_min || r.salary_max) && (
+                      <p className="text-sm text-ink-700 dark:text-gray-300 mt-0.5">
+                        RM {fmt(r.salary_min)} – {fmt(r.salary_max)}
+                        <span className="text-ink-400 dark:text-gray-400">
+                          {' '}
+                          {t('myRoles.perMonth')}
+                        </span>
+                      </p>
+                    )}
+                    {r.required_traits.length > 0 && (
+                      <div className="mt-2.5 flex flex-wrap gap-1.5">
+                        {r.required_traits.map((t) => (
+                          <span
+                            key={t}
+                            className="text-xs bg-ink-100 dark:bg-gray-700 text-ink-700 dark:text-gray-300 px-2 py-0.5 rounded-md"
+                          >
+                            {t.replace(/_/g, ' ')}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <RoleStructuredSummary role={r} />
+                    <VacancyExpiry expiresAt={r.vacancy_expires_at} status={r.status} />
+                  </div>
+                  <div className="flex gap-1.5 whitespace-nowrap">
+                    <Link to={`/hm/roles/${r.id}/edit`} className="btn-secondary btn-sm">
+                      {t('myRoles.edit')}
+                    </Link>
+                    {r.status === 'active' && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => void setStatus(r.id, 'paused')}
+                      >
+                        {t('myRoles.pause')}
+                      </Button>
+                    )}
+                    {r.status === 'paused' && (
+                      <Button size="sm" onClick={() => void setStatus(r.id, 'active')}>
+                        {t('myRoles.reopen')}
+                      </Button>
+                    )}
+                    {r.status !== 'filled' && r.status !== 'expired' && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => void setStatus(r.id, 'filled')}
+                      >
+                        {t('myRoles.markFilled')}
+                      </Button>
+                    )}
+                    {r.status === 'active' &&
+                      r.vacancy_expires_at &&
+                      Math.ceil(
+                        (new Date(r.vacancy_expires_at).getTime() - Date.now()) / 86400000,
+                      ) <= 10 && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => void extendVacancy(r.id)}
+                        >
+                          {t('myRoles.extend')}
+                        </Button>
+                      )}
+                  </div>
                 </div>
-                <div className="flex gap-1.5 whitespace-nowrap">
-                  <Link to={`/hm/roles/${r.id}/edit`} className="btn-secondary btn-sm">{t('myRoles.edit')}</Link>
-                  {r.status === 'active' && (
-                    <Button size="sm" variant="ghost" onClick={() => void setStatus(r.id, 'paused')}>{t('myRoles.pause')}</Button>
-                  )}
-                  {r.status === 'paused' && (
-                    <Button size="sm" onClick={() => void setStatus(r.id, 'active')}>{t('myRoles.reopen')}</Button>
-                  )}
-                  {r.status !== 'filled' && r.status !== 'expired' && (
-                    <Button size="sm" variant="ghost" onClick={() => void setStatus(r.id, 'filled')}>{t('myRoles.markFilled')}</Button>
-                  )}
-                  {r.status === 'active' && r.vacancy_expires_at &&
-                    Math.ceil((new Date(r.vacancy_expires_at).getTime() - Date.now()) / 86400000) <= 10 && (
-                    <Button size="sm" variant="secondary" onClick={() => void extendVacancy(r.id)}>{t('myRoles.extend')}</Button>
-                  )}
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
+              </Card>
+            ))}
+          </div>
+        )}
+      </Async>
     </div>
   )
 }
@@ -247,21 +327,21 @@ export default function MyRoles() {
 function RoleStructuredSummary({ role }: { role: RoleRow }) {
   const { t } = useTranslation()
   const bits: string[] = []
-  if (role.headcount && role.headcount > 1) bits.push(t('myRoles.headcount', { count: role.headcount }))
-  if (role.min_education_level) bits.push(t('myRoles.minEducation', { level: role.min_education_level }))
+  if (role.headcount && role.headcount > 1)
+    bits.push(t('myRoles.headcount', { count: role.headcount }))
+  if (role.min_education_level)
+    bits.push(t('myRoles.minEducation', { level: role.min_education_level }))
   if (role.start_urgency) bits.push(role.start_urgency.replace(/_/g, ' '))
   const langs = Array.isArray(role.languages_required) ? role.languages_required : []
-  if (langs.length > 0) bits.push(t('myRoles.languages', { langs: langs.map((l) => l.code).join(', ') }))
+  if (langs.length > 0)
+    bits.push(t('myRoles.languages', { langs: langs.map((l) => l.code).join(', ') }))
   const skills = Array.isArray(role.required_skills) ? role.required_skills : []
   if (skills.length > 0) bits.push(t('myRoles.skillsCount', { count: skills.length }))
   const openTo = Array.isArray(role.open_to) ? role.open_to : []
-  if (openTo.length > 0) bits.push(t('myRoles.openTo', { list: openTo.map((s) => s.replace(/_/g, ' ')).join(', ') }))
+  if (openTo.length > 0)
+    bits.push(t('myRoles.openTo', { list: openTo.map((s) => s.replace(/_/g, ' ')).join(', ') }))
   if (bits.length === 0) return null
-  return (
-    <p className="text-xs text-ink-500 dark:text-gray-400 mt-2">
-      {bits.join(' · ')}
-    </p>
-  )
+  return <p className="text-xs text-ink-500 dark:text-gray-400 mt-2">{bits.join(' · ')}</p>
 }
 
 function VacancyExpiry({ expiresAt, status }: { expiresAt: string | null; status: RoleStatus }) {
@@ -269,14 +349,22 @@ function VacancyExpiry({ expiresAt, status }: { expiresAt: string | null; status
   if (!expiresAt || status !== 'active') return null
   const days = Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86400000)
   if (days <= 0) return <p className="text-xs text-red-600 mt-1.5">{t('myRoles.vacancyExpired')}</p>
-  if (days <= 10) return <p className="text-xs text-amber-600 mt-1.5">{t('myRoles.vacancyExpiresIn', { count: days })}</p>
+  if (days <= 10)
+    return (
+      <p className="text-xs text-amber-600 mt-1.5">
+        {t('myRoles.vacancyExpiresIn', { count: days })}
+      </p>
+    )
   return null
 }
 
 function StatusBadge({ status }: { status: RoleStatus }) {
   const { t } = useTranslation()
   const tone: Record<RoleStatus, BadgeTone> = {
-    active: 'green', paused: 'amber', filled: 'brand', expired: 'gray',
+    active: 'green',
+    paused: 'amber',
+    filled: 'brand',
+    expired: 'gray',
   }
   return <Badge tone={tone[status]}>{t(`myRoles.status.${status}`)}</Badge>
 }
@@ -285,9 +373,9 @@ function ModerationBadge({ status }: { status: ModerationStatus }) {
   const { t } = useTranslation()
   if (status === 'approved') return null
   const map: Record<ModerationStatus, { tone: BadgeTone; label: string }> = {
-    pending:  { tone: 'gray',  label: t('myRoles.moderation.pending') },
-    flagged:  { tone: 'amber', label: t('myRoles.moderation.flagged') },
-    rejected: { tone: 'red',   label: t('myRoles.moderation.rejected') },
+    pending: { tone: 'gray', label: t('myRoles.moderation.pending') },
+    flagged: { tone: 'amber', label: t('myRoles.moderation.flagged') },
+    rejected: { tone: 'red', label: t('myRoles.moderation.rejected') },
     approved: { tone: 'green', label: t('myRoles.moderation.approved') },
   }
   const { tone, label } = map[status]
@@ -298,36 +386,39 @@ function ModerationNotice({ role, onAppeal }: { role: RoleRow; onAppeal: () => v
   const { t } = useTranslation()
   if (role.moderation_status === 'approved') return null
   const isAppealed = !!role.moderation_appealed_at && !role.moderation_reviewed_at
-  const canAppeal = (role.moderation_status === 'rejected' || role.moderation_status === 'flagged') && !isAppealed
+  const canAppeal =
+    (role.moderation_status === 'rejected' || role.moderation_status === 'flagged') && !isAppealed
 
   return (
-    <div className={`mt-2 mb-1 text-xs rounded-md border px-3 py-2 ${
-      role.moderation_status === 'rejected'
-        ? 'bg-red-50 border-red-200 text-red-800'
-        : role.moderation_status === 'flagged'
-          ? 'bg-amber-50 border-amber-200 text-amber-900'
-          : 'bg-ink-50 dark:bg-gray-800 border-ink-200 dark:border-gray-700 text-ink-700 dark:text-gray-300'
-    }`}>
+    <div
+      className={`mt-2 mb-1 text-xs rounded-md border px-3 py-2 ${
+        role.moderation_status === 'rejected'
+          ? 'bg-red-50 border-red-200 text-red-800'
+          : role.moderation_status === 'flagged'
+            ? 'bg-amber-50 border-amber-200 text-amber-900'
+            : 'bg-ink-50 dark:bg-gray-800 border-ink-200 dark:border-gray-700 text-ink-700 dark:text-gray-300'
+      }`}
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1">
-          {role.moderation_status === 'pending' && (
-            <p>{t('myRoles.noticePending')}</p>
-          )}
+          {role.moderation_status === 'pending' && <p>{t('myRoles.noticePending')}</p>}
           {role.moderation_status === 'flagged' && (
             <p>
               {t('myRoles.noticeFlagged')}
-              {role.moderation_reason && <span className="block mt-1 italic">"{role.moderation_reason}"</span>}
+              {role.moderation_reason && (
+                <span className="block mt-1 italic">"{role.moderation_reason}"</span>
+              )}
             </p>
           )}
           {role.moderation_status === 'rejected' && (
             <p>
               {t('myRoles.noticeRejected')}
-              {role.moderation_reason && <span className="block mt-1 italic">"{role.moderation_reason}"</span>}
+              {role.moderation_reason && (
+                <span className="block mt-1 italic">"{role.moderation_reason}"</span>
+              )}
             </p>
           )}
-          {isAppealed && (
-            <p className="mt-1 font-medium">{t('myRoles.appealSubmitted')}</p>
-          )}
+          {isAppealed && <p className="mt-1 font-medium">{t('myRoles.appealSubmitted')}</p>}
         </div>
         {canAppeal && (
           <button

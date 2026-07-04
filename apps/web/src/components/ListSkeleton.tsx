@@ -22,7 +22,7 @@ export default function ListSkeleton({ rows = 3, variant = 'card', className = '
     return (
       <div className={`space-y-2 ${className}`} role="status" aria-busy="true" aria-label="Loading">
         {Array.from({ length: rows }).map((_, i) => (
-          <div key={i} className="bg-white border border-ink-200 rounded-md px-4 py-3 flex items-center justify-between gap-3">
+          <div key={i} className="bg-white dark:bg-zinc-800 border border-ink-200 dark:border-zinc-700 rounded-md px-4 py-3 flex items-center justify-between gap-3">
             <div className="flex-1 space-y-2">
               <Skeleton width="65%" height={14} rounded="sm" />
               <Skeleton width="35%" height={10} rounded="sm" />
@@ -38,7 +38,7 @@ export default function ListSkeleton({ rows = 3, variant = 'card', className = '
   return (
     <div className={`space-y-3 ${className}`} role="status" aria-busy="true" aria-label="Loading">
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="bg-white border border-ink-200 rounded-xl2 shadow-soft p-5">
+        <div key={i} className="bg-white dark:bg-zinc-800 border border-ink-200 dark:border-zinc-700 rounded-xl2 shadow-soft p-5">
           <div className="flex items-start justify-between gap-3 mb-3">
             <div className="flex-1 space-y-2">
               <Skeleton width="60%" height={18} />

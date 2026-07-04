@@ -1,11 +1,3 @@
-import type { CSSProperties } from 'react'
-
-const SHIMMER: CSSProperties = {
-  backgroundImage:
-    'linear-gradient(90deg, rgba(222,223,218,0.55) 0%, rgba(248,248,247,0.95) 50%, rgba(222,223,218,0.55) 100%)',
-  backgroundSize: '200% 100%',
-}
-
 export interface SkeletonProps {
   className?: string
   width?: number | string
@@ -31,8 +23,8 @@ export default function Skeleton({
       role="status"
       aria-busy="true"
       aria-label={ariaLabel}
-      className={`bg-ink-100 animate-shimmer ${radius} ${className}`}
-      style={{ width, height, ...SHIMMER }}
+      className={`dnj-skel animate-shimmer ${radius} ${className}`}
+      style={{ width, height }}
     />
   )
 }
@@ -60,7 +52,7 @@ export function SkeletonCard({ className = '' }: { className?: string }) {
       role="status"
       aria-busy="true"
       aria-label="Loading"
-      className={`bg-white border border-ink-200 rounded-xl2 shadow-soft p-6 ${className}`}
+      className={`bg-white dark:bg-zinc-800 border border-ink-200 dark:border-zinc-700 rounded-xl2 shadow-soft p-6 ${className}`}
     >
       <div className="flex justify-between items-start mb-4 gap-3">
         <div className="flex-1 space-y-2">

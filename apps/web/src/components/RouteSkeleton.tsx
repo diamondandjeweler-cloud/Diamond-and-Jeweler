@@ -11,9 +11,9 @@ import Skeleton from './Skeleton'
  */
 export default function RouteSkeleton() {
   return (
-    <div className="min-h-screen bg-white" role="status" aria-busy="true" aria-label="Loading">
+    <div className="min-h-screen bg-white dark:bg-[#18181b]" role="status" aria-busy="true" aria-label="Loading">
       {/* Top bar — mirrors Layout.tsx header height/structure. */}
-      <div className="h-16 border-b border-ink-200 px-4 md:px-6 flex items-center gap-3">
+      <div className="h-16 border-b border-ink-200 dark:border-zinc-700 px-4 md:px-6 flex items-center gap-3">
         <Skeleton width={28} height={28} rounded="md" />
         <Skeleton width={64} height={18} rounded="sm" />
         <div className="hidden md:flex gap-2 ml-6">

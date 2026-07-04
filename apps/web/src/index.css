@@ -341,3 +341,15 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Content-skeleton shimmer — single dark-aware source used by
+   components/Skeleton.tsx (and, through it, ListSkeleton/RouteSkeleton/Form).
+   Previously each skeleton hardcoded a light gradient inline, so skeletons
+   rendered pure-light on dark surfaces. */
+.dnj-skel {
+  background-image: linear-gradient(90deg, rgba(222,223,218,0.55) 0%, rgba(248,248,247,0.95) 50%, rgba(222,223,218,0.55) 100%);
+  background-size: 200% 100%;
+}
+.dark .dnj-skel {
+  background-image: linear-gradient(90deg, rgba(63,63,70,0.5) 0%, rgba(82,82,91,0.8) 50%, rgba(63,63,70,0.5) 100%);
+}

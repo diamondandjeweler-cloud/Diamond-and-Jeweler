@@ -5,32 +5,36 @@
 
 ## The only two numbers that matter right now
 
-- **Pipeline alive?** ❌ **NO** — the async match backbone has been dead since ~2026-05-30
-  (a rotated `service_role_key` was never updated in Vault → every cron→edge call 403s).
-  `curl https://diamondandjeweler.com/api/health` returns **503** until the key is rotated.
-- **Real users who completed a match this week:** **0** (pre-launch).
+- **Pipeline alive?** ✅ **YES** — verified live 2026-07-04: `GET /api/health` → 200,
+  `{"pipeline":{"healthy":true,"last_heartbeat_age_seconds":38,"recent_done":0}}`. The Vault
+  `service_role_key` was rotated and the ~27-day outage older docs describe is **resolved**.
+  It's healthy but **idle** — `recent_done:0` simply because there are no roles to match yet.
+- **Real users:** **0** — verified `GET /api/stats` → `{"talents":0,"companies":0}`. Pre-launch.
 
-**Operating rule:** do not merge refactors / UI polish while the pipeline is dead and users = 0.
-Fix those two things first. Everything else is secondary.
+**Operating rule:** the blocker is no longer code or ops — the pipeline runs and is monitorable.
+The blocker is **getting the first real users** + closing the legal/product gates below.
+Do not merge refactors / UI polish while users = 0; put that energy into launch.
 
-## Owner-only blockers — gate everything (~30 min of work + one lawyer email)
+## Owner blockers — what actually still gates the pilot
 
-1. 🔴 **Rotate the Vault `service_role_key`** → revives the whole pipeline. (`OWNER_ACTIONS.md` P0)
-2. 🔴 **Deploy the backend**: `supabase functions deploy` + apply/verify migrations `0163–0169`;
-   run `supabase/post_deploy/0001` (the `CONCURRENTLY` pre-filter indexes) and confirm they
-   exist in prod `pg_indexes` — if `0074`'s in-txn indexes never applied, the matcher seq-scans.
-3. 🔴 **Point a free external monitor at `/api/health`** (UptimeRobot, 5 min) — this is the *only*
-   off-platform outage alarm; the in-DB dead-man check goes unseen when everyone's logged out
-   (that's how the last outage stayed dark for a month).
-4. 🟠 **Reconcile prod `schema_migrations`** (prod ~`0121` vs repo `0169`; ~57 unrecorded) via
-   `scripts/check-migration-drift.mjs` + the `INSERT` in `OWNER_ACTIONS.md:53`, **then** flip the
-   CI drift gate to blocking. Until this is done, `supabase db push` is unsafe (would re-apply ~57).
-5. 🟠 **Lawyer packet** (one email): (a) the DOB/race/religion matching signal — PDPA sensitive-data
+1. ✅ **DONE — Vault `service_role_key` rotated / pipeline revived.** Verified live: heartbeat is
+   fresh (age 38s), so the crons (incl. migration `0151`) are applied and running in prod. The
+   older docs' "pipeline dead / prod stuck at 0121" is **stale** — prod has advanced past it.
+2. 🟠 **Confirm an external monitor is pointed at `/api/health`** (UptimeRobot, 5 min). The endpoint
+   works and returns 503 on failure, but the in-DB dead-man check goes unseen when everyone's
+   logged out — an external monitor is the only off-platform alarm. *(Unverifiable from here — confirm.)*
+3. 🟠 **Reconcile prod `schema_migrations` + verify the `CONCURRENTLY` pre-filter indexes** exist in
+   prod `pg_indexes` (run `supabase/post_deploy/0001`; if `0074`'s in-txn indexes never applied, the
+   matcher seq-scans at scale). Then flip the CI drift gate to blocking. Exact prod version is
+   unverified from here — but `db push` stays unsafe until reconciled.
+4. 🔴 **Lawyer packet** (one email): (a) the DOB/race/religion matching signal — PDPA sensitive-data
    + hiring-discrimination exposure; (b) the hiring consent PDPA-waiver (Contracts Act §24);
-   (c) the ToS user-content licence gap. (`PRELAUNCH_BLOCKED_ITEMS.md`)
-6. 🟠 **Pick ONE monetization model for the pilot.** `/pricing` sells "free for talent +
+   (c) the ToS user-content licence gap. (`PRELAUNCH_BLOCKED_ITEMS.md`) **This is now the top gate.**
+5. 🟠 **Pick ONE monetization model for the pilot.** `/pricing` sells "free for talent +
    enterprise contact-us," but the code ships a full Diamond Points economy (8+ paid surfaces).
    Park points behind a flag, or commit to it — don't launch both.
+6. 🟢 **Get the first 10–50 real users.** The pipeline runs and is idle-healthy; the only thing it's
+   missing is roles and talent. This — not more code — is the real work now.
 
 ## Source of truth for the system
 

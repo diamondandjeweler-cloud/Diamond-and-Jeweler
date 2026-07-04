@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { approveWaitlistEntry, listWaitlist } from '../../../data/repositories/waitlist'
 import ListSkeleton from '../../../components/ListSkeleton'
+import { Async } from '../../../components/patterns/Async'
 
 interface WaitlistRow {
   id: string
@@ -18,13 +19,18 @@ export default function WaitlistPanel() {
 
   useEffect(() => {
     let cancelled = false
-    listWaitlist()
-      .then(({ data, error }) => {
-        if (cancelled) return
-        if (error) { setErr(error.message); setRows([]); return }
-        setRows((data ?? []) as WaitlistRow[])
-      })
-    return () => { cancelled = true }
+    listWaitlist().then(({ data, error }) => {
+      if (cancelled) return
+      if (error) {
+        setErr(error.message)
+        setRows([])
+        return
+      }
+      setRows((data ?? []) as WaitlistRow[])
+    })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   async function approve(id: string) {
@@ -36,45 +42,48 @@ export default function WaitlistPanel() {
   return (
     <div>
       {err && <p className="text-sm text-red-600 mb-3">{err}</p>}
-      {rows == null ? (
-        <ListSkeleton rows={5} variant="row" />
-      ) : rows.length === 0 ? (
-        <p className="text-sm text-gray-600 dark:text-gray-300">Waitlist is empty.</p>
-      ) : (
-        <table className="w-full text-sm dark:text-gray-300">
-          <thead>
-            <tr className="text-left text-gray-600 dark:text-gray-400 border-b dark:border-gray-700">
-              <th className="py-2">Email</th>
-              <th>Name</th>
-              <th>Role</th>
-              <th>Submitted</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id} className="border-b dark:border-gray-700 last:border-0">
-                <td className="py-2">{r.email}</td>
-                <td>{r.full_name ?? '—'}</td>
-                <td>{r.intended_role ?? '—'}</td>
-                <td>{new Date(r.created_at).toLocaleDateString()}</td>
-                <td className="text-right">
-                  {r.approved ? (
-                    <span className="text-green-700 text-xs">Approved</span>
-                  ) : (
-                    <button
-                      onClick={() => void approve(r.id)}
-                      className="text-brand-600 hover:underline text-xs"
-                    >
-                      Approve
-                    </button>
-                  )}
-                </td>
+      <Async
+        data={rows ?? undefined}
+        isLoading={rows == null}
+        loading={<ListSkeleton rows={5} variant="row" />}
+        empty={<p className="text-sm text-gray-600 dark:text-gray-300">Waitlist is empty.</p>}
+      >
+        {(items) => (
+          <table className="w-full text-sm dark:text-gray-300">
+            <thead>
+              <tr className="text-left text-gray-600 dark:text-gray-400 border-b dark:border-gray-700">
+                <th className="py-2">Email</th>
+                <th>Name</th>
+                <th>Role</th>
+                <th>Submitted</th>
+                <th></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+            </thead>
+            <tbody>
+              {items.map((r) => (
+                <tr key={r.id} className="border-b dark:border-gray-700 last:border-0">
+                  <td className="py-2">{r.email}</td>
+                  <td>{r.full_name ?? '—'}</td>
+                  <td>{r.intended_role ?? '—'}</td>
+                  <td>{new Date(r.created_at).toLocaleDateString()}</td>
+                  <td className="text-right">
+                    {r.approved ? (
+                      <span className="text-green-700 text-xs">Approved</span>
+                    ) : (
+                      <button
+                        onClick={() => void approve(r.id)}
+                        className="text-brand-600 hover:underline text-xs"
+                      >
+                        Approve
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Async>
     </div>
   )
 }

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { listOrgConsultations } from '../../data/repositories/orgConsultations'
 import { Badge, Button, Card, EmptyState, PageHeader, type BadgeTone } from '../../components/ui'
+import { Async } from '../../components/patterns/Async'
 import ListSkeleton from '../../components/ListSkeleton'
 import { useSeo } from '../../lib/useSeo'
 import type { OrgConsultationRow } from '../../lib/orgChart'
@@ -54,7 +55,9 @@ export default function OrgChartList() {
       setRows((data ?? []) as OrgConsultationRow[])
     }
     if (session?.user.id) void load()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [session?.user.id])
 
   return (
@@ -75,67 +78,76 @@ export default function OrgChartList() {
         </div>
       )}
 
-      {rows === null ? (
-        <ListSkeleton rows={4} />
-      ) : rows.length === 0 ? (
-        <EmptyState
-          title="No consultations yet"
-          description="Start a new consultation to upload a team roster and generate an org-chart restructure report."
-          action={
-            <Link to="/hm/org-chart/new" className="btn-primary">
-              + New Consultation
-            </Link>
-          }
-        />
-      ) : (
-        <Card>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-ink-100 bg-ink-50 text-ink-600">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Client Company</th>
-                  <th className="px-4 py-3 font-medium">Team Size</th>
-                  <th className="px-4 py-3 font-medium">Price</th>
-                  <th className="px-4 py-3 font-medium">Payment</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Created</th>
-                  <th className="px-4 py-3 font-medium text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map(r => (
-                  <tr key={r.id} className="border-b border-ink-100 last:border-0">
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-ink-900">{r.client_company}</div>
-                      {r.client_contact_name && (
-                        <div className="text-xs text-ink-500">{r.client_contact_name}</div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-ink-700">{r.team_size}</td>
-                    <td className="px-4 py-3 font-medium text-ink-900">
-                      RM {Number(r.price_myr).toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge tone={PAY_TONE[r.payment_status]}>{PAY_LABEL[r.payment_status]}</Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge tone={STATUS_TONE[r.status]}>{STATUS_LABEL[r.status]}</Badge>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-ink-500">
-                      {new Date(r.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Link to={`/hm/org-chart/${r.id}`}>
-                        <Button variant="secondary" size="sm">Open</Button>
-                      </Link>
-                    </td>
+      <Async
+        data={rows ?? undefined}
+        isLoading={rows === null}
+        loading={<ListSkeleton rows={4} />}
+        empty={
+          <EmptyState
+            title="No consultations yet"
+            description="Start a new consultation to upload a team roster and generate an org-chart restructure report."
+            action={
+              <Link to="/hm/org-chart/new" className="btn-primary">
+                + New Consultation
+              </Link>
+            }
+          />
+        }
+      >
+        {(items) => (
+          <Card>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="border-b border-ink-100 bg-ink-50 text-ink-600">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">Client Company</th>
+                    <th className="px-4 py-3 font-medium">Team Size</th>
+                    <th className="px-4 py-3 font-medium">Price</th>
+                    <th className="px-4 py-3 font-medium">Payment</th>
+                    <th className="px-4 py-3 font-medium">Status</th>
+                    <th className="px-4 py-3 font-medium">Created</th>
+                    <th className="px-4 py-3 font-medium text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
+                </thead>
+                <tbody>
+                  {items.map((r) => (
+                    <tr key={r.id} className="border-b border-ink-100 last:border-0">
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-ink-900">{r.client_company}</div>
+                        {r.client_contact_name && (
+                          <div className="text-xs text-ink-500">{r.client_contact_name}</div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-ink-700">{r.team_size}</td>
+                      <td className="px-4 py-3 font-medium text-ink-900">
+                        RM {Number(r.price_myr).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge tone={PAY_TONE[r.payment_status]}>
+                          {PAY_LABEL[r.payment_status]}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge tone={STATUS_TONE[r.status]}>{STATUS_LABEL[r.status]}</Badge>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-ink-500">
+                        {new Date(r.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <Link to={`/hm/org-chart/${r.id}`}>
+                          <Button variant="secondary" size="sm">
+                            Open
+                          </Button>
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        )}
+      </Async>
     </div>
   )
 }

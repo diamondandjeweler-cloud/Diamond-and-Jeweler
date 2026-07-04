@@ -125,7 +125,7 @@ export function Modal({
   return createPortal(
     // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- backdrop click is a mouse convenience; keyboard users close via Escape + focus-trap + the close button
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center bg-black/50 sm:px-4"
       onMouseDown={(e) => {
         // Backdrop click closes — only when the press starts on the backdrop
         // itself (not on a drag that ends here).
@@ -141,7 +141,7 @@ export function Modal({
         aria-label={!title ? ariaLabel : undefined}
         tabIndex={-1}
         onKeyDown={onKeyDownTrap}
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 focus:outline-none"
+        className="w-full bg-white dark:bg-gray-800 shadow-xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-4 focus:outline-none max-h-[85vh] overflow-y-auto rounded-t-2xl animate-slide-up sm:max-w-md sm:rounded-2xl sm:pb-6 sm:animate-none"
       >
         {title && (
           <h2 id={titleId} className="text-xl font-semibold text-ink-900 dark:text-white">

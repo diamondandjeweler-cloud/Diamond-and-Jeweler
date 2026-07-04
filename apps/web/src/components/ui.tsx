@@ -2,7 +2,9 @@
  * Small set of UI primitives used across the app. Not a full library —
  * just enough to keep surfaces visually consistent.
  */
-import { ReactNode, ReactElement, ButtonHTMLAttributes, InputHTMLAttributes, TextareaHTMLAttributes, SelectHTMLAttributes, forwardRef, useId, useState, isValidElement, cloneElement } from 'react'
+import { ReactNode, ReactElement, ButtonHTMLAttributes, InputHTMLAttributes, TextareaHTMLAttributes, SelectHTMLAttributes, forwardRef, useId, useState, isValidElement, cloneElement, type Ref } from 'react'
+import { Slot } from '@radix-ui/react-slot'
+import { cn } from '../lib/cn'
 
 /* ------------------ Button ------------------ */
 
@@ -15,6 +17,9 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean
   leftIcon?: ReactNode
   rightIcon?: ReactNode
+  /** Render as the single child element (e.g. a react-router <Link>) while
+   *  keeping button styling. The child supplies its own content. */
+  asChild?: boolean
 }
 
 const BTN_BASE: Record<Variant, string> = {
@@ -32,19 +37,32 @@ const BTN_SIZE: Record<Size, string> = {
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ variant = 'primary', size = 'md', loading, leftIcon, rightIcon, children, className, disabled, ...rest }, ref) => (
-    <button
-      ref={ref}
-      className={`${BTN_BASE[variant]} ${BTN_SIZE[size]} ${className ?? ''}`}
-      disabled={disabled || loading}
-      aria-busy={loading ? true : undefined}
-      {...rest}
-    >
-      {loading ? <Spinner size={size} /> : leftIcon}
-      {children}
-      {rightIcon}
-    </button>
-  ),
+  ({ variant = 'primary', size = 'md', loading, leftIcon, rightIcon, asChild, children, className, disabled, ...rest }, ref) => {
+    const cls = cn(BTN_BASE[variant], BTN_SIZE[size], className)
+    // Polymorphic path: merge styling onto the caller's single child (e.g. a
+    // <Link>). The child owns its content, so icons/spinner are only composed
+    // in the native-button path below.
+    if (asChild) {
+      return (
+        <Slot ref={ref as Ref<HTMLElement>} className={cls} aria-busy={loading ? true : undefined} {...rest}>
+          {children}
+        </Slot>
+      )
+    }
+    return (
+      <button
+        ref={ref}
+        className={cls}
+        disabled={disabled || loading}
+        aria-busy={loading ? true : undefined}
+        {...rest}
+      >
+        {loading ? <Spinner size={size} /> : leftIcon}
+        {children}
+        {rightIcon}
+      </button>
+    )
+  },
 )
 Button.displayName = 'Button'
 

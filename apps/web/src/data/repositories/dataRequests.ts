@@ -1,7 +1,6 @@
 import { supabase } from '../../lib/supabase'
 import type { Database } from '../../types/db.generated'
 
-type DataRequestRow = Database['public']['Tables']['data_requests']['Row']
 type DataRequestUpdate = Database['public']['Tables']['data_requests']['Update']
 type DataRequestInsert = Database['public']['Tables']['data_requests']['Insert']
 
@@ -31,7 +30,6 @@ export function listOwnDataRequests() {
     .from('data_requests')
     .select('id, request_type, status, notes, correction_proposal, resolved_at, created_at')
     .order('created_at', { ascending: false })
-    .returns<Pick<DataRequestRow, 'id' | 'request_type' | 'status' | 'notes' | 'correction_proposal' | 'resolved_at' | 'created_at'>[]>()
 }
 
 /** Insert a new data request, returning the created row (`.select().single()`). */

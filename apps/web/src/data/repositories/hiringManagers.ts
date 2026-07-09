@@ -1,7 +1,6 @@
 import { supabase } from '../../lib/supabase'
 import type { Database } from '../../types/db.generated'
 
-type HmRow = Database['public']['Tables']['hiring_managers']['Row']
 type HmInsert = Database['public']['Tables']['hiring_managers']['Insert']
 type HmUpdate = Database['public']['Tables']['hiring_managers']['Update']
 
@@ -13,13 +12,13 @@ type HmUpdate = Database['public']['Tables']['hiring_managers']['Update']
 
 /** HM id for a profile → { data: { id } | null } (MyRoles / PostRole / Referrals / HMOnboarding). */
 export function hmIdByProfileId(profileId: string) {
-  return supabase.from('hiring_managers').select('id').eq('profile_id', profileId).maybeSingle().returns<Pick<HmRow, 'id'>>()
+  return supabase.from('hiring_managers').select('id').eq('profile_id', profileId).maybeSingle()
 }
 
 /** Ownership check: HM id matching BOTH the role's hiring_manager_id and the caller's profile (EditRole). */
 export function hmIdByIdAndProfileId(hmId: string, profileId: string) {
   return supabase.from('hiring_managers')
-    .select('id').eq('id', hmId).eq('profile_id', profileId).maybeSingle().returns<Pick<HmRow, 'id'>>()
+    .select('id').eq('id', hmId).eq('profile_id', profileId).maybeSingle()
 }
 
 /** HM id + profile_id by row id → participant-side check (InterviewFeedback). */
@@ -29,7 +28,6 @@ export function hmProfileLinkById(hmId: string) {
     .select('id, profile_id')
     .eq('id', hmId)
     .maybeSingle()
-    .returns<Pick<HmRow, 'id' | 'profile_id'>>()
 }
 
 /** HM job title with embedded company details for a profile (HMCompanyProfile; caller guards non-null at runtime). */
@@ -45,7 +43,7 @@ export function hmCompanyProfileByProfileId(profileId: string | undefined) {
 
 /** HM dashboard row (company link + reputation stats + encrypted DOB) for a profile (useHmDashboardData; PDPA: projection verbatim). */
 export function hmDashboardRowByProfileId(profileId: string) {
-  return supabase.from('hiring_managers').select('id, company_id, reputation_score, feedback_volume, phs_offer_accept_rate, hm_quality_factor, hm_cancel_rate, date_of_birth_encrypted').eq('profile_id', profileId).maybeSingle().returns<Pick<HmRow, 'id' | 'company_id' | 'reputation_score' | 'feedback_volume' | 'phs_offer_accept_rate' | 'hm_quality_factor' | 'hm_cancel_rate' | 'date_of_birth_encrypted'>>()
+  return supabase.from('hiring_managers').select('id, company_id, reputation_score, feedback_volume, phs_offer_accept_rate, hm_quality_factor, hm_cancel_rate, date_of_birth_encrypted').eq('profile_id', profileId).maybeSingle()
 }
 
 /** Floating HMs (no company yet), newest first, capped at 100 (admin LinkHMPanel). */

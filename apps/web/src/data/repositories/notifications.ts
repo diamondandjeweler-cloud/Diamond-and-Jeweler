@@ -1,7 +1,4 @@
 import { supabase } from '../../lib/supabase'
-import type { Database } from '../../types/db.generated'
-
-type NotificationRow = Database['public']['Tables']['notifications']['Row']
 
 // ── Notification reads & writes ──────────────────────────────────────────────
 // Centralizes the `notifications` table behind one seam (mirrors src/data/
@@ -24,7 +21,6 @@ export function inAppNotifications() {
     .eq('channel', 'in_app')
     .order('sent_at', { ascending: false })
     .limit(20)
-    .returns<Pick<NotificationRow, 'id' | 'type' | 'subject' | 'body' | 'read' | 'sent_at'>[]>()
 }
 
 /**

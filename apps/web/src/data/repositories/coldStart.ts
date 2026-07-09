@@ -29,7 +29,6 @@ export function pendingColdStartQueue() {
 export function pendingColdStartRoleIds(roleIds: string[]) {
   return supabase.from('cold_start_queue').select('role_id')
     .in('role_id', roleIds).eq('status', 'pending')
-    .returns<Pick<ColdStartQueueRow, 'role_id'>[]>()
 }
 
 /** Mark a queue row applied after manual matches are inserted. */

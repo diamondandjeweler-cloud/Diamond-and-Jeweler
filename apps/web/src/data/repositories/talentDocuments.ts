@@ -1,7 +1,6 @@
 import { supabase } from '../../lib/supabase'
 import type { Database } from '../../types/db.generated'
 
-type TalentDocumentRow = Database['public']['Tables']['talent_documents']['Row']
 type TalentDocumentInsert = Database['public']['Tables']['talent_documents']['Insert']
 
 // ── talent_documents: resume / cover-letter storage metadata ─────────────────
@@ -20,7 +19,6 @@ export function latestResumeDocument(talentId: string) {
     .order('uploaded_at', { ascending: false })
     .limit(1)
     .maybeSingle()
-    .returns<Pick<TalentDocumentRow, 'storage_path' | 'file_name'>>()
 }
 
 /** Insert one or more talent_documents rows (payload built at call site; onboarding caller keeps its best-effort .then). */

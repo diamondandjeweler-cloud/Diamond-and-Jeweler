@@ -25,8 +25,9 @@ export function insertRole(row: RoleInsert) {
 // ── Role reads ───────────────────────────────────────────────────────────────
 // Read shapes migrated from page/hook call sites. Each function reproduces its
 // original call-site chain verbatim (projection + filters + terminal operator);
-// projections are intentionally NOT merged — PDPA column-isolation CI checks
-// the .select lists, and every surface reads a different column set.
+// projections are intentionally NOT merged — the typed <Database> supabase
+// client type-checks each .select column list, and every surface reads a
+// different column set.
 
 /** Edit-form load: one role by id with the editable columns (`.single()` — EditRole). */
 export function getRoleForEdit(roleId: string) {

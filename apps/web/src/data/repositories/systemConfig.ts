@@ -1,7 +1,6 @@
 import { supabase } from '../../lib/supabase'
 import type { Database } from '../../types/db.generated'
 
-type SystemConfigRow = Database['public']['Tables']['system_config']['Row']
 type SystemConfigUpdate = Database['public']['Tables']['system_config']['Update']
 
 // ── system_config: platform key/value settings (jsonb `value` column) ─────────
@@ -11,22 +10,22 @@ type SystemConfigUpdate = Database['public']['Tables']['system_config']['Update'
 // projection is passed through verbatim from the original call site.
 /** One config row by key → { data: { value } | null, error }. */
 export function getConfigValue(key: string) {
-  return supabase.from('system_config').select('value').eq('key', key).maybeSingle().returns<Pick<SystemConfigRow, 'value'>>()
+  return supabase.from('system_config').select('value').eq('key', key).maybeSingle()
 }
 
 /** One config row by key, erroring when absent (`.single()` — lib/legalVersion.ts cache read). */
 export function getConfigValueStrict(key: string) {
-  return supabase.from('system_config').select('value').eq('key', key).single().returns<Pick<SystemConfigRow, 'value'>>()
+  return supabase.from('system_config').select('value').eq('key', key).single()
 }
 
 /** Config rows for a set of keys → { data: Array<{ key, value }> | null, error }. */
 export function getConfigValues(keys: string[]) {
-  return supabase.from('system_config').select('key, value').in('key', keys).returns<Pick<SystemConfigRow, 'key' | 'value'>[]>()
+  return supabase.from('system_config').select('key, value').in('key', keys)
 }
 
 /** Full config list for the admin editor → { data: Array<{ key, value, updated_at }> | null, error }. */
 export function listConfig() {
-  return supabase.from('system_config').select('key, value, updated_at').order('key').returns<Pick<SystemConfigRow, 'key' | 'value' | 'updated_at'>[]>()
+  return supabase.from('system_config').select('key, value, updated_at').order('key')
 }
 
 /** Update one config row's jsonb value by key → { error }. */

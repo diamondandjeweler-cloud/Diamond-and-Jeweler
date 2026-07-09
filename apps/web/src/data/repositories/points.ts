@@ -1,7 +1,5 @@
 import { supabase } from '../../lib/supabase'
-import type { Database, Json } from '../../types/db.generated'
-
-type PointTransactionRow = Database['public']['Tables']['point_transactions']['Row']
+import type { Json } from '../../types/db.generated'
 
 // ── Points / purchases reads ─────────────────────────────────────────────────
 // Centralizes the Diamond-Points money tables: the point_transactions ledger and
@@ -22,7 +20,6 @@ export function pointTransactionsForUser(userId: string) {
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(50)
-    .returns<Pick<PointTransactionRow, 'id' | 'delta' | 'reason' | 'created_at'>[]>()
 }
 
 /**
@@ -37,7 +34,6 @@ export function purchasePaymentStatusById(table: PurchaseTable, purchaseId: stri
     .from(table)
     .select('payment_status')
     .eq('id', purchaseId)
-    .returns<{ payment_status: string }[]>()
 }
 
 /** RPC: award points (server-side ledger write, deduped by p_idempotency_key); callers treat as best-effort. */

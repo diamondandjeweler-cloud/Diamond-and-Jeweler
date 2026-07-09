@@ -1,7 +1,6 @@
 import { supabase } from '../../lib/supabase'
 import type { Database } from '../../types/db.generated'
 
-type CompanyRow = Database['public']['Tables']['companies']['Row']
 export type CompanyUpdate = Database['public']['Tables']['companies']['Update']
 
 // ── Companies + company↔HM link requests ─────────────────────────────────────
@@ -24,22 +23,22 @@ export interface NewCompany {
 
 /** Company id by primary HR email → { data: { id } | null } (LinkHMPanel / HR dashboard / HMOnboarding self-heal). */
 export function companyIdByHrEmail(email: string) {
-  return supabase.from('companies').select('id').eq('primary_hr_email', email).maybeSingle().returns<Pick<CompanyRow, 'id'>>()
+  return supabase.from('companies').select('id').eq('primary_hr_email', email).maybeSingle()
 }
 
 /** Company existence check by id → { data: { id } | null } (HR dashboard add-me refresh). */
 export function companyIdById(id: string) {
-  return supabase.from('companies').select('id').eq('id', id).maybeSingle().returns<Pick<CompanyRow, 'id'>>()
+  return supabase.from('companies').select('id').eq('id', id).maybeSingle()
 }
 
 /** Company id by creator profile id → { data: { id } | null } (HMOnboarding self-heal). */
 export function companyIdByCreator(userId: string) {
-  return supabase.from('companies').select('id').eq('created_by', userId).maybeSingle().returns<Pick<CompanyRow, 'id'>>()
+  return supabase.from('companies').select('id').eq('created_by', userId).maybeSingle()
 }
 
 /** Company verified flag by id → { data: { verified } | null } (HM dashboard company-context branch). */
 export function companyVerifiedById(id: string) {
-  return supabase.from('companies').select('verified').eq('id', id).maybeSingle().returns<Pick<CompanyRow, 'verified'>>()
+  return supabase.from('companies').select('verified').eq('id', id).maybeSingle()
 }
 
 /** Company record for the verification page → { data: { id, name, registration_number, verified } | null } (CompanyVerify). */
@@ -49,7 +48,6 @@ export function companyForVerifyById(id: string) {
     .select('id, name, registration_number, verified')
     .eq('id', id)
     .maybeSingle()
-    .returns<Pick<CompanyRow, 'id' | 'name' | 'registration_number' | 'verified'>>()
 }
 
 /** Unverified companies, oldest first, capped at 100 (admin VerificationQueue). Caller keeps its .then tail. */
@@ -60,7 +58,6 @@ export function listUnverifiedCompanies() {
     .eq('verified', false)
     .order('created_at', { ascending: true })
     .limit(100)
-    .returns<Pick<CompanyRow, 'id' | 'name' | 'registration_number' | 'primary_hr_email' | 'business_license_path' | 'created_at'>[]>()
 }
 
 /** Mark a company verified now → { error } (admin VerificationQueue). */
@@ -98,5 +95,4 @@ export function pendingLinkRequestHmIds(companyId: string) {
     .select('hm_id')
     .eq('company_id', companyId)
     .eq('status', 'pending')
-    .returns<Pick<Database['public']['Tables']['company_hm_link_requests']['Row'], 'hm_id'>[]>()
 }

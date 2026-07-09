@@ -18,7 +18,8 @@ type MatchHistoryInsert = Database['public']['Tables']['match_history']['Insert'
 // byte-identical to the inlined queries they replace.
 
 // Keep as ONE literal string (identical to the call sites it replaces) so the
-// PostgREST projection cannot drift via a concatenation typo.
+// PostgREST projection cannot drift via a concatenation typo; the typed
+// <Database> client type-checks the columns it lists (no external CI guard).
 const TALENT_MATCH_SELECT =
   'id, compatibility_score, status, expires_at, public_reasoning, application_summary, roles(id, title, description, salary_min, salary_max, location, work_arrangement, employment_type, hourly_rate, duration_days)'
 

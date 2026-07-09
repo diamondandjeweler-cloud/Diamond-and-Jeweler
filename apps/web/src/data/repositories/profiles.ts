@@ -1,7 +1,6 @@
 import { supabase } from '../../lib/supabase'
 import type { Database } from '../../types/db.generated'
 
-type ProfileRow = Database['public']['Tables']['profiles']['Row']
 type ProfileUpdate = Database['public']['Tables']['profiles']['Update']
 
 // ── Profile reads & writes ───────────────────────────────────────────────────
@@ -19,37 +18,37 @@ type ProfileUpdate = Database['public']['Tables']['profiles']['Update']
 // ── Reads ─────────────────────────────────────────────────────────────────────
 /** Full profile row by id (session bootstrap — caller adds .maybeSingle()). */
 export function profileById(userId: string) {
-  return supabase.from('profiles').select('*').eq('id', userId).returns<ProfileRow[]>()
+  return supabase.from('profiles').select('*').eq('id', userId)
 }
 
 /** Profile role only, by id (auth-callback never-downgrade guard — caller adds .single()). */
 export function profileRoleById(userId: string) {
-  return supabase.from('profiles').select('role').eq('id', userId).returns<Pick<ProfileRow, 'role'>[]>()
+  return supabase.from('profiles').select('role').eq('id', userId)
 }
 
 /** Profile point balance by id (dashboard wallet badge — caller adds .maybeSingle()). */
 export function profilePointsById(userId: string) {
-  return supabase.from('profiles').select('points').eq('id', userId).returns<Pick<ProfileRow, 'points'>[]>()
+  return supabase.from('profiles').select('points').eq('id', userId)
 }
 
 /** Profile consents JSON by id (DOB consent merge — caller adds .maybeSingle()). */
 export function profileConsentsById(userId: string) {
-  return supabase.from('profiles').select('consents').eq('id', userId).returns<Pick<ProfileRow, 'consents'>[]>()
+  return supabase.from('profiles').select('consents').eq('id', userId)
 }
 
 /** Profile email by id (HM onboarding company-by-email lookup — caller adds .maybeSingle()). */
 export function profileEmailById(userId: string) {
-  return supabase.from('profiles').select('email').eq('id', userId).returns<Pick<ProfileRow, 'email'>[]>()
+  return supabase.from('profiles').select('email').eq('id', userId)
 }
 
 /** Saved onboarding draft fields by id (talent onboarding resume — caller adds .maybeSingle()). */
 export function profileOnboardingDraftById(userId: string) {
-  return supabase.from('profiles').select('interview_transcript, full_name, phone').eq('id', userId).returns<Pick<ProfileRow, 'interview_transcript' | 'full_name' | 'phone'>[]>()
+  return supabase.from('profiles').select('interview_transcript, full_name, phone').eq('id', userId)
 }
 
 /** Identity tuples for a set of user ids (admin panels — caller awaits directly). */
 export function profilesByIds(userIds: string[]) {
-  return supabase.from('profiles').select('id, email, full_name').in('id', userIds).returns<Pick<ProfileRow, 'id' | 'email' | 'full_name'>[]>()
+  return supabase.from('profiles').select('id, email, full_name').in('id', userIds)
 }
 
 /**

@@ -1,7 +1,4 @@
 import { supabase } from '../../lib/supabase'
-import type { Database } from '../../types/db.generated'
-
-type MonthlyBoostRow = Database['public']['Tables']['monthly_character_boost']['Row']
 
 // ── monthly_character_boost: admin monthly weighting submissions ─────────────
 // Mirrors systemConfig.ts / points.ts — the function returns the query BUILDER
@@ -15,5 +12,4 @@ export function boostSubmittedAtForMonth(month: string) {
     .select('submitted_at')
     .eq('month', month)
     .maybeSingle()
-    .returns<Pick<MonthlyBoostRow, 'submitted_at'>>()
 }

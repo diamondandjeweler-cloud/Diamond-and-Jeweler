@@ -1,7 +1,6 @@
 import { supabase } from '../../lib/supabase'
 import type { Database } from '../../types/db.generated'
 
-type TagDictionaryRow = Database['public']['Tables']['tag_dictionary']['Row']
 type TagDictionaryInsert = Database['public']['Tables']['tag_dictionary']['Insert']
 
 // ── tag_dictionary: matching-tag admin CRUD ──────────────────────────────────
@@ -16,7 +15,6 @@ export function listTags() {
     .from('tag_dictionary')
     .select('id, tag_name, category, weight_multiplier, is_active')
     .order('tag_name')
-    .returns<Pick<TagDictionaryRow, 'id' | 'tag_name' | 'category' | 'weight_multiplier' | 'is_active'>[]>()
 }
 
 /** Insert a new tag row (payload built verbatim at the call site) → { error }. */

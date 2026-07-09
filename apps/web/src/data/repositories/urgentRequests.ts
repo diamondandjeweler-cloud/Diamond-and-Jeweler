@@ -1,7 +1,4 @@
 import { supabase } from '../../lib/supabase'
-import type { Database } from '../../types/db.generated'
-
-type UrgentRequestRow = Database['public']['Tables']['urgent_priority_requests']['Row']
 
 // ── urgent_priority_requests: paid urgent-match requests ─────────────────────
 // Mirrors matches.ts / systemConfig.ts — functions return the query BUILDER so
@@ -19,5 +16,4 @@ export function lastCompletedFindJobRequest(userId: string, sinceIso: string) {
     .order('completed_at', { ascending: false })
     .limit(1)
     .maybeSingle()
-    .returns<Pick<UrgentRequestRow, 'id' | 'result_id' | 'completed_at'>>()
 }

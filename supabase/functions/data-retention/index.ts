@@ -43,12 +43,16 @@ async function handler(req: Request): Promise<Response> {
   const retentionDays = typeof cfg?.value === 'number' ? cfg.value : 30
   const cutoffIso = new Date(Date.now() - retentionDays * 86400000).toISOString()
 
+  // Anchor the retention window on ic_verified_at (stamped by trigger in 0174),
+  // NOT updated_at — updated_at is bumped by any profile edit, which would reset
+  // the 30-day clock and keep national-ID scans far past the retention window.
   const { data: toPurge, error: purgeErr } = await db.from('talents')
-    .select('id, ic_path, updated_at')
+    .select('id, ic_path, ic_verified_at')
     .eq('ic_verified', true)
     .is('ic_purged_at', null)
     .not('ic_path', 'is', null)
-    .lt('updated_at', cutoffIso)
+    .not('ic_verified_at', 'is', null)
+    .lt('ic_verified_at', cutoffIso)
   if (purgeErr) results.errors.push(`ic select: ${purgeErr.message}`)
 
   for (const t of toPurge ?? []) {
@@ -119,11 +123,28 @@ async function handler(req: Request): Promise<Response> {
 
     // Soft-ban the profile. Full row deletion would cascade to company/HM roles
     // which breaks audit trails; banning + PII-nulling is the PDPA-compliant middle path.
+    // email + full_name are NOT NULL, so they are overwritten with per-user
+    // tombstones rather than nulled — otherwise a COMPLETED erasure would leave
+    // the person's name + login email in the DB forever (0059's tombstone path is
+    // dead: nothing sets profiles.deleted_at). The uuid-scoped tombstone email
+    // also satisfies the UNIQUE(email) index.
     await db.from('profiles').update({
       is_banned: true,
       phone: null,
       consents: {},
+      full_name: '[deleted user]',
+      email: `deleted-${d.user_id}@deleted.local`,
     }).eq('id', d.user_id)
+
+    // Scrub the auth.users email too — the profiles overwrite above does not
+    // touch it, so a completed erasure would otherwise leave the login email in
+    // auth.users forever. Best-effort: an auth-admin failure must not abort the
+    // retention loop (mirrors the storage-remove .catch pattern above).
+    try {
+      await db.auth.admin.updateUserById(d.user_id, { email: `deleted-${d.user_id}@deleted.local` })
+    } catch (e) {
+      await reportError(e, { fn: 'data-retention', stage: 'auth-email-scrub', user_id: d.user_id })
+    }
 
     await logAudit({
       actorId:      null,

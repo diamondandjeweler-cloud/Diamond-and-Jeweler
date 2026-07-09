@@ -129,6 +129,15 @@ async function handler(req: Request): Promise<Response> {
           ...talent,
           date_of_birth: await decrypt(talent.date_of_birth_encrypted as string | null),
           date_of_birth_encrypted: undefined,
+          // Omit the internal compatibility classification (see life_chart_character
+          // column grants) and the IC storage pointers that are withheld even from
+          // the user's own session (0092/0105). select('*') under service_role
+          // bypasses those column grants, so they must be stripped here or the PDPA
+          // export leaks them. (undefined keys are dropped by JSON.stringify, like DOB.)
+          life_chart_character: undefined,
+          ic_path: undefined,
+          ic_verified: undefined,
+          ic_purged_at: undefined,
         }
       : null,
     hiring_manager: hm
@@ -136,6 +145,7 @@ async function handler(req: Request): Promise<Response> {
           ...hm,
           date_of_birth: await decrypt(hm.date_of_birth_encrypted as string | null),
           date_of_birth_encrypted: undefined,
+          life_chart_character: undefined,
         }
       : null,
     matches: matchesRes.data ?? [],

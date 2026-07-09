@@ -343,7 +343,12 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
   const { count: refreshCount } = await db.from('match_history')
     .select('id', { count: 'exact', head: true })
     .eq('role_id', roleId).eq('action', 'expired_auto')
-  if ((refreshCount ?? 0) >= refreshLimit) {
+  // Paid/redeemed extra matches (isExtraMatch) bypass the free auto-refresh cap,
+  // exactly as the active-count guard above does (~line 332). Without this, a
+  // role that has already auto-expired `refresh_limit_per_role` (default 3)
+  // times silently refuses a PAID unlock — the money/points are charged and the
+  // quota consumed, but matches_added=0 and nothing is delivered.
+  if (!isExtraMatch && (refreshCount ?? 0) >= refreshLimit) {
     return { matches_added: 0, message: 'Refresh limit reached' }
   }
 

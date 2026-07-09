@@ -160,6 +160,14 @@ values ('d3110000-0000-0000-0000-000000000006',
         '{"secret":"alice-only-reasoning"}'::jsonb,
         'generated');
 
+-- An org_consultation OWNED by carol (HM). bob (a different authenticated user)
+-- must not read or modify it; carol (owner) must. Regression target: 0129
+-- shipped org_consultations FOR ALL USING(true)/WITH CHECK(true) + GRANT ALL —
+-- a cross-tenant PII leak — which 0173 scopes to owner_id = auth.uid() OR
+-- is_admin(). team_size=5 lets the 0129 tier trigger stamp tier_code/price_myr.
+insert into public.org_consultations (client_company, team_size, owner_id)
+values ('RLS OrgConsult Fixture', 5, 'cccccccc-cccc-cccc-cccc-cccccccccccc');
+
 -- ============================================================================
 -- INVARIANT 1 — A non-owner authenticated talent (bob) CANNOT SELECT
 --               talents.ic_path of another talent's row (alice).
@@ -511,6 +519,104 @@ begin
     raise exception 'INVARIANT 9b FAILED: matched HM can SELECT matches.internal_reasoning (column not revoked)';
   end if;
   raise notice 'PASS 9b: matched HM cannot read ic_path / internal_reasoning columns even on a visible row';
+end;
+$$;
+
+-- ============================================================================
+-- INVARIANT 10 — A non-owner authenticated user (bob) CANNOT SELECT another
+--                user's org_consultation (carol's). Regression target: 0129
+--                shipped org_consultations FOR ALL USING(true)/WITH CHECK(true)
+--                + GRANT ALL; 0173 scopes it to owner_id = auth.uid() OR is_admin().
+-- ============================================================================
+do $$
+declare
+  visible_count int;
+begin
+  set local role authenticated;
+  set local "request.jwt.claim.sub" to 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+  set local "request.jwt.claims" to
+    '{"sub":"bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb","role":"authenticated"}';
+
+  select count(*) into visible_count
+  from public.org_consultations
+  where client_company = 'RLS OrgConsult Fixture';
+
+  reset role;
+
+  if visible_count <> 0 then
+    raise exception
+      'INVARIANT 10 FAILED: non-owner can SELECT another user''s org_consultation (got % rows)',
+      visible_count;
+  end if;
+  raise notice 'PASS 10: non-owner cannot read another user''s org_consultation';
+end;
+$$;
+
+-- ============================================================================
+-- INVARIANT 10b (allow side) — the OWNER (carol) CAN see her own
+--                org_consultation. Proves the deny in #10 is real scoping,
+--                not a blanket table lock.
+-- ============================================================================
+do $$
+declare
+  visible_count int;
+begin
+  set local role authenticated;
+  set local "request.jwt.claim.sub" to 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+  set local "request.jwt.claims" to
+    '{"sub":"cccccccc-cccc-cccc-cccc-cccccccccccc","role":"authenticated"}';
+
+  select count(*) into visible_count
+  from public.org_consultations
+  where client_company = 'RLS OrgConsult Fixture';
+
+  reset role;
+
+  if visible_count <> 1 then
+    raise exception
+      'INVARIANT 10b FAILED: owner cannot SELECT her own org_consultation (expected 1, got %)',
+      visible_count;
+  end if;
+  raise notice 'PASS 10b: owner can read her own org_consultation (deny in #10 is real scoping)';
+end;
+$$;
+
+-- ============================================================================
+-- INVARIANT 10c — A non-owner (bob) CANNOT UPDATE another user's
+--                org_consultation. The UPDATE must affect ZERO rows (the USING
+--                clause filters carol's row out) and leave the data intact.
+-- ============================================================================
+do $$
+declare
+  affected int;
+  preserved text;
+begin
+  set local role authenticated;
+  set local "request.jwt.claim.sub" to 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+  set local "request.jwt.claims" to
+    '{"sub":"bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb","role":"authenticated"}';
+
+  update public.org_consultations
+     set payment_status = 'paid'
+   where client_company = 'RLS OrgConsult Fixture';
+  get diagnostics affected = row_count;
+
+  reset role;
+
+  if affected <> 0 then
+    raise exception
+      'INVARIANT 10c FAILED: non-owner updated another user''s org_consultation (% rows affected)',
+      affected;
+  end if;
+
+  select payment_status into preserved
+  from public.org_consultations
+  where client_company = 'RLS OrgConsult Fixture';
+  if preserved <> 'unpaid' then
+    raise exception
+      'INVARIANT 10c FAILED: org_consultation payment_status was mutated to %', preserved;
+  end if;
+  raise notice 'PASS 10c: non-owner cannot update another user''s org_consultation';
 end;
 $$;
 

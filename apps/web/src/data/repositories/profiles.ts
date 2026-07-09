@@ -16,9 +16,25 @@ type ProfileUpdate = Database['public']['Tables']['profiles']['Update']
 // drift.
 
 // ── Reads ─────────────────────────────────────────────────────────────────────
-/** Full profile row by id (session bootstrap — caller adds .maybeSingle()). */
+/**
+ * Session profile by id (session bootstrap — caller adds .maybeSingle()).
+ *
+ * Explicit projection of exactly the columns the shared `Profile` type
+ * (src/types/db.ts) exposes to session/profile consumers. Deliberately EXCLUDES
+ * the heavy `interview_transcript` blob (onboarding-resume reads it via its own
+ * narrow `profileOnboardingDraftById`) and internal-only columns never rendered
+ * from the session object (consent_ip_hash, deleted_at, diamond_points,
+ * email_bounced, onboarding_reminder_count, onboarding_reminder_sent_at), so a
+ * cold hydrate no longer pulls the transcript on every bootstrap. Keep this list
+ * in sync with the `Profile` interface.
+ */
 export function profileById(userId: string) {
-  return supabase.from('profiles').select('*').eq('id', userId)
+  return supabase
+    .from('profiles')
+    .select(
+      'id, email, full_name, display_name, phone, role, consents, is_banned, ghost_score, onboarding_complete, waitlist_approved, created_at, updated_at, consent_version, consent_signed_at, locale, whatsapp_number, whatsapp_opt_in, points, points_earned_total, referral_code',
+    )
+    .eq('id', userId)
 }
 
 /** Profile role only, by id (auth-callback never-downgrade guard — caller adds .single()). */

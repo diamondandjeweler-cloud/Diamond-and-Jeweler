@@ -1227,7 +1227,16 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     is_extra_match: isExtraMatch,
   }))
   const { data: inserted, error: insErr } = await db.from('matches').insert(toInsert).select('id, talent_id')
-  if (insErr) throw new MatchError(insErr.message, 500)
+  if (insErr) {
+    // The 0176 active-cap trigger raises MATCH_CAP_REACHED (SQLSTATE MATCP) when a
+    // concurrent run for the same role filled the free cap between our count read
+    // (activeCount, above) and this insert. Treat it as the pre-check's own
+    // over-cap outcome: no overshoot, return gracefully instead of erroring.
+    const isCapRace = (insErr as { code?: string }).code === 'MATCP' ||
+      /MATCH_CAP_REACHED/.test(insErr.message)
+    if (isCapRace) return { matches_added: 0, message: 'Role already has 3 active matches' }
+    throw new MatchError(insErr.message, 500)
+  }
 
   // Pitch generation moved off the insert path. Map back to inserted rows by
   // talent_id (insert order is not relied upon) and UPDATE; best-effort.

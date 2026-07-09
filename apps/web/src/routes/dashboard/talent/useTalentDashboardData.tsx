@@ -22,6 +22,7 @@ import {
   type TalentCacheSnapshot,
   type TalentFeedbackEntry,
 } from './types'
+import { isTalentOpen, isInterviewStage } from '../../../shared/domain/match/lifecycle'
 
 /**
  * Data-loading + derived-state orchestration for TalentDashboard.
@@ -202,15 +203,15 @@ export function useTalentDashboardData() {
           setTalentFeedbackState(pruneByMatch)
           // Cache safe-to-show counts so the KPI strip is instant on return.
           // We never cache match IDs / scores / role details — those refetch.
-          const openCount = rows.filter((m) => ['generated', 'viewed'].includes(m.status)).length
-          const inFlightCount = rows.filter((m) => !['generated', 'viewed'].includes(m.status)).length
+          const openCount = rows.filter((m) => isTalentOpen(m.status)).length
+          const inFlightCount = rows.filter((m) => !isTalentOpen(m.status)).length
           writeDashCache<TalentCacheSnapshot>('talent_dashboard', userId, {
             matchesCount: rows.length,
             openCount,
             inFlightCount,
           })
           const interviewMatchIds = rows
-            .filter((r) => ['invited_by_manager', 'interview_scheduled', 'interview_completed', 'offer_made'].includes(r.status))
+            .filter((r) => isInterviewStage(r.status))
             .map((r) => r.id)
           await Promise.all([
             loadRounds(interviewMatchIds),
@@ -559,10 +560,10 @@ export function useTalentDashboardData() {
   // Shell renders immediately — individual data sections handle their own
   // skeleton state. Cached counts (if any) keep the KPI strip from shimmering.
   const openCount = matches != null
-    ? matches.filter((m) => ['generated', 'viewed'].includes(m.status)).length
+    ? matches.filter((m) => isTalentOpen(m.status)).length
     : cachedSnap?.openCount ?? null
   const inFlight  = matches != null
-    ? matches.filter((m) => !['generated', 'viewed'].includes(m.status)).length
+    ? matches.filter((m) => !isTalentOpen(m.status)).length
     : cachedSnap?.inFlightCount ?? null
   const totalActive = matches != null ? matches.length : cachedSnap?.matchesCount ?? null
   const slotsAvailable = totalActive != null ? Math.max(0, 3 - totalActive) : null

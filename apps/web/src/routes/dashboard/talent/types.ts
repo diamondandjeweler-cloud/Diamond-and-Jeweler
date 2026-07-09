@@ -27,12 +27,9 @@ export interface TalentFeedbackEntry {
   pointsAwarded?: number
 }
 
-export const ACTIVE = [
-  'generated', 'viewed', 'accepted_by_talent',
-  'invited_by_manager', 'hr_scheduling',
-  'interview_scheduled', 'interview_completed',
-  'offer_made',
-]
+// The active-match set lives in the pure domain module (single source of truth).
+// Re-exported under the historical `ACTIVE` name so existing importers are unchanged.
+export { ACTIVE_MATCH_STATUSES as ACTIVE } from '../../../shared/domain/match/lifecycle'
 
 export const TALENT_OUTCOME_KEYS: { value: string; emoji: string; tKey: string }[] = [
   { value: '',                  emoji: '',    tKey: 'talentDash.outcomeSelect' },

@@ -3,6 +3,7 @@ import { formatError } from '../../../lib/errors'
 import { readDashCache, writeDashCache } from '../../../lib/dashboardCache'
 import { useQuery } from '../../../lib/useQuery'
 import Skeleton from '../../../components/Skeleton'
+import { ADMIN_TRACKED_STATUSES } from '../../../shared/domain/match/lifecycle'
 
 interface Kpis {
   total_matches: number
@@ -18,12 +19,6 @@ interface Kpis {
   avg_hours_to_first_view: number | null
   interview_hire_rate: number | null
 }
-
-const TRACKED_STATUSES = [
-  'generated','viewed','accepted_by_talent','declined_by_talent',
-  'invited_by_manager','declined_by_manager','hr_scheduling',
-  'interview_scheduled','interview_completed','hired','expired',
-]
 
 // F1 fix — single SECURITY DEFINER RPC replaces 14 parallel head+count
 // queries. The old pattern was returning 503 across all matches/profiles
@@ -118,7 +113,7 @@ export default function KpiPanel() {
       <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded p-4">
         <table className="w-full text-sm">
           <tbody>
-            {TRACKED_STATUSES.map((s) => (
+            {ADMIN_TRACKED_STATUSES.map((s) => (
               <tr key={s} className="border-b dark:border-gray-700 last:border-0">
                 <td className="py-1.5 capitalize text-gray-700 dark:text-gray-300">{s.replace(/_/g, ' ')}</td>
                 <td className="py-1.5 text-right font-mono dark:text-gray-300">{kpis ? kpis.by_status[s] : <Skeleton width={32} height={12} rounded="sm" />}</td>

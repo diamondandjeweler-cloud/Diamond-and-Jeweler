@@ -669,6 +669,7 @@
     "resumeLabel": "Résumé (PDF or Word)",
     "coverLetterLabel": "Cover letter (optional)",
     "nricNote": "Note: We do not require NRIC or passport scans. An optional Identity-Verification Badge will be available later.",
+    "docsRequired": "Please add both a photo and a résumé before continuing.",
     "reviewConfirm": "Review & confirm",
     "choose": "Choose",
     "noFileSelected": "No file selected",

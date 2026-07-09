@@ -25,15 +25,14 @@ import { insertRole, getOnboardingDraftRoleId } from '../../data/repositories/ro
 import { companyIdByCreator, companyIdByHrEmail } from '../../data/repositories/companies'
 import { profileEmailById, updateProfile } from '../../data/repositories/profiles'
 import { hmIdByProfileId, upsertHmCompanyLink, updateHmInterviewTranscript, updateHmById } from '../../data/repositories/hiringManagers'
-import type { Database, Json } from '../../types/db.generated'
-
-type HmUpdate = Database['public']['Tables']['hiring_managers']['Update']
+import type { Json } from '../../types/db.generated'
 import { encryptDob, markOnboardingComplete } from '../../lib/api'
 import { callFunction } from '../../lib/functions'
-import { getLifeChartCharacter, type Gender } from '../../shared/domain/lifeChart/lifeChartCharacter'
+import { type Gender } from '../../shared/domain/lifeChart/lifeChartCharacter'
 import ChatShell, { ChatMessage } from '../../components/ChatShell'
 import { Button, Alert } from '../../components/ui'
 import { type Phase, type ApiMessage, headlineForPhase, progressPctForPhase } from './hm/helpers'
+import { buildHmUpdate, type ExtractedHmProfile, type HmOnboardingData } from './hm/submitHmOnboarding'
 import { useOnboardingChat } from './useOnboardingChat'
 import BasicsStep from './hm/BasicsStep'
 import MustHavesStep from './hm/MustHavesStep'
@@ -346,106 +345,25 @@ export default function HMOnboarding() {
         },
       )
       if (!extRes.ok) throw new Error(`Profile extraction failed (${extRes.status})`)
-      const extracted = await extRes.json() as {
-        error?: string
-        industry: string | null
-        role_type: string | null
-        role_open_reason: string | null
-        why_last_hire_left: string | null
-        team_size: number | null
-        hire_urgency: string | null
-        success_at_90_days: string | null
-        failure_at_90_days: string | null
-        failure_pattern: string | null
-        hardest_part_of_role: string | null
-        work_arrangement_offered: string | null
-        must_have_items: string[]
-        screening_red_flags: string[]
-        leadership_tags: Record<string, number>
-        required_traits: string[]
-        culture_offers: Record<string, number>
-        salary_offer_min: number | null
-        salary_offer_max: number | null
-        career_growth_potential: string | null
-        interview_stages: number | null
-        panel_involved: boolean | null
-        required_work_authorization: string[]
-        summary: string | null
-      }
+      const extracted = await extRes.json() as ExtractedHmProfile
       if (extracted.error) throw new Error(`Profile extraction failed: ${extracted.error}`)
 
       const { data: hmRow, error: hmErr } = await hmIdByProfileId(userId)
       if (hmErr) throw hmErr
       if (!hmRow) throw new Error(t('hmOnboard.noHmRecord'))
 
-      const lifeChartCharacter = gender ? getLifeChartCharacter(dob, gender) : null
-
-      const { error: updateErr } = await updateHmById(hmRow.id, {
-          date_of_birth_encrypted: dobEncrypted,
-          gender: gender || null,
-          life_chart_character: lifeChartCharacter,
-          job_title: jobTitle.trim(),
-          industry: extracted.industry,
-          role_type: extracted.role_type,
-          role_open_reason: extracted.role_open_reason ?? null,
-          why_last_hire_left: extracted.why_last_hire_left ?? null,
-          team_size: extracted.team_size ?? null,
-          hire_urgency: extracted.hire_urgency ?? null,
-          success_at_90_days: extracted.success_at_90_days ?? null,
-          // Form value takes precedence over chat-extracted failure description
-          failure_at_90_days: failureAt90Days.trim() || extracted.failure_at_90_days || null,
-          screening_red_flags: [
-            ...(extracted.screening_red_flags ?? []),
-            ...(extracted.failure_pattern ? [`Failure pattern: ${extracted.failure_pattern}`] : []),
-          ].filter(Boolean).length > 0
-            ? [
-                ...(extracted.screening_red_flags ?? []),
-                ...(extracted.failure_pattern ? [`Failure pattern: ${extracted.failure_pattern}`] : []),
-              ].filter(Boolean)
-            : null,
-          hardest_part_of_role: extracted.hardest_part_of_role ?? null,
-          work_arrangement_offered: extracted.work_arrangement_offered ?? null,
-          leadership_tags: extracted.leadership_tags,
-          required_traits: extracted.required_traits,
-          culture_offers: extracted.culture_offers,
-          salary_offer_min: extracted.salary_offer_min,
-          salary_offer_max: extracted.salary_offer_max,
-          salary_flex: salaryFlex,
-          ai_summary: extracted.summary,
-          interview_answers: { transcript: apiMessages },
-          must_haves: { items: mustHaveItems },
-          must_have_items: extracted.must_have_items?.length ? extracted.must_have_items : (mustHaveItems.length ? mustHaveItems : null),
-          career_growth_potential: extracted.career_growth_potential ?? null,
-          // Form value takes precedence over chat-extracted interview stages
-          interview_stages: interviewRoundsHM ?? extracted.interview_stages ?? null,
-          panel_involved: extracted.panel_involved ?? null,
-          required_work_authorization: extracted.required_work_authorization?.length ? extracted.required_work_authorization : null,
-          // Demographics (new)
-          race: race || null,
-          religion: religion || null,
-          languages: languages.length > 0 ? languages : null,
-          location_matters: locationMatters === true,
-          location_postcode: locationMatters && locationPostcode.trim() ? locationPostcode.trim() : null,
-          // Hiring process details (new)
-          budget_approved: budgetApproved || null,
-          deadline_to_fill: deadlineToFill || null,
-          // Role operational constraints (new) — mirrors talent deal_breakers structure
-          role_constraints: {
-            requires_driving_license: hmRequiresDrivingLicense,
-            requires_weekends: hmRequiresWeekends,
-            requires_travel: hmRequiresTravel,
-            requires_night_shifts: hmRequiresNightShifts,
-            requires_relocation: hmRequiresRelocation,
-            onsite_only: hmOnsiteOnly,
-            requires_own_transport: hmRequiresOwnTransport,
-            has_commission: hmHasCommission,
-          },
-          // interview_answers.transcript is interface-typed (ApiMessage[]) and the
-          // other jsonb columns (must_haves, role_constraints, culture_offers,
-          // leadership_tags) are structurally valid JSON that TS rejects only
-          // because interfaces lack an index signature. Cast at the repo boundary
-          // — no runtime change.
-        } as unknown as HmUpdate)
+      // Row construction lives in the pure buildHmUpdate builder so the exact
+      // payload is golden-tested in isolation. It applies the same form-value-
+      // over-extracted precedence and the interview_answers Json boundary cast.
+      const hmFormData: HmOnboardingData = {
+        dob, dobEncrypted, gender, jobTitle, failureAt90Days, salaryFlex, interviewRoundsHM,
+        mustHaveItems, race, religion, languages, locationMatters, locationPostcode,
+        budgetApproved, deadlineToFill,
+        hmRequiresDrivingLicense, hmRequiresWeekends, hmRequiresTravel, hmRequiresNightShifts,
+        hmRequiresRelocation, hmOnsiteOnly, hmRequiresOwnTransport, hmHasCommission,
+        apiMessages,
+      }
+      const { error: updateErr } = await updateHmById(hmRow.id, buildHmUpdate(extracted, hmFormData))
       if (updateErr) throw updateErr
 
       const { error: profErr } = await updateProfile(userId, { full_name: fullName.trim() })

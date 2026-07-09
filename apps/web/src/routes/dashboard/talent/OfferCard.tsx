@@ -5,6 +5,7 @@ import { Button, Card, Badge } from '../../../components/ui'
 import MatchExplain from '../../../components/MatchExplain'
 import type { InterviewRound, InterviewProposal } from '../../../types/db'
 import { TALENT_OUTCOME_KEYS, type MatchRow, type TalentFeedbackEntry } from './types'
+import { isTalentOpen } from '../../../shared/domain/match/lifecycle'
 
 function OfferCardImpl({
   m, rounds, pendingProposal, actionBusy,
@@ -177,7 +178,7 @@ function OfferCardImpl({
 
         <div className="mt-5 space-y-3">
           {/* Stage 1: new offers — accept/decline */}
-          {['generated', 'viewed'].includes(m.status) && (
+          {isTalentOpen(m.status) && (
             <div className="flex gap-2 flex-wrap">
               <Button onClick={() => respond(m.id, 'accepted_by_talent')} disabled={actionBusy !== null} loading={actionBusy === `${m.id}:accepted_by_talent`} size="sm">{t('talentDash.accept')}</Button>
               <Button onClick={() => respond(m.id, 'declined_by_talent')} disabled={actionBusy !== null} loading={actionBusy === `${m.id}:declined_by_talent`} size="sm" variant="secondary">{t('talentDash.decline')}</Button>

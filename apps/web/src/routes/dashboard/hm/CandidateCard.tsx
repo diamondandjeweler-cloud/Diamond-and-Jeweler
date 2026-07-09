@@ -7,6 +7,7 @@ import { Button, Card, Badge } from '../../../components/ui'
 import type { CultureComparison, InterviewRound, InterviewProposal } from '../../../types/db'
 import { hmOutcomes } from './types'
 import type { CandidateRow, ProfilePreview, ContactInfo, FeedbackEntry } from './types'
+import { needsHmAction } from '../../../shared/domain/match/lifecycle'
 
 function CandidateCardImpl({
   row, rounds, pendingProposal, preview, contact, actionBusy, schedulingFor,
@@ -244,7 +245,7 @@ function CandidateCardImpl({
 
         <div className="mt-4 space-y-3">
           {/* Stage 1: new candidates */}
-          {['generated', 'viewed', 'accepted_by_talent'].includes(row.status) && (
+          {needsHmAction(row.status) && (
             <div className="flex gap-2 flex-wrap">
               <Button
                 onClick={onInvite}

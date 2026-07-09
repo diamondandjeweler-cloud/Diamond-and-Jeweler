@@ -669,6 +669,7 @@
     "resumeLabel": "简历（PDF 或 Word）",
     "coverLetterLabel": "求职信（可选）",
     "nricNote": "注意：我们不需要身份证或护照扫描件。可选的身份验证徽章将在稍后提供。",
+    "docsRequired": "请先上传照片和简历，然后再继续。",
     "reviewConfirm": "查看并确认",
     "choose": "选择",
     "noFileSelected": "未选择文件",

@@ -25,14 +25,15 @@ import { insertTalentDocuments } from '../../data/repositories/talentDocuments'
 import { uploadPrivate } from '../../lib/storage'
 import { encryptDob, markOnboardingComplete } from '../../lib/api'
 import { callFunction } from '../../lib/functions'
-import { getLifeChartCharacter, type Gender } from '../../shared/domain/lifeChart/lifeChartCharacter'
+import { type Gender } from '../../shared/domain/lifeChart/lifeChartCharacter'
 import ChatShell, { ChatMessage } from '../../components/ChatShell'
 import { Button, Alert } from '../../components/ui'
 import DobConfirmModal from '../../components/DobConfirmModal'
 import {
   type LanguageReq, type NNAtom,
 } from '../../components/role-form'
-import { type Phase, type ApiMessage, computeUsesLunarCalendar } from './talent/helpers'
+import { type Phase, type ApiMessage } from './talent/helpers'
+import { buildTalentInsert, type TalentOnboardingData } from './talent/submitTalentOnboarding'
 import { useOnboardingChat } from './useOnboardingChat'
 import { ProgressStep, FileRow } from './talent/StepBits'
 import DobStep from './talent/DobStep'
@@ -323,21 +324,28 @@ export default function TalentOnboarding() {
 
   async function finalise() {
     if (!session) return
+    // Docs guard: the docs-phase "Review & confirm" button is already disabled
+    // until BOTH a photo and a résumé are present (see the phase === 'docs'
+    // composer), so this never fires on a reachable path. It makes that
+    // guarantee structural — resumeFile/photoFile are non-null for the rest of
+    // finalise(), so photo_url (NOT NULL) can never receive a null path.
+    if (!photoFile || !resumeFile) { setErr(t('talentOnboard.docsRequired')); return }
     setErr(null)
     setBusy(true)
     try {
       const userId = session.user.id
       let talentId = talentIdRef.current
 
-      // Always re-upload files when they are present so that a retry after a
-      // partial failure (where talentIdRef is already set) picks up any new
-      // files the user may have chosen by going back to the docs phase.
+      // Re-upload files on every attempt so that a retry after a partial failure
+      // (where talentIdRef is already set) picks up any new files the user may
+      // have chosen by going back to the docs phase. Both photo and résumé are
+      // guaranteed present by the guard above; the cover letter stays optional.
       const [resumePath, clPath, photoPath, dobEncrypted] = await Promise.all([
-        resumeFile ? uploadPrivate('resumes', resumeFile, userId, resumeFile.name) : Promise.resolve<string | null>(null),
+        uploadPrivate('resumes', resumeFile, userId, resumeFile.name),
         coverLetterFile
           ? uploadPrivate('resumes', coverLetterFile, userId, `cover-letter-${coverLetterFile.name}`)
           : Promise.resolve<string | null>(null),
-        photoFile ? uploadPrivate('talent-photos', photoFile, userId, photoFile.name) : Promise.resolve<string | null>(null),
+        uploadPrivate('talent-photos', photoFile, userId, photoFile.name),
         encryptDob(dob),
       ])
 
@@ -354,78 +362,37 @@ export default function TalentOnboarding() {
         // Works for plain-text and some simple PDFs; silently skipped for binary formats.
         let resumeText: string | undefined
         try {
-          const raw = await resumeFile!.text()
+          const raw = await resumeFile.text()
           if (raw.length > 50 && raw.charCodeAt(0) >= 32) {
             resumeText = raw.slice(0, 4000)
           }
         } catch { /* best effort */ }
 
-        const lifeChartCharacter = gender
-          ? getLifeChartCharacter(dob, gender)
-          : null
-
         // 2. Upsert the talents row (not insert) so that a page-refresh retry
         //    after the ref is reset doesn't hit the profile_id UNIQUE constraint.
         //    The async worker fills extracted fields and flips is_open_to_offers.
-        const { data: talentRow, error: insErr } = await upsertTalent({
-          profile_id: userId,
-          date_of_birth_encrypted: dobEncrypted,
-          gender: gender || null,
-          life_chart_character: lifeChartCharacter,
-          location_matters: locationMatters === true,
-          location_postcode: locationMatters && locationPostcode.trim() ? locationPostcode.trim() : null,
-          open_to_new_field: openToNewField,
-          // ApiMessage[] wrapped in a plain object — valid JSON; interface lacks
-          // an index signature so TS needs a boundary cast (no runtime change).
-          interview_answers: { transcript: apiMessages } as unknown as Json,
-          race: race || null,
-          religion: religion || null,
-          languages,
-          uses_lunar_calendar: computeUsesLunarCalendar(race, religion, languages),
-          is_open_to_offers: false,
-          extraction_status: 'pending',
-          // LATENT RISK (recorded, not fixed in this type-only pass): photo_url is
-          // NOT NULL in the talents schema, but photoPath is `string | null` (null
-          // when the talent onboards without a photo). Runtime is left unchanged;
-          // boundary-cast keeps the gate green. Needs a behavioural decision
-          // (default the column, make it nullable, or require a photo).
-          photo_url: photoPath as string,
-          deal_breakers: {
-            items: dealBreakerItems,
-            min_salary_hard: minSalaryHard,
-            no_weekend_work: noWeekendWork,
-            no_driving_license: noDrivingLicense,
-            no_travel: noTravel,
-            no_night_shifts: noNightShifts,
-            no_own_car: noOwnCar,
-            remote_only: remoteOnly,
-            no_relocation: noRelocation,
-            no_overtime: noOvertime,
-            no_commission_only: noCommissionOnly,
-          },
-          // ── 0112 structured matching extras ───────────────────────────────
-          skills,
-          // LanguageReq[] is valid JSON; interface lacks an index signature so TS
-          // needs a boundary cast (no runtime change).
-          languages_proficiency: (languagesProficiency.length > 0
-            ? languagesProficiency
-            : languages.map((code) => ({ code, level: 'conversational' as const }))) as unknown as Json,
-          available_shifts: availableShifts,
-          available_days_per_week: availableDaysPerWeek === '' ? null : availableDaysPerWeek,
-          environment_preferences: environmentPreferences,
-          candidate_types: candidateTypes,
-          priority_concerns_text: priorityConcernsText.trim() || null,
-          // NNAtom[] is valid JSON; interface lacks an index signature so TS needs
-          // a boundary cast (no runtime change).
-          priority_concerns_atoms: priorityConcernsAtoms as unknown as Json,
-        })
+        //    Row construction lives in the pure buildTalentInsert builder so the
+        //    exact payload is golden-tested in isolation.
+        const onboardingData: TalentOnboardingData = {
+          dob, gender, locationMatters, locationPostcode, openToNewField,
+          apiMessages, race, religion, languages,
+          dealBreakerItems, minSalaryHard,
+          noWeekendWork, noDrivingLicense, noTravel, noNightShifts,
+          noOwnCar, remoteOnly, noRelocation, noOvertime, noCommissionOnly,
+          skills, languagesProficiency, availableShifts, availableDaysPerWeek,
+          environmentPreferences, candidateTypes,
+          priorityConcernsText, priorityConcernsAtoms,
+        }
+        const { data: talentRow, error: insErr } = await upsertTalent(
+          buildTalentInsert(onboardingData, { userId, dobEncrypted, photoPath }),
+        )
         if (insErr) throw insErr
         talentIdRef.current = talentRow.id
         talentId = talentRow.id
 
         // 3. Best-effort metadata writes. Don't block on these.
         const docRows = [
-          { talent_id: talentId, doc_type: 'resume', storage_path: resumePath, file_name: resumeFile!.name, purge_after: null },
+          { talent_id: talentId, doc_type: 'resume', storage_path: resumePath, file_name: resumeFile.name, purge_after: null },
           ...(clPath ? [{ talent_id: talentId, doc_type: 'cover_letter', storage_path: clPath, file_name: coverLetterFile!.name, purge_after: null }] : []),
         ]
         // resumePath/clPath are typed `string | null`, but the submit button is gated on

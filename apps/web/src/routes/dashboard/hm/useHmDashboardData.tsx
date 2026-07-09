@@ -18,6 +18,12 @@ import { profilePointsById } from '../../../data/repositories/profiles'
 import { hmDashboardRowByProfileId } from '../../../data/repositories/hiringManagers'
 import { useMountedRef, useReloadTimer, useDashCacheSnapshot } from '../useDashboardResource'
 import { ACTIVE } from './types'
+import {
+  ACTIVE_MATCH_STATUSES_FOR_ROLE_TALLY,
+  needsHmAction,
+  isInterviewStage,
+  precedingStatuses,
+} from '../../../shared/domain/match/lifecycle'
 import type {
   HMCacheSnapshot, CandidateRow, ProfilePreview, ContactInfo, WaitingInfo, RoleExtraInfo,
   HmReputation, FeedbackEntry,
@@ -225,7 +231,6 @@ export function useHmDashboardData(userId: string | undefined) {
       // Phase 3 — fire every role-keyed query in parallel: hired-all-time count,
       // active candidates list, per-role active counts, cold-start queue. They
       // were sequential before, costing ~4× the RTT.
-      const activeRows = ['generated','viewed','accepted_by_talent','invited_by_manager','hr_scheduling','interview_scheduled','interview_completed']
       const activeRoleIds = (roleRows ?? []).filter((r) => r.status === 'active').map((r) => r.id)
 
       const hiredCountPromise = hmRoleIds.length > 0
@@ -233,7 +238,7 @@ export function useHmDashboardData(userId: string | undefined) {
         : Promise.resolve({ count: 0 })
 
       const activeCountsPromise = activeRoleIds.length > 0
-        ? activeMatchRoleIds(activeRoleIds, activeRows)
+        ? activeMatchRoleIds(activeRoleIds, ACTIVE_MATCH_STATUSES_FOR_ROLE_TALLY)
         : Promise.resolve({ data: [] as Array<{ role_id: string }> })
 
       const coldRowsPromise = hmRoleIds.length > 0
@@ -258,7 +263,7 @@ export function useHmDashboardData(userId: string | undefined) {
         const rows = (matchData ?? []) as unknown as CandidateRow[]
         setCandidates(rows)
         // Cache aggregates only — no candidate IDs / scores / status detail.
-        const actionNeededLocal = rows.filter((c) => ['generated', 'viewed', 'accepted_by_talent'].includes(c.status)).length
+        const actionNeededLocal = rows.filter((c) => needsHmAction(c.status)).length
         writeDashCache<HMCacheSnapshot>('hm_dashboard', userId, {
           roleCount: (count ?? 0),
           candidatesCount: rows.length,
@@ -267,7 +272,7 @@ export function useHmDashboardData(userId: string | undefined) {
         })
         // Load rounds + pending proposals for interview-stage matches.
         const interviewMatchIds = rows
-          .filter((r) => ['invited_by_manager', 'interview_scheduled', 'interview_completed', 'offer_made'].includes(r.status))
+          .filter((r) => isInterviewStage(r.status))
           .map((r) => r.id)
         // Profile previews are loaded for *every* surfaced candidate so the
         // HM can see the real name + photo on public-mode talents from the
@@ -509,10 +514,10 @@ export function useHmDashboardData(userId: string | undefined) {
     setCandidates((cs) => (cs ?? []).map((c) => (c.id === id ? { ...c, status: next } : c)))
 
     // State machine requires generated → viewed before viewed → invited_by_manager or
-    // viewed → declined_by_manager. Advance through 'viewed' first so both actions are
-    // legal from the HM's perspective regardless of which they pick first.
-    if (prevStatus === 'generated') {
-      const { error: viewErr } = await updateMatch(id, { status: 'viewed' })
+    // viewed → declined_by_manager. Advance through each preceding status first so both
+    // actions are legal from the HM's perspective regardless of which they pick first.
+    for (const intermediate of precedingStatuses(prevStatus, next)) {
+      const { error: viewErr } = await updateMatch(id, { status: intermediate })
       if (!mountedRef.current) return
       if (viewErr) {
         setErr(viewErr.message)
@@ -644,7 +649,7 @@ export function useHmDashboardData(userId: string | undefined) {
   // keep the KPI strip from shimmering on returning visits.
   const candidatesCount = candidates != null ? candidates.length : cachedSnap?.candidatesCount ?? null
   const actionNeeded = candidates != null
-    ? candidates.filter((c) => ['generated', 'viewed', 'accepted_by_talent'].includes(c.status)).length
+    ? candidates.filter((c) => needsHmAction(c.status)).length
     : cachedSnap?.actionNeededCount ?? null
   const roleCountForStat = roleCount ?? null
   const hiredAllTimeForStat = candidates != null ? hiredAllTime : cachedSnap?.hiredAllTime ?? null

@@ -168,7 +168,15 @@ serve(async (req) => {
       p_reference: { purchase_id: purchase.id, refunded_by: auth.userId },
       p_idempotency_key: `refund:${purchase.id}`,
     })
-    if (clawErr) console.error('points_refund: award_points clawback failed', purchase.id, clawErr)
+    if (clawErr) {
+      // The money refund already succeeded and billplzRefund is NOT idempotent,
+      // so we must NOT roll the row back to 'paid' (that would let a retry issue a
+      // SECOND money refund). Instead surface a hard warning so finance reverses
+      // the points manually: the `refund:{id}` idempotency key + the
+      // already-refunded short-circuit block any automatic retry of the clawback.
+      console.error('points_refund: award_points clawback failed', purchase.id, clawErr)
+      pointsWarning = `CLAWBACK FAILED: money refunded but the ${creditedPoints} credited points were NOT revoked (${clawErr.message}). Reverse them manually — automatic retry is blocked by the refund idempotency key.`
+    }
   }
 
   await logAudit({

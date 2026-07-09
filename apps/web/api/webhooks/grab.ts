@@ -23,15 +23,20 @@ export default async function handler(request: Request): Promise<Response> {
 
   const body = await request.text()
 
-  // ── Signature verification ─────────────────────────────────────────────────
+  // ── Signature verification (fail closed) ────────────────────────────────────
+  // Reject when no secret is configured: an unsigned, forgeable webhook could
+  // inject fake orders straight into the kitchen. GRAB_SECRET MUST be set in
+  // Vercel before this integration goes live.
   const secret = process.env.GRAB_SECRET
-  if (secret) {
-    const sig      = request.headers.get('X-GrabFood-Signature') ?? ''
-    const expected = await hmacSha256(secret, body)
-    if (sig !== expected) {
-      console.error('[grab-webhook] Invalid signature')
-      return new Response('Unauthorized', { status: 401 })
-    }
+  if (!secret) {
+    console.error('[grab-webhook] GRAB_SECRET not set — rejecting to prevent forged orders')
+    return new Response('Service misconfigured', { status: 500 })
+  }
+  const sig      = request.headers.get('X-GrabFood-Signature') ?? ''
+  const expected = await hmacSha256(secret, body)
+  if (sig !== expected) {
+    console.error('[grab-webhook] Invalid signature')
+    return new Response('Unauthorized', { status: 401 })
   }
 
   let payload: GrabPayload

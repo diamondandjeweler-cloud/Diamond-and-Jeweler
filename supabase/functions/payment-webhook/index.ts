@@ -23,13 +23,12 @@ import { adminClient } from '../_shared/supabase.ts'
 import { timingSafeEqual } from '../_shared/auth.ts'
 import { reportError } from '../_shared/observe.ts'
 
-serve(async (req) => {
-  // TODO(batch2): the post-parse money path below (signature verify, paid flip,
-  // quota grant, tryConsultBooking/tryPointPurchase) is not wrapped in a handler
-  // try/catch, so an uncaught throw there is reported nowhere. Wrapping it would
-  // require re-indenting ~100 lines of money-path code, which violates the
-  // byte-preserving constraint on money paths in this batch — left to a focused
-  // follow-up. The existing top-level parse catch IS wired to reportError.
+// The whole post-parse money path (signature verify, paid flip, quota grant,
+// tryConsultBooking/tryPointPurchase) lives in handlePaymentWebhook, which the
+// serve() wrapper below guards with try/catch → reportError, so an uncaught throw
+// is no longer silent (resolves TODO batch2). Extracted, NOT re-indented, so the
+// money-path body is byte-for-byte unchanged.
+async function handlePaymentWebhook(req: Request): Promise<Response> {
   const pre = handleOptions(req); if (pre) return pre
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405, headers: corsHeaders })
@@ -178,6 +177,18 @@ serve(async (req) => {
   }).catch(() => { /* best effort */ })
 
   return new Response('OK', { status: 200, headers: corsHeaders })
+}
+
+serve(async (req) => {
+  try {
+    return await handlePaymentWebhook(req)
+  } catch (e) {
+    // Post-parse money-path throws were previously unreported (TODO batch2 — now
+    // fixed): report and return 500 so Billplz retries. Retries are safe because
+    // the paid flip is idempotent (already-paid → 200 OK on the retry).
+    await reportError(e, { fn: 'payment-webhook', stage: 'money-path' })
+    return new Response('Internal error', { status: 500, headers: corsHeaders })
+  }
 })
 
 /**

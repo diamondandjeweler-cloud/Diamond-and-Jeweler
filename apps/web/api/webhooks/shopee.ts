@@ -23,18 +23,22 @@ export default async function handler(request: Request): Promise<Response> {
 
   const body = await request.text()
 
-  // ── Signature verification ─────────────────────────────────────────────────
+  // ── Signature verification (fail closed) ────────────────────────────────────
+  // Reject when no secret is configured — an unsigned webhook could forge orders.
+  // SHOPEE_SECRET MUST be set in Vercel before this integration goes live.
   const secret = process.env.SHOPEE_SECRET
-  if (secret) {
-    const authHeader = request.headers.get('Authorization') ?? ''
-    const expected   = `sha512=${await hmacSha512(secret, body)}`
-    if (authHeader !== expected) {
-      // Some Shopee Food API versions use SHA-256 — try that too
-      const alt = `sha256=${await hmacSha512(secret, body)}`  // fallback comparison
-      if (authHeader !== alt) {
-        console.error('[shopee-webhook] Invalid signature')
-        return new Response('Unauthorized', { status: 401 })
-      }
+  if (!secret) {
+    console.error('[shopee-webhook] SHOPEE_SECRET not set — rejecting to prevent forged orders')
+    return new Response('Service misconfigured', { status: 500 })
+  }
+  const authHeader = request.headers.get('Authorization') ?? ''
+  const expected   = `sha512=${await hmacSha512(secret, body)}`
+  if (authHeader !== expected) {
+    // Some Shopee Food API versions use SHA-256 — try that too
+    const alt = `sha256=${await hmacSha512(secret, body)}`  // fallback comparison
+    if (authHeader !== alt) {
+      console.error('[shopee-webhook] Invalid signature')
+      return new Response('Unauthorized', { status: 401 })
     }
   }
 

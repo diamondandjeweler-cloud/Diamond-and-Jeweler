@@ -22,15 +22,19 @@ export default async function handler(request: Request): Promise<Response> {
 
   const body = await request.text()
 
-  // ── Signature verification ─────────────────────────────────────────────────
+  // ── Signature verification (fail closed) ────────────────────────────────────
+  // Reject when no secret is configured — an unsigned webhook could forge orders.
+  // FOODPANDA_SECRET MUST be set in Vercel before this integration goes live.
   const secret = process.env.FOODPANDA_SECRET
-  if (secret) {
-    const sig      = request.headers.get('X-Fp-Hmac-SHA256') ?? ''
-    const expected = await hmacSha256(secret, body)
-    if (sig !== expected) {
-      console.error('[foodpanda-webhook] Invalid signature')
-      return new Response('Unauthorized', { status: 401 })
-    }
+  if (!secret) {
+    console.error('[foodpanda-webhook] FOODPANDA_SECRET not set — rejecting to prevent forged orders')
+    return new Response('Service misconfigured', { status: 500 })
+  }
+  const sig      = request.headers.get('X-Fp-Hmac-SHA256') ?? ''
+  const expected = await hmacSha256(secret, body)
+  if (sig !== expected) {
+    console.error('[foodpanda-webhook] Invalid signature')
+    return new Response('Unauthorized', { status: 401 })
   }
 
   let payload: FoodPandaPayload

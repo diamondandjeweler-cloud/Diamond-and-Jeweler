@@ -9,6 +9,8 @@
 import { supabase } from '../supabase'
 import { restaurantDb as db } from './client'
 import { TAX_RATE, taxOn } from './pricing'
+import { computeTipAllocations } from './domain/tipPool'
+import { computeShiftVariance } from './domain/shifts'
 import type {
   Branch, RestaurantTable, Section, Reservation, WaitlistEntry,
   MenuCategory, MenuItem, Modifier, Ingredient, Recipe,
@@ -94,30 +96,22 @@ export async function distributeTipPool(branchId: string, sinceISO: string): Pro
     db.from('orders').select('tip, waiter_id, created_at').eq('branch_id', branchId).gte('created_at', sinceISO).in('status', ['paid','closed']),
     db.from('timesheet').select('employee_id, clock_in, clock_out, total_hours').eq('branch_id', branchId).gte('clock_in', sinceISO),
   ])
-  const total = (orders ?? []).reduce((s, o) => s + Number(o.tip ?? 0), 0)
-
-  // Hours per waiter (counts any role for now — caller can filter)
-  const hoursMap = new Map<string, number>()
-  for (const t of (ts ?? []) as Array<{ employee_id: string; clock_in: string; clock_out: string | null; total_hours: number | null }>) {
-    const h = t.total_hours != null
-      ? Number(t.total_hours)
-      : ((new Date(t.clock_out ?? Date.now()).getTime() - new Date(t.clock_in).getTime()) / 3600000)
-    hoursMap.set(t.employee_id, (hoursMap.get(t.employee_id) ?? 0) + h)
-  }
-  const totalHours = Array.from(hoursMap.values()).reduce((s, h) => s + h, 0)
-  if (total <= 0 || totalHours <= 0 || hoursMap.size === 0) {
+  // Pure split (total, per-employee hours + share, cent-rounding, empty guards).
+  const { total, totalHours, allocations: rawAllocations } = computeTipAllocations(orders, ts)
+  if (rawAllocations.length === 0) {
     return { total, allocations: [] }
   }
 
-  const empIds = Array.from(hoursMap.keys())
+  const empIds = rawAllocations.map((a) => a.employee_id)
   const { data: emps } = await db.from('employee').select('id, name').in('id', empIds)
   const nameOf = new Map(((emps ?? []) as Array<{ id: string; name: string }>).map((e) => [e.id, e.name]))
 
-  const allocations = Array.from(hoursMap.entries()).map(([id, h]) => ({
-    employee_id: id,
-    name: nameOf.get(id) ?? '—',
-    hours: Math.round(h * 100) / 100,
-    share: Math.round((total * (h / totalHours)) * 100) / 100,
+  // Join employee names onto the computed shares (name lookup is a DB read).
+  const allocations = rawAllocations.map((a) => ({
+    employee_id: a.employee_id,
+    name: nameOf.get(a.employee_id) ?? '—',
+    hours: a.hours,
+    share: a.share,
   }))
 
   // Audit log entry per allocation
@@ -1012,8 +1006,12 @@ export async function closeShift(shiftId: string, actualCash: number, report: un
   const sh = await db.from('cashier_shift').select('*').eq('id', shiftId).single()
   if (sh.error) throw sh.error
   const shift = sh.data as CashierShift
-  const expected = Number(shift.opening_float) + ((report as { cash_sales?: number })?.cash_sales ?? 0)
-  const variance = actualCash - expected
+  // Pure variance math; the DAL coerces the DB float + extracts the report field.
+  const { expected, variance } = computeShiftVariance(
+    Number(shift.opening_float),
+    (report as { cash_sales?: number })?.cash_sales ?? 0,
+    actualCash,
+  )
   const { data, error } = await db.from('cashier_shift').update({
     closed_at: new Date().toISOString(),
     actual_cash: actualCash,
@@ -1049,28 +1047,10 @@ export async function updatePromotion(id: string, patch: Partial<Promotion>): Pr
   if (error) throw error
 }
 
-/* Returns discount amount in RM for a given subtotal, at a given moment. */
-export function evaluatePromotion(p: Promotion, subtotal: number, at: Date = new Date()): number {
-  if (!p.is_active) return 0
-  if (p.start_date && new Date(p.start_date) > at) return 0
-  if (p.end_date && new Date(p.end_date) < at) return 0
-  const rule = (p.rule_json ?? {}) as Record<string, unknown>
-  if (p.type === 'time_based') {
-    const from = String(rule.start_time ?? '')
-    const to = String(rule.end_time ?? '')
-    const hhmm = `${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`
-    if (from && to && !(hhmm >= from && hhmm < to)) return 0
-  }
-  const minSpend = Number(rule.min_spend ?? 0)
-  if (subtotal < minSpend) return 0
-  if (typeof rule.discount_pct === 'number') {
-    return Math.round(subtotal * (rule.discount_pct as number) / 100 * 100) / 100
-  }
-  if (typeof rule.discount_amount === 'number') {
-    return Math.min(subtotal, rule.discount_amount as number)
-  }
-  return 0
-}
+/* Returns discount amount in RM for a given subtotal, at a given moment.
+ * The pure math now lives in `domain/promotions.ts`; re-exported here so existing
+ * importers (`import { evaluatePromotion } from '.../store'`) keep working. */
+export { evaluatePromotion } from './domain/promotions'
 
 /* ============================================================
  * MEMBERSHIP

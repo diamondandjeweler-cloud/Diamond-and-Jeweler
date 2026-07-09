@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { RestaurantProvider, useRestaurant } from '../../lib/restaurant/context'
 import { Alert, Badge, PageHeader, Spinner } from '../../components/ui'
 import { useSession } from '../../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import OrgSetup from './OrgSetup'
 import type { EmployeeRole } from '../../lib/restaurant/types'
 
@@ -52,7 +53,7 @@ export default function RestaurantLayout() {
 
 function Inner() {
   const { loading, branches, branch, branchId, setBranchId, employee, setEmployeeId, error, noOrg, isOrgOwner, org } = useRestaurant()
-  const { profile } = useSession()
+  const { profile } = useSession(useShallow((s) => ({ profile: s.profile })))
   const { pathname } = useLocation()
   const { t } = useTranslation()
 

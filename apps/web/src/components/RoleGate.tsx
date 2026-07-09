@@ -2,6 +2,7 @@ import { Navigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useSession } from '../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import LoadingSpinner from './LoadingSpinner'
 import type { Role } from '../types/db'
 
@@ -15,7 +16,7 @@ interface Props {
 }
 
 export default function RoleGate({ allow, alsoAllowHRwithHM, children }: Props) {
-  const { loading, profile, session, isHM } = useSession()
+  const { loading, profile, session, isHM } = useSession(useShallow((s) => ({ loading: s.loading, profile: s.profile, session: s.session, isHM: s.isHM })))
 
   // `isHM` is resolved asynchronously and starts `false`. For the
   // hr_admin-who-is-also-their-own-HM case, bouncing on that initial `false`

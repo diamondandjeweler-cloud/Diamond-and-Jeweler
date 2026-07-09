@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { useSession } from '../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { clearAdminVerified, isAdminVerificationFresh, markAdminVerified } from '../lib/adminReauth'
 import LoadingSpinner from './LoadingSpinner'
 import { supabase } from '../lib/supabase'
@@ -36,7 +37,7 @@ function writeCachedAal(v: AalState) {
 }
 
 export default function AdminGate({ children }: { children: ReactNode }) {
-  const { loading, profile } = useSession()
+  const { loading, profile } = useSession(useShallow((s) => ({ loading: s.loading, profile: s.profile })))
   const location = useLocation()
   const [aal, setAal] = useState<AalState>('loading')
 

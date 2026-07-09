@@ -4,6 +4,7 @@ import ListSkeleton from '../../components/ListSkeleton'
 import { PageHeader } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
 import { useSession } from '../../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 
 // KpiPanel is the default tab — bundle it with AdminDashboard so the initial
 // /admin render doesn't trigger a Suspense fallback. All other panels stay lazy.
@@ -57,7 +58,7 @@ const TABS: Array<{ key: AdminTab; label: string; render: () => JSX.Element; tes
 
 export default function AdminDashboard() {
   useSeo({ title: 'Admin console', noindex: true })
-  const { profile } = useSession()
+  const { profile } = useSession(useShallow((s) => ({ profile: s.profile })))
   const isTestEnv = import.meta.env.DEV ||
     (profile?.email?.toLowerCase().endsWith('@dnj-test.my') ?? false)
   const visibleTabs = TABS.filter((t) => !t.testOnly || isTestEnv)

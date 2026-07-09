@@ -3,6 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { profileRoleById } from '../../data/repositories/profiles'
 import { useSession } from '../../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { markAdminVerified } from '../../lib/adminReauth'
 import { callFunction } from '../../lib/functions'
 
@@ -22,7 +23,7 @@ export default function AuthCallback() {
   const type = params.get('type')
   const hasCode = !!params.get('code')
   const roleParam = params.get('role')
-  const { session } = useSession()
+  const { session } = useSession(useShallow((s) => ({ session: s.session })))
   const [newPw, setNewPw] = useState('')
   const [busy, setBusy] = useState(false)
   // Expired / already-used magic links arrive with the failure in the URL HASH

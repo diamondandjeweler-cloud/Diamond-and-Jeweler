@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { updateProfile } from '../../data/repositories/profiles'
 import { Button, Alert, PageHeader } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
@@ -8,7 +9,7 @@ import { useSeo } from '../../lib/useSeo'
 export default function HMSettings() {
   const { t } = useTranslation()
   useSeo({ title: t('hmSettings.seoTitle', 'Settings'), noindex: true })
-  const { session, profile, refresh } = useSession()
+  const { session, profile, refresh } = useSession(useShallow((s) => ({ session: s.session, profile: s.profile, refresh: s.refresh })))
   const userId = session?.user.id
 
   const [whatsappNumber, setWhatsappNumber] = useState('')

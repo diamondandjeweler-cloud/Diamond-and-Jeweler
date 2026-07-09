@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation, Trans } from 'react-i18next'
 import { useSession } from '../../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { supabase } from '../../lib/supabase'
 import { insertCompany } from '../../data/repositories/companies'
 import { upsertHmCompanyLink } from '../../data/repositories/hiringManagers'
@@ -12,7 +13,7 @@ type UserType = 'hr_admin' | 'hiring_manager'
 
 export default function CompanyRegister() {
   const { t } = useTranslation()
-  const { session, profile, refresh } = useSession()
+  const { session, profile, refresh } = useSession(useShallow((s) => ({ session: s.session, profile: s.profile, refresh: s.refresh })))
   const navigate = useNavigate()
 
   const [userType, setUserType] = useState<UserType>('hr_admin')

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useLocation } from 'react-router-dom'
 import { countOpenTicketsForUser, insertTicket } from '../data/repositories/supportTickets'
 import { useSession } from '../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 
 type Category = 'enquiry' | 'bug' | 'feature' | 'payment'
 type PaymentSubType = 'pending' | 'failed' | 'refund' | 'wrong_amount' | 'receipt'
@@ -22,7 +23,7 @@ const PAYMENT_SUB_LABEL: Record<PaymentSubType, string> = {
 }
 
 export default function SupportForm() {
-  const { session, profile } = useSession()
+  const { session, profile } = useSession(useShallow((s) => ({ session: s.session, profile: s.profile })))
   const location = useLocation()
   const [open, setOpen] = useState(false)
   const [category, setCategory] = useState<Category>('enquiry')

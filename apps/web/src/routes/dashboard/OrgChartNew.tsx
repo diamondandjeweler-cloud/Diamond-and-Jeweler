@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { insertOrgConsultation } from '../../data/repositories/orgConsultations'
 import { Alert, Button, Card, Field, Input, PageHeader } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
@@ -8,7 +9,7 @@ import { ORG_TIERS, orgTierForSize } from '../../lib/orgChart'
 
 export default function OrgChartNew() {
   useSeo({ title: 'New Org Chart Consultation', noindex: true })
-  const { session } = useSession()
+  const { session } = useSession(useShallow((s) => ({ session: s.session })))
   const navigate = useNavigate()
 
   const [company, setCompany] = useState('')

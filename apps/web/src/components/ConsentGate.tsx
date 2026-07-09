@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { useSession } from '../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import LoadingSpinner from './LoadingSpinner'
 import { getCachedLegalVersionSync, getCurrentLegalVersion, consentSatisfiesVersion } from '../lib/legalVersion'
 
@@ -20,7 +21,7 @@ import { getCachedLegalVersionSync, getCurrentLegalVersion, consentSatisfiesVers
  * redirect would bounce back to /home and create a render loop.
  */
 export default function ConsentGate({ children }: { children: ReactNode }) {
-  const { loading, profile, session, refresh, signOut } = useSession()
+  const { loading, profile, session, refresh, signOut } = useSession(useShallow((s) => ({ loading: s.loading, profile: s.profile, session: s.session, refresh: s.refresh, signOut: s.signOut })))
 
   // Profile-load retry ladder: session present but profile null on mobile
   // (slow 4G, transient TLS hiccup, JWT not yet propagated to PostgREST) used

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { supabase } from '../../../lib/supabase'
 import { companyIdByHrEmail, companyIdById } from '../../../data/repositories/companies'
 import { hmsWithNamesByCompanyId, insertHm } from '../../../data/repositories/hiringManagers'
@@ -23,7 +24,7 @@ import type {
  */
 export function useHrDashboardData() {
   const { t } = useTranslation()
-  const { session, refreshIsHM } = useSession()
+  const { session, refreshIsHM } = useSession(useShallow((s) => ({ session: s.session, refreshIsHM: s.refreshIsHM })))
   const userId = session?.user.id
   const userEmail = session?.user.email ?? null
   // Hydrate from localStorage so returning users see their last-known KPI

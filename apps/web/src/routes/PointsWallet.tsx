@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { supabase } from '../lib/supabase'
 import { pointTransactionsForUser } from '../data/repositories/points'
 import { getConfigValue } from '../data/repositories/systemConfig'
@@ -35,7 +36,7 @@ export default function PointsWallet() {
     redeem_extra_match:    t('points.redeem', { cost: 21 }),
     extra_match_purchased: t('points.buyTitle'),
   }
-  const { session, profile, refresh } = useSession()
+  const { session, profile, refresh } = useSession(useShallow((s) => ({ session: s.session, profile: s.profile, refresh: s.refresh })))
   const [ledger, setLedger]     = useState<LedgerRow[]>([])
   const [packages, setPackages] = useState<Package[]>([])
   const [loading, setLoading]   = useState(true)

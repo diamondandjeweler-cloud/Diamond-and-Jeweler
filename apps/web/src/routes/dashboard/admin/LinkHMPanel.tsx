@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSession } from '../../../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { companyIdByHrEmail, pendingLinkRequestHmIds } from '../../../data/repositories/companies'
 import { listFloatingHms, listLinkedHmsForCompany } from '../../../data/repositories/hiringManagers'
 import { callFunction } from '../../../lib/functions'
@@ -21,7 +22,7 @@ interface LinkedHM {
 }
 
 export default function LinkHMPanel() {
-  const { session } = useSession()
+  const { session } = useSession(useShallow((s) => ({ session: s.session })))
   const userId = session?.user.id
   const userEmail = session?.user.email ?? null
   const [search, setSearch] = useState('')

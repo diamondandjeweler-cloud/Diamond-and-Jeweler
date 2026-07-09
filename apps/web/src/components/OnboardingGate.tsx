@@ -1,6 +1,7 @@
 import { Navigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { useSession } from '../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import LoadingSpinner from './LoadingSpinner'
 
 /**
@@ -8,7 +9,7 @@ import LoadingSpinner from './LoadingSpinner'
  * onboarding route based on role. Wrap dashboard routes in this gate.
  */
 export default function OnboardingGate({ children }: { children: ReactNode }) {
-  const { profile, loading, session } = useSession()
+  const { profile, loading, session } = useSession(useShallow((s) => ({ profile: s.profile, loading: s.loading, session: s.session })))
 
   if (loading) return <LoadingSpinner full />
   if (!profile) {

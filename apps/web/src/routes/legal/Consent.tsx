@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { activeConsentVersions, recordConsent } from '../../data/repositories/consents'
 import { Alert, Button, Card, CardBody, Spinner } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
@@ -17,7 +18,7 @@ interface ConsentVersion {
 export default function Consent() {
   useSeo({ title: 'Data processing consent', noindex: true })
   const { t } = useTranslation()
-  const { session, profile, refresh } = useSession()
+  const { session, profile, refresh } = useSession(useShallow((s) => ({ session: s.session, profile: s.profile, refresh: s.refresh })))
   const navigate = useNavigate()
   const [versions, setVersions] = useState<ConsentVersion[]>([])
   const [agree, setAgree] = useState(false)

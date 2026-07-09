@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getCareerNudge } from '../data/repositories/talents'
 import { useSession } from '../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { Card } from './ui'
 import type { CareerNudge } from '../shared/domain/lifeChart/yearLuck'
 
@@ -20,7 +21,7 @@ interface Props {
 }
 
 export default function CareerNudgePanel({ side }: Props) {
-  const { session } = useSession()
+  const { session } = useSession(useShallow((s) => ({ session: s.session })))
   const [nudge, setNudge] = useState<CareerNudge>(null)
   const [loaded, setLoaded] = useState(false)
 

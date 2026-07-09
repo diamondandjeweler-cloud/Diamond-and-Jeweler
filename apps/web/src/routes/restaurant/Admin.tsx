@@ -3,6 +3,7 @@ import { Alert, Badge, Button, Card, CardBody, EmptyState, Input, Select, Spinne
 import { confirmDialog } from '../../components/Modal'
 import { useRestaurant } from '../../lib/restaurant/context'
 import { useSession } from '../../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import {
   listAllMenuItems, createMenuItem, updateMenuItem, deleteMenuItem,
   listCategories, createCategory, updateCategory, deleteCategory,
@@ -21,7 +22,7 @@ const ADMIN_USER_ROLES     = ['admin', 'restaurant_staff']
 
 export default function Admin() {
   const { branchId, employee, org, orgId, isOrgOwner, refreshOrg, refreshBranches } = useRestaurant()
-  const { profile } = useSession()
+  const { profile } = useSession(useShallow((s) => ({ profile: s.profile })))
   const [tab, setTab] = useState<'menu' | 'tables' | 'myinvois' | 'delivery' | 'org'>('menu')
   const [cats, setCats]   = useState<MenuCategory[]>([])
   const [items, setItems] = useState<MenuItem[]>([])

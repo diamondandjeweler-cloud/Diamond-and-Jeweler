@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation, Trans } from 'react-i18next'
 import { useSession } from '../../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { updateRole, getRoleForEdit } from '../../data/repositories/roles'
 import { hmIdByIdAndProfileId } from '../../data/repositories/hiringManagers'
 import { getOpenHmNudgeForRole, recordStaleLoopResponse } from '../../data/repositories/staleLoopNudges'
@@ -44,7 +45,7 @@ export default function EditRole() {
   const { t } = useTranslation()
   useSeo({ title: t('editRole.seoTitle', 'Edit role'), noindex: true })
   const { id } = useParams<{ id: string }>()
-  const { session } = useSession()
+  const { session } = useSession(useShallow((s) => ({ session: s.session })))
   const navigate = useNavigate()
   const [search] = useSearchParams()
   const nudgeMode = search.get('nudge') === 'stale_3d'

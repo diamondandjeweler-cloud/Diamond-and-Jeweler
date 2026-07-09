@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { callFunction } from '../lib/functions'
 import { getConfigValues } from '../data/repositories/systemConfig'
 import { createReferral, generateReferralCode, referralsForReferrer } from '../data/repositories/referrals'
@@ -28,7 +29,7 @@ interface RoleOption {
 
 export default function Referrals() {
   const { t } = useTranslation()
-  const { session, profile, refresh } = useSession()
+  const { session, profile, refresh } = useSession(useShallow((s) => ({ session: s.session, profile: s.profile, refresh: s.refresh })))
   const [searchParams] = useSearchParams()
   const alreadySignedInNotice = searchParams.get('notice') === 'already_signed_in'
   const [list, setList] = useState<Referral[]>([])

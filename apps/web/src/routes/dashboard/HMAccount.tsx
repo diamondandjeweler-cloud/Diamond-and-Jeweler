@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { updateProfile } from '../../data/repositories/profiles'
 import { Button, Input, Alert, PageHeader } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
@@ -9,7 +10,7 @@ import { useSeo } from '../../lib/useSeo'
 export default function HMAccount() {
   const { t } = useTranslation()
   useSeo({ title: t('hmAccount.seoTitle', 'Account'), noindex: true })
-  const { session, profile, refresh } = useSession()
+  const { session, profile, refresh } = useSession(useShallow((s) => ({ session: s.session, profile: s.profile, refresh: s.refresh })))
 
   const [fullName, setFullName] = useState(profile?.full_name ?? '')
   const [busy, setBusy] = useState(false)

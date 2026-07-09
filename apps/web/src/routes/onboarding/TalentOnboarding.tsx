@@ -16,6 +16,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { supabase } from '../../lib/supabase'
 import { profileOnboardingDraftById, updateProfile } from '../../data/repositories/profiles'
 import { upsertTalent } from '../../data/repositories/talents'
@@ -41,7 +42,7 @@ import ReviewStep from './talent/ReviewStep'
 
 export default function TalentOnboarding() {
   const { t } = useTranslation()
-  const { session, refresh } = useSession()
+  const { session, refresh } = useSession(useShallow((s) => ({ session: s.session, refresh: s.refresh })))
   const navigate = useNavigate()
 
   const BO_GREETING = t('talentOnboard.boGreeting')

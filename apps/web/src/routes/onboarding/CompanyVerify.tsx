@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { companyForVerifyById, updateCompanyById, type CompanyUpdate } from '../../data/repositories/companies'
 import { uploadPrivate } from '../../lib/storage'
 
 export default function CompanyVerify() {
-  const { session, profile } = useSession()
+  const { session, profile } = useSession(useShallow((s) => ({ session: s.session, profile: s.profile })))
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const companyId = params.get('company')

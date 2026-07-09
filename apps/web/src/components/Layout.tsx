@@ -2,6 +2,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { useSession } from '../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import Logo from './Logo'
 import NotificationBell from './NotificationBell'
 import SupportForm from './SupportForm'
@@ -9,7 +10,7 @@ import DarkModeToggle from './DarkModeToggle'
 import LanguageSwitcher from './LanguageSwitcher'
 
 export default function Layout() {
-  const { profile, signOut, isHM } = useSession()
+  const { profile, signOut, isHM } = useSession(useShallow((s) => ({ profile: s.profile, signOut: s.signOut, isHM: s.isHM })))
   const { pathname } = useLocation()
   const { t } = useTranslation()
 

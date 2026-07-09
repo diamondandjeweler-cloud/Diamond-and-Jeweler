@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { inAppNotifications, markNotificationsRead } from '../data/repositories/notifications'
 import { useSession } from '../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 
 interface NotificationRow {
   id: string
@@ -14,7 +15,7 @@ interface NotificationRow {
 }
 
 export default function NotificationBell() {
-  const { session } = useSession()
+  const { session } = useSession(useShallow((s) => ({ session: s.session })))
   const { t } = useTranslation()
   const [items, setItems] = useState<NotificationRow[]>([])
   const [open, setOpen] = useState(false)

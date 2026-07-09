@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { purchasePaymentStatusById } from '../data/repositories/points'
 import { useSession } from '../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { Alert, Button, Card, CardBody, PageHeader, Spinner } from '../components/ui'
 import { useSeo } from '../lib/useSeo'
 
@@ -20,7 +21,7 @@ export default function PaymentReturn() {
   const purchaseId = params.get('purchase') ?? ''
   const kind = (params.get('kind') ?? 'extra_match') as 'points' | 'extra_match'
   const isMock = window.location.pathname.startsWith('/payment/mock')
-  const { refresh } = useSession()
+  const { refresh } = useSession(useShallow((s) => ({ refresh: s.refresh })))
   const [status, setStatus] = useState<'pending' | 'paid' | 'failed' | 'unknown' | 'timeout'>('pending')
   const [tries, setTries] = useState(0)
   const [confirming, setConfirming] = useState(false)

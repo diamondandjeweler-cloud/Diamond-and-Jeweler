@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react'
 import { growthNudgePrefsByProfileId, updateTalentByProfileId, snoozeGrowthNudges } from '../data/repositories/talents'
 import { useSession } from '../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { Card, Button } from './ui'
 
 interface State {
@@ -15,7 +16,7 @@ interface State {
 }
 
 export default function GrowthNudgePreferences() {
-  const { session } = useSession()
+  const { session } = useSession(useShallow((s) => ({ session: s.session })))
   const [state, setState] = useState<State | null>(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)

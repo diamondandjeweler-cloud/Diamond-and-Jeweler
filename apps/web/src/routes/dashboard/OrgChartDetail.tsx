@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { getOrgConsultationById, updateOrgConsultation } from '../../data/repositories/orgConsultations'
 import { Alert, Badge, Button, Card, Field, Input, PageHeader, Select, Textarea } from '../../components/ui'
 import { confirmDialog } from '../../components/Modal'
@@ -31,7 +32,7 @@ export default function OrgChartDetail() {
   const { id: idStr } = useParams<{ id: string }>()
   const id = Number(idStr)
   useSeo({ title: 'Org Chart Consultation', noindex: true })
-  const { session } = useSession()
+  const { session } = useSession(useShallow((s) => ({ session: s.session })))
 
   const [row, setRow] = useState<OrgConsultationRow | null>(null)
   const [err, setErr] = useState<string | null>(null)

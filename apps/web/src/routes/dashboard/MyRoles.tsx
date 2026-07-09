@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { fmt } from '../../lib/format'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { activeMatchCountForRole } from '../../data/repositories/matches'
 import { hmIdByProfileId } from '../../data/repositories/hiringManagers'
 import { updateRole, listRolesWithModerationForHm } from '../../data/repositories/roles'
@@ -19,7 +20,7 @@ import type { RoleRow, RoleStatus, ModerationStatus } from '../../types/db'
 export default function MyRoles() {
   const { t } = useTranslation()
   useSeo({ title: t('myRoles.seoTitle'), noindex: true })
-  const { session } = useSession()
+  const { session } = useSession(useShallow((s) => ({ session: s.session })))
   const toast = useToast()
   const userId = session?.user.id
   // Hydrate the role list synchronously from the per-user cache so the page

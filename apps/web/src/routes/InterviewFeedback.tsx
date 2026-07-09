@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useSession } from '../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { matchForFeedback } from '../data/repositories/matches'
 import { hmProfileLinkById } from '../data/repositories/hiringManagers'
 import { talentOwnershipById } from '../data/repositories/talents'
@@ -20,7 +21,7 @@ interface Resolved {
 
 export default function InterviewFeedback() {
   const { matchId } = useParams<{ matchId: string }>()
-  const { session } = useSession()
+  const { session } = useSession(useShallow((s) => ({ session: s.session })))
   const navigate = useNavigate()
 
   const [loading, setLoading] = useState(true)

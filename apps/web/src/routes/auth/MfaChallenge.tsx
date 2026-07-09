@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase'
 import { useSession } from '../../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { markAdminVerified } from '../../lib/adminReauth'
 import AuthShell from '../../components/AuthShell'
 import { Button, Input, Alert } from '../../components/ui'
@@ -14,7 +15,7 @@ export default function MfaChallenge() {
   const navigate = useNavigate()
   const location = useLocation()
   const redirectTo = (location.state as { from?: string } | null)?.from ?? '/admin'
-  const { profile } = useSession()
+  const { profile } = useSession(useShallow((s) => ({ profile: s.profile })))
 
   const [factorId, setFactorId] = useState<string | null>(null)
   const [code, setCode] = useState('')

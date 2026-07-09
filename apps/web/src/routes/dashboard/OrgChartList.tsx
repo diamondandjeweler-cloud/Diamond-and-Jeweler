@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { listOrgConsultations } from '../../data/repositories/orgConsultations'
 import { Badge, Button, Card, EmptyState, PageHeader, type BadgeTone } from '../../components/ui'
 import { Async } from '../../components/patterns/Async'
@@ -38,7 +39,7 @@ const PAY_TONE: Record<OrgConsultationRow['payment_status'], BadgeTone> = {
 
 export default function OrgChartList() {
   useSeo({ title: 'Org Chart Consultant', noindex: true })
-  const { session } = useSession()
+  const { session } = useSession(useShallow((s) => ({ session: s.session })))
   const [rows, setRows] = useState<OrgConsultationRow[] | null>(null)
   const [err, setErr] = useState<string | null>(null)
 

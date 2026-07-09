@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { fmt } from '../../lib/format'
 import { useSession } from '../../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { updateRole, insertRole, getRoleDraft, saveRoleDraft, deleteRoleDraft, getRoleFullById, getRoleCommitCheck } from '../../data/repositories/roles'
 import type { Database } from '../../types/db.generated'
 import { hmIdByProfileId } from '../../data/repositories/hiringManagers'
@@ -27,7 +28,7 @@ export default function PostRole() {
   const { id: editRoleId } = useParams<{ id?: string }>()
   const isEdit = !!editRoleId
   useSeo({ title: isEdit ? 'Review your role' : 'Post a role', noindex: true })
-  const { session } = useSession()
+  const { session } = useSession(useShallow((s) => ({ session: s.session })))
   const userId = session?.user.id
   const navigate = useNavigate()
 

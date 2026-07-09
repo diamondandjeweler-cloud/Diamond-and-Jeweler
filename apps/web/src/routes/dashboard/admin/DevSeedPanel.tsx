@@ -8,6 +8,7 @@
 
 import { useEffect, useState } from 'react'
 import { useSession } from '../../../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { testerTalents, updateTalentById } from '../../../data/repositories/talents'
 import type { Json } from '../../../types/db.generated'
 import { formatError } from '../../../lib/errors'
@@ -93,7 +94,7 @@ function defaultInterviewAnswers(industry: string): Record<string, string> {
 }
 
 export default function DevSeedPanel() {
-  const { profile } = useSession()
+  const { profile } = useSession(useShallow((s) => ({ profile: s.profile })))
   const enabled = isTestEnv(profile?.email)
   const [talents, setTalents] = useState<TesterTalent[]>([])
   const [loading, setLoading] = useState(true)

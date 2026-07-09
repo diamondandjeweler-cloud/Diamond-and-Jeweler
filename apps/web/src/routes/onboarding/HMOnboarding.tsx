@@ -19,6 +19,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { supabase } from '../../lib/supabase'
 import { insertRole, getOnboardingDraftRoleId } from '../../data/repositories/roles'
 import { companyIdByCreator, companyIdByHrEmail } from '../../data/repositories/companies'
@@ -43,7 +44,7 @@ import ReviewStep from './hm/ReviewStep'
 
 export default function HMOnboarding() {
   const { t } = useTranslation()
-  const { session, profile, refresh } = useSession()
+  const { session, profile, refresh } = useSession(useShallow((s) => ({ session: s.session, profile: s.profile, refresh: s.refresh })))
   const navigate = useNavigate()
 
   const BO_GREETING = t('hmOnboard.boGreeting')

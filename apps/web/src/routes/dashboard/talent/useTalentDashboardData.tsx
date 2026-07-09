@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { supabase } from '../../../lib/supabase'
 import { callFunction } from '../../../lib/functions'
 import { writeDashCache } from '../../../lib/dashboardCache'
@@ -32,7 +33,7 @@ import {
  */
 export function useTalentDashboardData() {
   const { t } = useTranslation()
-  const { session, profile } = useSession()
+  const { session, profile } = useSession(useShallow((s) => ({ session: s.session, profile: s.profile })))
   const location = useLocation()
   const navigate = useNavigate()
   // Cached counts hydrate the KPI strip instantly. `matches` itself remains

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { createDataRequest, listOwnDataRequests } from '../data/repositories/dataRequests'
 import { listSubjectAccessLog } from '../data/repositories/auditLog'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -51,7 +52,7 @@ const CORRECTION_FIELDS: Array<{ field: CorrectionField; labelKey: string; kind:
 export default function DataRequests() {
   const { t } = useTranslation()
   useSeo({ title: t('data.seoTitle'), noindex: true })
-  const { session } = useSession()
+  const { session } = useSession(useShallow((s) => ({ session: s.session })))
   const navigate = useNavigate()
 
   const [tab, setTab] = useState<'requests' | 'access-log'>('requests')

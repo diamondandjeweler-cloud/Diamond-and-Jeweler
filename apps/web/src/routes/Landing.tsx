@@ -1,6 +1,7 @@
 import { Link, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { useSeo } from '../lib/useSeo'
 import { ROLES, LOCATIONS, ROLE_SLUGS, LOCATION_SLUGS } from '../data/silo-data'
 import DarkModeToggle from '../components/DarkModeToggle'
@@ -210,7 +211,7 @@ const HOMEPAGE_JSON_LD: Record<string, unknown>[] = [
 
 export default function Landing() {
   const { t } = useTranslation()
-  const { session, profile, loading } = useSession()
+  const { session, profile, loading } = useSession(useShallow((s) => ({ session: s.session, profile: s.profile, loading: s.loading })))
   useSeo({
     title: 'DNJ — AI-Curated Recruitment Platform Malaysia | Jobs Across Every Industry',
     description: 'DNJ is an AI-powered curated recruitment platform for Malaysia. We match talent with hiring companies across every industry — sales, admin, finance, marketing, IT and software, HR, customer service, operations, retail, hospitality, engineering, education, healthcare, banking, manufacturing, logistics, F&B, aviation and more. Three curated matches at a time, zero noise. PDPA-compliant, end-to-end encrypted.',

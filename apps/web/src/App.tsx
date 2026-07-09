@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
 import { useSession, bootstrapSession } from './state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { supabase } from './lib/supabase'
 import Layout from './components/Layout'
 import LoadingSpinner from './components/LoadingSpinner'
@@ -117,7 +118,7 @@ const RestaurantAdmin  = lazy(() => import('./routes/restaurant/Admin'))
 
 export default function App() {
   useDarkMode()
-  const { loading, session, profile, isHM } = useSession()
+  const { loading, session, profile, isHM } = useSession(useShallow((s) => ({ loading: s.loading, session: s.session, profile: s.profile, isHM: s.isHM })))
   useEffect(() => { bootstrapSession() }, [])
   // Once we know the user's role, prefetch their likely dashboard chunk in
   // the background. By the time they click "Home" / "Dashboard", the chunk
@@ -293,7 +294,7 @@ function Signout() {
 }
 
 function RoleHome() {
-  const { profile } = useSession()
+  const { profile } = useSession(useShallow((s) => ({ profile: s.profile })))
   if (!profile) return <Navigate to="/" replace />
 
   // The restaurant role has no recruitment onboarding flow — skip the gate.

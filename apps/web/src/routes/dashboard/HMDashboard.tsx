@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { fmt } from '../../lib/format'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { useSeo } from '../../lib/useSeo'
 import { getDisplayName } from '../../shared/domain/identity/displayName'
 import Skeleton, { SkeletonCard } from '../../components/Skeleton'
@@ -24,7 +25,7 @@ const DEFAULT_FEEDBACK_ENTRY: FeedbackEntry = {
 export default function HMDashboard() {
   const { t } = useTranslation()
   useSeo({ title: t('hmDash.seoTitle'), noindex: true })
-  const { session, profile } = useSession()
+  const { session, profile } = useSession(useShallow((s) => ({ session: s.session, profile: s.profile })))
   const userId = session?.user.id
 
   const {

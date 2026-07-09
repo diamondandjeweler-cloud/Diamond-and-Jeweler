@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useSession } from '../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { upsertPushSubscription, type PushSubscriptionJson } from '../data/repositories/pushSubscriptions'
 
 const SUBSCRIBED_KEY = 'dnj-push-subscribed'
@@ -17,7 +18,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
 export type PushState = 'idle' | 'subscribed' | 'denied' | 'unsupported'
 
 export function usePushSubscription() {
-  const { session, profile } = useSession()
+  const { session, profile } = useSession(useShallow((s) => ({ session: s.session, profile: s.profile })))
   const [state, setState] = useState<PushState>('idle')
   const [subscribing, setSubscribing] = useState(false)
   const alreadyAsked = useRef(false)

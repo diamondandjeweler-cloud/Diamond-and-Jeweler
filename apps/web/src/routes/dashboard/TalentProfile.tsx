@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
+import { useShallow } from 'zustand/react/shallow'
 import { supabase } from '../../lib/supabase'
 import { updateProfile } from '../../data/repositories/profiles'
 import { talentProfileByProfileId, updateTalentById } from '../../data/repositories/talents'
@@ -31,7 +32,7 @@ interface TalentRow {
 
 export default function TalentProfile() {
   useSeo({ title: 'Your profile', noindex: true })
-  const { session, profile, refresh } = useSession()
+  const { session, profile, refresh } = useSession(useShallow((s) => ({ session: s.session, profile: s.profile, refresh: s.refresh })))
   const navigate = useNavigate()
   const { t } = useTranslation()
 

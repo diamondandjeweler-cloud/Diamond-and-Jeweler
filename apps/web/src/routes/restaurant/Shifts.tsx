@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Alert, Badge, Card, CardBody, EmptyState, Spinner, Stat } from '../../components/ui'
 import { useRestaurant } from '../../lib/restaurant/context'
-import { supabase } from '../../lib/supabase'
+import { restaurantDb as db } from '../../lib/restaurant/client'
 import type { CashierShift, Employee } from '../../lib/restaurant/types'
 import { listEmployees, listPayments } from '../../lib/restaurant/store'
 import { MYR, shortDate, shortTime } from '../../lib/restaurant/format'
-
-const db = supabase.schema('restaurant' as never) as unknown as ReturnType<typeof supabase.schema>
 
 export default function Shifts() {
   const { branchId } = useRestaurant()

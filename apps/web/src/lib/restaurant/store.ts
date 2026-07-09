@@ -7,6 +7,7 @@
  * as long as the schema is exposed in PostgREST's db_schema config (it is).
  */
 import { supabase } from '../supabase'
+import { restaurantDb as db } from './client'
 import { TAX_RATE, taxOn } from './pricing'
 import type {
   Branch, RestaurantTable, Section, Reservation, WaitlistEntry,
@@ -18,8 +19,6 @@ import type {
   CartLine, OrderStatus, OrderItemStatus, TicketStatus, TableStatus,
   Organization, OrgMember,
 } from './types'
-
-const db = supabase.schema('restaurant' as never) as unknown as ReturnType<typeof supabase.schema>
 
 /* ============================================================
  * BRANCH
@@ -1370,19 +1369,23 @@ export async function updateOrgName(orgId: string, name: string): Promise<void> 
   if (error) throw error
 }
 
+// create_org / add_org_member / remove_org_member are LIVE-ONLY RPCs — present in
+// the running DB but absent from db.generated (same category as the matcher RPCs
+// flagged for a P7 migration backfill), so the args are cast past the typed-client
+// name+arg check while runtime is unchanged.
 export async function createOrg(orgName: string, branchName: string): Promise<{ org_id: string; branch_id: string; employee_id: string }> {
-  const { data, error } = await supabase.rpc('create_org' as never, { p_org_name: orgName, p_branch_name: branchName })
+  const { data, error } = await supabase.rpc('create_org' as never, { p_org_name: orgName, p_branch_name: branchName } as never)
   if (error) throw error
   return data as { org_id: string; branch_id: string; employee_id: string }
 }
 
 export async function addOrgMemberByEmail(orgId: string, email: string, isOwner = false): Promise<{ user_id: string; name: string; is_owner: boolean }> {
-  const { data, error } = await supabase.rpc('add_org_member' as never, { p_org_id: orgId, p_email: email, p_is_owner: isOwner })
+  const { data, error } = await supabase.rpc('add_org_member' as never, { p_org_id: orgId, p_email: email, p_is_owner: isOwner } as never)
   if (error) throw error
   return data as { user_id: string; name: string; is_owner: boolean }
 }
 
 export async function removeOrgMember(orgId: string, userId: string): Promise<void> {
-  const { error } = await supabase.rpc('remove_org_member' as never, { p_org_id: orgId, p_user_id: userId })
+  const { error } = await supabase.rpc('remove_org_member' as never, { p_org_id: orgId, p_user_id: userId } as never)
   if (error) throw error
 }

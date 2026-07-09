@@ -53,7 +53,7 @@ export default function OrgChartList() {
         setRows([])
         return
       }
-      setRows((data ?? []) as OrgConsultationRow[])
+      setRows((data ?? []) as unknown as OrgConsultationRow[])
     }
     if (session?.user.id) void load()
     return () => {

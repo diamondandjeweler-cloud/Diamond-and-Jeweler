@@ -47,7 +47,7 @@ export default function OrgChartDetail() {
     if (!Number.isFinite(id)) return
     const { data, error } = await getOrgConsultationById(id)
     if (error) { setErr(error.message); return }
-    setRow(data as OrgConsultationRow)
+    setRow(data as unknown as OrgConsultationRow)
     setNotes(data?.consultant_notes ?? '')
   }, [id])
 

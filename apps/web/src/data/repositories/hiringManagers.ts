@@ -37,7 +37,9 @@ export function hmCompanyProfileByProfileId(profileId: string | undefined) {
   return supabase
     .from('hiring_managers')
     .select('job_title, companies(name, industry, size, website, verified)')
-    .eq('profile_id', profileId)
+    // Signature allows undefined but the caller guards non-null at runtime (see
+    // JSDoc); cast to satisfy the typed .eq value — no runtime change.
+    .eq('profile_id', profileId as string)
     .maybeSingle()
 }
 

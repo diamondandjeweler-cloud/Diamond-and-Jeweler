@@ -23,6 +23,9 @@ export function logAuthFailureRpc(emailDomain: string, reason: string, userAgent
   return supabase.rpc('log_auth_failure', {
     p_email_domain: emailDomain,
     p_reason: reason,
-    p_user_agent: userAgent,
+    // p_user_agent is a nullable text arg in SQL (caller passes null when the
+    // header is absent). The generated type marks function args non-null; cast
+    // to keep the same value (incl. null) reaching PostgREST.
+    p_user_agent: userAgent as string,
   })
 }

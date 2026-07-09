@@ -1,5 +1,8 @@
 import { supabase } from '../../lib/supabase'
+import type { Database } from '../../types/db.generated'
 import type { OrgConsultationRow, OrgTierCode } from '../../lib/orgChart'
+
+type OrgConsultationUpdate = Database['public']['Tables']['org_consultations']['Update']
 
 // ── org_consultations: Org Chart Consultant engagements ───────────────────────
 // Centralizes reads/writes of the org_consultations table. Mirrors
@@ -26,7 +29,11 @@ export function getOrgConsultationById(id: number) {
 
 /** Patch a consultation row by id (opaque Partial pass-through) → { error }. */
 export function updateOrgConsultation(id: number, updates: Partial<OrgConsultationRow>) {
-  return supabase.from('org_consultations').update(updates).eq('id', id)
+  // OrgConsultationRow types the jsonb columns (members/pairs/analysis) as app
+  // interfaces which lack the index signature the generated Json type requires.
+  // Cast the opaque patch to the generated Update type at the boundary — the
+  // runtime payload is passed through unchanged.
+  return supabase.from('org_consultations').update(updates as unknown as OrgConsultationUpdate).eq('id', id)
 }
 
 /** Insert a new consultation, returning its id (`.single()` — New form). */

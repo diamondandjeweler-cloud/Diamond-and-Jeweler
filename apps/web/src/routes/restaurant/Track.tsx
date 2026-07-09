@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { supabase } from '../../lib/supabase'
+import { restaurantDb as db } from '../../lib/restaurant/client'
 
 interface PublicOrder {
   id: string
@@ -34,7 +34,6 @@ export default function Track() {
     let cancelled = false
     const refresh = async () => {
       try {
-        const db = supabase.schema('restaurant' as never) as unknown as ReturnType<typeof supabase.schema>
         const [o, li] = await Promise.all([
           db.from('orders').select('id, status, order_type, total, created_at, closed_at').eq('id', orderId).maybeSingle(),
           db.from('order_item').select('id, quantity, status, course_type, menu_item:menu_item_id(name)').eq('order_id', orderId),

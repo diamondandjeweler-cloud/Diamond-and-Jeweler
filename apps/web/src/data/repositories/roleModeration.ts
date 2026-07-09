@@ -33,6 +33,8 @@ export function adminDecideRoleModeration(roleId: string, decision: 'approved' |
     p_role_id: roleId,
     p_decision: decision,
     p_reason: reason,
-    p_category: category,
+    // p_category is a nullable arg (null = uncategorised). Preserve the null
+    // value reaching PostgREST — cast only to satisfy the arg type.
+    p_category: category as string,
   })
 }

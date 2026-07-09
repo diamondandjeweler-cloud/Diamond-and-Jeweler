@@ -233,14 +233,14 @@ export default function PostRole() {
             start_time: role.schedule_start_time ?? '',
             end_time: role.schedule_end_time ?? '',
             days_per_week: role.days_per_week ?? '',
-            off_day_pattern: role.off_day_pattern ?? '',
-            shift_type: role.shift_type ?? '',
+            off_day_pattern: (role.off_day_pattern ?? '') as ScheduleValue['off_day_pattern'],
+            shift_type: (role.shift_type ?? '') as ScheduleValue['shift_type'],
           })
           setMinEducationLevel(role.min_education_level ?? '')
           setMinEducationClass(role.min_education_class ?? '')
           setRequiredSkills(role.required_skills ?? [])
           setPreferredSkills(role.preferred_skills ?? [])
-          setLanguagesRequired((role.languages_required as LanguageReq[]) ?? [])
+          setLanguagesRequired((role.languages_required as unknown as LanguageReq[]) ?? [])
           setEnvironmentFlags(role.environment_flags ?? [])
           setOpenTo(role.open_to ?? [])
           setHeadcount(role.headcount ?? 1)
@@ -251,7 +251,7 @@ export default function PostRole() {
           setStartUrgency(role.start_urgency ?? '')
           setEligibilityWorkAuth(role.eligibility_work_auth ?? [])
           setNnText(role.non_negotiables_text ?? '')
-          setNnAtoms((role.non_negotiables_atoms as NNAtom[]) ?? [])
+          setNnAtoms((role.non_negotiables_atoms as unknown as NNAtom[]) ?? [])
           setFromOnboarding(!!role.from_onboarding)
         }
       }

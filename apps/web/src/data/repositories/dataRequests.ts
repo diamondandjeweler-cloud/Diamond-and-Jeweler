@@ -3,6 +3,7 @@ import type { Database } from '../../types/db.generated'
 
 type DataRequestRow = Database['public']['Tables']['data_requests']['Row']
 type DataRequestUpdate = Database['public']['Tables']['data_requests']['Update']
+type DataRequestInsert = Database['public']['Tables']['data_requests']['Insert']
 
 // ── data_requests: PDPA data subject requests (DSR) ──────────────────────────
 // Centralizes reads/writes of the data_requests table for the admin DSR panel
@@ -40,5 +41,8 @@ export function createDataRequest(row: {
   notes: string | null
   correction_proposal: unknown
 }) {
-  return supabase.from('data_requests').insert(row).select().single()
+  // correction_proposal is typed `unknown` at the call site; the jsonb column
+  // accepts it as-is. Cast the payload to the generated Insert type at the
+  // boundary — no runtime change to the inserted values.
+  return supabase.from('data_requests').insert(row as DataRequestInsert).select().single()
 }

@@ -16,6 +16,8 @@ export function activeConsentVersions() {
 export function recordConsent(version: string, ipHash: string | null) {
   return supabase.rpc('record_consent', {
     p_version: version,
-    p_ip_hash: ipHash,
+    // p_ip_hash is a nullable text arg (null = no IP captured). Preserve the
+    // null value reaching PostgREST — cast only to satisfy the arg type.
+    p_ip_hash: ipHash as string,
   })
 }

@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase'
+import type { Database } from '../../types/db.generated'
 
 // ── admin: read-only SECURITY DEFINER RPC panels ─────────────────────────────
 // Wraps the admin-dashboard RPCs (KpiPanel / AuditLogPanel). Both RPCs gate on
@@ -19,5 +20,8 @@ export function getAdminAuditLog(params: {
   p_page: number
   p_page_size: number
 }) {
-  return supabase.rpc('get_admin_audit_log', params)
+  // The typed client infers all RPC args as string | undefined (SQL DEFAULTs),
+  // but these filters are passed as string | null (null = "no filter"). Keep the
+  // null values reaching PostgREST verbatim — cast only to satisfy the arg type.
+  return supabase.rpc('get_admin_audit_log', params as unknown as Database['public']['Functions']['get_admin_audit_log']['Args'])
 }

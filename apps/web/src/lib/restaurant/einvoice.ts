@@ -5,6 +5,7 @@
  * thin helpers for the cashier UI (poll-by-payment) and admin config screen.
  */
 import { supabase } from '../supabase'
+import { restaurantDb as db } from './client'
 
 export type Environment = 'sandbox' | 'production'
 
@@ -99,8 +100,6 @@ export interface ConsolidationRun {
   created_at: string
   finalised_at: string | null
 }
-
-const db = supabase.schema('restaurant' as never) as unknown as ReturnType<typeof supabase.schema>
 
 /* ============================================================
  * MyInvois config

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useSearchParams, Link } from 'react-router-dom'
-import { supabase } from '../../lib/supabase'
+import { restaurantDb as db } from '../../lib/restaurant/client'
 import { placeGuestOrder } from '../../lib/restaurant/store'
 import { taxOn } from '../../lib/restaurant/pricing'
 import { MYR } from '../../lib/restaurant/format'
@@ -34,7 +34,6 @@ export default function GuestMenu() {
     const load = async () => {
       setLoading(true); setErr(null)
       try {
-        const db = supabase.schema('restaurant' as never) as unknown as ReturnType<typeof supabase.schema>
         const [br, cats, mis] = await Promise.all([
           db.from('branch').select('*').eq('id', branchId).maybeSingle(),
           db.from('menu_category').select('*').eq('branch_id', branchId).order('sort_order'),

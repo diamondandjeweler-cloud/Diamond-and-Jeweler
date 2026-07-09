@@ -35,7 +35,7 @@ async function fetchKpis(): Promise<Kpis> {
   const { data, error } = await getAdminKpis()
   if (error) throw error
   if (!data) throw new Error('get_admin_kpis returned no data')
-  return data as Kpis
+  return data as unknown as Kpis
 }
 
 export default function KpiPanel() {

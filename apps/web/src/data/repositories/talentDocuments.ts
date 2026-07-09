@@ -25,5 +25,8 @@ export function latestResumeDocument(talentId: string) {
 
 /** Insert one or more talent_documents rows (payload built at call site; onboarding caller keeps its best-effort .then). */
 export function insertTalentDocuments(rows: TalentDocumentInsert | TalentDocumentInsert[]) {
-  return supabase.from('talent_documents').insert(rows)
+  // The single-vs-array union satisfies neither insert() overload; cast to the
+  // array overload. .insert() accepts a single object at runtime too, so both
+  // shapes pass through unchanged.
+  return supabase.from('talent_documents').insert(rows as TalentDocumentInsert[])
 }

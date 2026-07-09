@@ -141,7 +141,9 @@ export function pendingApprovalMatches() {
 
 /** Admin match list via the SECURITY DEFINER get_admin_matches RPC (F8). */
 export function getAdminMatches(pStatus: string | null, pLimit: number) {
-  return supabase.rpc('get_admin_matches', { p_status: pStatus, p_limit: pLimit })
+  // p_status is a nullable filter arg (null = all statuses). Preserve the null
+  // value reaching PostgREST — cast only to satisfy the arg type.
+  return supabase.rpc('get_admin_matches', { p_status: pStatus as string, p_limit: pLimit })
 }
 
 /** Admin-only scoring detail (life_chart_score/internal_reasoning) for pending approvals — is_admin()-gated RPC. */

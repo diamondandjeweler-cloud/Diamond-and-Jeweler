@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { supabase } from '../../lib/supabase'
+import { restaurantDb as db } from '../../lib/restaurant/client'
 import { Alert, Button } from '../../components/ui'
 
 /**
@@ -48,7 +48,6 @@ export default function ManagerPin({
     if (action !== 'shift_variance' && !reason.trim()) { setErr('Reason required'); return }
     setBusy(true); setErr(null)
     try {
-      const db = supabase.schema('restaurant' as never) as unknown as ReturnType<typeof supabase.schema>
       const { data: mgrId, error } = await db.rpc('verify_manager_pin', { p_branch_id: branchId, p_pin: pin.trim() })
       if (error) throw error
       if (!mgrId) { setErr('Invalid PIN — manager only'); setBusy(false); return }

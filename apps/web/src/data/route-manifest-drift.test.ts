@@ -61,3 +61,48 @@ describe('route-manifest drift guard', () => {
     }
   })
 })
+
+/**
+ * SPA-fallback coverage guard (extends the silo-only guard above to the full
+ * authenticated route set).
+ *
+ * The vercel.json SPA-fallback regex must match every path App.tsx can render.
+ * Any path it does NOT match falls through to the final `{ status: 404 }`
+ * catch-all: index.html is still served (so the SPA boots) but with an HTTP 404
+ * status — which breaks bookmarks/refresh, poisons Sentry/analytics, and can stop
+ * the PWA from caching the page. This guard test-matches representative concrete
+ * URLs so drift on the authenticated surface (e.g. the /hm/* workspace routes)
+ * cannot silently return a 404.
+ */
+describe('SPA-fallback covers every authenticated client route (no 404 on hard load)', () => {
+  const routes = (JSON.parse(vercelJson) as { routes: Array<{ src: string; dest?: string; status?: number }> }).routes
+  const fallback = routes.find(
+    (r) => r.dest === '/index.html' && r.status === undefined && /onboarding/.test(r.src),
+  )
+  const re = new RegExp(fallback ? fallback.src : '(?!)')
+
+  // One representative concrete URL per App.tsx authenticated/dynamic route.
+  const CLIENT_PATHS = [
+    '/home', '/consent',
+    '/onboarding/talent', '/onboarding/hm', '/onboarding/company', '/onboarding/company/verify',
+    '/talent', '/talent/profile',
+    '/hm', '/hm/post-role', '/hm/post-role/abc123', '/hm/roles', '/hm/roles/abc123/edit',
+    '/hm/company', '/hm/settings', '/hm/account',
+    '/hm/org-chart', '/hm/org-chart/new', '/hm/org-chart/abc123',
+    '/hr', '/hr/invite', '/admin',
+    '/referrals', '/points', '/consult', '/consult/return',
+    '/data-requests', '/feedback/abc123',
+    '/payment/return', '/payment/mock',
+  ]
+
+  it('a SPA-fallback route (dest=/index.html, no status) exists in vercel.json', () => {
+    expect(fallback, 'no SPA-fallback route found in vercel.json').toBeTruthy()
+  })
+
+  it.each(CLIENT_PATHS)('serves index.html (not HTTP 404) for %s', (path) => {
+    expect(
+      re.test(path),
+      `vercel.json SPA-fallback does not match ${path} → a hard load/refresh returns HTTP 404`,
+    ).toBe(true)
+  })
+})

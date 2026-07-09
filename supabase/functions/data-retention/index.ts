@@ -43,7 +43,7 @@ async function handler(req: Request): Promise<Response> {
   const retentionDays = typeof cfg?.value === 'number' ? cfg.value : 30
   const cutoffIso = new Date(Date.now() - retentionDays * 86400000).toISOString()
 
-  // Anchor the retention window on ic_verified_at (stamped by trigger in 0171),
+  // Anchor the retention window on ic_verified_at (stamped by trigger in 0174),
   // NOT updated_at — updated_at is bumped by any profile edit, which would reset
   // the 30-day clock and keep national-ID scans far past the retention window.
   const { data: toPurge, error: purgeErr } = await db.from('talents')

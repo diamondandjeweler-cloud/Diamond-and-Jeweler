@@ -163,7 +163,7 @@ values ('d3110000-0000-0000-0000-000000000006',
 -- An org_consultation OWNED by carol (HM). bob (a different authenticated user)
 -- must not read or modify it; carol (owner) must. Regression target: 0129
 -- shipped org_consultations FOR ALL USING(true)/WITH CHECK(true) + GRANT ALL —
--- a cross-tenant PII leak — which 0170 scopes to owner_id = auth.uid() OR
+-- a cross-tenant PII leak — which 0173 scopes to owner_id = auth.uid() OR
 -- is_admin(). team_size=5 lets the 0129 tier trigger stamp tier_code/price_myr.
 insert into public.org_consultations (client_company, team_size, owner_id)
 values ('RLS OrgConsult Fixture', 5, 'cccccccc-cccc-cccc-cccc-cccccccccccc');
@@ -526,7 +526,7 @@ $$;
 -- INVARIANT 10 — A non-owner authenticated user (bob) CANNOT SELECT another
 --                user's org_consultation (carol's). Regression target: 0129
 --                shipped org_consultations FOR ALL USING(true)/WITH CHECK(true)
---                + GRANT ALL; 0170 scopes it to owner_id = auth.uid() OR is_admin().
+--                + GRANT ALL; 0173 scopes it to owner_id = auth.uid() OR is_admin().
 -- ============================================================================
 do $$
 declare

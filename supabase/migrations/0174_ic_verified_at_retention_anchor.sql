@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0171 — IC-retention anchor: talents.ic_verified_at  (2026-07-09)
+-- 0174 — IC-retention anchor: talents.ic_verified_at  (2026-07-09)
 -- =============================================================================
 -- data-retention purges IC scans "30 days after ic_verified=true" (its docstring)
 -- but keyed the window off talents.updated_at — which tg_set_updated_at bumps on

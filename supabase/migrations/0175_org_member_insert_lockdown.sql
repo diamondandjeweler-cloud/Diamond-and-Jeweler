@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0172 — restaurant.org_member INSERT policy lockdown  (2026-07-09)
+-- 0175 — restaurant.org_member INSERT policy lockdown  (2026-07-09)
 -- =============================================================================
 -- rst_org_member_insert (0047:240, perf-rewrapped in 0138) is:
 --     for insert with check (auth.role() = 'authenticated')

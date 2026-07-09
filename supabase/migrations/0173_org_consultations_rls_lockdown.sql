@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0170 — org_consultations RLS lockdown (P0 fix for 0129)  (2026-07-09)
+-- 0173 — org_consultations RLS lockdown (P0 fix for 0129)  (2026-07-09)
 -- =============================================================================
 -- 0129 shipped org_consultations with a wide-open policy:
 --     CREATE POLICY org_consultations_auth_full_access FOR ALL TO authenticated

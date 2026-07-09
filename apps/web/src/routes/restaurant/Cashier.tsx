@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Alert, Badge, Button, Card, CardBody, EmptyState, Input, Select, Spinner } from '../../components/ui'
 import ManagerPin from './ManagerPin'
 import { useRestaurant } from '../../lib/restaurant/context'
@@ -59,6 +59,8 @@ export default function Cashier() {
     })()
   }, [active])
 
+  const tableById = useMemo(() => new Map(tables.map((t) => [t.id, t])), [tables])
+
   const filtered = orders.filter((o) => {
     if (!search.trim()) return true
     const q = search.trim().toLowerCase()
@@ -66,11 +68,11 @@ export default function Cashier() {
       o.id.toLowerCase().includes(q) ||
       (o.customer_name ?? '').toLowerCase().includes(q) ||
       (o.customer_phone ?? '').includes(q) ||
-      (tables.find((t) => t.id === o.table_id)?.table_number ?? '').toLowerCase().includes(q)
+      (tableById.get(o.table_id ?? '')?.table_number ?? '').toLowerCase().includes(q)
     )
   })
   const activeOrder = orders.find((o) => o.id === active) ?? null
-  const activeTable = activeOrder ? tables.find((t) => t.id === activeOrder.table_id) ?? null : null
+  const activeTable = activeOrder ? tableById.get(activeOrder.table_id ?? '') ?? null : null
 
   if (!branchId) return <EmptyState title="Pick a branch first" />
   if (loading && orders.length === 0) return <div className="py-10 text-center"><Spinner /> Loading…</div>
@@ -94,7 +96,7 @@ export default function Cashier() {
             ) : (
               <ul className="space-y-2">
                 {filtered.map((o) => {
-                  const tbl = tables.find((t) => t.id === o.table_id)
+                  const tbl = tableById.get(o.table_id ?? '')
                   return (
                     <li key={o.id}>
                       <button
@@ -179,6 +181,8 @@ function OrderPay({
   const [splitCount, setSplitCount] = useState(1)
   const [busy, setBusy] = useState(false)
   const [err, setErr]   = useState<string | null>(null)
+
+  const menuById = useMemo(() => new Map(menuItems.map((m) => [m.id, m])), [menuItems])
 
   const paid = payments.filter((p) => p.status === 'completed').reduce((s, p) => s + Number(p.amount), 0)
   const remaining = Math.max(0, Number(order.total) - paid)
@@ -269,7 +273,7 @@ function OrderPay({
 
         <ul className="space-y-1 mb-3">
           {items.map((li) => {
-            const mi = menuItems.find((m) => m.id === li.menu_item_id)
+            const mi = menuById.get(li.menu_item_id)
             return (
               <li key={li.id} className="flex justify-between text-sm">
                 <span className={li.status === 'voided' ? 'line-through text-ink-400' : ''}>
@@ -459,10 +463,21 @@ function OrderPay({
 function EinvoiceBadge({ orderId, orderStatus }: { orderId: string; orderStatus: string }) {
   const [sub, setSub] = useState<MyInvoisSubmission | null>(null)
   const [loading, setLoading] = useState(true)
+  // Bumping this re-arms polling after a manual Retry from a terminal state.
+  const [pollNonce, setPollNonce] = useState(0)
 
   useEffect(() => {
     let alive = true
+    let timer: ReturnType<typeof setTimeout> | undefined
+    let delay = 3000
+    const MAX_DELAY = 60000
+    // After a manual Retry (pollNonce bumped) keep polling a bounded number of
+    // backed-off cycles even while the status still reads failed/escalated, so the
+    // retry's transition (fail -> submitted -> validated) is observed instead of
+    // the loop stopping on the stale pre-retry terminal read.
+    let manualRetriesLeft = pollNonce > 0 ? 6 : 0
     const tick = async () => {
+      let terminal = false
       try {
         const next = await getSubmissionByOrder(orderId)
         if (!alive) return
@@ -471,13 +486,22 @@ function EinvoiceBadge({ orderId, orderStatus }: { orderId: string; orderStatus:
           // Nudge it forward (no-op if edge fn already running)
           await triggerSubmit(next.id).catch(() => {})
         }
+        const st = next?.submission_status
+        if (st === 'validated') terminal = true            // success — always stop
+        else if (st === 'failed' || st === 'escalated') {
+          if (manualRetriesLeft > 0) manualRetriesLeft--   // keep watching post-retry
+          else terminal = true
+        }
       } catch { /* swallow — view is non-fatal */ }
       finally { if (alive) setLoading(false) }
+      // Stop polling once a terminal state is reached; otherwise back off exponentially.
+      if (!alive || terminal) return
+      timer = setTimeout(() => { void tick() }, delay)
+      delay = Math.min(delay * 2, MAX_DELAY)
     }
     void tick()
-    const id = setInterval(() => { void tick() }, 3000)
-    return () => { alive = false; clearInterval(id) }
-  }, [orderId])
+    return () => { alive = false; if (timer) clearTimeout(timer) }
+  }, [orderId, pollNonce])
 
   if (loading && !sub) return null
   if (!sub) {
@@ -522,7 +546,7 @@ function EinvoiceBadge({ orderId, orderStatus }: { orderId: string; orderStatus:
         {(sub.submission_status === 'failed' || sub.submission_status === 'escalated') && (
           <button
             className="btn-ghost btn-sm"
-            onClick={() => void triggerSubmit(sub.id)}
+            onClick={() => { void triggerSubmit(sub.id); setPollNonce((n) => n + 1) }}
           >
             Retry
           </button>
@@ -741,6 +765,7 @@ function SplitByItems({
   onPay: (selectedIds: string[], amount: number) => Promise<void>
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const menuById = useMemo(() => new Map(menuItems.map((m) => [m.id, m])), [menuItems])
   const total = items.filter((i) => selected.has(i.id))
     .reduce((s, li) => s + li.quantity * (Number(li.unit_price) + Number(li.modifiers_total)), 0)
   return (
@@ -751,7 +776,7 @@ function SplitByItems({
       </div>
       <ul className="divide-y divide-ink-100 mb-3">
         {items.map((li) => {
-          const mi = menuItems.find((m) => m.id === li.menu_item_id)
+          const mi = menuById.get(li.menu_item_id)
           const checked = selected.has(li.id)
           return (
             <li key={li.id} className="py-2 flex items-center justify-between gap-3 text-sm">

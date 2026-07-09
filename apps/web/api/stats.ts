@@ -2,7 +2,7 @@
  * GET /api/stats
  * Returns anonymised aggregate counts for the public SocialProofStrip.
  * Uses the Supabase anon key — only exposes counts, never rows.
- * Cached at the CDN edge for 5 minutes to avoid per-request DB hits.
+ * Cached at the CDN edge for 30 minutes (stale-while-revalidate) to avoid per-request DB hits.
  */
 export const config = { runtime: 'edge' }
 
@@ -13,7 +13,7 @@ const SUPABASE_ANON = process.env.VITE_SUPABASE_ANON_KEY ?? process.env.SUPABASE
 const CORS = {
   'Access-Control-Allow-Origin': 'https://diamondandjeweler.com',
   'Content-Type': 'application/json',
-  'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+  'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=3600',
 }
 
 async function countTable(table: string, filter?: string): Promise<number> {
@@ -23,6 +23,11 @@ async function countTable(table: string, filter?: string): Promise<number> {
     headers: {
       apikey: SUPABASE_ANON,
       Authorization: `Bearer ${SUPABASE_ANON}`,
+      // Exact count kept for output-fidelity of the public counter (an estimate
+      // for the leading-wildcard talent filter is just the planner's selectivity
+      // guess). The safe P1 win is the raised CDN TTL below (the scan now runs at
+      // most ~every 30min per POP, not every 5min); a pre-aggregated cached
+      // counter is the P3 follow-up.
       Prefer: 'count=exact',
       Range: '0-0',  // fetch only 1 row; count comes from Content-Range header
     },

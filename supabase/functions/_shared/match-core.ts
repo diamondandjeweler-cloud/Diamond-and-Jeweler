@@ -224,7 +224,14 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     'weight_environment_match', 'weight_open_to_match', 'weight_schedule_match', 'weight_probation_comfort',
     'weight_concerns_alignment',
   ]
-  const { data: weightRows } = await db.from('system_config').select('key, value').in('key', WEIGHT_KEYS)
+  // Non-weight scalar config folded into the same round-trip (was 4 separate
+  // maybeSingle() reads below). Each value is read back from _weightMap with the
+  // exact same type-check + default as its original standalone read.
+  const CONFIG_KEYS = [
+    ...WEIGHT_KEYS,
+    'match_approval_mode', 'lifechart_diversity_v2_enabled', 'refresh_limit_per_role', 'ghost_score_threshold',
+  ]
+  const { data: weightRows } = await db.from('system_config').select('key, value').in('key', CONFIG_KEYS)
   const _weightMap = new Map<string, unknown>()
   for (const r of (weightRows ?? []) as { key: string; value: unknown }[]) _weightMap.set(r.key, r.value)
   const cfgNum = (key: string, dflt: number): number => {
@@ -305,10 +312,9 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
   }
 
   // ── Approval mode ─────────────────────────────────────────────────────────
-  const { data: approvalModeCfg } = await db.from('system_config').select('value')
-    .eq('key', 'match_approval_mode').maybeSingle()
-  const approvalMode: string = typeof approvalModeCfg?.value === 'string'
-    ? approvalModeCfg.value : 'manual'
+  const _approvalModeVal = _weightMap.get('match_approval_mode')
+  const approvalMode: string = typeof _approvalModeVal === 'string'
+    ? _approvalModeVal : 'manual'
   const initialStatus = approvalMode === 'autopilot' ? 'generated' : 'pending_approval'
 
   // ── Life-chart diversity v2 flag ──────────────────────────────────────────
@@ -317,9 +323,7 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
   // unlocks (isExtraMatch) always return non-bad. When disabled: the Edge
   // Function strips bad-bucket from the pool client-side to preserve the
   // legacy hard-filter behaviour (since the SQL no longer does it).
-  const { data: diversityFlag } = await db.from('system_config').select('value')
-    .eq('key', 'lifechart_diversity_v2_enabled').maybeSingle()
-  const useDiversityV2 = diversityFlag?.value === true
+  const useDiversityV2 = _weightMap.get('lifechart_diversity_v2_enabled') === true
 
   // ── Active match count guard ──────────────────────────────────────────────
   const activeStatuses = [
@@ -334,9 +338,8 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
   }
 
   // ── Refresh-limit guard ───────────────────────────────────────────────────
-  const { data: cfg } = await db.from('system_config').select('value')
-    .eq('key', 'refresh_limit_per_role').maybeSingle()
-  const refreshLimit = typeof cfg?.value === 'number' ? cfg.value : 3
+  const _refreshLimitVal = _weightMap.get('refresh_limit_per_role')
+  const refreshLimit = typeof _refreshLimitVal === 'number' ? _refreshLimitVal : 3
   const { count: refreshCount } = await db.from('match_history')
     .select('id', { count: 'exact', head: true })
     .eq('role_id', roleId).eq('action', 'expired_auto')
@@ -460,9 +463,8 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     }
   }
 
-  const { data: ghostCfg } = await db.from('system_config').select('value')
-    .eq('key', 'ghost_score_threshold').maybeSingle()
-  const ghostThreshold = typeof ghostCfg?.value === 'number' ? ghostCfg.value : 3
+  const _ghostThresholdVal = _weightMap.get('ghost_score_threshold')
+  const ghostThreshold = typeof _ghostThresholdVal === 'number' ? _ghostThresholdVal : 3
 
   const roleTraits: string[] = role.required_traits ?? []
   const rolePostcode: string | null = (role.location_postcode as string | null) ?? null

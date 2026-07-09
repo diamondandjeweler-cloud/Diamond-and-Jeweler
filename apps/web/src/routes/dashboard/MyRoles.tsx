@@ -4,7 +4,7 @@ import { fmt } from '../../lib/format'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../state/useSession'
 import { useShallow } from 'zustand/react/shallow'
-import { activeMatchCountForRole } from '../../data/repositories/matches'
+import { activeMatchRoleIdsForRoles } from '../../data/repositories/matches'
 import { hmIdByProfileId } from '../../data/repositories/hiringManagers'
 import { updateRole, listRolesWithModerationForHm } from '../../data/repositories/roles'
 import { appealRoleModeration } from '../../data/repositories/roleModeration'
@@ -88,12 +88,18 @@ export default function MyRoles() {
       }
 
       const roleList = (roles ?? []) as RoleRow[]
-      const withCounts = await Promise.all(
-        roleList.map(async (r) => {
-          const { count } = await activeMatchCountForRole(r.id)
-          return { ...r, match_count: count ?? 0 }
-        }),
-      )
+      // Active-match counts in ONE query for every role, tallied in memory —
+      // was one head-count query PER role (an N+1). Same status set as
+      // activeMatchCountForRole, so the per-role counts are unchanged.
+      const roleIds = roleList.map((r) => r.id)
+      const countByRole = new Map<string, number>()
+      if (roleIds.length > 0) {
+        const { data: activeRows } = await activeMatchRoleIdsForRoles(roleIds)
+        for (const m of (activeRows ?? []) as Array<{ role_id: string }>) {
+          countByRole.set(m.role_id, (countByRole.get(m.role_id) ?? 0) + 1)
+        }
+      }
+      const withCounts = roleList.map((r) => ({ ...r, match_count: countByRole.get(r.id) ?? 0 }))
       setRows(withCounts)
       writeDashCache<RoleRow[]>('my_roles', userId, withCounts)
     } catch (e) {

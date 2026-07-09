@@ -89,13 +89,36 @@ export function matchForFeedback(matchId: string) {
     .eq('id', matchId)
 }
 
+// Status set the MyRoles "active matches" badge counts. Kept as a single const
+// so the per-role head-count and the batched multi-role tally below share ONE
+// literal and can never drift. NOTE: deliberately NARROWER than
+// ACTIVE_MATCH_STATUSES (omits 'interview_completed' and 'offer_made') — this is
+// the exact set MyRoles has always counted; widening it would change the badge.
+const MY_ROLES_ACTIVE_STATUSES: readonly string[] = [
+  'generated', 'viewed', 'accepted_by_talent', 'invited_by_manager', 'hr_scheduling', 'interview_scheduled',
+]
+
 /** Head count of still-active matches for a role (MyRoles badge). */
 export function activeMatchCountForRole(roleId: string) {
   return supabase
     .from('matches')
     .select('id', { count: 'exact', head: true })
     .eq('role_id', roleId)
-    .in('status', ['generated', 'viewed', 'accepted_by_talent', 'invited_by_manager', 'hr_scheduling', 'interview_scheduled'])
+    .in('status', MY_ROLES_ACTIVE_STATUSES as string[])
+}
+
+/**
+ * role_id of every MyRoles-active match across a set of roles — the batched
+ * form of activeMatchCountForRole. Callers tally per role in memory (one query
+ * for all roles instead of one head-count query per role). Uses the SAME status
+ * set as activeMatchCountForRole, so the resulting counts are identical.
+ */
+export function activeMatchRoleIdsForRoles(roleIds: string[]) {
+  return supabase
+    .from('matches')
+    .select('role_id')
+    .in('role_id', roleIds)
+    .in('status', MY_ROLES_ACTIVE_STATUSES as string[])
 }
 
 /** Talent ids already matched to a role (cold-start exclusion set). */

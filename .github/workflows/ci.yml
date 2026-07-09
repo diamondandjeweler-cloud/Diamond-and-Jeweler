@@ -332,9 +332,19 @@ jobs:
           node-version: 20
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
-      - name: npm audit (high+), non-blocking
+      - name: npm audit (high+), informational — full tree incl. dev
         working-directory: apps/web
         run: npm audit --audit-level=high || true
+      - name: npm audit (high+) — PRODUCTION deps (BLOCKING)
+        # Dev-only advisories (vite / vitest / storybook / esbuild) are surfaced
+        # by the informational step above but must NOT block — they never ship to
+        # users. A high/critical vuln in a RUNTIME dependency, however, must fail
+        # CI. Verified 0 production vulnerabilities at the time this gate was added
+        # (`npm audit --omit=dev --audit-level=high` → found 0). If this ever goes
+        # red, a shipped dependency has a real high/critical CVE — fix it, don't
+        # weaken the gate.
+        working-directory: apps/web
+        run: npm audit --omit=dev --audit-level=high
       - name: Secret scan (gitleaks)
         uses: gitleaks/gitleaks-action@v2
         env:

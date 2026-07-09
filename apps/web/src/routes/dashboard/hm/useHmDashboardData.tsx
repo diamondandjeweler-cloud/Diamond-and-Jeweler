@@ -7,7 +7,7 @@ import { formatError } from '../../../lib/errors'
 import { writeDashCache } from '../../../lib/dashboardCache'
 import { confirmDialog } from '../../../components/Modal'
 import type { InterviewRound, InterviewProposal } from '../../../types/db'
-import { hmCandidatesForManager, hmCandidateById, updateMatch, hiredMatchCountForRoles, activeMatchRoleIds, getMatchProfilePreviews, getTalentContact } from '../../../data/repositories/matches'
+import { hmCandidatesForManager, hmCandidateCountForManager, hmCandidateById, updateMatch, hiredMatchCountForRoles, activeMatchRoleIds, getMatchProfilePreviews, getTalentContact } from '../../../data/repositories/matches'
 import { pendingColdStartRoleIds } from '../../../data/repositories/coldStart'
 import { interviewRoundsForMatches, hmInterviewProposalsForMatches } from '../../../data/repositories/interviews'
 import { getConfigValue } from '../../../data/repositories/systemConfig'
@@ -20,6 +20,7 @@ import { useMountedRef, useReloadTimer, useDashCacheSnapshot } from '../useDashb
 import { ACTIVE } from './types'
 import {
   ACTIVE_MATCH_STATUSES_FOR_ROLE_TALLY,
+  HM_ACTION_NEEDED_STATUSES,
   needsHmAction,
   isInterviewStage,
   precedingStatuses,
@@ -44,6 +45,14 @@ export function useHmDashboardData(userId: string | undefined) {
   const cachedSnap = useDashCacheSnapshot<HMCacheSnapshot>('hm_dashboard', userId)
   const [roleCount, setRoleCount] = useState<number | null>(cachedSnap?.roleCount ?? null)
   const [candidates, setCandidates] = useState<CandidateRow[] | null>(null)
+  // The candidate list is bounded to one page (hmCandidatesForManager caps at
+  // 100 rows). These hold the portion of the exact head-count totals that is NOT
+  // in the loaded page, so the displayed KPIs = live list count + overflow: exact
+  // on load, and still moving with realtime add/remove on the visible cards. For
+  // an HM with ≤ one page of candidates both overflows are 0 and the KPIs derive
+  // purely from the list, identical to before pagination.
+  const [candidatesOverflow, setCandidatesOverflow] = useState(0)
+  const [actionNeededOverflow, setActionNeededOverflow] = useState(0)
   const [oldestRoleOver24h, setOldestRoleOver24h] = useState(false)
   const [waiting, setWaiting] = useState<WaitingInfo | null>(null)
   // `loading` previously gated the whole render via blocking spinner. With the
@@ -245,13 +254,27 @@ export function useHmDashboardData(userId: string | undefined) {
         ? pendingColdStartRoleIds(hmRoleIds)
         : Promise.resolve({ data: [] as Array<{ role_id: string }> })
 
-      const [hiredRes, { data: matchData, error }, activeCountsRes, coldRowsRes] = await Promise.all([
+      // Exact KPI totals come from head-count queries, NOT the (now page-bounded)
+      // candidate list, so bounding the rendered list never undercounts the
+      // headline numbers. Both run in this same parallel batch — no added RTT.
+      // BEST-EFFORT: a head-count failure must NOT break the candidate load or
+      // mask a candidates-query error, so we swallow rejections to { count: null }
+      // and let the `?? rows.length` fallback below degrade gracefully to the
+      // loaded-page count (identical to the pre-pagination behaviour).
+      const candidatesCountPromise = hmCandidateCountForManager(hm.id, ACTIVE)
+        .then((r) => r, () => ({ count: null }))
+      const actionNeededCountPromise = hmCandidateCountForManager(hm.id, HM_ACTION_NEEDED_STATUSES)
+        .then((r) => r, () => ({ count: null }))
+
+      const [hiredRes, { data: matchData, error }, activeCountsRes, coldRowsRes, candidatesCountRes, actionNeededCountRes] = await Promise.all([
         hiredCountPromise,
         hmCandidatesForManager(hm.id, ACTIVE)
           .order('is_urgent', { ascending: false })
           .order('compatibility_score', { ascending: false }),
         activeCountsPromise,
         coldRowsPromise,
+        candidatesCountPromise,
+        actionNeededCountPromise,
       ])
       if (cancelled) return
 
@@ -262,12 +285,23 @@ export function useHmDashboardData(userId: string | undefined) {
       else {
         const rows = (matchData ?? []) as unknown as CandidateRow[]
         setCandidates(rows)
+        const loadedActionNeeded = rows.filter((c) => needsHmAction(c.status)).length
+        // Exact whole-set totals (fall back to the loaded page if the head-count
+        // is unavailable, matching the pre-pagination list-derived value).
+        const candidatesTotal = (candidatesCountRes as { count: number | null }).count ?? rows.length
+        const actionNeededTotal = (actionNeededCountRes as { count: number | null }).count ?? loadedActionNeeded
+        // Overflow = the exact total minus what the loaded page holds. 0 whenever
+        // the page holds every candidate (the common case), so the KPIs then track
+        // the live list exactly as before.
+        if (!cancelled) {
+          setCandidatesOverflow(Math.max(0, candidatesTotal - rows.length))
+          setActionNeededOverflow(Math.max(0, actionNeededTotal - loadedActionNeeded))
+        }
         // Cache aggregates only — no candidate IDs / scores / status detail.
-        const actionNeededLocal = rows.filter((c) => needsHmAction(c.status)).length
         writeDashCache<HMCacheSnapshot>('hm_dashboard', userId, {
           roleCount: (count ?? 0),
-          candidatesCount: rows.length,
-          actionNeededCount: actionNeededLocal,
+          candidatesCount: candidatesTotal,
+          actionNeededCount: actionNeededTotal,
           hiredAllTime: hiredAllTimeCount,
         })
         // Load rounds + pending proposals for interview-stage matches.
@@ -663,9 +697,11 @@ export function useHmDashboardData(userId: string | undefined) {
 
   // Shell always renders; sections skeleton themselves. Cached counts (if any)
   // keep the KPI strip from shimmering on returning visits.
-  const candidatesCount = candidates != null ? candidates.length : cachedSnap?.candidatesCount ?? null
+  // Live list count + overflow (the not-loaded remainder) = the exact whole-set
+  // total, while realtime mutations to the loaded page still move the number.
+  const candidatesCount = candidates != null ? candidates.length + candidatesOverflow : cachedSnap?.candidatesCount ?? null
   const actionNeeded = candidates != null
-    ? candidates.filter((c) => needsHmAction(c.status)).length
+    ? candidates.filter((c) => needsHmAction(c.status)).length + actionNeededOverflow
     : cachedSnap?.actionNeededCount ?? null
   const roleCountForStat = roleCount ?? null
   const hiredAllTimeForStat = candidates != null ? hiredAllTime : cachedSnap?.hiredAllTime ?? null

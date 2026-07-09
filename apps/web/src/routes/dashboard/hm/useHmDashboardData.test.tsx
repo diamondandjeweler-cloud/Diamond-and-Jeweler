@@ -40,6 +40,7 @@ const listRolesForHmDashboard = vi.fn()
 const getOnboardingDraftRoleForHm = vi.fn()
 const hiredMatchCountForRoles = vi.fn()
 const hmCandidatesForManager = vi.fn()
+const hmCandidateCountForManager = vi.fn()
 const activeMatchRoleIds = vi.fn()
 const pendingColdStartRoleIds = vi.fn()
 const getMatchProfilePreviews = vi.fn()
@@ -48,6 +49,7 @@ const hmInterviewProposalsForMatches = vi.fn()
 
 vi.mock('../../../data/repositories/matches', () => ({
   hmCandidatesForManager: (...a: unknown[]) => hmCandidatesForManager(...a),
+  hmCandidateCountForManager: (...a: unknown[]) => hmCandidateCountForManager(...a),
   hmCandidateById: vi.fn(),
   updateMatch: vi.fn(),
   hiredMatchCountForRoles: (...a: unknown[]) => hiredMatchCountForRoles(...a),
@@ -113,6 +115,9 @@ beforeEach(() => {
   listRolesForHmDashboard.mockReturnValue(Promise.resolve({ data: [] }))
   getOnboardingDraftRoleForHm.mockReturnValue(Promise.resolve({ data: null }))
   hiredMatchCountForRoles.mockReturnValue(Promise.resolve({ count: 0 }))
+  // Best-effort head-count: default to null so KPIs fall back to the loaded-page
+  // length (overflow 0) — i.e. the pre-pagination behaviour these tests pin.
+  hmCandidateCountForManager.mockReturnValue(Promise.resolve({ count: null }))
   activeMatchRoleIds.mockReturnValue(Promise.resolve({ data: [] }))
   pendingColdStartRoleIds.mockReturnValue(Promise.resolve({ data: [] }))
   getMatchProfilePreviews.mockReturnValue(Promise.resolve({ data: [] }))

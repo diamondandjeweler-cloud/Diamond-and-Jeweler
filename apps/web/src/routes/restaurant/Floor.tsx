@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Alert, Badge, Button, Card, CardBody, EmptyState, Input, Select, Spinner } from '../../components/ui'
 import { useRestaurant } from '../../lib/restaurant/context'
+import { usePolling } from '../../lib/usePolling'
 import {
   listTables, updateTableStatus, listReservations, createReservation, updateReservation,
   listWaitlist, addToWaitlist, updateWaitlist,
@@ -20,7 +21,9 @@ export default function Floor() {
   const [tab, setTab] = useState<'floor' | 'reservations' | 'waitlist'>('floor')
   const [selected, setSelected] = useState<RestaurantTable | null>(null)
 
-  const refresh = async () => {
+  // isActive defaults to true so manual callers (onChanged) always apply; the
+  // poller passes a real probe so a run outliving a branch switch bails.
+  const refresh = async (isActive: () => boolean = () => true) => {
     if (!branchId) return
     setLoading(true); setError(null)
     try {
@@ -28,20 +31,17 @@ export default function Floor() {
       const [t, r, w] = await Promise.all([
         listTables(branchId), listReservations(branchId, today.toISOString()), listWaitlist(branchId),
       ])
+      if (!isActive()) return  // branch switched mid-fetch — don't overwrite the new branch's floor
       setTables(t); setRes(r); setWait(w)
     } catch (e) {
+      if (!isActive()) return
       setError((e as Error).message)
     } finally {
-      setLoading(false)
+      if (isActive()) setLoading(false)
     }
   }
 
-  useEffect(() => { void refresh() }, [branchId])
-  useEffect(() => {
-    if (!branchId) return
-    const id = setInterval(() => { void refresh() }, 15000)
-    return () => clearInterval(id)
-  }, [branchId])
+  usePolling(refresh, 15000, { deps: [branchId] })
 
   if (!branchId) return <EmptyState title="Pick a branch first" />
   if (loading && tables.length === 0) return <div className="py-10 text-center"><Spinner /> Loading floor…</div>
@@ -277,6 +277,7 @@ function ReservationsTab({ reservations, tables, onChanged }: { reservations: Re
   const { branchId } = useRestaurant()
   const [form, setForm] = useState({ customer_name: '', phone: '', party_size: 2, reservation_time: '', table_id: '' })
   const [err, setErr] = useState<string | null>(null)
+  const tableById = useMemo(() => new Map(tables.map((t): [string, RestaurantTable] => [t.id, t])), [tables])
 
   const submit = async () => {
     if (!branchId) return
@@ -326,7 +327,7 @@ function ReservationsTab({ reservations, tables, onChanged }: { reservations: Re
           ) : (
             <ul className="divide-y divide-ink-100">
               {reservations.map((r) => {
-                const tbl = tables.find((t) => t.id === r.table_id)
+                const tbl = r.table_id ? tableById.get(r.table_id) : undefined
                 return (
                   <li key={r.id} className="py-2 flex items-center justify-between text-sm">
                     <div>

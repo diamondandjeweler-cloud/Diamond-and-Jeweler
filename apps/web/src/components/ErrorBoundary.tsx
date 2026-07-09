@@ -24,6 +24,7 @@ const RELOAD_FLAG = 'dnj.errorboundary.reloaded'
 
 export default class ErrorBoundary extends Component<Props, State> {
   state: State = { err: null, reloading: false }
+  private _clearTimer?: ReturnType<typeof setTimeout>
 
   static getDerivedStateFromError(err: Error): State {
     // Auto-recover from stale-chunk-after-deploy by reloading exactly once.
@@ -48,6 +49,24 @@ export default class ErrorBoundary extends Component<Props, State> {
       try { sessionStorage.removeItem(RELOAD_FLAG) } catch { /* tolerate */ }
     }
     return { err, reloading: false }
+  }
+
+  componentDidMount() {
+    // Restore "one auto-reload per DEPLOY" (not just one per tab): once the app has
+    // stayed healthy for a few seconds after (re)mounting, clear the reload guard so
+    // a LATER stale chunk (a second deploy landing in the same long-lived tab) still
+    // gets its own one-shot reload. Guarded on no-error + a delay: a bundle that is
+    // still broken throws within this window, re-setting err/reloading, so the flag
+    // is kept and the infinite-reload guard still holds.
+    this._clearTimer = setTimeout(() => {
+      if (!this.state.err && !this.state.reloading) {
+        try { sessionStorage.removeItem(RELOAD_FLAG) } catch { /* tolerate */ }
+      }
+    }, 4000)
+  }
+
+  componentWillUnmount() {
+    if (this._clearTimer) clearTimeout(this._clearTimer)
   }
 
   componentDidUpdate() {

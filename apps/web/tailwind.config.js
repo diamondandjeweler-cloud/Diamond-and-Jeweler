@@ -42,6 +42,52 @@ export default {
           700: '#8a6d1f',
           800: '#6b5518',
         },
+
+        // ─────────────────────────────────────────────────────────────────
+        // Marketing / public-funnel palette — ADDITIVE design tokens.
+        // These name the exact hex literals currently hand-coded across the
+        // ~17 public marketing files (About / Start / Careers / Pricing / …)
+        // so a later pass can migrate `#0B1220` → `navy-900`, `#C9A24D` →
+        // `gold-500`, etc. Nothing references these yet, so Tailwind's
+        // on-demand engine emits NO new CSS — the compiled output for every
+        // existing utility is byte-for-byte unchanged. Names are chosen to
+        // avoid Tailwind's default palette keys (neutral/slate/gray/…), so
+        // no default shade is overridden.
+        // ─────────────────────────────────────────────────────────────────
+
+        // Deep navy — the hero-gradient stops (#1B2A6B → #0B1742 → #0B1220).
+        navy: {
+          DEFAULT: '#0B1220',
+          700: '#1B2A6B', // gradient top stop · link text on light surfaces
+          800: '#0B1742', // page header + gradient mid stop
+          900: '#0B1220', // hero base / darkest surface — the "brand-navy"
+        },
+        // Warm gold — eyebrows, CTAs, sparkles (fills / emphasis) + AA-safe
+        // text shades for gold copy on light cards.
+        gold: {
+          DEFAULT: '#C9A24D',
+          500: '#C9A24D', // the "brand-gold" — fills / emphasis
+          600: '#a67c27',
+          700: '#8a6d1f', // AA-safe gold body/label text on light
+          800: '#8a6420', // deeper gold — headings on light cards
+        },
+        // Dark-neutral scale — cool navy-tinted neutrals for text, hairlines
+        // and surfaces layered over the navy hero (periwinkle → midnight).
+        midnight: {
+          50:  '#f5f7ff',
+          100: '#e8edff', // hairline / card border on light
+          200: '#dbe4ff', // facet-chip text, soft highlights
+          300: '#c7cef0', // body copy on navy hero
+          400: '#a6b6ff', // decorative accents, chip borders
+          500: '#7b8efc',
+          600: '#3e4fd3',
+          700: '#1e2d52', // ring on dark info card
+          800: '#0d1528', // dark info-card surface
+          900: '#0B1220',
+        },
+        // Explicit aliases matching the brand-navy / brand-gold token spec.
+        'brand-navy': '#0B1220',
+        'brand-gold': '#C9A24D',
       },
       fontFamily: {
         // 'Inter Variable' / 'Fraunces Variable' are self-hosted via @fontsource

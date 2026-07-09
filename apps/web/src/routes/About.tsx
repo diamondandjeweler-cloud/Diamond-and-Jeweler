@@ -1,26 +1,26 @@
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useSeo } from '../lib/useSeo'
 
 const ORIGIN = 'https://diamondandjeweler.com'
 
-const ABOUT_KEYWORDS =
-  'about DNJ, what is DNJ, DNJ recruitment, Bole AI, AI talent scout, AI recruitment Malaysia, advanced AI matching, curated recruitment, how DNJ works, diamond and jeweler recruitment, AI job matching Malaysia, three matches recruitment'
-
-const FACETS = [
-  'Skills',
-  'Career trajectory',
-  'Character',
-  'Working style',
-  'Growth potential',
-  'Culture fit',
-]
+// The six facets Bole reads — i18n keys (values live in the `about` namespace).
+const FACET_KEYS = [
+  'facetSkills',
+  'facetTrajectory',
+  'facetCharacter',
+  'facetWorkingStyle',
+  'facetGrowth',
+  'facetCultureFit',
+] as const
 
 export default function About() {
+  const { t } = useTranslation()
+
   useSeo({
-    title: 'About DNJ — Bole, the AI That Recognises Your Brilliance',
-    description:
-      "DNJ is an AI-curated recruitment platform for Malaysia. Meet Bole — our advanced AI talent scout that recognises your potential and matches you with the leader who brings out your brilliance. You're already a diamond; let the world see it.",
-    keywords: ABOUT_KEYWORDS,
+    title: t('about.seoTitle'),
+    description: t('about.seoDescription'),
+    keywords: t('about.seoKeywords'),
     canonicalPath: '/about',
     jsonLd: [
       {
@@ -57,26 +57,26 @@ export default function About() {
     <div className="min-h-screen bg-white dark:bg-[#0B1220] text-[#0B1220] dark:text-white font-sans">
       <header className="border-b border-gray-100 dark:border-gray-700 dark:bg-[#0B1742]">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2" aria-label="DNJ home">
+          <Link to="/" className="flex items-center gap-2" aria-label={t('about.homeAria')}>
             <span className="font-extrabold tracking-tight text-[20px]">DNJ</span>
             <span className="text-[10px] tracking-[0.22em] text-gray-500 dark:text-gray-400">DIAMOND &amp; JEWELER</span>
           </Link>
-          <nav className="flex items-center gap-5 text-sm" aria-label="Site navigation">
-            <Link to="/careers" className="text-gray-600 dark:text-gray-400 hover:text-[#0B1220] dark:hover:text-white">Jobs</Link>
-            <Link to="/pricing" className="text-gray-600 dark:text-gray-400 hover:text-[#0B1220] dark:hover:text-white">Pricing</Link>
-            <Link to="/careers/urgent-hiring-malaysia-2026" className="text-gray-600 dark:text-gray-400 hover:text-[#0B1220] dark:hover:text-white">Blog</Link>
+          <nav className="flex items-center gap-5 text-sm" aria-label={t('about.navAria')}>
+            <Link to="/careers" className="text-gray-600 dark:text-gray-400 hover:text-[#0B1220] dark:hover:text-white">{t('about.navJobs')}</Link>
+            <Link to="/pricing" className="text-gray-600 dark:text-gray-400 hover:text-[#0B1220] dark:hover:text-white">{t('about.navPricing')}</Link>
+            <Link to="/careers/urgent-hiring-malaysia-2026" className="text-gray-600 dark:text-gray-400 hover:text-[#0B1220] dark:hover:text-white">{t('about.navBlog')}</Link>
             <Link to="/start/talent" className="text-[#1B2A6B] dark:text-[#a6b6ff] font-semibold underline underline-offset-4">
-              Apply now
+              {t('about.navApply')}
             </Link>
           </nav>
         </div>
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-10">
-        <nav aria-label="Breadcrumb" className="text-xs text-gray-500 mb-4">
-          <Link to="/" className="hover:text-[#0B1220]">Home</Link>
+        <nav aria-label={t('about.breadcrumbAria')} className="text-xs text-gray-500 mb-4">
+          <Link to="/" className="hover:text-[#0B1220]">{t('about.breadcrumbHome')}</Link>
           <span className="mx-2">/</span>
-          <span aria-current="page" className="text-gray-700">About</span>
+          <span aria-current="page" className="text-gray-700">{t('about.breadcrumbCurrent')}</span>
         </nav>
 
         {/* Hero */}
@@ -87,18 +87,17 @@ export default function About() {
           <div className="grid md:grid-cols-[1.15fr_.85fr] gap-6 items-center px-8 md:px-12 py-12 md:py-14">
             <div>
               <p className="text-[#C9A24D] tracking-[0.28em] text-[11px] font-bold">
-                ADVANCED AI MATCHING · MALAYSIA
+                {t('about.heroEyebrow')}
               </p>
               <h1 className="text-[34px] md:text-[46px] font-extrabold leading-[1.08] tracking-tight mt-3 mb-4">
-                You&apos;re already a <span className="text-[#C9A24D]">diamond.</span>
+                {t('about.heroTitleLead')}{' '}
+                <span className="text-[#C9A24D]">{t('about.heroTitleDiamond')}</span>
                 <br />
-                Let the world see it.
+                {t('about.heroTitleTrail')}
               </h1>
               <p className="text-[#c7cef0] text-[15px] md:text-base max-w-[30em] leading-relaxed">
-                Your brilliance is real — most job boards just can&apos;t see it.{' '}
-                <strong className="text-white">Bole</strong>, our advanced AI, recognises what others
-                miss and matches you with the leader who brings your light out. Three matches. Not
-                three thousand listings.
+                {t('about.heroBodyLead')}{' '}
+                <strong className="text-white">Bole</strong>{t('about.heroBodyTrail')}
               </p>
               <div className="mt-7 flex flex-wrap gap-3">
                 <Link
@@ -106,13 +105,13 @@ export default function About() {
                   className="inline-flex items-center px-5 py-3 rounded-xl bg-[#C9A24D] text-[#0B1220] text-sm font-bold hover:bg-[#d8b straightforward]"
                   style={{ backgroundColor: '#C9A24D' }}
                 >
-                  Discover my matches →
+                  {t('about.heroCtaMatches')}
                 </Link>
                 <Link
                   to="/start/hiring"
                   className="inline-flex items-center px-5 py-3 rounded-xl border border-white/35 text-white text-sm font-bold hover:bg-white/10"
                 >
-                  I&apos;m hiring talent
+                  {t('about.heroCtaHiring')}
                 </Link>
               </div>
             </div>
@@ -141,13 +140,12 @@ export default function About() {
 
         {/* Transformation */}
         <section className="mt-16">
-          <p className="text-[#C9A24D] tracking-[0.28em] text-[11px] font-bold">THE DNJ DIFFERENCE</p>
+          <p className="text-[#C9A24D] tracking-[0.28em] text-[11px] font-bold">{t('about.transEyebrow')}</p>
           <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight mt-2 mb-2">
-            Every diamond starts uncut
+            {t('about.transTitle')}
           </h2>
           <p className="text-gray-600 max-w-[44em] leading-relaxed">
-            The brilliance is already in you. What&apos;s missing isn&apos;t talent — it&apos;s the eye
-            that recognises it, and the setting that lets it shine.
+            {t('about.transBody')}
           </p>
           <div className="grid md:grid-cols-3 gap-4 mt-8">
             <div className="rounded-2xl border border-[#e8edff] bg-gradient-to-b from-white to-[#fafbff] p-6 text-center">
@@ -158,10 +156,9 @@ export default function About() {
                   <line x1="-17" y1="-8" x2="17" y2="-8" stroke="#e8ecf3" strokeWidth="1" />
                 </g>
               </svg>
-              <h3 className="font-bold text-[#0B1220] mt-3 mb-1.5">1 · Uncut</h3>
+              <h3 className="font-bold text-[#0B1220] mt-3 mb-1.5">{t('about.transCard1Title')}</h3>
               <p className="text-sm text-gray-600 leading-snug">
-                Your potential is real — but uncut, it&apos;s easy to miss. Generic job boards bury you
-                among millions.
+                {t('about.transCard1Body')}
               </p>
             </div>
             <div className="rounded-2xl border border-[#C9A24D] bg-gradient-to-b from-white to-[#fafbff] p-6 text-center shadow-[0_12px_30px_-16px_rgba(201,162,77,0.55)]">
@@ -173,10 +170,9 @@ export default function About() {
                 <circle cx="38" cy="38" r="13" fill="none" stroke="#C9A24D" strokeWidth="3.5" />
                 <line x1="47" y1="47" x2="56" y2="56" stroke="#C9A24D" strokeWidth="4" strokeLinecap="round" />
               </svg>
-              <h3 className="font-bold text-[#8a6420] mt-3 mb-1.5">2 · Bole recognises you</h3>
+              <h3 className="font-bold text-[#8a6420] mt-3 mb-1.5">{t('about.transCard2Title')}</h3>
               <p className="text-sm text-gray-600 leading-snug">
-                Our AI sees the diamond others walk past — reading your facets the way the legendary
-                Bole spotted a thousand-li horse.
+                {t('about.transCard2Body')}
               </p>
             </div>
             <div className="rounded-2xl border border-[#e8edff] bg-gradient-to-b from-white to-[#fafbff] p-6 text-center">
@@ -192,10 +188,9 @@ export default function About() {
                   <path d="M12 16 l1 2.6 2.6 1 -2.6 1 -1 2.6 -1-2.6 -2.6-1 2.6-1z" />
                 </g>
               </svg>
-              <h3 className="font-bold text-[#0B1220] mt-3 mb-1.5">3 · Set to shine</h3>
+              <h3 className="font-bold text-[#0B1220] mt-3 mb-1.5">{t('about.transCard3Title')}</h3>
               <p className="text-sm text-gray-600 leading-snug">
-                Matched to the right leader and the right setting, your brilliance finally catches the
-                light.
+                {t('about.transCard3Body')}
               </p>
             </div>
           </div>
@@ -210,29 +205,28 @@ export default function About() {
             </div>
             <div>
               <p className="text-[#C9A24D] tracking-[0.28em] text-[11px] font-bold">
-                MEET BOLE — YOUR AI TALENT SCOUT
+                {t('about.boleEyebrow')}
               </p>
               <h2 className="text-2xl md:text-[28px] font-extrabold mt-2.5 mb-3">
-                The legend who could see greatness others missed.
+                {t('about.boleTitle')}
               </h2>
               <p className="text-[#c7cef0] text-[15px] leading-relaxed">
-                In Chinese tradition, Bole was the one man who could recognise a{' '}
-                <em>thousand-li horse</em> — an extraordinary talent — that everyone else walked
-                straight past. The horse was always extraordinary. What was rare was the{' '}
-                <em>eye that could see it</em>.
+                {t('about.boleP1Lead')}{' '}
+                <em>{t('about.boleP1Horse')}</em>{' '}
+                {t('about.boleP1Mid')}{' '}
+                <em>{t('about.boleP1Eye')}</em>{t('about.boleP1Tail')}
               </p>
               <p className="text-[#c7cef0] text-[15px] leading-relaxed mt-2.5">
-                We named our AI after him. Bole doesn&apos;t create your worth — it{' '}
-                <strong className="text-white">recognises</strong> it, reading six facets of who you
-                are, then introduces you to the leaders who&apos;ll help it shine.
+                {t('about.boleP2Lead')}{' '}
+                <strong className="text-white">{t('about.boleP2Recognises')}</strong>{t('about.boleP2Tail')}
               </p>
               <ul className="flex flex-wrap gap-2 mt-5">
-                {FACETS.map((f) => (
+                {FACET_KEYS.map((k) => (
                   <li
-                    key={f}
+                    key={k}
                     className="rounded-full border border-[#a6b6ff]/30 bg-[#a6b6ff]/[0.14] text-[#dbe4ff] px-3.5 py-1.5 text-[12.5px]"
                   >
-                    {f}
+                    {t(`about.${k}`)}
                   </li>
                 ))}
               </ul>
@@ -242,29 +236,29 @@ export default function About() {
 
         {/* Vs others */}
         <section className="mt-16">
-          <p className="text-[#C9A24D] tracking-[0.28em] text-[11px] font-bold">WHY DNJ STANDS OUT</p>
+          <p className="text-[#C9A24D] tracking-[0.28em] text-[11px] font-bold">{t('about.vsEyebrow')}</p>
           <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight mt-2 mb-6">
-            Most platforms make you search. Bole makes you seen.
+            {t('about.vsTitle')}
           </h2>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="rounded-2xl bg-gray-100 border border-gray-200 p-7">
-              <p className="text-[11px] tracking-[0.14em] font-bold text-gray-400">ORDINARY JOB BOARDS</p>
-              <h3 className="text-lg font-bold text-gray-500 mt-1 mb-1">You do the digging</h3>
+              <p className="text-[11px] tracking-[0.14em] font-bold text-gray-400">{t('about.vsOrdinaryLabel')}</p>
+              <h3 className="text-lg font-bold text-gray-500 mt-1 mb-1">{t('about.vsOrdinaryTitle')}</h3>
               <ul className="list-disc pl-5 mt-3 space-y-1.5 text-sm text-gray-600">
-                <li>A thousand listings — you sift through them alone</li>
-                <li>Keyword-matched to your résumé</li>
-                <li>You apply cold and hope someone replies</li>
-                <li>Quantity over fit</li>
+                <li>{t('about.vsOrdinary1')}</li>
+                <li>{t('about.vsOrdinary2')}</li>
+                <li>{t('about.vsOrdinary3')}</li>
+                <li>{t('about.vsOrdinary4')}</li>
               </ul>
             </div>
             <div className="rounded-2xl bg-gradient-to-b from-[#fffaf1] to-white border border-[#C9A24D] p-7">
-              <p className="text-[11px] tracking-[0.14em] font-bold text-[#8a6420]">DNJ — WITH BOLE</p>
-              <h3 className="text-lg font-bold text-[#8a6420] mt-1 mb-1">Bole brings you forward</h3>
+              <p className="text-[11px] tracking-[0.14em] font-bold text-[#8a6420]">{t('about.vsDnjLabel')}</p>
+              <h3 className="text-lg font-bold text-[#8a6420] mt-1 mb-1">{t('about.vsDnjTitle')}</h3>
               <ul className="list-disc pl-5 mt-3 space-y-1.5 text-sm text-gray-700">
-                <li>Bole recognises you and returns 3 settings where you&apos;ll shine</li>
-                <li>Matched on your facets — who you are, not just keywords</li>
-                <li>You&apos;re discovered — the right leaders come to you</li>
-                <li>Three matches, zero noise</li>
+                <li>{t('about.vsDnj1')}</li>
+                <li>{t('about.vsDnj2')}</li>
+                <li>{t('about.vsDnj3')}</li>
+                <li>{t('about.vsDnj4')}</li>
               </ul>
             </div>
           </div>
@@ -276,22 +270,21 @@ export default function About() {
             className="rounded-3xl text-white text-center px-8 md:px-12 py-12"
             style={{ background: 'radial-gradient(100% 140% at 50% 0%, #1B2A6B, #0B1742)' }}
           >
-            <p className="text-[#C9A24D] tracking-[0.28em] text-[11px] font-bold">FOR EMPLOYERS</p>
+            <p className="text-[#C9A24D] tracking-[0.28em] text-[11px] font-bold">{t('about.employerEyebrow')}</p>
             <h2 className="text-2xl md:text-[26px] font-extrabold max-w-[22em] mx-auto mt-2 mb-2.5">
-              The right leader doesn&apos;t create talent — they{' '}
-              <span className="text-[#C9A24D]">reveal</span> it.
+              {t('about.employerTitleLead')}{' '}
+              <span className="text-[#C9A24D]">{t('about.employerTitleHighlight')}</span>{' '}
+              {t('about.employerTitleTail')}
             </h2>
             <p className="text-[#c7cef0] text-[15px] max-w-[36em] mx-auto leading-relaxed">
-              A great leader brings out the brilliance a person already carries. Bole matches you with
-              high-potential people ready for exactly that — aligned to your team, your culture and
-              your brief.
+              {t('about.employerBody')}
             </p>
             <div className="mt-6">
               <Link
                 to="/start/hiring"
                 className="inline-flex items-center px-5 py-3 rounded-xl bg-[#C9A24D] text-[#0B1220] text-sm font-bold hover:opacity-90"
               >
-                Start hiring with Bole →
+                {t('about.employerCta')}
               </Link>
             </div>
           </div>
@@ -304,28 +297,28 @@ export default function About() {
           <div>
             <span className="font-semibold text-[#0B1220] dark:text-white">DNJ — Diamond &amp; Jeweler</span>
             <span className="mx-2 text-gray-300">|</span>
-            Registered in Malaysia
+            {t('about.companyRegistered')}
           </div>
           <div>
             <a href="mailto:support@diamondandjeweler.com" className="text-[#1B2A6B] underline underline-offset-2">
               support@diamondandjeweler.com
             </a>
           </div>
-          <div className="text-xs text-gray-400">PDPA-compliant · End-to-end encrypted · All industries, nationwide</div>
+          <div className="text-xs text-gray-400">{t('about.companyCompliance')}</div>
         </div>
       </section>
 
       <footer className="border-t border-gray-100 dark:border-gray-700 mt-6 py-6 text-center text-xs text-gray-500 dark:text-gray-400 dark:bg-[#0B1742]">
         <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5">
-          <Link to="/" className="hover:text-[#0B1220] dark:hover:text-white">Home</Link>
+          <Link to="/" className="hover:text-[#0B1220] dark:hover:text-white">{t('about.footerHome')}</Link>
           <span aria-hidden>·</span>
-          <Link to="/careers" className="hover:text-[#0B1220]">Jobs</Link>
+          <Link to="/careers" className="hover:text-[#0B1220]">{t('about.footerJobs')}</Link>
           <span aria-hidden>·</span>
-          <Link to="/careers/urgent-hiring-malaysia-2026" className="hover:text-[#0B1220]">Blog</Link>
+          <Link to="/careers/urgent-hiring-malaysia-2026" className="hover:text-[#0B1220]">{t('about.footerBlog')}</Link>
           <span aria-hidden>·</span>
-          <Link to="/privacy" className="hover:text-[#0B1220]">Privacy</Link>
+          <Link to="/privacy" className="hover:text-[#0B1220]">{t('about.footerPrivacy')}</Link>
           <span aria-hidden>·</span>
-          <Link to="/terms" className="hover:text-[#0B1220]">Terms</Link>
+          <Link to="/terms" className="hover:text-[#0B1220]">{t('about.footerTerms')}</Link>
           <span aria-hidden>·</span>
           <span>2026 DNJ</span>
         </div>

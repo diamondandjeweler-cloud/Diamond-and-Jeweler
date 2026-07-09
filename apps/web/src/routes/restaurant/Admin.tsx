@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Badge, Button, Card, CardBody, EmptyState, Input, Select, Spinner } from '../../components/ui'
 import { confirmDialog } from '../../components/Modal'
 import { useRestaurant } from '../../lib/restaurant/context'
@@ -107,6 +107,7 @@ function MenuTab({ categories, items, branchId, onChanged }: {
   const [err, setErr]             = useState<string | null>(null)
   const [expandedMods, setExpandedMods] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const categoryById = useMemo(() => new Map(categories.map((c): [string, MenuCategory] => [c.id, c])), [categories])
 
   const reset = () => { setForm(BLANK_ITEM); setEditing(null); setCreating(false); setErr(null) }
 
@@ -243,7 +244,7 @@ function MenuTab({ categories, items, branchId, onChanged }: {
             </thead>
             <tbody>
               {items.map((m) => {
-                const cat = categories.find((c) => c.id === m.category_id)
+                const cat = m.category_id ? categoryById.get(m.category_id) : undefined
                 const modsOpen = expandedMods === m.id
                 return (
                   <Fragment key={m.id}>

@@ -45,11 +45,39 @@ export function talentMatchById(matchId: string) {
 const HM_CANDIDATE_SELECT =
   'id, compatibility_score, status, is_urgent, public_reasoning, application_summary, talents(id, privacy_mode, derived_tags, expected_salary_min, expected_salary_max), roles!inner(id, title, hiring_manager_id), match_feedback(rating, hired, notes)'
 
-/** Candidates for a hiring manager's roles, filtered by status (caller orders). */
-export function hmCandidatesForManager(hiringManagerId: string, statuses: readonly string[]) {
+/**
+ * Candidates for a hiring manager's roles, filtered by status (caller orders).
+ * Bounded to a single page (default 100 rows) so a high-volume HM/agency does
+ * NOT pull hundreds–thousands of joined rows (talents + roles + match_feedback)
+ * per mount. Pass `opts.offset` to page; displayed KPI totals come from
+ * hmCandidateCountForManager (a head-count), so bounding the rendered list here
+ * cannot corrupt them. The row projection is byte-identical to before.
+ */
+export function hmCandidatesForManager(
+  hiringManagerId: string,
+  statuses: readonly string[],
+  opts?: { limit?: number; offset?: number },
+) {
+  const limit = opts?.limit ?? 100
+  const offset = opts?.offset ?? 0
   return supabase
     .from('matches')
     .select(HM_CANDIDATE_SELECT)
+    .eq('roles.hiring_manager_id', hiringManagerId)
+    .in('status', statuses as string[])
+    .range(offset, offset + limit - 1)
+}
+
+/**
+ * Exact head count of a hiring manager's candidates in a status set — pairs with
+ * hmCandidatesForManager so the KPI totals stay exact while the rendered list is
+ * paginated. `roles!inner(id)` supplies the join the hiring_manager_id filter
+ * needs; head:true transfers NO rows, only the exact count.
+ */
+export function hmCandidateCountForManager(hiringManagerId: string, statuses: readonly string[]) {
+  return supabase
+    .from('matches')
+    .select('id, roles!inner(id)', { count: 'exact', head: true })
     .eq('roles.hiring_manager_id', hiringManagerId)
     .in('status', statuses as string[])
 }

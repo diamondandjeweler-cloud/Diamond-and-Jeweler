@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Alert, Badge, Button, Card, CardBody, EmptyState, Input, Select, Spinner } from '../../components/ui'
 import { useRestaurant } from '../../lib/restaurant/context'
+import { usePolling } from '../../lib/usePolling'
 import {
   listSuppliers, createSupplier, listIngredients, listPurchaseOrders, listPOLines,
   createPO, receivePO,
@@ -229,15 +230,14 @@ function SelfBilledStatus({ poId }: { poId: string }) {
   const [busy, setBusy] = useState(false)
   const [msg, setMsg]   = useState<string | null>(null)
 
-  useEffect(() => {
-    let alive = true
-    const tick = async () => {
-      try { const x = await getSelfBilledByPO(poId); if (alive) setSbi(x) } catch { /* swallow */ }
-    }
-    void tick()
-    const id = setInterval(() => { void tick() }, 4000)
-    return () => { alive = false; clearInterval(id) }
-  }, [poId])
+  const tick = async (isActive: () => boolean) => {
+    try {
+      const s = await getSelfBilledByPO(poId)
+      if (!isActive()) return  // poId changed mid-fetch — don't overwrite the new PO's status
+      setSbi(s)
+    } catch { /* swallow */ }
+  }
+  usePolling(tick, 4000, { deps: [poId] })
 
   if (!sbi) return null
 

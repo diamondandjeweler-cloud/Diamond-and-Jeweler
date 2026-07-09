@@ -309,9 +309,12 @@ export default function PostRole() {
   useEffect(() => {
     if (isEdit) return
     if (!didMount.current) { didMount.current = true; return }
-    const json = JSON.stringify(collectDraft())
     const timer = setTimeout(() => {
-      localStorage.setItem(DRAFT_KEY, json)
+      // Serialize inside the debounced callback so the full-draft stringify only
+      // runs after typing settles (not on every keystroke). The surviving effect
+      // run holds the latest state in its closure, so this produces the same
+      // payload the pre-debounce stringify would have.
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(collectDraft()))
       setDraftSaved(true)
       setTimeout(() => setDraftSaved(false), 2000)
     }, 600)

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Alert, Badge, Button, Card, CardBody, EmptyState, Spinner } from '../../components/ui'
 import { useRestaurant } from '../../lib/restaurant/context'
+import { usePolling } from '../../lib/usePolling'
 import {
   listKitchenTickets, updateTicketStatus, listMenuItems, listOrders, listOrderItemsForOrders,
   voidItem,
@@ -53,35 +54,35 @@ function StationBoard({ title, stations }: { title: string; stations: string[] }
     return () => { alive = false; if (timer) clearTimeout(timer) }
   }, [branchId])
 
-  // Poll every 5s
-  useEffect(() => {
+  // Poll every 5s (pauses while the tab is hidden; gentle idle backoff when the
+  // pass has no tickets and nobody is touching the board).
+  const load = async (isActive: () => boolean) => {
     if (!branchId) return
-    let alive = true
-    const load = async () => {
-      try {
-        const [t, o] = await Promise.all([
-          listKitchenTickets(branchId, stations),
-          listOrders(branchId, 50),
-        ])
-        if (!alive) return
-        setTickets(t); setOrders(o); setError(null)
-        // Pull line items for active orders referenced by tickets
-        const ids = Array.from(new Set(t.map((x) => x.order_id)))
-        if (ids.length) {
-          const all = await listOrderItemsForOrders(ids)
-          if (alive) setOrderItems(all)
-        } else if (alive) setOrderItems([])
-      } catch (e) {
-        if (alive) setError((e as Error).message)
-      } finally {
-        if (alive) setLoading(false)
-      }
+    try {
+      const [t, o] = await Promise.all([
+        listKitchenTickets(branchId, stations),
+        listOrders(branchId, 50),
+      ])
+      if (!isActive()) return  // branch/stations switched mid-fetch — don't overwrite the new board
+      setTickets(t); setOrders(o); setError(null)
+      // Pull line items for active orders referenced by tickets
+      const ids = Array.from(new Set(t.map((x) => x.order_id)))
+      if (ids.length) {
+        const all = await listOrderItemsForOrders(ids)
+        if (!isActive()) return
+        setOrderItems(all)
+      } else setOrderItems([])
+    } catch (e) {
+      if (!isActive()) return
+      setError((e as Error).message)
+    } finally {
+      if (isActive()) setLoading(false)
     }
-    void load()
-    const poll = setInterval(() => { void load() }, 5000)
-    const clock = setInterval(() => tick((n) => n + 1), 15000)   // age tone refresh
-    return () => { alive = false; clearInterval(poll); clearInterval(clock) }
-  }, [branchId, stations.join('|')])
+  }
+  usePolling(load, 5000, { deps: [branchId, stations.join('|')] })
+  // Age-tone clock: recolours ticket urgency without a network call. No idle
+  // backoff — timely "late" recolouring is the whole point.
+  usePolling(() => tick((n) => n + 1), 15000, { deps: [branchId, stations.join('|')], idle: false })
 
   const groupedByOrder = useMemo(() => {
     const map = new Map<string, KitchenTicket[]>()

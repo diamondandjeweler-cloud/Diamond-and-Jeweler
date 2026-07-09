@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { restaurantDb as db } from '../../lib/restaurant/client'
+import { usePolling } from '../../lib/usePolling'
 
 interface PublicOrder {
   id: string
@@ -29,27 +30,23 @@ export default function Track() {
   const [lines, setLines] = useState<PublicLine[]>([])
   const [err, setErr] = useState<string | null>(null)
 
-  useEffect(() => {
+  const refresh = async (isActive: () => boolean) => {
     if (!orderId) return
-    let cancelled = false
-    const refresh = async () => {
-      try {
-        const [o, li] = await Promise.all([
-          db.from('orders').select('id, status, order_type, total, created_at, closed_at').eq('id', orderId).maybeSingle(),
-          db.from('order_item').select('id, quantity, status, course_type, menu_item:menu_item_id(name)').eq('order_id', orderId),
-        ])
-        if (cancelled) return
-        if (o.error) throw o.error
-        setOrder(o.data as PublicOrder | null)
-        setLines((li.data ?? []) as unknown as PublicLine[])
-      } catch (e) {
-        if (!cancelled) setErr((e as Error).message)
-      }
+    try {
+      const [o, li] = await Promise.all([
+        db.from('orders').select('id, status, order_type, total, created_at, closed_at').eq('id', orderId).maybeSingle(),
+        db.from('order_item').select('id, quantity, status, course_type, menu_item:menu_item_id(name)').eq('order_id', orderId),
+      ])
+      if (o.error) throw o.error
+      if (!isActive()) return  // orderId changed mid-fetch — don't show the previous order's data
+      setOrder(o.data as PublicOrder | null)
+      setLines((li.data ?? []) as unknown as PublicLine[])
+    } catch (e) {
+      if (!isActive()) return
+      setErr((e as Error).message)
     }
-    void refresh()
-    const id = setInterval(refresh, 5000)
-    return () => { cancelled = true; clearInterval(id) }
-  }, [orderId])
+  }
+  usePolling(refresh, 5000, { deps: [orderId] })
 
   if (!orderId) return <div className="p-8 text-center">No order ID.</div>
 

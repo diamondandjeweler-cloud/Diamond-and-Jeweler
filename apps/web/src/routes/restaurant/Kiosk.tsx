@@ -6,7 +6,7 @@ import { useRestaurant } from '../../lib/restaurant/context'
 import {
   listCategories, listMenuItems, listModifiersByItems,
   listTables, placeOrder, listPromotions, evaluatePromotion,
-  findMembershipByPhone, awardPoints,
+  findMembershipByPhone,
 } from '../../lib/restaurant/store'
 import type {
   CartLine, MenuCategory, MenuItem, Modifier, OrderType, Promotion, RestaurantTable,
@@ -189,9 +189,12 @@ export default function Kiosk() {
         taxRate: TAX_RATE,
         discountAmount: discount,
       })
-      if (membershipId) {
-        try { await awardPoints(membershipId, Math.floor(total)) } catch { /* non-fatal */ }
-      }
+      // Loyalty points are awarded ONCE, on payment, by the
+      // tg_payment_completed_award_points trigger (migration 0027) at the canonical
+      // 1pt/RM10 — keyed off the order's membership_id set above. The former
+      // client-side award here ran at order-placement (before payment) at 1pt/RM1,
+      // double-awarding a paid order at ~11x the intended rate (an exploitable,
+      // redeemable credit). Removed — the payment trigger is the single source.
       setSuccess(`Order #${order.id.slice(0, 8)} sent to kitchen. Total ${MYR(total)}.`)
       setLastOrderId(order.id)
       setCart([]); setAppliedCoupon(null); setCouponCode('')

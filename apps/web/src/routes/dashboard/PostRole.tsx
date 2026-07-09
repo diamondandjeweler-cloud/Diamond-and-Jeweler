@@ -19,6 +19,7 @@ import {
 import { validateSalaryRange } from '../../shared/domain/salary/validateSalaryRange'
 import { DRAFT_KEY, type TeamMember } from './postrole/types'
 import { buildTeamMemberCharacters } from './postrole/teamCharacters'
+import { resolveRoleStatus } from './postrole/resolveRoleStatus'
 import DraftBanners from './postrole/DraftBanners'
 import HardFiltersSection from './postrole/HardFiltersSection'
 import TraitPicker from './postrole/TraitPicker'
@@ -35,6 +36,10 @@ export default function PostRole() {
   const [hmId, setHmId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [fromOnboarding, setFromOnboarding] = useState(false)
+  // The loaded role's current status (edit mode only). Drives the status
+  // guardrail in submit() so re-pointed "Edit" entry points can't silently
+  // reactivate a paused role — see resolveRoleStatus().
+  const [roleStatus, setRoleStatus] = useState<string | null>(null)
   const [teamSize, setTeamSize] = useState<number | ''>('')
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
 
@@ -253,6 +258,7 @@ export default function PostRole() {
           setNnText(role.non_negotiables_text ?? '')
           setNnAtoms((role.non_negotiables_atoms as unknown as NNAtom[]) ?? [])
           setFromOnboarding(!!role.from_onboarding)
+          setRoleStatus(role.status ?? null)
         }
       }
       setLoading(false)
@@ -373,6 +379,16 @@ export default function PostRole() {
     const timeoutId = setTimeout(() => controller.abort(), 30000)
 
     try {
+      // Status guardrail: INSERT always activates; UPDATE only activates when
+      // re-opening an onboarding draft (fromOnboarding && paused), otherwise
+      // `status` is omitted so the row's existing value is preserved. This keeps
+      // the re-pointed MyRoles / ModerationPanel "Edit" buttons from silently
+      // reactivating a paused role. No-op for the onboarding-activate caller.
+      const statusPatch = resolveRoleStatus({
+        mode: isEdit ? 'update' : 'insert',
+        fromOnboarding,
+        current: roleStatus,
+      })
       const payload = {
         hiring_manager_id: hmId, title,
         description: description || null, department: department || null,
@@ -382,7 +398,7 @@ export default function PostRole() {
         accept_no_experience: acceptNoExperience,
         work_arrangement: workArr, experience_level: experience,
         salary_min: salaryMin || null, salary_max: salaryMax || null,
-        required_traits: requiredTraits, status: 'active' as const,
+        required_traits: requiredTraits, ...statusPatch,
         employment_type: employmentType,
         hourly_rate: employmentType === 'gig' || employmentType === 'part_time' || employmentType === 'contract' ? (hourlyRate || null) : null,
         duration_days: durationDays === '' ? null : Number(durationDays),
@@ -444,6 +460,11 @@ export default function PostRole() {
       void callFunction('match-generate', { role_id: savedId }).catch(() => {})
       localStorage.removeItem(DRAFT_KEY)
       void deleteRoleDraft(hmId)
+      // Post-save redirect: PostRole always lands on the HM dashboard (/hm),
+      // for both new posts and edits. (EditRole — still mounted for stale-loop
+      // nudge links — instead returns to /hm/roles.) We intentionally keep the
+      // /hm target so the re-pointed "Edit" entry points share the post-role
+      // success destination; the dashboard surfaces the updated role.
       navigate('/hm', { replace: true })
     } catch (e) {
       clearTimeout(timeoutId)
@@ -453,8 +474,12 @@ export default function PostRole() {
       if (e instanceof Error && e.name === 'AbortError') {
         const checkId = isEdit ? editRoleId! : roleId
         const { data: committed } = await getRoleCommitCheck(checkId)
-        // Fresh insert: row exists = committed. Edit: row always exists, so the
-        // commit landed only if the status flipped to active.
+        // Fresh insert: row exists = committed. Edit: the row always exists, so
+        // the only cheap positive commit signal is the status flipping to active
+        // (the onboarding-draft activation case). A plain field edit that keeps
+        // the existing status can't be confirmed this way, so we conservatively
+        // fall through to the "timed out — try again" path; updates are
+        // idempotent, so a retry is safe.
         const didCommit = isEdit ? committed?.status === 'active' : !!committed
         if (didCommit) {
           void callFunction('moderate-role', { role_id: checkId }).catch(() => {})

@@ -371,7 +371,10 @@ export default function ModerationPanel() {
                     )}
 
                     <div className="text-xs text-gray-400 dark:text-gray-500">
-                      <Link to={`/hm/roles/${r.id}/edit`} className="underline hover:text-gray-600 dark:hover:text-gray-300">
+                      {/* Full-fidelity editor (all ~45 role columns) — same
+                          PostRole form MyRoles' Edit uses. The legacy
+                          /hm/roles/:id/edit route remains for stale-loop nudges. */}
+                      <Link to={`/hm/post-role/${r.id}`} className="underline hover:text-gray-600 dark:hover:text-gray-300">
                         Open role editor →
                       </Link>
                     </div>

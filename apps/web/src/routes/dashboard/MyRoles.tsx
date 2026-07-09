@@ -275,7 +275,10 @@ export default function MyRoles() {
                     <VacancyExpiry expiresAt={r.vacancy_expires_at} status={r.status} />
                   </div>
                   <div className="flex gap-1.5 whitespace-nowrap">
-                    <Link to={`/hm/roles/${r.id}/edit`} className="btn-secondary btn-sm">
+                    {/* Primary edit path → full-fidelity PostRole form (all ~45
+                        role columns). The legacy /hm/roles/:id/edit route stays
+                        mounted only for stale-loop nudge email links. */}
+                    <Link to={`/hm/post-role/${r.id}`} className="btn-secondary btn-sm">
                       {t('myRoles.edit')}
                     </Link>
                     {r.status === 'active' && (

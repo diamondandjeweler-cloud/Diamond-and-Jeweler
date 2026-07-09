@@ -1,4 +1,5 @@
-import { useMemo } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 import { Link } from 'react-router-dom'
 import { fmt } from '../../lib/format'
 import { useTranslation } from 'react-i18next'
@@ -13,7 +14,8 @@ import AddHmDobModal from '../../components/AddHmDobModal'
 import { useHmDashboardData } from './hm/useHmDashboardData'
 import CandidateCard from './hm/CandidateCard'
 import EmployerReputationPanel from './hm/EmployerReputationPanel'
-import type { FeedbackEntry } from './hm/types'
+import type { CandidateRow, FeedbackEntry, ProfilePreview, ContactInfo } from './hm/types'
+import type { InterviewRound, InterviewProposal } from '../../types/db'
 
 // Pristine feedback-entry default — the constant parts shared by the per-card
 // fallback (which overlays the row's saved match_feedback) and the
@@ -21,6 +23,122 @@ import type { FeedbackEntry } from './hm/types'
 const DEFAULT_FEEDBACK_ENTRY: FeedbackEntry = {
   rating: 0, hired: false, notes: '', outcome: '', freeText: '', saving: false, saved: false,
 }
+
+// Stable empty-rounds reference so a card with no interview rounds keeps the
+// same `rounds` prop identity across renders (a fresh `[]` per render would
+// defeat CandidateCard's React.memo).
+const EMPTY_ROUNDS: InterviewRound[] = []
+
+// Per-card memoized wrapper. Extracted so each candidate gets its OWN stable
+// per-id action handlers (useCallback keyed by the match id) and a memoized
+// feedback-entry fallback — none of which is possible inline inside a `.map`.
+// With React.memo here, a realtime `matches` tick (which swaps only the changed
+// row's reference in the candidates array) re-renders that one card; every
+// unchanged card sees referentially-identical props and skips its render.
+// `actionBusy` stays a raw string prop so CandidateCard's global in-flight lock
+// (`disabled={actionBusy !== null}`) is byte-identical to before — it's a
+// primitive, so it only changes when an action actually runs, not on ticks.
+const CandidateCardRow = memo(function CandidateCardRow({
+  row,
+  roundsEntry,
+  proposalsEntry,
+  preview,
+  contact,
+  feedbackEntryState,
+  actionBusy,
+  schedulingFor,
+  companyVerified,
+  companyId,
+  respond,
+  doAction,
+  revealContact,
+  viewResume,
+  submitFeedback,
+  setSchedulingFor,
+  setFeedbackState,
+}: {
+  row: CandidateRow
+  roundsEntry: InterviewRound[] | undefined
+  proposalsEntry: InterviewProposal[] | undefined
+  preview: ProfilePreview | undefined
+  contact: ContactInfo | null | undefined
+  feedbackEntryState: FeedbackEntry | undefined
+  actionBusy: string | null
+  schedulingFor: string | null
+  companyVerified: boolean | null
+  companyId: string | null
+  respond: (id: string, next: 'invited_by_manager' | 'declined_by_manager') => void
+  doAction: (id: string, action: string, extra?: Record<string, unknown>) => void
+  revealContact: (id: string) => void
+  viewResume: (id: string) => void
+  submitFeedback: (id: string) => void
+  setSchedulingFor: Dispatch<SetStateAction<string | null>>
+  setFeedbackState: Dispatch<SetStateAction<Record<string, FeedbackEntry>>>
+}) {
+  const id = row.id
+
+  const pendingProposal = useMemo(
+    () => (proposalsEntry ?? []).find((p) => p.status === 'pending') ?? null,
+    [proposalsEntry],
+  )
+  // Fallback overlays the row's saved match_feedback when there's no live edit
+  // state for this card. `row` is a stable reference between realtime ticks
+  // (only the changed row is swapped), so this recomputes only when it must.
+  const feedbackEntry = useMemo(
+    () => feedbackEntryState ?? {
+      ...DEFAULT_FEEDBACK_ENTRY,
+      rating: row.match_feedback?.[0]?.rating ?? 0,
+      hired: row.match_feedback?.[0]?.hired ?? false,
+      notes: row.match_feedback?.[0]?.notes ?? '',
+      saved: !!row.match_feedback?.[0],
+    },
+    [feedbackEntryState, row],
+  )
+
+  const onInvite = useCallback(() => { void respond(id, 'invited_by_manager') }, [respond, id])
+  const onDecline = useCallback(() => { void respond(id, 'declined_by_manager') }, [respond, id])
+  const onScheduleRound = useCallback(() => setSchedulingFor(id), [setSchedulingFor, id])
+  const onCancelProposal = useCallback((proposalId: string) => { void doAction(id, 'cancel_interview_proposal', { proposal_id: proposalId }) }, [doAction, id])
+  const onCompleteInterviews = useCallback(() => { void doAction(id, 'complete_interviews') }, [doAction, id])
+  const onMakeOffer = useCallback(() => { void doAction(id, 'make_offer') }, [doAction, id])
+  const onMarkHired = useCallback(() => { void doAction(id, 'mark_hired') }, [doAction, id])
+  const onCancel = useCallback(() => { void doAction(id, 'cancel_match') }, [doAction, id])
+  const onRevealContact = useCallback(() => { void revealContact(id) }, [revealContact, id])
+  const onViewResume = useCallback(() => { void viewResume(id) }, [viewResume, id])
+  const onFeedbackChange = useCallback(
+    (patch: Partial<{ rating: number; hired: boolean; notes: string; outcome: string; freeText: string }>) =>
+      setFeedbackState((s) => ({ ...s, [id]: { ...(s[id] ?? DEFAULT_FEEDBACK_ENTRY), ...patch } })),
+    [setFeedbackState, id],
+  )
+  const onFeedbackSubmit = useCallback(() => { void submitFeedback(id) }, [submitFeedback, id])
+
+  return (
+    <CandidateCard
+      row={row}
+      rounds={roundsEntry ?? EMPTY_ROUNDS}
+      pendingProposal={pendingProposal}
+      preview={preview ?? null}
+      contact={contact}
+      actionBusy={actionBusy}
+      schedulingFor={schedulingFor}
+      companyVerified={companyVerified}
+      companyId={companyId}
+      onInvite={onInvite}
+      onDecline={onDecline}
+      onScheduleRound={onScheduleRound}
+      onCancelProposal={onCancelProposal}
+      onCompleteInterviews={onCompleteInterviews}
+      onMakeOffer={onMakeOffer}
+      onMarkHired={onMarkHired}
+      onCancel={onCancel}
+      onRevealContact={onRevealContact}
+      onViewResume={onViewResume}
+      feedbackEntry={feedbackEntry}
+      onFeedbackChange={onFeedbackChange}
+      onFeedbackSubmit={onFeedbackSubmit}
+    />
+  )
+})
 
 export default function HMDashboard() {
   const { t } = useTranslation()
@@ -90,6 +208,32 @@ export default function HMDashboard() {
     () => roleExtras.filter((r) => r.activeCount >= 3 && r.extraUsed < 3),
     [roleExtras],
   )
+
+  // `respond`/`doAction` from the hook are re-created on every realtime tick
+  // (their useCallback deps include `candidates`). Route the per-card handlers
+  // through latest-refs so the identities passed to CandidateCardRow stay stable
+  // across ticks — otherwise every card's memoized callbacks would change each
+  // tick and re-render the whole grid. Refs always hold the latest closure, so
+  // a click still invokes the current candidates-aware handler (identical to the
+  // old inline `() => respond(c.id, …)`).
+  const respondRef = useRef(respond)
+  const doActionRef = useRef(doAction)
+  const revealContactRef = useRef(revealContact)
+  const viewResumeRef = useRef(viewResume)
+  const submitFeedbackRef = useRef(submitFeedback)
+  useEffect(() => {
+    respondRef.current = respond
+    doActionRef.current = doAction
+    revealContactRef.current = revealContact
+    viewResumeRef.current = viewResume
+    submitFeedbackRef.current = submitFeedback
+  })
+
+  const stableRespond = useCallback((id: string, next: 'invited_by_manager' | 'declined_by_manager') => { void respondRef.current(id, next) }, [])
+  const stableDoAction = useCallback((id: string, action: string, extra?: Record<string, unknown>) => { void doActionRef.current(id, action, extra) }, [])
+  const stableRevealContact = useCallback((id: string) => { void revealContactRef.current(id) }, [])
+  const stableViewResume = useCallback((id: string) => { void viewResumeRef.current(id) }, [])
+  const stableSubmitFeedback = useCallback((id: string) => { void submitFeedbackRef.current(id) }, [])
 
   return (
     <div>
@@ -302,37 +446,28 @@ export default function HMDashboard() {
         )
       ) : (
         <div className="grid md:grid-cols-2 gap-4">
-          {candidates.map((c) => {
-            const proposals = proposalsByMatch[c.id] ?? []
-            const pendingProposal = proposals.find((p) => p.status === 'pending') ?? null
-            return (
-              <CandidateCard
-                key={c.id}
-                row={c}
-                rounds={roundsByMatch[c.id] ?? []}
-                pendingProposal={pendingProposal}
-                preview={previewByMatch[c.id] ?? null}
-                contact={contactByMatch[c.id]}
-                actionBusy={actionBusy}
-                schedulingFor={schedulingFor}
-                companyVerified={companyVerified}
-                companyId={companyId}
-                onInvite={() => void respond(c.id, 'invited_by_manager')}
-                onDecline={() => void respond(c.id, 'declined_by_manager')}
-                onScheduleRound={() => setSchedulingFor(c.id)}
-                onCancelProposal={(proposalId) => void doAction(c.id, 'cancel_interview_proposal', { proposal_id: proposalId })}
-                onCompleteInterviews={() => void doAction(c.id, 'complete_interviews')}
-                onMakeOffer={() => void doAction(c.id, 'make_offer')}
-                onMarkHired={() => void doAction(c.id, 'mark_hired')}
-                onCancel={() => void doAction(c.id, 'cancel_match')}
-                onRevealContact={() => void revealContact(c.id)}
-                onViewResume={() => void viewResume(c.id)}
-                feedbackEntry={feedbackState[c.id] ?? { ...DEFAULT_FEEDBACK_ENTRY, rating: c.match_feedback?.[0]?.rating ?? 0, hired: c.match_feedback?.[0]?.hired ?? false, notes: c.match_feedback?.[0]?.notes ?? '', saved: !!c.match_feedback?.[0] }}
-                onFeedbackChange={(patch) => setFeedbackState((s) => ({ ...s, [c.id]: { ...(s[c.id] ?? DEFAULT_FEEDBACK_ENTRY), ...patch } }))}
-                onFeedbackSubmit={() => void submitFeedback(c.id)}
-              />
-            )
-          })}
+          {candidates.map((c) => (
+            <CandidateCardRow
+              key={c.id}
+              row={c}
+              roundsEntry={roundsByMatch[c.id]}
+              proposalsEntry={proposalsByMatch[c.id]}
+              preview={previewByMatch[c.id]}
+              contact={contactByMatch[c.id]}
+              feedbackEntryState={feedbackState[c.id]}
+              actionBusy={actionBusy}
+              schedulingFor={schedulingFor}
+              companyVerified={companyVerified}
+              companyId={companyId}
+              respond={stableRespond}
+              doAction={stableDoAction}
+              revealContact={stableRevealContact}
+              viewResume={stableViewResume}
+              submitFeedback={stableSubmitFeedback}
+              setSchedulingFor={setSchedulingFor}
+              setFeedbackState={setFeedbackState}
+            />
+          ))}
         </div>
       )}
 

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useMemo } from 'react'
 import type { Branch, Employee, Organization } from './types'
 import { listBranches, listEmployees, getMyOrg, createOrg } from './store'
 import { BRANCH_STORAGE_KEY, EMPLOYEE_STORAGE_KEY } from './format'
@@ -127,17 +127,30 @@ export function RestaurantProvider({ children }: { children: ReactNode }) {
     })()
   }, [branchId])
 
-  const branch = branches.find((b) => b.id === branchId) ?? null
-  const employee = employees.find((e) => e.id === employeeId) ?? null
+  const branch = useMemo(
+    () => branches.find((b) => b.id === branchId) ?? null,
+    [branches, branchId],
+  )
+  const employee = useMemo(
+    () => employees.find((e) => e.id === employeeId) ?? null,
+    [employees, employeeId],
+  )
   const orgId = org?.id ?? null
 
+  const value = useMemo<RestaurantCtx>(() => ({
+    loading, branches, branchId, branch, setBranchId, refreshBranches,
+    employees, employeeId, setEmployeeId, employee, refreshEmployees,
+    org, orgId, isOrgOwner, noOrg, createFirstOrg, refreshOrg,
+    error,
+  }), [
+    loading, branches, branchId, branch, setBranchId, refreshBranches,
+    employees, employeeId, setEmployeeId, employee, refreshEmployees,
+    org, orgId, isOrgOwner, noOrg, createFirstOrg, refreshOrg,
+    error,
+  ])
+
   return (
-    <Ctx.Provider value={{
-      loading, branches, branchId, branch, setBranchId, refreshBranches,
-      employees, employeeId, setEmployeeId, employee, refreshEmployees,
-      org, orgId, isOrgOwner, noOrg, createFirstOrg, refreshOrg,
-      error,
-    }}>
+    <Ctx.Provider value={value}>
       {children}
     </Ctx.Provider>
   )

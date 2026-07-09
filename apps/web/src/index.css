@@ -2,7 +2,15 @@
    skip the round-trip to fonts.googleapis.com (CSS) + fonts.gstatic.com (woff2).
    Browser uses unicode-range in each @font-face to download only the subsets
    it actually needs (latin / latin-ext). font-display: swap is preserved by
-   @fontsource. Drops 2 external origin handshakes on cold load. */
+   @fontsource — text paints immediately in the fallback and swaps to the web
+   font once loaded, so these @font-face rules never block first paint.
+   Drops 2 external origin handshakes on cold load.
+
+   Note (B5): these two @import lines resolve @fontsource *package* CSS, which
+   Vite inlines into the bundled stylesheet at build time — they are NOT runtime
+   render-blocking `@import url()` network requests, so there's no extra
+   round-trip to eliminate. Kept as-is intentionally; do not rewrite to <link>
+   preloads without re-verifying the bundled woff2 subset URLs still resolve. */
 @import '@fontsource-variable/inter/wght.css';
 @import '@fontsource-variable/fraunces/wght.css';
 

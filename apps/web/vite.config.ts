@@ -34,6 +34,17 @@ export default defineConfig({
           '**/*.map',
           '**/workbox-*.js',
           '**/{HMDashboard,TalentDashboard,AdminDashboard,HRDashboard,PostRole,EditRole,MyRoles,InviteHM,TalentProfile,HMCompanyProfile,HMSettings,HMAccount,TalentOnboarding,HMOnboarding,CompanyRegister,CompanyVerify,OrgChartList,OrgChartNew,OrgChartDetail,Kiosk,Orders,Kds,Cashier,Floor,Inventory,Purchasing,Staff,Accounting,Promotions,Audit,Shifts,Branches,Reports,GuestMenu,RestaurantHome,RestaurantLayout,RestaurantAdmin,Track}-*.js',
+          // The Inter/Fraunces @font-face rules ship cyrillic/greek/vietnamese
+          // woff2 subsets, but the app UI (English + Malay) is latin-only, so
+          // those subsets never render — their unicode-range never matches. Keep
+          // them out of the SW precache (~97KB the install would otherwise fetch
+          // for nothing). The @font-face rules still reference them, so on the
+          // rare chance such glyphs appear they're fetched at runtime over the
+          // network. latin + latin-ext stay precached.
+          '**/inter-cyrillic-*.woff2',
+          '**/inter-greek-*.woff2',
+          '**/inter-vietnamese-*.woff2',
+          '**/fraunces-vietnamese-*.woff2',
         ],
       },
       manifest: false,        // we already ship public/manifest.json
@@ -55,7 +66,7 @@ export default defineConfig({
     // wired into the build pipeline.
     sourcemap: 'hidden',
     outDir: 'dist',
-    target: 'es2020',
+    target: 'es2022',
     cssCodeSplit: true,
     chunkSizeWarningLimit: 700,
     rollupOptions: {

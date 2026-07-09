@@ -141,6 +141,16 @@ async function handler(req: Request): Promise<Response> {
       return { _status: 400, _body: { error: 'Extra match quota exhausted', used, cap } }
     }
 
+    // FAIL-CLOSED (charge-without-fulfilment guard): match-generate accepts only
+    // role_id — it has NO talent-scoped generation path — so a talent redemption
+    // would deduct points here and then fire match-generate with talent_id (below),
+    // which 400s and is swallowed by the fire-and-forget .catch(): the talent is
+    // charged with no match generated. Reject BEFORE any deduction until a talent
+    // generation path exists. HM role redemptions are unaffected.
+    if (targetType === 'talent') {
+      return { _status: 501, _body: { error: 'Talent extra-match redemption is temporarily unavailable.' } }
+    }
+
     // Deduct points with a balance check + an idempotency key derived from the
     // current `used` value. The RPC is idempotent on the key, so a double-click
     // from the UI replays the same key and is not double-charged.
@@ -171,17 +181,13 @@ async function handler(req: Request): Promise<Response> {
       }
     }
 
-    // Bump quota counter.
-    if (targetType === 'role' && roleId) {
+    // Bump quota counter. Only HM role redemptions reach here (talent redemptions
+    // are fail-closed above), so this is role-only.
+    if (roleId) {
       await db.from('roles')
         .update({ extra_matches_used: used + 1 })
         .eq('id', roleId)
         .eq('extra_matches_used', used) // optimistic concurrency guard
-    } else if (targetType === 'talent' && talentId) {
-      await db.from('talents')
-        .update({ extra_matches_used: used + 1 })
-        .eq('id', talentId)
-        .eq('extra_matches_used', used)
     }
 
     // Trigger an extra-match generation. Service-role auth.
@@ -190,11 +196,7 @@ async function handler(req: Request): Promise<Response> {
     fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${svcKey}` },
-      body: JSON.stringify(
-        targetType === 'role'
-          ? { role_id: roleId, is_extra_match: true }
-          : { talent_id: talentId, is_extra_match: true }
-      ),
+      body: JSON.stringify({ role_id: roleId, is_extra_match: true }),
     }).catch(() => { /* best effort */ })
 
     return {

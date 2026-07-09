@@ -126,6 +126,15 @@ async function handler(req: Request): Promise<Response> {
       return { _status: 400, _body: { error: 'Extra match quota exhausted', used, cap } }
     }
 
+    // FAIL-CLOSED (charge-without-fulfilment guard): payment-webhook only fires
+    // match-generate for hm_extra — a PAID talent_extra purchase bumps quota but never
+    // triggers generation, charging the talent with no match. Reject talent_extra
+    // BEFORE creating the pending purchase row + Billplz bill, until a talent
+    // fulfilment path exists (payment-webhook is owned elsewhere). hm_extra unaffected.
+    if (body.match_type === 'talent_extra') {
+      return { _status: 501, _body: { error: 'Talent extra-match purchase is temporarily unavailable.' } }
+    }
+
     // Price — read from system_config, fallback to 9.90.
     const { data: priceCfg } = await db.from('system_config').select('value')
       .eq('key', 'extra_match_price_rm').maybeSingle()

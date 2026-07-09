@@ -80,14 +80,14 @@ export default function LocationSilo() {
   if (!loc) return <Navigate to="/careers" replace />
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0B1220] text-[#0B1220] dark:text-white font-sans">
-      <header className="border-b border-gray-100 dark:border-gray-700 dark:bg-[#0B1742]">
+    <div className="min-h-screen bg-white dark:bg-navy-900 text-navy-900 dark:text-white font-sans">
+      <header className="border-b border-gray-100 dark:border-gray-700 dark:bg-navy-800">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2" aria-label="DNJ home">
             <span className="font-extrabold tracking-tight text-[20px]">DNJ</span>
             <span className="text-[10px] tracking-[0.22em] text-gray-500">DIAMOND &amp; JEWELER</span>
           </Link>
-          <Link to="/start/talent" className="text-sm text-[#1B2A6B] font-semibold underline underline-offset-4">
+          <Link to="/start/talent" className="text-sm text-navy-700 font-semibold underline underline-offset-4">
             Apply now
           </Link>
         </div>
@@ -95,15 +95,15 @@ export default function LocationSilo() {
 
       <main className="max-w-5xl mx-auto px-6 py-10">
         <nav aria-label="Breadcrumb" className="text-xs text-gray-500 mb-4">
-          <Link to="/" className="hover:text-[#0B1220]">Home</Link>
+          <Link to="/" className="hover:text-navy-900">Home</Link>
           <span className="mx-2">/</span>
-          <Link to="/careers" className="hover:text-[#0B1220]">Careers</Link>
+          <Link to="/careers" className="hover:text-navy-900">Careers</Link>
           <span className="mx-2">/</span>
           <span aria-current="page" className="text-gray-700">Jobs in {loc.name}</span>
         </nav>
 
         <section>
-          <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2">
+          <p className="text-gold-500 tracking-[0.3em] text-[11px] font-semibold mb-2">
             URGENT HIRING · {loc.name.toUpperCase()}
           </p>
           <h1 className="text-3xl md:text-5xl font-bold tracking-tight mb-3">
@@ -114,13 +114,13 @@ export default function LocationSilo() {
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               to="/start/talent"
-              className="inline-flex items-center px-5 py-2.5 rounded-xl bg-[#0B1742] text-white text-sm font-semibold shadow hover:bg-[#1B2A6B]"
+              className="inline-flex items-center px-5 py-2.5 rounded-xl bg-navy-800 text-white text-sm font-semibold shadow hover:bg-navy-700"
             >
               Apply now — get matched
             </Link>
             <Link
               to="/start/hiring"
-              className="inline-flex items-center px-5 py-2.5 rounded-xl border border-gray-300 text-sm font-semibold hover:border-[#0B1742]"
+              className="inline-flex items-center px-5 py-2.5 rounded-xl border border-gray-300 text-sm font-semibold hover:border-navy-800"
             >
               I'm hiring in {loc.shortName}
             </Link>
@@ -145,14 +145,14 @@ export default function LocationSilo() {
               const r = ROLES[roleSlug]
               if (!r) return null
               return (
-                <li key={roleSlug} className="rounded-xl border border-gray-200 p-5 hover:border-[#0B1742] transition-colors">
-                  <h3 className="font-semibold text-[#0B1220] mb-1">{r.name} jobs in {loc.name}</h3>
+                <li key={roleSlug} className="rounded-xl border border-gray-200 p-5 hover:border-navy-800 transition-colors">
+                  <h3 className="font-semibold text-navy-900 mb-1">{r.name} jobs in {loc.name}</h3>
                   <p className="text-xs text-gray-500 mb-2">
                     {r.industry} · {r.jobTypes.map((t) => t.replace('_', ' ').toLowerCase()).join(' · ')}
                   </p>
                   <Link
                     to={`/jobs/${roleSlug}`}
-                    className="text-sm font-semibold text-[#1B2A6B] hover:text-[#0B1220]"
+                    className="text-sm font-semibold text-navy-700 hover:text-navy-900"
                   >
                     View {r.name.toLowerCase()} roles →
                   </Link>
@@ -162,7 +162,7 @@ export default function LocationSilo() {
           </ul>
         </section>
 
-        <section className="mt-10 rounded-2xl bg-gradient-to-br from-[#0B1742] to-[#1B2A6B] text-white p-8 text-center">
+        <section className="mt-10 rounded-2xl bg-gradient-to-br from-navy-800 to-navy-700 text-white p-8 text-center">
           <h2 className="text-2xl font-bold mb-2">
             AI-curated matching — three jobs in {loc.name}, zero noise
           </h2>
@@ -172,7 +172,7 @@ export default function LocationSilo() {
           <div className="mt-5 flex flex-wrap justify-center gap-3">
             <Link
               to="/start/talent"
-              className="inline-flex items-center px-5 py-2.5 rounded-xl bg-white text-[#0B1742] text-sm font-semibold hover:bg-gray-100"
+              className="inline-flex items-center px-5 py-2.5 rounded-xl bg-white text-navy-800 text-sm font-semibold hover:bg-gray-100"
             >
               Apply now
             </Link>
@@ -191,19 +191,19 @@ export default function LocationSilo() {
         />
 
         <section className="mt-12">
-          <h2 className="text-base font-semibold text-[#0B1220] mb-2">Popular searches in {loc.name}</h2>
+          <h2 className="text-base font-semibold text-navy-900 mb-2">Popular searches in {loc.name}</h2>
           <p className="text-xs text-gray-500 leading-relaxed">{loc.keywords}</p>
         </section>
       </main>
 
       <footer className="border-t border-gray-100 mt-10 py-6 text-center text-xs text-gray-500">
-        <Link to="/" className="hover:text-[#0B1220]">Home</Link>
+        <Link to="/" className="hover:text-navy-900">Home</Link>
         <span className="mx-2">·</span>
-        <Link to="/careers" className="hover:text-[#0B1220]">Careers</Link>
+        <Link to="/careers" className="hover:text-navy-900">Careers</Link>
         <span className="mx-2">·</span>
-        <Link to="/privacy" className="hover:text-[#0B1220]">Privacy</Link>
+        <Link to="/privacy" className="hover:text-navy-900">Privacy</Link>
         <span className="mx-2">·</span>
-        <Link to="/terms" className="hover:text-[#0B1220]">Terms</Link>
+        <Link to="/terms" className="hover:text-navy-900">Terms</Link>
       </footer>
     </div>
   )

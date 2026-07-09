@@ -56,14 +56,14 @@ export default function HireSilo() {
   if (!hire) return <Navigate to="/careers" replace />
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0B1220] text-[#0B1220] dark:text-white font-sans">
-      <header className="border-b border-gray-100 dark:border-gray-700 dark:bg-[#0B1742]">
+    <div className="min-h-screen bg-white dark:bg-navy-900 text-navy-900 dark:text-white font-sans">
+      <header className="border-b border-gray-100 dark:border-gray-700 dark:bg-navy-800">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2" aria-label="DNJ home">
             <span className="font-extrabold tracking-tight text-[20px]">DNJ</span>
             <span className="text-[10px] tracking-[0.22em] text-gray-500">DIAMOND &amp; JEWELER</span>
           </Link>
-          <Link to="/start/hiring" className="text-sm text-[#1B2A6B] font-semibold underline underline-offset-4">
+          <Link to="/start/hiring" className="text-sm text-navy-700 font-semibold underline underline-offset-4">
             Start hiring
           </Link>
         </div>
@@ -71,15 +71,15 @@ export default function HireSilo() {
 
       <main className="max-w-5xl mx-auto px-6 py-10">
         <nav aria-label="Breadcrumb" className="text-xs text-gray-500 mb-4">
-          <Link to="/" className="hover:text-[#0B1220]">Home</Link>
+          <Link to="/" className="hover:text-navy-900">Home</Link>
           <span className="mx-2">/</span>
-          <Link to="/start/hiring" className="hover:text-[#0B1220]">For employers</Link>
+          <Link to="/start/hiring" className="hover:text-navy-900">For employers</Link>
           <span className="mx-2">/</span>
           <span aria-current="page" className="text-gray-700">Hire {hire.role}</span>
         </nav>
 
         <section>
-          <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2">
+          <p className="text-gold-500 tracking-[0.3em] text-[11px] font-semibold mb-2">
             FOR HIRING MANAGERS · MALAYSIA
           </p>
           <h1 className="text-3xl md:text-5xl font-bold tracking-tight mb-3 capitalize">
@@ -90,13 +90,13 @@ export default function HireSilo() {
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               to="/start/hiring"
-              className="inline-flex items-center px-5 py-2.5 rounded-xl bg-[#0B1742] text-white text-sm font-semibold shadow hover:bg-[#1B2A6B]"
+              className="inline-flex items-center px-5 py-2.5 rounded-xl bg-navy-800 text-white text-sm font-semibold shadow hover:bg-navy-700"
             >
               Start hiring with DNJ
             </Link>
             <Link
               to="/careers"
-              className="inline-flex items-center px-5 py-2.5 rounded-xl border border-gray-300 text-sm font-semibold hover:border-[#0B1742]"
+              className="inline-flex items-center px-5 py-2.5 rounded-xl border border-gray-300 text-sm font-semibold hover:border-navy-800"
             >
               See talent applying
             </Link>
@@ -114,7 +114,7 @@ export default function HireSilo() {
           </ul>
         </section>
 
-        <section className="mt-10 rounded-2xl bg-gradient-to-br from-[#0B1742] to-[#1B2A6B] text-white p-8 text-center">
+        <section className="mt-10 rounded-2xl bg-gradient-to-br from-navy-800 to-navy-700 text-white p-8 text-center">
           <h2 className="text-2xl font-bold mb-2">Three matches per role · zero CV pile</h2>
           <p className="text-white/85 max-w-2xl mx-auto leading-relaxed">
             Our proprietary AI compatibility engine scores skills, culture fit, trajectory and compensation alignment — not just CV keywords. PDPA-compliant, end-to-end encrypted, and full candidate confidentiality until mutual interest is confirmed.
@@ -122,7 +122,7 @@ export default function HireSilo() {
           <div className="mt-5 flex flex-wrap justify-center gap-3">
             <Link
               to="/start/hiring"
-              className="inline-flex items-center px-5 py-2.5 rounded-xl bg-white text-[#0B1742] text-sm font-semibold hover:bg-gray-100"
+              className="inline-flex items-center px-5 py-2.5 rounded-xl bg-white text-navy-800 text-sm font-semibold hover:bg-gray-100"
             >
               Start hiring
             </Link>
@@ -132,19 +132,19 @@ export default function HireSilo() {
         <RelatedLinks roles={hire.relatedRoles} locations={['kuala-lumpur', 'petaling-jaya', 'penang']} />
 
         <section className="mt-12">
-          <h2 className="text-base font-semibold text-[#0B1220] mb-2">Related services</h2>
+          <h2 className="text-base font-semibold text-navy-900 mb-2">Related services</h2>
           <p className="text-xs text-gray-500 leading-relaxed">{hire.keywords}</p>
         </section>
       </main>
 
       <footer className="border-t border-gray-100 mt-10 py-6 text-center text-xs text-gray-500">
-        <Link to="/" className="hover:text-[#0B1220]">Home</Link>
+        <Link to="/" className="hover:text-navy-900">Home</Link>
         <span className="mx-2">·</span>
-        <Link to="/careers" className="hover:text-[#0B1220]">Careers</Link>
+        <Link to="/careers" className="hover:text-navy-900">Careers</Link>
         <span className="mx-2">·</span>
-        <Link to="/privacy" className="hover:text-[#0B1220]">Privacy</Link>
+        <Link to="/privacy" className="hover:text-navy-900">Privacy</Link>
         <span className="mx-2">·</span>
-        <Link to="/terms" className="hover:text-[#0B1220]">Terms</Link>
+        <Link to="/terms" className="hover:text-navy-900">Terms</Link>
       </footer>
     </div>
   )

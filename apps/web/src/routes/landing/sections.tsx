@@ -28,10 +28,10 @@ function TrustStripImpl() {
     { icon: '🇲🇾', label: t('landing.trustMalaysiaFirst') },
   ]
   return (
-    <div className="bg-[#0B1742] py-3 px-6">
+    <div className="bg-navy-800 py-3 px-6">
       <ul className="max-w-4xl mx-auto flex flex-wrap items-center justify-center gap-x-8 gap-y-2" aria-label={t('landing.trustSignalsAria')}>
         {pills.map((p) => (
-          <li key={p.label} className={`flex items-center gap-2 text-sm ${p.gold ? 'text-[#C9A24D] font-semibold' : 'text-white/80'}`}>
+          <li key={p.label} className={`flex items-center gap-2 text-sm ${p.gold ? 'text-gold-500 font-semibold' : 'text-white/80'}`}>
             <span aria-hidden>{p.icon}</span>
             {p.label}
           </li>
@@ -47,17 +47,17 @@ function VideoSectionImpl() {
   const { t } = useTranslation()
   const [playing, setPlaying] = useState(false)
   return (
-    <section className="py-14 px-6 bg-white dark:bg-[#0d1528]" aria-labelledby="video-heading">
+    <section className="py-14 px-6 bg-white dark:bg-midnight-800" aria-labelledby="video-heading">
       <div className="max-w-4xl mx-auto text-center">
-        <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">{t('landing.videoEyebrow')}</p>
-        <h2 id="video-heading" className="text-2xl md:text-3xl font-bold tracking-tight text-[#0B1220] dark:text-white mb-2">
+        <p className="text-gold-500 tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">{t('landing.videoEyebrow')}</p>
+        <h2 id="video-heading" className="text-2xl md:text-3xl font-bold tracking-tight text-navy-900 dark:text-white mb-2">
           {t('landing.videoTitle')}
         </h2>
         <p className="text-sm text-gray-500 max-w-lg mx-auto mb-8 leading-relaxed">
           {t('landing.videoSubtitle')}
         </p>
         <div className="relative w-full aspect-video max-w-4xl mx-auto rounded-2xl overflow-hidden
-                        shadow-[0_8px_32px_-8px_rgba(11,23,66,0.22)] ring-2 ring-[#0B1742]/20">
+                        shadow-[0_8px_32px_-8px_rgba(11,23,66,0.22)] ring-2 ring-navy-800/20">
           {VIDEO_URL && playing ? (
             <iframe
               src={VIDEO_URL}
@@ -74,8 +74,8 @@ function VideoSectionImpl() {
               style={{ background: 'linear-gradient(160deg,#0B1742 0%,#0B1220 100%)' }}
               aria-label={t('landing.videoPlayAria')}
             >
-              <div className="w-20 h-20 rounded-full bg-[#C9A24D]/20 border-2 border-[#C9A24D]/60
-                              flex items-center justify-center group-hover:bg-[#C9A24D]/30 transition-colors">
+              <div className="w-20 h-20 rounded-full bg-gold-500/20 border-2 border-gold-500/60
+                              flex items-center justify-center group-hover:bg-gold-500/30 transition-colors">
                 <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden>
                   <polygon points="9,6 23,14 9,22" fill="#C9A24D" />
                 </svg>
@@ -88,14 +88,14 @@ function VideoSectionImpl() {
               className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-4"
               style={{ background: 'linear-gradient(160deg,#0B1742 0%,#0B1220 100%)' }}
             >
-              <div className="w-20 h-20 rounded-full bg-[#C9A24D]/20 border-2 border-[#C9A24D]/60
+              <div className="w-20 h-20 rounded-full bg-gold-500/20 border-2 border-gold-500/60
                               flex items-center justify-center">
                 <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden>
                   <polygon points="9,6 23,14 9,22" fill="#C9A24D" stroke="#C9A24D" strokeLinejoin="round" />
                 </svg>
               </div>
               <div className="text-center">
-                <p className="text-sm font-semibold text-[#C9A24D]">{t('common.comingSoon')}</p>
+                <p className="text-sm font-semibold text-gold-500">{t('common.comingSoon')}</p>
                 <p className="text-xs text-white/60 mt-1">{t('landing.videoComingSoonHint')}</p>
               </div>
             </div>
@@ -111,11 +111,11 @@ export const VideoSection = memo(VideoSectionImpl)
 function HowItWorksSectionImpl() {
   const { t } = useTranslation()
   return (
-    <section className="py-16 px-6 bg-white dark:bg-[#0d1528]" aria-labelledby="how-it-works-heading">
+    <section className="py-16 px-6 bg-white dark:bg-midnight-800" aria-labelledby="how-it-works-heading">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-10">
-          <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">{t('landing.howEyebrow')}</p>
-          <h2 id="how-it-works-heading" className="text-2xl md:text-3xl font-bold tracking-tight text-[#0B1220] dark:text-white">
+          <p className="text-gold-500 tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">{t('landing.howEyebrow')}</p>
+          <h2 id="how-it-works-heading" className="text-2xl md:text-3xl font-bold tracking-tight text-navy-900 dark:text-white">
             {t('landing.howTitle')}
           </h2>
           <p className="text-gray-500 dark:text-gray-400 mt-2 max-w-lg mx-auto text-sm leading-relaxed">
@@ -125,11 +125,11 @@ function HowItWorksSectionImpl() {
 
         <div className="flex flex-col md:flex-row items-center gap-4 md:gap-2">
           {/* Step 1 */}
-          <div className="flex-1 text-center bg-gradient-to-b from-[#fafbff] to-white dark:from-[#1B2A6B]/20 dark:to-[#0d1528] rounded-2xl ring-1 ring-[#e8edff] dark:ring-[#1e2d52] p-6 w-full">
-            <div className="w-14 h-14 rounded-full bg-[#C9A24D]/10 border border-[#C9A24D]/50 flex items-center justify-center mx-auto mb-4">
-              <span className="text-[#C9A24D] font-bold text-lg leading-none">01</span>
+          <div className="flex-1 text-center bg-gradient-to-b from-[#fafbff] to-white dark:from-navy-700/20 dark:to-midnight-800 rounded-2xl ring-1 ring-midnight-100 dark:ring-midnight-700 p-6 w-full">
+            <div className="w-14 h-14 rounded-full bg-gold-500/10 border border-gold-500/50 flex items-center justify-center mx-auto mb-4">
+              <span className="text-gold-500 font-bold text-lg leading-none">01</span>
             </div>
-            <h3 className="font-bold text-[#0B1220] dark:text-white mb-2">{t('landing.howStep1Title')}</h3>
+            <h3 className="font-bold text-navy-900 dark:text-white mb-2">{t('landing.howStep1Title')}</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
               {t('landing.howStep1Desc')}
             </p>
@@ -138,10 +138,10 @@ function HowItWorksSectionImpl() {
           <StepArrow />
 
           {/* Step 2 — highlighted (Bole) */}
-          <div className="flex-1 text-center rounded-2xl ring-1 ring-[#5468ef]/30 p-6 w-full shadow-[0_8px_32px_-8px_rgba(84,104,239,0.25)]"
+          <div className="flex-1 text-center rounded-2xl ring-1 ring-brand-500/30 p-6 w-full shadow-[0_8px_32px_-8px_rgba(84,104,239,0.25)]"
                style={{ background: 'linear-gradient(160deg,#0B1742 0%,#0B1220 100%)' }}>
-            <div className="w-14 h-14 rounded-full bg-[#C9A24D]/20 border border-[#C9A24D]/50 flex items-center justify-center mx-auto mb-4">
-              <span className="text-[#C9A24D] font-bold text-xl leading-none" aria-label={t('landing.boleCharacterAria')}>伯</span>
+            <div className="w-14 h-14 rounded-full bg-gold-500/20 border border-gold-500/50 flex items-center justify-center mx-auto mb-4">
+              <span className="text-gold-500 font-bold text-xl leading-none" aria-label={t('landing.boleCharacterAria')}>伯</span>
             </div>
             <h3 className="font-bold text-white mb-2">{t('landing.howStep2Title')}</h3>
             <p className="text-sm text-white/75 leading-relaxed">
@@ -152,11 +152,11 @@ function HowItWorksSectionImpl() {
           <StepArrow />
 
           {/* Step 3 */}
-          <div className="flex-1 text-center bg-gradient-to-b from-[#fafbff] to-white dark:from-[#1B2A6B]/20 dark:to-[#0d1528] rounded-2xl ring-1 ring-[#e8edff] dark:ring-[#1e2d52] p-6 w-full">
-            <div className="w-14 h-14 rounded-full bg-[#C9A24D]/10 border border-[#C9A24D]/50 flex items-center justify-center mx-auto mb-4">
-              <span className="text-[#C9A24D] font-bold text-lg leading-none">03</span>
+          <div className="flex-1 text-center bg-gradient-to-b from-[#fafbff] to-white dark:from-navy-700/20 dark:to-midnight-800 rounded-2xl ring-1 ring-midnight-100 dark:ring-midnight-700 p-6 w-full">
+            <div className="w-14 h-14 rounded-full bg-gold-500/10 border border-gold-500/50 flex items-center justify-center mx-auto mb-4">
+              <span className="text-gold-500 font-bold text-lg leading-none">03</span>
             </div>
-            <h3 className="font-bold text-[#0B1220] dark:text-white mb-2">{t('landing.howStep3Title')}</h3>
+            <h3 className="font-bold text-navy-900 dark:text-white mb-2">{t('landing.howStep3Title')}</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
               {t('landing.howStep3Desc')}
             </p>
@@ -166,7 +166,7 @@ function HowItWorksSectionImpl() {
         <div className="mt-8 text-center">
           <Link
             to="/start/talent"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#0B1742] text-white font-semibold text-sm hover:bg-[#1B2A6B] transition-colors shadow-[0_4px_14px_rgba(11,23,66,0.35)]"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-navy-800 text-white font-semibold text-sm hover:bg-navy-700 transition-colors shadow-[0_4px_14px_rgba(11,23,66,0.35)]"
           >
             {t('landing.howStartProfile')} <Arrow />
           </Link>
@@ -197,8 +197,8 @@ function BoleSectionImpl() {
     >
       <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
         <div>
-          <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-3 uppercase">{t('landing.boleEyebrow')}</p>
-          <div className="text-[80px] font-extrabold text-[#C9A24D] leading-none mb-4" aria-hidden>伯樂</div>
+          <p className="text-gold-500 tracking-[0.3em] text-[11px] font-semibold mb-3 uppercase">{t('landing.boleEyebrow')}</p>
+          <div className="text-[80px] font-extrabold text-gold-500 leading-none mb-4" aria-hidden>伯樂</div>
           <h2 id="bole-heading" className="text-2xl md:text-3xl font-bold text-white mb-3 tracking-tight">
             {t('landing.boleTitle')}
           </h2>
@@ -212,7 +212,7 @@ function BoleSectionImpl() {
           </p>
           <Link
             to="/about"
-            className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#C9A24D] hover:text-white transition-colors"
+            className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-gold-500 hover:text-white transition-colors"
           >
             {t('landing.boleReadStory')} <Arrow />
           </Link>
@@ -223,14 +223,14 @@ function BoleSectionImpl() {
             {facets.map((f) => (
               <span
                 key={f}
-                className="px-3 py-1.5 rounded-full text-sm text-[#dbe4ff] border border-[#a6b6ff]/30 bg-[#a6b6ff]/10"
+                className="px-3 py-1.5 rounded-full text-sm text-midnight-200 border border-midnight-400/30 bg-midnight-400/10"
               >
                 {f}
               </span>
             ))}
           </div>
           <div className="mt-6 rounded-xl bg-white/5 border border-white/10 p-4 text-sm text-white/70 leading-relaxed">
-            <span className="block text-[#C9A24D] font-semibold mb-1">{t('landing.boleWhyThreeTitle')}</span>
+            <span className="block text-gold-500 font-semibold mb-1">{t('landing.boleWhyThreeTitle')}</span>
             {t('landing.boleWhyThreeBody')}
           </div>
         </div>
@@ -244,12 +244,12 @@ export const BoleSection = memo(BoleSectionImpl)
 function PassiveTalentSectionImpl() {
   const { t } = useTranslation()
   return (
-    <section className="py-14 px-6 bg-white dark:bg-[#0d1528]" aria-labelledby="passive-heading">
+    <section className="py-14 px-6 bg-white dark:bg-midnight-800" aria-labelledby="passive-heading">
       <div className="max-w-4xl mx-auto">
-        <div className="rounded-2xl ring-1 ring-[#e8edff] dark:ring-[#1e2d52] bg-gradient-to-br from-[#fafbff] to-[#f0f4ff] dark:from-[#111827] dark:to-[#0d1528] p-8 md:p-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+        <div className="rounded-2xl ring-1 ring-midnight-100 dark:ring-midnight-700 bg-gradient-to-br from-[#fafbff] to-[#f0f4ff] dark:from-[#111827] dark:to-midnight-800 p-8 md:p-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
           <div>
-            <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">{t('landing.passiveEyebrow')}</p>
-            <h2 id="passive-heading" className="text-2xl font-bold tracking-tight text-[#0B1220] mb-3">
+            <p className="text-gold-500 tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">{t('landing.passiveEyebrow')}</p>
+            <h2 id="passive-heading" className="text-2xl font-bold tracking-tight text-navy-900 mb-3">
               {t('landing.passiveTitle')}
             </h2>
             <p className="text-sm text-gray-600 leading-relaxed">
@@ -266,14 +266,14 @@ function PassiveTalentSectionImpl() {
                 t('landing.passivePoint4'),
               ].map((point) => (
                 <li key={point} className="flex items-start gap-2">
-                  <span className="text-[#C9A24D] mt-0.5 flex-shrink-0" aria-hidden>✦</span>
+                  <span className="text-gold-500 mt-0.5 flex-shrink-0" aria-hidden>✦</span>
                   {point}
                 </li>
               ))}
             </ul>
             <Link
               to="/start/talent"
-              className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0B1742] text-white text-sm font-semibold hover:bg-[#1B2A6B] transition-colors"
+              className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-navy-800 text-white text-sm font-semibold hover:bg-navy-700 transition-colors"
             >
               {t('landing.passiveJoinFree')} <Arrow />
             </Link>
@@ -281,7 +281,7 @@ function PassiveTalentSectionImpl() {
           {/* Visual: a sleeping diamond / passive indicator */}
           <div className="flex flex-col items-center justify-center gap-4 text-center">
             <div className="relative">
-              <div className="w-24 h-24 rounded-full bg-[#e8edff] flex items-center justify-center">
+              <div className="w-24 h-24 rounded-full bg-midnight-100 flex items-center justify-center">
                 <svg width="48" height="48" viewBox="0 0 44 44" fill="none" aria-hidden>
                   <polygon points="6,16 22,4 38,16" fill="#a6b6ff" stroke="#0b1742" strokeWidth="0.9" strokeLinejoin="round" />
                   <polygon points="6,16 38,16 22,40" fill="#0b1742" stroke="#0b1742" strokeWidth="0.9" strokeLinejoin="round" />
@@ -289,7 +289,7 @@ function PassiveTalentSectionImpl() {
                 </svg>
               </div>
               {/* Pulse ring */}
-              <span className="absolute inset-0 rounded-full border-2 border-[#7b8efc]/40 animate-ping" aria-hidden />
+              <span className="absolute inset-0 rounded-full border-2 border-midnight-500/40 animate-ping" aria-hidden />
             </div>
             <div className="text-sm text-gray-500 max-w-[180px] leading-relaxed">
               {t('landing.passiveScanCaption')}
@@ -320,11 +320,11 @@ function SocialProofStripImpl() {
     { stat: t('landing.proofTimelineStat'), label: t('landing.proofTimelineLabel') },
   ]
   return (
-    <div className="border-y border-gray-100 dark:border-gray-800 bg-[#fafbff] dark:bg-[#0d1528] py-8 px-6">
+    <div className="border-y border-gray-100 dark:border-gray-800 bg-[#fafbff] dark:bg-midnight-800 py-8 px-6">
       <ul className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6" aria-label={t('landing.proofAria')}>
         {signals.map((s) => (
           <li key={s.label} className="text-center">
-            <div className="text-[#0B1742] dark:text-[#a6b6ff] font-extrabold text-xl tracking-tight">{s.stat}</div>
+            <div className="text-navy-800 dark:text-midnight-400 font-extrabold text-xl tracking-tight">{s.stat}</div>
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">{s.label}</div>
           </li>
         ))}
@@ -338,14 +338,14 @@ export const SocialProofStrip = memo(SocialProofStripImpl)
 function ReferralSectionImpl() {
   const { t } = useTranslation()
   return (
-    <section className="py-12 px-6 bg-white dark:bg-[#0d1528]" aria-labelledby="referral-heading">
+    <section className="py-12 px-6 bg-white dark:bg-midnight-800" aria-labelledby="referral-heading">
       <div className="max-w-4xl mx-auto">
         <div
           className="rounded-2xl p-8 text-center"
           style={{ background: 'linear-gradient(135deg,#fffaf1 0%,#fff7e6 100%)', border: '1px solid #e9c97a' }}
         >
-          <p className="text-[#8a6420] tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">{t('landing.referEyebrow')}</p>
-          <h2 id="referral-heading" className="text-xl font-bold text-[#0B1220] mb-2">
+          <p className="text-gold-800 tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">{t('landing.referEyebrow')}</p>
+          <h2 id="referral-heading" className="text-xl font-bold text-navy-900 mb-2">
             {t('landing.referTitle')}
           </h2>
           <p className="text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
@@ -354,13 +354,13 @@ function ReferralSectionImpl() {
           <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
             <Link
               to="/login"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#C9A24D] text-[#0B1220] text-sm font-bold hover:bg-[#b88c38] transition-colors"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gold-500 text-navy-900 text-sm font-bold hover:bg-[#b88c38] transition-colors"
             >
               {t('landing.referCta')} <Arrow />
             </Link>
             <Link
               to="/start/talent"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-[#C9A24D]/60 text-[#8a6420] text-sm font-semibold hover:bg-[#C9A24D]/10 transition-colors"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gold-500/60 text-gold-800 text-sm font-semibold hover:bg-gold-500/10 transition-colors"
             >
               {t('landing.referJoinFirst')}
             </Link>
@@ -378,15 +378,15 @@ function WhatsAppCTAImpl() {
   const WHATSAPP_NUMBER = '601239449333'
   const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(t('landing.whatsappPrefill'))}`
   return (
-    <section className="py-14 px-6 bg-[#fafbff] dark:bg-[#0d1528] border-t border-gray-100 dark:border-gray-800" aria-labelledby="contact-heading">
+    <section className="py-14 px-6 bg-[#fafbff] dark:bg-midnight-800 border-t border-gray-100 dark:border-gray-800" aria-labelledby="contact-heading">
       <div className="max-w-4xl mx-auto text-center">
-        <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">{t('landing.contactEyebrow')}</p>
-        <h2 id="contact-heading" className="text-xl font-bold text-[#0B1220] dark:text-white mb-2">
+        <p className="text-gold-500 tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">{t('landing.contactEyebrow')}</p>
+        <h2 id="contact-heading" className="text-xl font-bold text-navy-900 dark:text-white mb-2">
           {t('landing.contactTitle')}
         </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-6 leading-relaxed">
           {t('landing.contactBodyLead')}{' '}
-          <a href="mailto:support@diamondandjeweler.com" className="text-[#1B2A6B] underline underline-offset-2">
+          <a href="mailto:support@diamondandjeweler.com" className="text-navy-700 underline underline-offset-2">
             support@diamondandjeweler.com
           </a>
         </p>

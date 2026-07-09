@@ -51,14 +51,14 @@ export default function UrgentHiringPost() {
   })
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0B1220] text-[#0B1220] dark:text-white font-sans">
-      <header className="border-b border-gray-100 dark:border-gray-700 dark:bg-[#0B1742]">
+    <div className="min-h-screen bg-white dark:bg-navy-900 text-navy-900 dark:text-white font-sans">
+      <header className="border-b border-gray-100 dark:border-gray-700 dark:bg-navy-800">
         <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2" aria-label="DNJ home">
             <span className="font-extrabold tracking-tight text-[20px]">DNJ</span>
             <span className="text-[10px] tracking-[0.22em] text-gray-500">DIAMOND &amp; JEWELER</span>
           </Link>
-          <Link to="/careers" className="text-sm text-[#1B2A6B] underline underline-offset-4">
+          <Link to="/careers" className="text-sm text-navy-700 underline underline-offset-4">
             All careers
           </Link>
         </div>
@@ -66,15 +66,15 @@ export default function UrgentHiringPost() {
 
       <main className="max-w-3xl mx-auto px-6 py-10">
         <nav aria-label="Breadcrumb" className="text-xs text-gray-500 mb-4">
-          <Link to="/" className="hover:text-[#0B1220]">Home</Link>
+          <Link to="/" className="hover:text-navy-900">Home</Link>
           <span className="mx-2">/</span>
-          <Link to="/careers" className="hover:text-[#0B1220]">Careers</Link>
+          <Link to="/careers" className="hover:text-navy-900">Careers</Link>
           <span className="mx-2">/</span>
           <span aria-current="page" className="text-gray-700">Urgent Hiring Near Me 2026</span>
         </nav>
 
         <article>
-          <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2">
+          <p className="text-gold-500 tracking-[0.3em] text-[11px] font-semibold mb-2">
             CAREERS · INSIGHTS · 2026
           </p>
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
@@ -158,8 +158,8 @@ export default function UrgentHiringPost() {
             zero noise. Instead of spamming you with hundreds of irrelevant openings, our proprietary
             compatibility engine matches the right talent with the right hiring company. Multi-dimensional
             career analysis goes far beyond the résumé. Your profile works passively, end-to-end encrypted
-            and PDPA-compliant. <Link to="/careers" className="text-[#1B2A6B] underline underline-offset-2">Browse open job vacancies</Link>{' '}
-            or <Link to="/start/talent" className="text-[#1B2A6B] underline underline-offset-2">apply now as a talent</Link>.
+            and PDPA-compliant. <Link to="/careers" className="text-navy-700 underline underline-offset-2">Browse open job vacancies</Link>{' '}
+            or <Link to="/start/talent" className="text-navy-700 underline underline-offset-2">apply now as a talent</Link>.
           </p>
 
           <ul className="list-disc pl-5 text-gray-700 leading-relaxed space-y-1.5 mb-3">
@@ -187,11 +187,11 @@ export default function UrgentHiringPost() {
             and a stable job are all closer than you think — and they're near your location.
           </p>
 
-          <div className="rounded-2xl bg-[#0B1742] text-white p-6 text-center">
+          <div className="rounded-2xl bg-navy-800 text-white p-6 text-center">
             <p className="text-base font-semibold mb-3">Ready to apply?</p>
             <Link
               to="/start/talent"
-              className="inline-flex items-center px-5 py-2.5 rounded-xl bg-white text-[#0B1742] text-sm font-semibold hover:bg-gray-100"
+              className="inline-flex items-center px-5 py-2.5 rounded-xl bg-white text-navy-800 text-sm font-semibold hover:bg-gray-100"
             >
               Apply now — send resume in minutes
             </Link>
@@ -199,7 +199,7 @@ export default function UrgentHiringPost() {
         </article>
 
         <section className="mt-10 text-xs text-gray-500">
-          <p className="font-semibold text-[#0B1220] mb-1">Related searches</p>
+          <p className="font-semibold text-navy-900 mb-1">Related searches</p>
           <p className="leading-relaxed">
             Where to apply job near me · How to find urgent hiring · Company hiring immediately ·
             Walk in interview today · Part time job after work · Full time job for fresh graduate ·
@@ -210,13 +210,13 @@ export default function UrgentHiringPost() {
       </main>
 
       <footer className="border-t border-gray-100 mt-10 py-6 text-center text-xs text-gray-500">
-        <Link to="/" className="hover:text-[#0B1220]">Home</Link>
+        <Link to="/" className="hover:text-navy-900">Home</Link>
         <span className="mx-2">·</span>
-        <Link to="/careers" className="hover:text-[#0B1220]">Careers</Link>
+        <Link to="/careers" className="hover:text-navy-900">Careers</Link>
         <span className="mx-2">·</span>
-        <Link to="/privacy" className="hover:text-[#0B1220]">Privacy</Link>
+        <Link to="/privacy" className="hover:text-navy-900">Privacy</Link>
         <span className="mx-2">·</span>
-        <Link to="/terms" className="hover:text-[#0B1220]">Terms</Link>
+        <Link to="/terms" className="hover:text-navy-900">Terms</Link>
       </footer>
     </div>
   )

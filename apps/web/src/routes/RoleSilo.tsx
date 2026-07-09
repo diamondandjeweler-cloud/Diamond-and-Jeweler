@@ -113,14 +113,14 @@ export default function RoleSilo() {
   if (!role) return <Navigate to="/careers" replace />
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0B1220] text-[#0B1220] dark:text-white font-sans">
-      <header className="border-b border-gray-100 dark:border-gray-700 dark:bg-[#0B1742]">
+    <div className="min-h-screen bg-white dark:bg-navy-900 text-navy-900 dark:text-white font-sans">
+      <header className="border-b border-gray-100 dark:border-gray-700 dark:bg-navy-800">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2" aria-label="DNJ home">
             <span className="font-extrabold tracking-tight text-[20px]">DNJ</span>
             <span className="text-[10px] tracking-[0.22em] text-gray-500 dark:text-gray-400">DIAMOND &amp; JEWELER</span>
           </Link>
-          <Link to="/start/talent" className="text-sm text-[#1B2A6B] dark:text-[#a6b6ff] font-semibold underline underline-offset-4">
+          <Link to="/start/talent" className="text-sm text-navy-700 dark:text-midnight-400 font-semibold underline underline-offset-4">
             Apply now
           </Link>
         </div>
@@ -128,15 +128,15 @@ export default function RoleSilo() {
 
       <main className="max-w-5xl mx-auto px-6 py-10">
         <nav aria-label="Breadcrumb" className="text-xs text-gray-500 mb-4">
-          <Link to="/" className="hover:text-[#0B1220]">Home</Link>
+          <Link to="/" className="hover:text-navy-900">Home</Link>
           <span className="mx-2">/</span>
-          <Link to="/careers" className="hover:text-[#0B1220]">Careers</Link>
+          <Link to="/careers" className="hover:text-navy-900">Careers</Link>
           <span className="mx-2">/</span>
           <span aria-current="page" className="text-gray-700">{role.name} jobs</span>
         </nav>
 
         <section>
-          <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2">
+          <p className="text-gold-500 tracking-[0.3em] text-[11px] font-semibold mb-2">
             URGENT HIRING · {role.industry.toUpperCase()}
           </p>
           <h1 className="text-3xl md:text-5xl font-bold tracking-tight mb-3">
@@ -147,13 +147,13 @@ export default function RoleSilo() {
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               to="/start/talent"
-              className="inline-flex items-center px-5 py-2.5 rounded-xl bg-[#0B1742] text-white text-sm font-semibold shadow hover:bg-[#1B2A6B]"
+              className="inline-flex items-center px-5 py-2.5 rounded-xl bg-navy-800 text-white text-sm font-semibold shadow hover:bg-navy-700"
             >
               Apply now — get matched
             </Link>
             <Link
               to="/start/hiring"
-              className="inline-flex items-center px-5 py-2.5 rounded-xl border border-gray-300 text-sm font-semibold hover:border-[#0B1742]"
+              className="inline-flex items-center px-5 py-2.5 rounded-xl border border-gray-300 text-sm font-semibold hover:border-navy-800"
             >
               I'm hiring — find talent
             </Link>
@@ -161,22 +161,22 @@ export default function RoleSilo() {
         </section>
 
         <section className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-5">
-          <div className="rounded-xl bg-[#fafbff] ring-1 ring-[#e8edff] p-5">
-            <h2 className="font-semibold text-[#0B1220] mb-2">Job types</h2>
+          <div className="rounded-xl bg-[#fafbff] ring-1 ring-midnight-100 p-5">
+            <h2 className="font-semibold text-navy-900 mb-2">Job types</h2>
             <p className="text-sm text-gray-700 leading-relaxed">
               {role.jobTypes
                 .map((t) => t.replace('_', ' ').toLowerCase().replace(/\b\w/g, (m) => m.toUpperCase()))
                 .join(' · ')}
             </p>
           </div>
-          <div className="rounded-xl bg-[#fafbff] ring-1 ring-[#e8edff] p-5">
-            <h2 className="font-semibold text-[#0B1220] mb-2">Locations hiring</h2>
+          <div className="rounded-xl bg-[#fafbff] ring-1 ring-midnight-100 p-5">
+            <h2 className="font-semibold text-navy-900 mb-2">Locations hiring</h2>
             <p className="text-sm text-gray-700 leading-relaxed">
               {role.locations.map((s) => LOCATIONS[s]?.name ?? s).join(' · ')}
             </p>
           </div>
-          <div className="rounded-xl bg-[#fafbff] ring-1 ring-[#e8edff] p-5">
-            <h2 className="font-semibold text-[#0B1220] mb-2">Qualifications</h2>
+          <div className="rounded-xl bg-[#fafbff] ring-1 ring-midnight-100 p-5">
+            <h2 className="font-semibold text-navy-900 mb-2">Qualifications</h2>
             <p className="text-sm text-gray-700 leading-relaxed">{role.qualifications}</p>
           </div>
         </section>
@@ -199,7 +199,7 @@ export default function RoleSilo() {
           <InterviewSection tips={role.interviewTips} roleName={role.name} />
         )}
 
-        <section className="mt-10 rounded-2xl bg-gradient-to-br from-[#0B1742] to-[#1B2A6B] text-white p-8 text-center">
+        <section className="mt-10 rounded-2xl bg-gradient-to-br from-navy-800 to-navy-700 text-white p-8 text-center">
           <h2 className="text-2xl font-bold mb-2">
             Precision recruitment, powered by AI
           </h2>
@@ -209,7 +209,7 @@ export default function RoleSilo() {
           <div className="mt-5 flex flex-wrap justify-center gap-3">
             <Link
               to="/start/talent"
-              className="inline-flex items-center px-5 py-2.5 rounded-xl bg-white text-[#0B1742] text-sm font-semibold hover:bg-gray-100"
+              className="inline-flex items-center px-5 py-2.5 rounded-xl bg-white text-navy-800 text-sm font-semibold hover:bg-gray-100"
             >
               Apply now
             </Link>
@@ -233,19 +233,19 @@ export default function RoleSilo() {
         />
 
         <section className="mt-12">
-          <h2 className="text-base font-semibold text-[#0B1220] mb-2">Related searches</h2>
+          <h2 className="text-base font-semibold text-navy-900 mb-2">Related searches</h2>
           <p className="text-xs text-gray-500 leading-relaxed">{role.keywords}</p>
         </section>
       </main>
 
       <footer className="border-t border-gray-100 mt-10 py-6 text-center text-xs text-gray-500">
-        <Link to="/" className="hover:text-[#0B1220]">Home</Link>
+        <Link to="/" className="hover:text-navy-900">Home</Link>
         <span className="mx-2">·</span>
-        <Link to="/careers" className="hover:text-[#0B1220]">Careers</Link>
+        <Link to="/careers" className="hover:text-navy-900">Careers</Link>
         <span className="mx-2">·</span>
-        <Link to="/privacy" className="hover:text-[#0B1220]">Privacy</Link>
+        <Link to="/privacy" className="hover:text-navy-900">Privacy</Link>
         <span className="mx-2">·</span>
-        <Link to="/terms" className="hover:text-[#0B1220]">Terms</Link>
+        <Link to="/terms" className="hover:text-navy-900">Terms</Link>
       </footer>
     </div>
   )
@@ -255,10 +255,10 @@ function InterviewSection({ tips, roleName }: { tips: InterviewStage[]; roleName
   return (
     <section className="mt-10" aria-labelledby="interview-heading">
       <div className="mb-5">
-        <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-1 uppercase">
+        <p className="text-gold-500 tracking-[0.3em] text-[11px] font-semibold mb-1 uppercase">
           Interview guide
         </p>
-        <h2 id="interview-heading" className="text-xl md:text-2xl font-bold text-[#0B1220]">
+        <h2 id="interview-heading" className="text-xl md:text-2xl font-bold text-navy-900">
           What to expect in your DNJ {roleName.toLowerCase()} interview
         </h2>
         <p className="text-sm text-gray-500 mt-1 leading-relaxed">
@@ -270,22 +270,22 @@ function InterviewSection({ tips, roleName }: { tips: InterviewStage[]; roleName
         {tips.map((stage, index) => (
           <div
             key={stage.stage}
-            className="rounded-2xl ring-1 ring-[#e8edff] bg-white p-6"
+            className="rounded-2xl ring-1 ring-midnight-100 bg-white p-6"
           >
             <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#C9A24D]/10 border border-[#C9A24D]/40
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gold-500/10 border border-gold-500/40
                               flex items-center justify-center">
-                <span className="text-[#C9A24D] font-bold text-sm leading-none">
+                <span className="text-gold-500 font-bold text-sm leading-none">
                   {String(index + 1).padStart(2, '0')}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-[#0B1220] mb-1">{stage.stage}</h3>
+                <h3 className="font-semibold text-navy-900 mb-1">{stage.stage}</h3>
                 <p className="text-sm text-gray-600 leading-relaxed mb-3">{stage.what}</p>
                 <ul className="space-y-1.5">
                   {stage.tips.map((tip) => (
                     <li key={tip} className="flex items-start gap-2 text-sm text-gray-700">
-                      <span className="text-[#C9A24D] mt-0.5 flex-shrink-0" aria-hidden>✦</span>
+                      <span className="text-gold-500 mt-0.5 flex-shrink-0" aria-hidden>✦</span>
                       {tip}
                     </li>
                   ))}

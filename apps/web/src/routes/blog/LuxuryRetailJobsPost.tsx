@@ -169,12 +169,12 @@ export default function LuxuryRetailJobsPost() {
             only what you choose to share until there's mutual interest.
           </p>
 
-          <div className="rounded-2xl bg-[#0B1742] text-white p-6 text-center mt-6">
+          <div className="rounded-2xl bg-navy-800 text-white p-6 text-center mt-6">
             <p className="text-base font-semibold mb-3">Explore luxury retail roles</p>
             <div className="flex flex-wrap justify-center gap-3">
               <Link
                 to="/jobs/luxury-retail"
-                className="inline-flex items-center px-5 py-2.5 rounded-xl bg-white text-[#0B1742] text-sm font-semibold hover:bg-gray-100"
+                className="inline-flex items-center px-5 py-2.5 rounded-xl bg-white text-navy-800 text-sm font-semibold hover:bg-gray-100"
               >
                 Luxury retail jobs
               </Link>

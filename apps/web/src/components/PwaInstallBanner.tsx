@@ -82,7 +82,7 @@ export default function PwaInstallBanner() {
         <DiamondMark />
 
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm text-[#0B1220] leading-tight">Add DNJ to your home screen</p>
+          <p className="font-semibold text-sm text-navy-900 leading-tight">Add DNJ to your home screen</p>
           <p className="text-xs text-gray-500 mt-0.5">Tap for instant job match access</p>
         </div>
 
@@ -90,7 +90,7 @@ export default function PwaInstallBanner() {
           <button
             type="button"
             onClick={() => void handleAdd()}
-            className="bg-[#0B1742] text-white rounded-xl px-4 py-1.5 text-sm font-semibold"
+            className="bg-navy-800 text-white rounded-xl px-4 py-1.5 text-sm font-semibold"
           >
             Add
           </button>

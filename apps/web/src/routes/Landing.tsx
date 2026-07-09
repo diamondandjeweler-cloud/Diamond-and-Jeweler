@@ -221,12 +221,12 @@ export default function Landing() {
   if (!loading && session && profile) return <Navigate to="/home" replace />
 
   return (
-    <div className="bg-white dark:bg-[#0B1220] text-[#0B1220] dark:text-white font-sans">
+    <div className="bg-white dark:bg-navy-900 text-navy-900 dark:text-white font-sans">
       {/* ─── First screen ─── */}
       <div className="relative min-h-screen flex flex-col overflow-hidden">
         <a
           href="#landing-main"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-[#0B1220] text-white px-3 py-2 rounded z-50 text-sm"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-navy-900 text-white px-3 py-2 rounded z-50 text-sm"
         >
           {t('landing.skipToMain')}
         </a>
@@ -237,23 +237,23 @@ export default function Landing() {
           <Link to="/" className="flex items-center gap-3" aria-label={t('landing.brandHomeAria')}>
             <BrandMark />
             <div className="leading-none">
-              <div className="font-sans font-extrabold text-[26px] tracking-tight text-[#0B1220]">DNJ</div>
+              <div className="font-sans font-extrabold text-[26px] tracking-tight text-navy-900">DNJ</div>
               <div className="text-[10px] font-medium tracking-[0.22em] text-gray-500 mt-1">DIAMOND &amp; JEWELER</div>
             </div>
           </Link>
 
           {/* Primary navigation — visible on md+ */}
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600" aria-label={t('landing.navAria')}>
-            <Link to="/careers" className="hover:text-[#0B1220] transition-colors">{t('landing.navJobs')}</Link>
-            <Link to="/pricing" className="hover:text-[#0B1220] transition-colors">{t('landing.navPricing')}</Link>
-            <Link to="/about" className="hover:text-[#0B1220] transition-colors">{t('landing.navAbout')}</Link>
-            <Link to="/careers/urgent-hiring-malaysia-2026" className="hover:text-[#0B1220] transition-colors">{t('landing.navBlog')}</Link>
+            <Link to="/careers" className="hover:text-navy-900 transition-colors">{t('landing.navJobs')}</Link>
+            <Link to="/pricing" className="hover:text-navy-900 transition-colors">{t('landing.navPricing')}</Link>
+            <Link to="/about" className="hover:text-navy-900 transition-colors">{t('landing.navAbout')}</Link>
+            <Link to="/careers/urgent-hiring-malaysia-2026" className="hover:text-navy-900 transition-colors">{t('landing.navBlog')}</Link>
           </nav>
 
           <div className="flex items-center gap-3">
             <DarkModeToggle />
-            <div className="inline-flex items-center gap-2 border border-gray-300 dark:border-gray-600 px-3.5 py-1.5 rounded-full text-xs text-gray-700 dark:text-gray-300 bg-white dark:bg-[#0B1742] shadow-sm">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#C9A24D]" />
+            <div className="inline-flex items-center gap-2 border border-gray-300 dark:border-gray-600 px-3.5 py-1.5 rounded-full text-xs text-gray-700 dark:text-gray-300 bg-white dark:bg-navy-800 shadow-sm">
+              <span className="h-1.5 w-1.5 rounded-full bg-gold-500" />
               {t('landing.pilot')}
             </div>
           </div>
@@ -262,19 +262,19 @@ export default function Landing() {
         <main id="landing-main" className="relative z-10 flex-1 flex flex-col items-center justify-start md:justify-center px-6 py-4 md:py-2 md:min-h-0">
           {/* Hero */}
           <div className="text-center max-w-3xl mx-auto mb-4 md:mb-6">
-            <div className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2">
+            <div className="text-gold-500 tracking-[0.3em] text-[11px] font-semibold mb-2">
               {t('landing.eyebrow').toUpperCase()}
             </div>
-            <h1 className="font-sans font-bold text-[34px] md:text-[46px] leading-[1.05] tracking-tight text-[#0B1220] mb-2">
+            <h1 className="font-sans font-bold text-[34px] md:text-[46px] leading-[1.05] tracking-tight text-navy-900 mb-2">
               {t('landing.titleLead')}{' '}
               <span className="text-[#A07D32]">{t('landing.titleHighlight')}</span>
               <br />
               {t('landing.titleTrail')}
             </h1>
             <div className="flex items-center justify-center gap-2 mb-1.5">
-              <span className="h-px w-8 bg-gradient-to-r from-transparent to-[#a6b6ff]" />
-              <span className="h-1.5 w-1.5 rounded-full bg-[#7b8efc]" />
-              <span className="h-px w-8 bg-gradient-to-l from-transparent to-[#a6b6ff]" />
+              <span className="h-px w-8 bg-gradient-to-r from-transparent to-midnight-400" />
+              <span className="h-1.5 w-1.5 rounded-full bg-midnight-500" />
+              <span className="h-px w-8 bg-gradient-to-l from-transparent to-midnight-400" />
             </div>
             <p className="text-gray-600 text-[14px] md:text-[15px] leading-snug">
               <span className="block">{t('landing.subtitleLine1')}</span>
@@ -307,7 +307,7 @@ export default function Landing() {
             <span className="text-gray-500">{t('landing.haveAccount')}</span>
             <Link
               to="/login"
-              className="font-semibold text-[#1B2A6B] underline underline-offset-4 decoration-[1.5px] hover:text-[#0B1220] inline-flex items-center gap-1"
+              className="font-semibold text-navy-700 underline underline-offset-4 decoration-[1.5px] hover:text-navy-900 inline-flex items-center gap-1"
             >
               {t('landing.signInDashboard')}
               <Arrow />
@@ -318,17 +318,17 @@ export default function Landing() {
         {/* Footer — text-xs (12px) for accessibility; includes Blog link */}
         <footer className="relative z-10 pt-2 pb-3 text-center text-xs text-gray-500 flex-shrink-0 flex flex-col items-center gap-1">
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5">
-            <Link to="/about" className="hover:text-[#0B1220]">{t('landing.navAbout')}</Link>
+            <Link to="/about" className="hover:text-navy-900">{t('landing.navAbout')}</Link>
             <span aria-hidden>·</span>
-            <Link to="/careers" className="hover:text-[#0B1220]">{t('landing.navJobs')}</Link>
+            <Link to="/careers" className="hover:text-navy-900">{t('landing.navJobs')}</Link>
             <span aria-hidden>·</span>
-            <Link to="/pricing" className="hover:text-[#0B1220]">{t('landing.navPricing')}</Link>
+            <Link to="/pricing" className="hover:text-navy-900">{t('landing.navPricing')}</Link>
             <span aria-hidden>·</span>
-            <Link to="/careers/urgent-hiring-malaysia-2026" className="hover:text-[#0B1220]">{t('landing.navBlog')}</Link>
+            <Link to="/careers/urgent-hiring-malaysia-2026" className="hover:text-navy-900">{t('landing.navBlog')}</Link>
             <span aria-hidden>·</span>
-            <Link to="/privacy" className="hover:text-[#0B1220]">{t('footer.privacy')}</Link>
+            <Link to="/privacy" className="hover:text-navy-900">{t('footer.privacy')}</Link>
             <span aria-hidden>·</span>
-            <Link to="/terms" className="hover:text-[#0B1220]">{t('footer.terms')}</Link>
+            <Link to="/terms" className="hover:text-navy-900">{t('footer.terms')}</Link>
             <span aria-hidden>·</span>
             <span>© 2026 DNJ</span>
           </div>

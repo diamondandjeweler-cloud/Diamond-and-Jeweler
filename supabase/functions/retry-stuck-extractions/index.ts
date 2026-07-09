@@ -21,7 +21,6 @@ import {
   type ExtractionMessage,
   type ExtractedProfile,
 } from '../_shared/talent-extraction.ts'
-import { matchForRole, MatchError } from '../_shared/match-core.ts'
 
 const STUCK_AGE_MINUTES = 10
 const MAX_ATTEMPTS = 3
@@ -91,9 +90,14 @@ serve(async (req) => {
         is_open_to_offers: true,
       }).eq('id', row.id)
       console.log(`[retry-stuck-extractions] talent=${row.id} attempt=${attempt} ok`)
-      // Inline rematch — bounded fanout against most-recent active roles.
-      await rematchActiveRoles(row.id).catch((err) => {
-        console.warn(`[retry-stuck-extractions] rematch error: ${err}`)
+      // Re-queue the most-recent active roles instead of a SERIAL inline fan-out
+      // of matchForRole (the old loop ran up to 50 heavy scoring passes off-queue
+      // per completed talent — a Performance N+1 on the nano instance). The
+      // existing process-match-queue cron (every 1m) drains match_queue with
+      // bounded concurrency, calling the SAME matchForRole — so the same roles
+      // still get rematched and refresh_limit_per_role is still enforced.
+      await enqueueActiveRolesForRematch(row.id).catch((err) => {
+        console.warn(`[retry-stuck-extractions] rematch enqueue error: ${err}`)
       })
       succeeded++
     } catch (err) {
@@ -110,8 +114,13 @@ serve(async (req) => {
   return respond({ processed: rows.length, succeeded, failed })
 })
 
-async function rematchActiveRoles(talentId: string): Promise<void> {
+async function enqueueActiveRolesForRematch(talentId: string): Promise<void> {
   const db = adminClient()
+  // Same role selection as the previous inline path: most-recent active roles
+  // with a non-expired vacancy, capped at 50. Fetching the ids keeps the set
+  // identical to the old fan-out; enqueue_roles_for_rematch (migration 0167)
+  // re-applies the active/vacancy filter and dedups against pending/processing
+  // rows via the partial-unique index — one INSERT instead of N round-trips.
   const { data: roles, error } = await db
     .from('roles')
     .select('id')
@@ -123,22 +132,18 @@ async function rematchActiveRoles(talentId: string): Promise<void> {
     console.warn(`[retry-stuck-extractions] rematch fetch failed: ${error.message}`)
     return
   }
-  const ids = (roles ?? []).map((r) => (r as { id: string }).id)
-  let ok = 0, fail = 0
-  for (const roleId of ids) {
-    try {
-      const result = await matchForRole({ roleId, isServiceRole: true })
-      if (result.matches_added > 0) {
-        console.log(`[retry-stuck-extractions] talent=${talentId} role=${roleId} +${result.matches_added}`)
-      }
-      ok++
-    } catch (err) {
-      const msg = err instanceof MatchError ? err.message : err instanceof Error ? err.message : String(err)
-      console.warn(`[retry-stuck-extractions] role=${roleId} match failed: ${msg}`)
-      fail++
-    }
+  const roleIds = (roles ?? []).map((r) => (r as { id: string }).id)
+  if (roleIds.length === 0) return
+
+  const { data: enqueued, error: enqErr } = await db.rpc('enqueue_roles_for_rematch', {
+    p_role_ids: roleIds,
+    p_priority: 5,
+  })
+  if (enqErr) {
+    console.warn(`[retry-stuck-extractions] enqueue_roles_for_rematch failed: ${enqErr.message}`)
+    return
   }
-  console.log(`[retry-stuck-extractions] rematch done talent=${talentId} ok=${ok} fail=${fail}`)
+  console.log(`[retry-stuck-extractions] rematch enqueued talent=${talentId} roles=${roleIds.length} newly_queued=${typeof enqueued === 'number' ? enqueued : '?'}`)
 }
 
 function buildTalentPatch(extracted: ExtractedProfile): Record<string, unknown> {

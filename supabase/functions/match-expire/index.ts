@@ -44,121 +44,187 @@ async function handler(req: Request): Promise<Response> {
   const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   const notifyUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/notify`
 
+  // Bound per-invocation work: at most this many rows per warn/remind pass so a
+  // single cron run can never do unbounded work. Overflow rolls to the next run
+  // — the warn/remind windows are widened by one cron interval (6h) below so a
+  // deferred row is still inside the window on the next pass and isn't missed.
+  const PASS_LIMIT = 500
+
   // ---------- Pass A: 24 h expiry warnings ----------
-  // Cron runs every 6 h, so we pick up any match expiring within the next
-  // 23–29 h that hasn't been warned yet (overlap guards against timing drift).
-  const warnFromIso = new Date(Date.now() + 23 * 3600 * 1000).toISOString()
+  // Cron runs every 6 h; pick up any match expiring within the next 17–29 h
+  // that hasn't been warned yet. Lower bound widened 23h→17h so a row deferred
+  // by PASS_LIMIT this run is still inside the window 6h later (overlap also
+  // guards against timing drift; expiry_warning_sent_at prevents re-warning).
+  const warnFromIso = new Date(Date.now() + 17 * 3600 * 1000).toISOString()
   const warnToIso   = new Date(Date.now() + 29 * 3600 * 1000).toISOString()
-  const { data: warnable } = await db.from('matches')
-    .select('id, role_id, talent_id, status')
-    .in('status', EXPIRABLE)
-    .is('expiry_warning_sent_at', null)
-    .gte('expires_at', warnFromIso)
-    .lte('expires_at', warnToIso)
 
+  // Pass A/A2 must NEVER skip Pass B (core expiry). Wrap each in try/catch so a
+  // throw here is logged and the run continues to expiry rather than aborting.
   let warned = 0
-  for (const m of warnable ?? []) {
-    const recipients: string[] = []
-    const { data: t } = await db.from('talents')
-      .select('profile_id').eq('id', m.talent_id).maybeSingle()
-    if (t?.profile_id) recipients.push(t.profile_id)
+  try {
+    // ONE round-trip: join matches → talents and matches → roles →
+    // hiring_managers (left joins, matching the per-match maybeSingle lookups
+    // this replaces — a match with no talent/HM profile is still stamped but
+    // simply yields no recipient, exactly as before).
+    const { data: warnable } = await db.from('matches')
+      .select('id, talents(profile_id), roles(hiring_managers(profile_id))')
+      .in('status', EXPIRABLE)
+      .is('expiry_warning_sent_at', null)
+      .gte('expires_at', warnFromIso)
+      .lte('expires_at', warnToIso)
+      .order('expires_at', { ascending: true })
+      .limit(PASS_LIMIT)
 
-    const { data: r } = await db.from('roles')
-      .select('hiring_manager_id').eq('id', m.role_id).maybeSingle()
-    if (r?.hiring_manager_id) {
-      const { data: hm } = await db.from('hiring_managers')
-        .select('profile_id').eq('id', r.hiring_manager_id).maybeSingle()
-      if (hm?.profile_id) recipients.push(hm.profile_id)
+    const warnRows = warnable ?? []
+    const warnStampIds: string[] = []
+    const warnTasks: Promise<Response>[] = []
+    for (const m of warnRows) {
+      const recipients: string[] = []
+      const talentPid = (m as any).talents?.profile_id
+      if (talentPid) recipients.push(talentPid)
+      const hmPid = (m as any).roles?.hiring_managers?.profile_id
+      if (hmPid) recipients.push(hmPid)
+
+      for (const uid of recipients) {
+        warnTasks.push(fetch(notifyUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${svcKey}` },
+          body: JSON.stringify({
+            user_id: uid,
+            type: 'match_expiring',
+            data: { match_id: (m as any).id },
+          }),
+        }))
+      }
+      // Stamp every warnable row (matches the original's unconditional stamp).
+      warnStampIds.push((m as any).id)
     }
 
-    for (const uid of recipients) {
-      fetch(notifyUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${svcKey}` },
-        body: JSON.stringify({
-          user_id: uid,
-          type: 'match_expiring',
-          data: { match_id: m.id },
-        }),
-      }).catch(() => { /* best effort */ })
+    // Fan out notifications; one failure must not abort the batch.
+    await Promise.allSettled(warnTasks)
+
+    // ONE bulk stamp instead of N per-row UPDATEs.
+    if (warnStampIds.length > 0) {
+      await db.from('matches')
+        .update({ expiry_warning_sent_at: new Date().toISOString() })
+        .in('id', warnStampIds)
+      warned = warnStampIds.length
     }
-    await db.from('matches').update({ expiry_warning_sent_at: new Date().toISOString() }).eq('id', m.id)
-    warned++
+  } catch (e) {
+    console.error('match-expire Pass A (expiry warnings) failed', (e as Error)?.message)
   }
 
   // ---------- Pass A2: 48h no-action reminders (v4 §14) ----------
-  // Scan every 6h for matches a user viewed/accepted 48–54h ago and never
-  // acted on further. Window is [48h, 54h] so consecutive cron runs don't
-  // double-fire; the reminder_48h_sent_at column also guards against
-  // re-sending if the window is widened later.
-  const reminderCutoffOldIso = new Date(Date.now() - 54 * 3600 * 1000).toISOString()
+  // Scan every 6h for matches a user viewed/accepted 48–60h ago and never
+  // acted on further. Upper age bound widened 54h→60h so a row deferred by
+  // PASS_LIMIT this run is still inside the window 6h later; the
+  // reminder_48h_sent_at column guards against double-firing.
+  const reminderCutoffOldIso = new Date(Date.now() - 60 * 3600 * 1000).toISOString()
   const reminderCutoffNewIso = new Date(Date.now() - 48 * 3600 * 1000).toISOString()
 
-  async function sendNoActionReminder(matchId: string, userId: string, audience: 'talent' | 'hiring_manager') {
-    fetch(notifyUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${svcKey}` },
-      body: JSON.stringify({
-        user_id: userId,
-        type: 'match_no_action_48h',
-        data: { match_id: matchId, audience },
-      }),
-    }).catch(() => { /* best effort */ })
-    await db.from('matches').update({ reminder_48h_sent_at: new Date().toISOString() }).eq('id', matchId)
-  }
-
-  // Talent side: status='viewed' and viewed_at 48–54h ago.
-  const { data: talentNudge } = await db.from('matches')
-    .select('id, talent_id')
-    .eq('status', 'viewed')
-    .is('reminder_48h_sent_at', null)
-    .gte('viewed_at', reminderCutoffOldIso)
-    .lt('viewed_at', reminderCutoffNewIso)
   let reminded = 0
-  for (const m of talentNudge ?? []) {
-    const { data: t } = await db.from('talents')
-      .select('profile_id').eq('id', m.talent_id).maybeSingle()
-    if (t?.profile_id) {
-      await sendNoActionReminder(m.id, t.profile_id, 'talent')
-      reminded++
-    }
-  }
+  try {
+    const remindStampIds: string[] = []
+    const remindTasks: Promise<Response>[] = []
 
-  // HM side: status='accepted_by_talent' and accepted_at 48–54h ago.
-  const { data: hmNudge } = await db.from('matches')
-    .select('id, role_id')
-    .eq('status', 'accepted_by_talent')
-    .is('reminder_48h_sent_at', null)
-    .gte('accepted_at', reminderCutoffOldIso)
-    .lt('accepted_at', reminderCutoffNewIso)
-  for (const m of hmNudge ?? []) {
-    const { data: r } = await db.from('roles')
-      .select('hiring_manager_id').eq('id', m.role_id).maybeSingle()
-    if (!r?.hiring_manager_id) continue
-    const { data: hm } = await db.from('hiring_managers')
-      .select('profile_id').eq('id', r.hiring_manager_id).maybeSingle()
-    if (hm?.profile_id) {
-      await sendNoActionReminder(m.id, hm.profile_id, 'hiring_manager')
+    const pushReminder = (matchId: string, userId: string, audience: 'talent' | 'hiring_manager') => {
+      remindTasks.push(fetch(notifyUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${svcKey}` },
+        body: JSON.stringify({
+          user_id: userId,
+          type: 'match_no_action_48h',
+          data: { match_id: matchId, audience },
+        }),
+      }))
+      remindStampIds.push(matchId)
       reminded++
     }
+
+    // Talent side: status='viewed' and viewed_at 48–60h ago. ONE join query.
+    const { data: talentNudge } = await db.from('matches')
+      .select('id, talents(profile_id)')
+      .eq('status', 'viewed')
+      .is('reminder_48h_sent_at', null)
+      .gte('viewed_at', reminderCutoffOldIso)
+      .lt('viewed_at', reminderCutoffNewIso)
+      .order('viewed_at', { ascending: true })
+      .limit(PASS_LIMIT)
+    for (const m of talentNudge ?? []) {
+      const pid = (m as any).talents?.profile_id
+      // Only stamp rows that actually get a reminder (matches original: a row
+      // with no talent profile is left unstamped for a later retry).
+      if (pid) pushReminder((m as any).id, pid, 'talent')
+    }
+
+    // HM side: status='accepted_by_talent' and accepted_at 48–60h ago. ONE join.
+    const { data: hmNudge } = await db.from('matches')
+      .select('id, roles(hiring_managers(profile_id))')
+      .eq('status', 'accepted_by_talent')
+      .is('reminder_48h_sent_at', null)
+      .gte('accepted_at', reminderCutoffOldIso)
+      .lt('accepted_at', reminderCutoffNewIso)
+      .order('accepted_at', { ascending: true })
+      .limit(PASS_LIMIT)
+    for (const m of hmNudge ?? []) {
+      const pid = (m as any).roles?.hiring_managers?.profile_id
+      if (pid) pushReminder((m as any).id, pid, 'hiring_manager')
+    }
+
+    await Promise.allSettled(remindTasks)
+
+    // ONE bulk stamp for all reminders sent this run.
+    if (remindStampIds.length > 0) {
+      await db.from('matches')
+        .update({ reminder_48h_sent_at: new Date().toISOString() })
+        .in('id', remindStampIds)
+    }
+  } catch (e) {
+    console.error('match-expire Pass A2 (48h reminders) failed', (e as Error)?.message)
   }
 
   // ---------- Pass B: expire anything past its deadline ----------
-  const { data: expired, error: expErr } = await db.from('matches')
-    .update({ status: 'expired', updated_at: nowIso })
-    .in('status', EXPIRABLE)
-    .lt('expires_at', nowIso)
-    .select('id, role_id, talent_id')
-  if (expErr) return json({ error: expErr.message }, 500)
+  // BOUNDED core expiry. The old single unbounded UPDATE ... RETURNING is
+  // replaced by a claim-then-update loop: SELECT a capped batch of ids matching
+  // the predicate, then UPDATE those ids (re-asserting the predicate so a row
+  // that raced out of EXPIRABLE between SELECT and UPDATE is never wrongly
+  // expired or double-logged). A few batches per invocation cap the work;
+  // overflow rolls to the next 6h run — same rows, fewer per run. Runs
+  // unconditionally after Passes A/A2 (which are try/guarded) so core expiry is
+  // never skipped by a warn/remind failure.
+  const EXPIRE_BATCH = 500
+  const EXPIRE_MAX_BATCHES = 5
+  const expired: Array<{ id: string; role_id: string; talent_id: string }> = []
+  for (let i = 0; i < EXPIRE_MAX_BATCHES; i++) {
+    const { data: claim, error: claimErr } = await db.from('matches')
+      .select('id')
+      .in('status', EXPIRABLE)
+      .lt('expires_at', nowIso)
+      .order('expires_at', { ascending: true })
+      .limit(EXPIRE_BATCH)
+    if (claimErr) return json({ error: claimErr.message }, 500)
+    const ids = (claim ?? []).map((r) => r.id)
+    if (ids.length === 0) break
 
-  const expiredCount = expired?.length ?? 0
+    const { data: batch, error: expErr } = await db.from('matches')
+      .update({ status: 'expired', updated_at: nowIso })
+      .in('id', ids)
+      .in('status', EXPIRABLE)
+      .lt('expires_at', nowIso)
+      .select('id, role_id, talent_id')
+    if (expErr) return json({ error: expErr.message }, 500)
+    if (batch && batch.length) expired.push(...batch)
+    if (ids.length < EXPIRE_BATCH) break
+  }
+
+  const expiredCount = expired.length
   if (expiredCount === 0) {
     await heartbeat(db)
     return json({ expired: 0, regenerated: 0, warned, reminded })
   }
 
   await db.from('match_history').insert(
-    (expired ?? []).map((m) => ({
+    expired.map((m) => ({
       role_id: m.role_id,
       talent_id: m.talent_id,
       action: 'expired_auto',
@@ -172,8 +238,8 @@ async function handler(req: Request): Promise<Response> {
   // expired + never invited, across all their roles): target = min(10,
   // floor(ghosted/3)), raised only — never lowered. Batched into ONE set-based
   // RPC (migration 0168); was ~4 queries per talent + ~5 per role, serially.
-  const uniqueTalentIds = [...new Set((expired ?? []).map((m) => m.talent_id).filter(Boolean))]
-  const uniqueRoleIds   = [...new Set((expired ?? []).map((m) => m.role_id).filter(Boolean))]
+  const uniqueTalentIds = [...new Set(expired.map((m) => m.talent_id).filter(Boolean))]
+  const uniqueRoleIds   = [...new Set(expired.map((m) => m.role_id).filter(Boolean))]
 
   if (uniqueTalentIds.length > 0 || uniqueRoleIds.length > 0) {
     const { error: ghostErr } = await db.rpc('bump_ghost_scores_for_expired', {
@@ -190,7 +256,7 @@ async function handler(req: Request): Promise<Response> {
   // so refresh_limit_per_role is still enforced. enqueue_roles_for_rematch
   // (migration 0167) skips inactive / vacancy-expired roles and dedups against
   // the partial-unique index — one INSERT total instead of N round-trips.
-  const roleIds = [...new Set((expired ?? []).map((m) => m.role_id).filter(Boolean))]
+  const roleIds = [...new Set(expired.map((m) => m.role_id).filter(Boolean))]
 
   let enqueued = 0
   if (roleIds.length > 0) {

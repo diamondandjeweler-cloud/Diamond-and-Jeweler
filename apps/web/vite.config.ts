@@ -26,8 +26,14 @@ export default defineConfig({
       srcDir: resolve(__dirname, 'src'),
       filename: 'sw.ts',
       injectManifest: {
-        // Precache all build outputs except sourcemaps.
-        globPatterns: ['**/*.{js,css,woff2,svg,png,webp}'],
+        // Precache all build outputs except sourcemaps. index.html is listed
+        // explicitly so it lands in the precache manifest — sw.ts calls
+        // createHandlerBoundToURL('/index.html') for the SPA navigation fallback,
+        // which throws 'non-precached-url' at SW eval (silently killing PWA
+        // registration) if index.html is absent. Only index.html is added, NOT a
+        // bare `html` glob, so the standalone auth/SEO .html shells keep their
+        // existing runtime-cache behaviour.
+        globPatterns: ['index.html', '**/*.{js,css,woff2,svg,png,webp}'],
         // public/core chunks stay precached; authed + restaurant chunks are
         // runtime-cached on first visit to cut SW install size.
         globIgnores: [

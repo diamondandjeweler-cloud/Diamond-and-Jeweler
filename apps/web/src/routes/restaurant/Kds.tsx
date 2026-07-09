@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Alert, Badge, Button, Card, CardBody, EmptyState, Spinner } from '../../components/ui'
 import { useRestaurant } from '../../lib/restaurant/context'
 import {
-  listKitchenTickets, updateTicketStatus, listMenuItems, listOrders, listOrderItems,
+  listKitchenTickets, updateTicketStatus, listMenuItems, listOrders, listOrderItemsForOrders,
   voidItem,
 } from '../../lib/restaurant/store'
 import type { KitchenTicket, MenuItem, Order, OrderItem, TicketStatus } from '../../lib/restaurant/types'
@@ -28,23 +28,47 @@ function StationBoard({ title, stations }: { title: string; stations: string[] }
   const [error, setError]     = useState<string | null>(null)
   const [, tick] = useState(0)
 
+  // Menu items are static for the branch — load once, not on every 5s poll.
+  // Self-heals on transient failure with backoff (a one-shot fetch that failed
+  // would otherwise leave every ticket's item name blank for the whole shift).
+  // We don't setError here: the 5s poll's setError(null) would clobber it, and a
+  // silent retry recovers automatically.
+  useEffect(() => {
+    if (!branchId) return
+    let alive = true
+    let timer: ReturnType<typeof setTimeout> | undefined
+    let delay = 2000
+    const MAX_DELAY = 30000
+    const load = async () => {
+      try {
+        const m = await listMenuItems(branchId)
+        if (alive) setItems(m)          // success — stop retrying
+      } catch {
+        if (!alive) return
+        timer = setTimeout(() => { void load() }, delay)
+        delay = Math.min(delay * 2, MAX_DELAY)
+      }
+    }
+    void load()
+    return () => { alive = false; if (timer) clearTimeout(timer) }
+  }, [branchId])
+
   // Poll every 5s
   useEffect(() => {
     if (!branchId) return
     let alive = true
     const load = async () => {
       try {
-        const [t, m, o] = await Promise.all([
+        const [t, o] = await Promise.all([
           listKitchenTickets(branchId, stations),
-          listMenuItems(branchId),
           listOrders(branchId, 50),
         ])
         if (!alive) return
-        setTickets(t); setItems(m); setOrders(o); setError(null)
+        setTickets(t); setOrders(o); setError(null)
         // Pull line items for active orders referenced by tickets
         const ids = Array.from(new Set(t.map((x) => x.order_id)))
         if (ids.length) {
-          const all = (await Promise.all(ids.map((id) => listOrderItems(id)))).flat()
+          const all = await listOrderItemsForOrders(ids)
           if (alive) setOrderItems(all)
         } else if (alive) setOrderItems([])
       } catch (e) {

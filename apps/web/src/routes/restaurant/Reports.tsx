@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Alert, Badge, Card, CardBody, EmptyState, Spinner } from '../../components/ui'
 import { useRestaurant } from '../../lib/restaurant/context'
 import {
-  listOrders, listOrderItems, listMenuItems, listTables, listEmployees, listTimesheets,
+  listOrders, listOrderItemsForOrders, listMenuItems, listTables, listEmployees, listTimesheets,
   listIngredients, listWaste, listPromotions, listBranches,
 } from '../../lib/restaurant/store'
 import type {
@@ -58,7 +58,7 @@ export default function Reports() {
         ])
         if (cancelled) return
         setOrders(o); setMenu(m); setTables(tb); setEmps(e); setIngs(ing); setWaste(w); setPromos(p); setBranches(b)
-        const oi = (await Promise.all(o.map((x) => listOrderItems(x.id)))).flat()
+        const oi = await listOrderItemsForOrders(o.map((x) => x.id))
         if (cancelled) return
         setItems(oi.filter((x) => x.status !== 'voided'))
         const since = new Date(); since.setDate(since.getDate() - 30)

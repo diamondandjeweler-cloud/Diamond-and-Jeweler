@@ -117,6 +117,37 @@ export async function listOrderItems(orderId: string): Promise<OrderItem[]> {
   return (data ?? []) as OrderItem[]
 }
 
+/**
+ * Batched sibling of listOrderItems: fetch every line item for many orders in
+ * one query per <=100-id chunk (kills the per-order N+1). Returns a flat array
+ * with the same columns/row type as listOrderItems. Empty input -> [].
+ */
+export async function listOrderItemsForOrders(orderIds: string[]): Promise<OrderItem[]> {
+  if (orderIds.length === 0) return []
+  const ids = Array.from(new Set(orderIds))
+  const out: OrderItem[] = []
+  // PostgREST caps every response at its `max-rows` (Supabase default 1000), so a
+  // 100-order chunk with many line items would be SILENTLY truncated. Page each
+  // chunk with .range() until a page comes back short — this fetches all rows
+  // regardless of the row cap (PAGE matches the platform default).
+  const PAGE = 1000
+  for (let i = 0; i < ids.length; i += 100) {
+    const chunk = ids.slice(i, i + 100)
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await db
+        .from('order_item').select('*')
+        .in('order_id', chunk)
+        .order('created_at')
+        .range(from, from + PAGE - 1)
+      if (error) throw error
+      const rows = (data ?? []) as OrderItem[]
+      out.push(...rows)
+      if (rows.length < PAGE) break
+    }
+  }
+  return out
+}
+
 export async function updateOrderStatus(id: string, status: OrderStatus): Promise<void> {
   const patch: Partial<Order> = { status }
   if (status === 'closed' || status === 'paid') patch.closed_at = new Date().toISOString()

@@ -1,4 +1,5 @@
 import { Link, Navigate, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useSeo } from '../lib/useSeo'
 
 /**
@@ -7,63 +8,61 @@ import { useSeo } from '../lib/useSeo'
  *   /start/hiring  → magnifier path (HMs still arrive via invite)
  */
 export default function Start() {
+  const { t } = useTranslation()
   const { side } = useParams<{ side: string }>()
   const isTalent = side === 'talent'
   useSeo({
-    title: isTalent ? 'Find your next role' : 'Hire with precision',
-    description: isTalent
-      ? 'DNJ matches talent in Malaysia with exactly three curated roles at a time. Zero noise, three real opportunities.'
-      : 'DNJ delivers exactly three qualified candidates per open role to hiring managers and HR teams across Malaysia.',
+    title: isTalent ? t('start.seoTitleTalent') : t('start.seoTitleHiring'),
+    description: isTalent ? t('start.seoDescTalent') : t('start.seoDescHiring'),
   })
   if (side !== 'talent' && side !== 'hiring') {
     return <Navigate to="/" replace />
   }
 
-  const heading = isTalent ? 'Welcome, talent.' : 'Welcome, hiring manager.'
-  const subheading = isTalent
-    ? "Let's get your profile built — takes about 10 minutes."
-    : 'Hire with curation, not résumé piles.'
-  const eyebrow = isTalent ? 'TALENT FLOW' : 'HIRING FLOW'
+  const heading = isTalent ? t('start.headingTalent') : t('start.headingHiring')
+  const subheading = isTalent ? t('start.subheadingTalent') : t('start.subheadingHiring')
+  const eyebrow = isTalent ? t('start.eyebrowTalent') : t('start.eyebrowHiring')
+  const badge = isTalent ? t('start.badgeTalent') : t('start.badgeHiring')
   const signupRole = isTalent ? 'talent' : 'hr_admin'
   const loginHref = isTalent ? '/login' : '/login?role=hr_admin'
 
   return (
-    <div className="relative h-screen flex flex-col overflow-hidden bg-white text-[#0B1220] font-sans">
+    <div className="relative h-screen flex flex-col overflow-hidden bg-white text-navy-900 font-sans">
       <BackgroundDecor />
 
       <a
         href="#start-main"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-[#0B1220] text-white px-3 py-2 rounded z-50 text-sm"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-navy-900 text-white px-3 py-2 rounded z-50 text-sm"
       >
-        Skip to main content
+        {t('start.skipToMain')}
       </a>
 
       {/* Top Bar */}
       <header className="relative z-10 px-6 md:px-12 pt-4 pb-2 flex items-center justify-between flex-shrink-0">
-        <Link to="/" className="inline-flex items-center gap-2 text-gray-600 hover:text-[#0B1220] text-sm font-medium" aria-label="Back to home">
+        <Link to="/" className="inline-flex items-center gap-2 text-gray-600 hover:text-navy-900 text-sm font-medium" aria-label={t('start.backAria')}>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
             <path d="M12 7H2m0 0l4-4m-4 4l4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          Back
+          {t('start.back')}
         </Link>
 
-        <Link to="/" className="flex items-center gap-2.5" aria-label="DNJ home">
+        <Link to="/" className="flex items-center gap-2.5" aria-label={t('start.brandHomeAria')}>
           <BrandMark />
           <div className="hidden sm:block leading-none">
-            <div className="font-sans font-extrabold text-[20px] tracking-tight text-[#0B1220]">DNJ</div>
+            <div className="font-sans font-extrabold text-[20px] tracking-tight text-navy-900">DNJ</div>
             <div className="text-[9px] font-medium tracking-[0.22em] text-gray-500 mt-0.5">DIAMOND &amp; JEWELER</div>
           </div>
         </Link>
 
         <div className="inline-flex items-center gap-2 border border-gray-300 px-3.5 py-1.5 rounded-full text-xs text-gray-700 bg-white shadow-sm">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#C9A24D]" />
-          {eyebrow.split(' ')[0].charAt(0) + eyebrow.split(' ')[0].slice(1).toLowerCase()} flow
+          <span className="h-1.5 w-1.5 rounded-full bg-gold-500" />
+          {badge}
         </div>
       </header>
 
       <main id="start-main" className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-2 min-h-0">
         <div className="text-center max-w-md w-full">
-          <div className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-3">
+          <div className="text-gold-500 tracking-[0.3em] text-[11px] font-semibold mb-3">
             {eyebrow}
           </div>
 
@@ -73,13 +72,13 @@ export default function Start() {
               clipPath: 'polygon(24px 0, calc(100% - 24px) 0, 100% 24px, 100% calc(100% - 24px), calc(100% - 24px) 100%, 24px 100%, 0 calc(100% - 24px), 0 24px)',
             }}
           >
-            <div className="absolute inset-0 bg-gradient-to-b from-[#f5f7ff] to-white ring-1 ring-[#e8edff]" />
+            <div className="absolute inset-0 bg-gradient-to-b from-midnight-50 to-white ring-1 ring-midnight-100" />
             <div className="relative">
               {isTalent ? <DiamondIllustration /> : <MagnifierIllustration />}
             </div>
           </div>
 
-          <h1 className="font-sans font-bold text-[30px] md:text-[40px] leading-[1.05] tracking-tight text-[#0B1220] mb-2">
+          <h1 className="font-sans font-bold text-[30px] md:text-[40px] leading-[1.05] tracking-tight text-navy-900 mb-2">
             {heading}
           </h1>
           <p className="text-gray-600 text-[15px] mb-7 leading-snug">{subheading}</p>
@@ -87,37 +86,37 @@ export default function Start() {
           <div className="space-y-2.5">
             <Link
               to={`/signup?role=${signupRole}`}
-              className="inline-flex items-center justify-center gap-2 w-full px-6 py-3 rounded-xl bg-[#0B1742] text-white text-[15px] font-semibold
+              className="inline-flex items-center justify-center gap-2 w-full px-6 py-3 rounded-xl bg-navy-800 text-white text-[15px] font-semibold
                          shadow-[0_4px_14px_rgba(11,23,66,0.4)]
-                         hover:bg-[#1B2A6B] hover:shadow-[0_8px_22px_rgba(11,23,66,0.5)]
+                         hover:bg-navy-700 hover:shadow-[0_8px_22px_rgba(11,23,66,0.5)]
                          transition-all"
             >
-              Create new account
+              {t('start.createAccount')}
               <Arrow />
             </Link>
             <Link
               to={loginHref}
-              className="inline-flex items-center justify-center gap-2 w-full px-6 py-3 rounded-xl bg-white text-[#0B1220] text-[15px] font-semibold
+              className="inline-flex items-center justify-center gap-2 w-full px-6 py-3 rounded-xl bg-white text-navy-900 text-[15px] font-semibold
                          border border-gray-300
                          hover:bg-gray-50 hover:border-gray-400
                          transition-all"
             >
-              I already have an account
+              {t('start.haveAccount')}
             </Link>
           </div>
 
           {isTalent && (
             <p className="mt-5 text-[11px] text-gray-500 leading-relaxed max-w-sm mx-auto">
-              You'll upload your ID and résumé, chat with our interviewer, then wait for your first three curated offers. Everything is encrypted and never shared without your consent.
+              {t('start.talentNote')}
             </p>
           )}
         </div>
       </main>
 
       <footer className="relative z-10 pt-1 pb-2 text-center text-[10px] text-gray-500 flex-shrink-0">
-        <Link to="/privacy" className="hover:text-[#0B1220]">Privacy</Link>
+        <Link to="/privacy" className="hover:text-navy-900">{t('start.footerPrivacy')}</Link>
         <span className="mx-2">·</span>
-        <Link to="/terms" className="hover:text-[#0B1220]">Terms</Link>
+        <Link to="/terms" className="hover:text-navy-900">{t('start.footerTerms')}</Link>
         <span className="mx-2">·</span>
         <span>© 2026 DNJ</span>
       </footer>
@@ -128,7 +127,7 @@ export default function Start() {
 function BackgroundDecor() {
   return (
     <>
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#f5f7ff]/40 via-white to-[#fffaf1]/30" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-midnight-50/40 via-white to-[#fffaf1]/30" />
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.05]"
         style={{
@@ -140,7 +139,7 @@ function BackgroundDecor() {
       <svg
         aria-hidden
         viewBox="0 0 600 800"
-        className="pointer-events-none absolute -left-32 top-16 w-[500px] h-[640px] text-[#a6b6ff] opacity-[0.3]"
+        className="pointer-events-none absolute -left-32 top-16 w-[500px] h-[640px] text-midnight-400 opacity-[0.3]"
         fill="none"
       >
         <g stroke="currentColor" strokeWidth="0.7">
@@ -159,7 +158,7 @@ function BackgroundDecor() {
       <svg
         aria-hidden
         viewBox="0 0 600 800"
-        className="pointer-events-none absolute -right-32 top-12 w-[460px] h-[620px] text-[#a6b6ff] opacity-[0.28]"
+        className="pointer-events-none absolute -right-32 top-12 w-[460px] h-[620px] text-midnight-400 opacity-[0.28]"
         fill="none"
       >
         <g stroke="currentColor" strokeWidth="0.7">

@@ -1,13 +1,6 @@
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useSeo } from '../lib/useSeo'
-
-// Keywords meta — search-intent terms only. Removed: walk-in interview,
-// same day interview, quick hiring, immediate hiring, hiring immediately,
-// no experience job. DNJ does not deliver those experiences (curated
-// matching is ~14-day pilot), and listing them in keywords misleads
-// search intent and creates Consumer Protection Act 1999 §10 exposure.
-const CAREERS_KEYWORDS =
-  'jobs near me, job vacancy near me, apply job online, latest job vacancy, part time job near me, full time job, fresh graduate job, vacancy near me, job opening near me, apply now, send resume, job seeking, job search, jobs in Malaysia, recruitment Malaysia, job portal Malaysia, sales job vacancy, admin executive job vacancy, account assistant job vacancy, finance job vacancy, banking job vacancy, software developer job vacancy, IT job vacancy, engineering job vacancy, marketing executive job vacancy, graphic designer job vacancy, customer service job vacancy, hr job vacancy, healthcare job vacancy, nursing job vacancy, education job vacancy, teaching job vacancy, hospitality job vacancy, hotel job vacancy, construction job vacancy, logistics job vacancy, supply chain job, manufacturing job vacancy, production job vacancy, f&b job vacancy, restaurant job vacancy, job vacancy in Kuala Lumpur, job vacancy in PJ, job vacancy in Penang, job vacancy in Johor Bahru, job vacancy in Malaysia, jobs near KL, hiring in Kuala Lumpur, hiring in Malaysia, work from home Kuala Lumpur, remote job Malaysia, fresh graduate Kuala Lumpur, graduate trainee, entry level, junior level, career opportunity, career growth job, stable job, career advancement, new job opportunity, job vacancy, job hiring, job opening, employment, recruitment, career, vacancy, hiring, job posting, apply online, submit resume, contract job, temporary job, internship, freelance job, remote job, hybrid job, shift job, permanent job, internship for students, spm leaver job, diploma holder job, degree holder job, luxury retail job, pilot job Malaysia, cadet pilot program, jeweler job vacancy, gemologist job, ai curated matching, ai recruitment Malaysia, curated matching, three matches per role'
 
 // #audit #3 — slug links each card to its public silo page (/jobs/[slug])
 // so visitors can browse detailed role info without creating an account.
@@ -261,11 +254,11 @@ const FAQS: Array<{ q: string; a: string }> = [
 ]
 
 export default function Careers() {
+  const { t } = useTranslation()
   useSeo({
-    title: 'Careers — Job Vacancy Malaysia, All Industries | AI-Curated Recruitment | DNJ',
-    description:
-      'Latest job vacancy in Malaysia across every industry — sales, admin, finance, banking, IT and software, engineering, marketing, HR, customer service, healthcare, education, hospitality, construction, logistics, manufacturing, F&B and more. AI-curated matching — three picks per role, no cold CV pile.',
-    keywords: CAREERS_KEYWORDS,
+    title: t('careers.seoTitle'),
+    description: t('careers.seoDescription'),
+    keywords: t('careers.seoKeywords'),
     canonicalPath: '/careers',
     jsonLd: [
       {
@@ -308,255 +301,231 @@ export default function Careers() {
   })
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0B1220] text-[#0B1220] dark:text-white font-sans">
-      <header className="border-b border-gray-100 dark:border-gray-700 dark:bg-[#0B1742]">
+    <div className="min-h-screen bg-white dark:bg-navy-900 text-navy-900 dark:text-white font-sans">
+      <header className="border-b border-gray-100 dark:border-gray-700 dark:bg-navy-800">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2" aria-label="DNJ home">
+          <Link to="/" className="flex items-center gap-2" aria-label={t('careers.homeAria')}>
             <span className="font-extrabold tracking-tight text-[20px]">DNJ</span>
             <span className="text-[10px] tracking-[0.22em] text-gray-500 dark:text-gray-400">DIAMOND &amp; JEWELER</span>
           </Link>
-          <nav aria-label="Primary" className="flex items-center gap-5 text-sm">
-            <Link to="/pricing" className="text-gray-600 dark:text-gray-400 hover:text-[#0B1220] dark:hover:text-white">Pricing</Link>
-            <Link to="/about" className="text-gray-600 dark:text-gray-400 hover:text-[#0B1220] dark:hover:text-white">About</Link>
-            <Link to="/careers/urgent-hiring-malaysia-2026" className="text-gray-600 dark:text-gray-400 hover:text-[#0B1220] dark:hover:text-white">Blog</Link>
-            <Link to="/start/talent" className="text-[#1B2A6B] dark:text-[#a6b6ff] font-semibold underline underline-offset-4">
-              Apply now
+          <nav aria-label={t('careers.navPrimaryAria')} className="flex items-center gap-5 text-sm">
+            <Link to="/pricing" className="text-gray-600 dark:text-gray-400 hover:text-navy-900 dark:hover:text-white">{t('careers.navPricing')}</Link>
+            <Link to="/about" className="text-gray-600 dark:text-gray-400 hover:text-navy-900 dark:hover:text-white">{t('careers.navAbout')}</Link>
+            <Link to="/careers/urgent-hiring-malaysia-2026" className="text-gray-600 dark:text-gray-400 hover:text-navy-900 dark:hover:text-white">{t('careers.navBlog')}</Link>
+            <Link to="/start/talent" className="text-navy-700 dark:text-midnight-400 font-semibold underline underline-offset-4">
+              {t('careers.navApply')}
             </Link>
           </nav>
         </div>
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-10">
-        <nav aria-label="Breadcrumb" className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-          <Link to="/" className="hover:text-[#0B1220] dark:hover:text-white">Home</Link>
+        <nav aria-label={t('careers.breadcrumbAria')} className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+          <Link to="/" className="hover:text-navy-900 dark:hover:text-white">{t('careers.breadcrumbHome')}</Link>
           <span className="mx-2">/</span>
-          <span aria-current="page" className="text-gray-700 dark:text-gray-300">Careers</span>
+          <span aria-current="page" className="text-gray-700 dark:text-gray-300">{t('careers.breadcrumbCurrent')}</span>
         </nav>
 
         <section>
-          <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2">
-            CURATED MATCHING · MALAYSIA
+          <p className="text-gold-500 tracking-[0.3em] text-[11px] font-semibold mb-2">
+            {t('careers.heroEyebrow')}
           </p>
           <h1 className="text-3xl md:text-5xl font-bold tracking-tight mb-3">
-            Job Vacancy Malaysia — AI-Curated Matches Across Every Industry
+            {t('careers.heroTitle')}
           </h1>
           <p className="text-gray-600 max-w-3xl leading-relaxed">
-            Looking for a job near you? DNJ is a general recruitment platform for Malaysia, listing
-            the latest job vacancy in Kuala Lumpur, Petaling Jaya, Penang, Johor Bahru and nationwide —
-            across sales, finance, banking, IT, engineering, marketing, HR, healthcare, education,
-            hospitality, construction, logistics, manufacturing, F&amp;B and more. Complete your profile
-            once and our AI engine matches you with hiring companies — three curated picks, zero noise,
-            no cold applications. Fresh graduates, SPM leavers, diploma and degree holders all welcome.
+            {t('careers.heroBody')}
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               to="/start/talent"
-              className="inline-flex items-center px-5 py-2.5 rounded-xl bg-[#0B1742] text-white text-sm font-semibold shadow hover:bg-[#1B2A6B]"
+              className="inline-flex items-center px-5 py-2.5 rounded-xl bg-navy-800 text-white text-sm font-semibold shadow hover:bg-navy-700"
             >
-              Apply now — I'm a talent
+              {t('careers.heroCtaTalent')}
             </Link>
             <Link
               to="/start/hiring"
-              className="inline-flex items-center px-5 py-2.5 rounded-xl border border-gray-300 text-sm font-semibold hover:border-[#0B1742]"
+              className="inline-flex items-center px-5 py-2.5 rounded-xl border border-gray-300 text-sm font-semibold hover:border-navy-800"
             >
-              I'm hiring — find talent
+              {t('careers.heroCtaHiring')}
             </Link>
           </div>
         </section>
 
         <section className="mt-12">
-          <p className="text-[#C9A24D] tracking-[0.3em] text-[11px] font-semibold mb-2">
-            PRECISION RECRUITMENT · POWERED BY AI
+          <p className="text-gold-500 tracking-[0.3em] text-[11px] font-semibold mb-2">
+            {t('careers.whyEyebrow')}
           </p>
-          <h2 className="text-xl md:text-2xl font-bold mb-4">Why DNJ — AI-curated matching, not endless scrolling</h2>
+          <h2 className="text-xl md:text-2xl font-bold mb-4">{t('careers.whyTitle')}</h2>
           <p className="text-gray-700 leading-relaxed max-w-3xl mb-6">
-            DNJ is an AI-powered recruitment platform built for Malaysia. Our proprietary
-            compatibility engine goes far beyond the résumé — multi-dimensional career analysis that
-            matches the right talent with the right company. Three matches at a time. Zero noise.
+            {t('careers.whyBody')}
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="rounded-2xl ring-1 ring-[#e8edff] bg-gradient-to-b from-white to-[#fafbff] p-6">
-              <h3 className="font-bold text-[#0B1220] mb-1">For talents — your career, on autopilot</h3>
-              <p className="text-xs text-gray-500 mb-3">Precision recruitment, powered by AI</p>
+            <div className="rounded-2xl ring-1 ring-midnight-100 bg-gradient-to-b from-white to-[#fafbff] p-6">
+              <h3 className="font-bold text-navy-900 mb-1">{t('careers.talentCardTitle')}</h3>
+              <p className="text-xs text-gray-500 mb-3">{t('careers.talentCardSub')}</p>
               <ul className="text-sm text-gray-700 space-y-2 leading-snug list-disc pl-5">
-                <li><strong>AI-curated matches</strong> — only roles genuinely aligned to your career profile</li>
-                <li><strong>Three offers at a time</strong> — quality over volume, zero application fatigue</li>
-                <li>Proprietary compatibility engine that goes far beyond the résumé</li>
-                <li>Your profile works <strong>passively</strong> — no job boards, no cold applications</li>
-                <li>Advanced multi-dimensional career analysis for precision employer fit</li>
-                <li>Candidate confidentiality — employers see only what you choose to share</li>
-                <li>End-to-end encrypted personal data, fully <strong>PDPA-compliant</strong></li>
-                <li>Early visibility into roles before they reach the open market</li>
-                <li>Personalised career trajectory insights delivered over time</li>
+                <li><strong>{t('careers.talentBullet1Strong')}</strong>{t('careers.talentBullet1Trail')}</li>
+                <li><strong>{t('careers.talentBullet2Strong')}</strong>{t('careers.talentBullet2Trail')}</li>
+                <li>{t('careers.talentBullet3')}</li>
+                <li>{t('careers.talentBullet4Lead')}<strong>{t('careers.talentBullet4Strong')}</strong>{t('careers.talentBullet4Trail')}</li>
+                <li>{t('careers.talentBullet5')}</li>
+                <li>{t('careers.talentBullet6')}</li>
+                <li>{t('careers.talentBullet7Lead')}<strong>{t('careers.talentBullet7Strong')}</strong></li>
+                <li>{t('careers.talentBullet8')}</li>
+                <li>{t('careers.talentBullet9')}</li>
               </ul>
               <Link
                 to="/start/talent"
-                className="inline-flex items-center mt-4 text-sm font-semibold text-[#1B2A6B] hover:text-[#0B1220]"
+                className="inline-flex items-center mt-4 text-sm font-semibold text-navy-700 hover:text-navy-900"
               >
-                Apply as a talent →
+                {t('careers.talentCta')}
               </Link>
             </div>
 
-            <div className="rounded-2xl ring-1 ring-[#e8edff] bg-gradient-to-b from-white to-[#fafbff] p-6">
-              <h3 className="font-bold text-[#0B1220] mb-1">For hiring managers — find the right hire, not just any hire</h3>
-              <p className="text-xs text-gray-500 mb-3">AI-matched candidates · zero CV pile</p>
+            <div className="rounded-2xl ring-1 ring-midnight-100 bg-gradient-to-b from-white to-[#fafbff] p-6">
+              <h3 className="font-bold text-navy-900 mb-1">{t('careers.hmCardTitle')}</h3>
+              <p className="text-xs text-gray-500 mb-3">{t('careers.hmCardSub')}</p>
               <ul className="text-sm text-gray-700 space-y-2 leading-snug list-disc pl-5">
-                <li><strong>AI-matched candidates</strong> — only talent genuinely aligned to your requirements</li>
-                <li>Receive up to <strong>three curated profiles per role</strong> — no CV pile, no noise</li>
-                <li>Proprietary compatibility engine that scores culture fit, trajectory, and compensation</li>
-                <li>Access <strong>passive talent</strong> — your next hire may not be actively job-hunting</li>
-                <li>Multi-dimensional analysis: skills, culture alignment, career goals</li>
-                <li>Full candidate confidentiality until mutual interest is confirmed</li>
-                <li><strong>PDPA-compliant</strong> data handling with end-to-end encryption</li>
-                <li>Early access to talent before they reach the open market</li>
-                <li>Hiring intelligence reports delivered with every match</li>
+                <li><strong>{t('careers.hmBullet1Strong')}</strong>{t('careers.hmBullet1Trail')}</li>
+                <li>{t('careers.hmBullet2Lead')}<strong>{t('careers.hmBullet2Strong')}</strong>{t('careers.hmBullet2Trail')}</li>
+                <li>{t('careers.hmBullet3')}</li>
+                <li>{t('careers.hmBullet4Lead')}<strong>{t('careers.hmBullet4Strong')}</strong>{t('careers.hmBullet4Trail')}</li>
+                <li>{t('careers.hmBullet5')}</li>
+                <li>{t('careers.hmBullet6')}</li>
+                <li><strong>{t('careers.hmBullet7Strong')}</strong>{t('careers.hmBullet7Trail')}</li>
+                <li>{t('careers.hmBullet8')}</li>
+                <li>{t('careers.hmBullet9')}</li>
               </ul>
               <Link
                 to="/start/hiring"
-                className="inline-flex items-center mt-4 text-sm font-semibold text-[#1B2A6B] hover:text-[#0B1220]"
+                className="inline-flex items-center mt-4 text-sm font-semibold text-navy-700 hover:text-navy-900"
               >
-                Hire with DNJ →
+                {t('careers.hmCta')}
               </Link>
             </div>
           </div>
         </section>
 
         <section className="mt-12">
-          <h2 className="text-xl md:text-2xl font-bold mb-4">Open job vacancies</h2>
+          <h2 className="text-xl md:text-2xl font-bold mb-4">{t('careers.rolesTitle')}</h2>
           <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {ROLES.map((r) => (
+            {ROLES.map((r) => {
+              const rk = r.slug ?? 'internship-students'
+              return (
               <li
                 key={r.title}
-                className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#0d1528] p-5 hover:border-[#0B1742] dark:hover:border-[#5468ef] transition-colors group"
+                className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-midnight-800 p-5 hover:border-navy-800 dark:hover:border-brand-500 transition-colors group"
               >
                 <div className="flex items-start justify-between gap-2 mb-1">
-                  <h3 className="text-base font-semibold text-[#0B1220] dark:text-white">{r.title}</h3>
+                  <h3 className="text-base font-semibold text-navy-900 dark:text-white">{t(`careers.roles.${rk}.title`)}</h3>
                   {/* Salary — #audit #4: visible salary ranges */}
                   <span className="flex-shrink-0 text-xs font-semibold text-[#0B6B3F] bg-[#ecfdf5] border border-[#86efac]/50 px-2 py-0.5 rounded-full whitespace-nowrap">
-                    {r.salary}
+                    {t(`careers.roles.${rk}.salary`)}
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {r.type} · {r.location} · {r.level}
+                  {t(`careers.roles.${rk}.type`)} · {t(`careers.roles.${rk}.location`)} · {t(`careers.roles.${rk}.level`)}
                 </p>
-                <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 leading-snug">{r.blurb}</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 leading-snug">{t(`careers.roles.${rk}.blurb`)}</p>
                 <div className="mt-3 flex items-center gap-4">
                   {r.slug && (
                     <Link
                       to={`/jobs/${r.slug}`}
-                      className="inline-flex items-center text-sm text-gray-500 dark:text-gray-400 hover:text-[#0B1220] dark:hover:text-white"
+                      className="inline-flex items-center text-sm text-gray-500 dark:text-gray-400 hover:text-navy-900 dark:hover:text-white"
                     >
-                      View role →
+                      {t('careers.viewRole')}
                     </Link>
                   )}
                   <Link
                     to="/start/talent"
-                    className="inline-flex items-center text-sm font-semibold text-[#1B2A6B] dark:text-[#a6b6ff] hover:text-[#0B1220] dark:hover:text-white"
+                    className="inline-flex items-center text-sm font-semibold text-navy-700 dark:text-midnight-400 hover:text-navy-900 dark:hover:text-white"
                   >
-                    Apply now →
+                    {t('careers.applyNow')}
                   </Link>
                 </div>
               </li>
-            ))}
+              )
+            })}
           </ul>
         </section>
 
         <section className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-5">
-          <div className="rounded-xl bg-[#fafbff] ring-1 ring-[#e8edff] p-5">
-            <h2 className="font-semibold text-[#0B1220] mb-2">Locations we hire in</h2>
+          <div className="rounded-xl bg-[#fafbff] ring-1 ring-midnight-100 p-5">
+            <h2 className="font-semibold text-navy-900 mb-2">{t('careers.locationsTitle')}</h2>
             <p className="text-sm text-gray-700 leading-relaxed">
-              Kuala Lumpur · Petaling Jaya (PJ) · Penang · Selangor · Johor Bahru · Cyberjaya ·
-              Putrajaya · Shah Alam. Work from home Kuala Lumpur and remote job Malaysia options for
-              selected roles.
+              {t('careers.locationsBody')}
             </p>
           </div>
-          <div className="rounded-xl bg-[#fafbff] ring-1 ring-[#e8edff] p-5">
-            <h2 className="font-semibold text-[#0B1220] mb-2">Job types</h2>
+          <div className="rounded-xl bg-[#fafbff] ring-1 ring-midnight-100 p-5">
+            <h2 className="font-semibold text-navy-900 mb-2">{t('careers.jobTypesTitle')}</h2>
             <p className="text-sm text-gray-700 leading-relaxed">
-              Full time job · Part time job · Contract job · Temporary job · Internship · Freelance
-              job · Remote job · Hybrid job · Shift job · Permanent job. Apply now and send resume.
+              {t('careers.jobTypesBody')}
             </p>
           </div>
-          <div className="rounded-xl bg-[#fafbff] ring-1 ring-[#e8edff] p-5">
-            <h2 className="font-semibold text-[#0B1220] mb-2">Who we hire</h2>
+          <div className="rounded-xl bg-[#fafbff] ring-1 ring-midnight-100 p-5">
+            <h2 className="font-semibold text-navy-900 mb-2">{t('careers.whoTitle')}</h2>
             <p className="text-sm text-gray-700 leading-relaxed">
-              Fresh graduate, SPM leaver, diploma holder, degree holder, junior executive, mid-level
-              and senior. With or without experience considered. Career change friendly. Best company
-              to work for in luxury and aviation hiring.
+              {t('careers.whoBody')}
             </p>
           </div>
         </section>
 
         <section className="mt-12">
-          <h2 className="text-xl md:text-2xl font-bold mb-4">Frequently asked questions</h2>
+          <h2 className="text-xl md:text-2xl font-bold mb-4">{t('careers.faqTitle')}</h2>
           <div className="space-y-3">
-            {FAQS.map(({ q, a }) => (
-              <details key={q} className="group rounded-lg border border-gray-200 p-4">
-                <summary className="cursor-pointer font-semibold text-[#0B1220] list-none flex items-center justify-between">
-                  <span>{q}</span>
+            {FAQS.map((_, i) => (
+              <details key={i} className="group rounded-lg border border-gray-200 p-4">
+                <summary className="cursor-pointer font-semibold text-navy-900 list-none flex items-center justify-between">
+                  <span>{t(`careers.faq${i + 1}q`)}</span>
                   <span className="text-gray-400 group-open:rotate-45 transition-transform">+</span>
                 </summary>
-                <p className="text-sm text-gray-700 mt-2 leading-relaxed">{a}</p>
+                <p className="text-sm text-gray-700 mt-2 leading-relaxed">{t(`careers.faq${i + 1}a`)}</p>
               </details>
             ))}
           </div>
         </section>
 
-        <section className="mt-12 rounded-2xl bg-gradient-to-br from-[#0B1742] to-[#1B2A6B] text-white p-8 text-center">
-          <h2 className="text-2xl font-bold mb-2">Apply online — AI-curated matches, three picks, zero noise</h2>
+        <section className="mt-12 rounded-2xl bg-gradient-to-br from-navy-800 to-navy-700 text-white p-8 text-center">
+          <h2 className="text-2xl font-bold mb-2">{t('careers.ctaTitle')}</h2>
           <p className="text-white/85 max-w-2xl mx-auto leading-relaxed">
-            Complete your profile in minutes and let the AI match you with the right hiring company.
-            Career growth, good salary and stable job — curated to your location, skills, and goals.
+            {t('careers.ctaBody')}
           </p>
           <div className="mt-5 flex flex-wrap justify-center gap-3">
             <Link
               to="/start/talent"
-              className="inline-flex items-center px-5 py-2.5 rounded-xl bg-white text-[#0B1742] text-sm font-semibold hover:bg-gray-100"
+              className="inline-flex items-center px-5 py-2.5 rounded-xl bg-white text-navy-800 text-sm font-semibold hover:bg-gray-100"
             >
-              Apply now
+              {t('careers.ctaApply')}
             </Link>
             <Link
               to="/careers/urgent-hiring-malaysia-2026"
               className="inline-flex items-center px-5 py-2.5 rounded-xl border border-white/40 text-white text-sm font-semibold hover:bg-white/10"
             >
-              Read: Urgent Hiring Near Me 2026
+              {t('careers.ctaBlog')}
             </Link>
           </div>
         </section>
 
         <section className="mt-12">
-          <h2 className="text-base font-semibold text-[#0B1220] mb-2">Popular searches</h2>
+          <h2 className="text-base font-semibold text-navy-900 mb-2">{t('careers.popularTitle')}</h2>
           <p className="text-xs text-gray-500 leading-relaxed">
-            Jobs near me · Job vacancy near me · Apply job online · Latest job vacancy · Part time
-            job near me · Full time job · Fresh graduate job · Pilot job vacancy · Cadet pilot
-            program · Aviation job vacancy · Jeweler job vacancy · Diamond grader job · Gemologist
-            job · Luxury retail job vacancy · Sales executive job vacancy · Account assistant job
-            vacancy · Admin executive job vacancy · Software developer job vacancy · Graphic
-            designer job vacancy · Marketing executive job vacancy · Customer service job vacancy ·
-            HR assistant job vacancy · Finance job vacancy · Operation job vacancy · Job vacancy in
-            Kuala Lumpur · Job vacancy in PJ · Job vacancy in Penang · Job vacancy in Malaysia ·
-            Jobs near KL · Hiring in Kuala Lumpur · Hiring in Malaysia · Work from home Kuala
-            Lumpur · Remote job Malaysia · Internship · Internship for students · Graduate trainee
-            program · Diploma holder job · SPM leaver job · Career opportunity · Career growth job ·
-            Career advancement · Job with promotion · Good salary job · Stable job · Best company
-            to work for
+            {t('careers.popularBody')}
           </p>
           <p className="text-[10px] text-gray-400 mt-3 italic">
-            DNJ does not run walk-in interviews or same-day hiring. We curate up to three matches
-            per role; typical pilot timeline is around 14 days from profile completion. Interviews
-            are arranged directly between you and the matched company.
+            {t('careers.disclaimer')}
           </p>
         </section>
       </main>
 
       <footer className="border-t border-gray-100 mt-10 py-6 text-center text-xs text-gray-500">
-        <Link to="/" className="hover:text-[#0B1220]">Home</Link>
+        <Link to="/" className="hover:text-navy-900">{t('careers.footerHome')}</Link>
         <span className="mx-2">·</span>
-        <Link to="/privacy" className="hover:text-[#0B1220]">Privacy</Link>
+        <Link to="/privacy" className="hover:text-navy-900">{t('careers.footerPrivacy')}</Link>
         <span className="mx-2">·</span>
-        <Link to="/terms" className="hover:text-[#0B1220]">Terms</Link>
+        <Link to="/terms" className="hover:text-navy-900">{t('careers.footerTerms')}</Link>
         <span className="mx-2">·</span>
         <span>© 2026 DNJ — Diamond &amp; Jeweler</span>
       </footer>

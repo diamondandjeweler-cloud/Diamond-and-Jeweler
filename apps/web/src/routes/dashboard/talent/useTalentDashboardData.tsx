@@ -260,21 +260,44 @@ export function useTalentDashboardData() {
             })
           }
         })
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'interview_rounds' }, (payload) => {
-          const round = payload.new as InterviewRound & { match_id: string }
-          // Only apply if this round belongs to one of our matches (client-side guard;
-          // Supabase Realtime does not support `in` filters so we filter here)
-          setRoundsByMatch((prev) => {
-            if (!(round.match_id in prev) && !Object.keys(prev).includes(round.match_id)) return prev
-            const existing = prev[round.match_id] ?? []
-            return { ...prev, [round.match_id]: [...existing, round] }
-          })
-        })
         .subscribe()
     })
 
     return () => { cancelled = true; if (channel) void supabase.removeChannel(channel) }
   }, [userId, loadRounds, loadProposals, t])
+
+  // Server-filter the interview_rounds INSERT stream to ONLY this talent's own
+  // matches. postgres_changes DOES support `in.()` (the HM channel already uses
+  // it), so we push the match-id set into the filter instead of receiving every
+  // talent's rounds and discarding them client-side. The id set changes as
+  // matches arrive/depart, so this subscription lives in its own effect keyed on
+  // the (sorted, order-independent) id set: when the set changes the effect
+  // tears the channel down and reopens it with the current filter. The id set is
+  // also folded into the channel name so a changed set can never collide with the
+  // channel it replaces. Empty set → the channel is never opened.
+  const matchIdsKey = (matches ?? []).map((m) => m.id).sort().join(',')
+  useEffect(() => {
+    if (!matchIdsKey) return
+    const matchIds = matchIdsKey.split(',')
+    const channel = supabase
+      .channel(`talent-rounds-${userId ?? 'anon'}-${matchIdsKey}`)
+      .on('postgres_changes', {
+        event: 'INSERT', schema: 'public', table: 'interview_rounds',
+        filter: `match_id=in.(${matchIds.join(',')})`,
+      }, (payload) => {
+        const round = payload.new as InterviewRound & { match_id: string }
+        // Defense-in-depth: the server filter already scopes rounds to our
+        // matches, but keep the original client-side guard so a round is only
+        // applied to a match we are actively tracking in roundsByMatch.
+        setRoundsByMatch((prev) => {
+          if (!(round.match_id in prev) && !Object.keys(prev).includes(round.match_id)) return prev
+          const existing = prev[round.match_id] ?? []
+          return { ...prev, [round.match_id]: [...existing, round] }
+        })
+      })
+      .subscribe()
+    return () => { void supabase.removeChannel(channel) }
+  }, [userId, matchIdsKey])
 
   // Poll the talents row while extraction is in flight so the banner clears
   // and matches start flowing once the worker finishes. Stops on terminal state.

@@ -372,6 +372,22 @@ export function useHmDashboardData(userId: string | undefined) {
       }
       if (payload.eventType === 'DELETE') setCandidates((xs) => (xs ?? []).filter((c) => c.id !== prev?.id))
       else if (payload.eventType === 'UPDATE' && next) setCandidates((xs) => (xs ?? []).map((c) => (c.id === next.id ? { ...c, ...next } : c)))
+      // INSERT deliberately keeps the full reload — a targeted append would DROP
+      // data. The rendered CandidateCard consumes embedded joins + a separately
+      // fetched preview that a raw `matches` realtime payload does NOT carry:
+      //   • roles(title)                          → card role label
+      //   • talents(privacy_mode, derived_tags, expected_salary_min/max) → tags + salary
+      //   • match_feedback(rating, hired, notes)  → feedback panel
+      //   • previewByMatch[id] (display_name/photo_url) → loaded via the
+      //     get_match_profile_previews RPC in loadPreviews(), keyed by match id.
+      // A postgres_changes payload only carries the matches row's own columns, so
+      // payload.new has none of the above. The DELETE/UPDATE patches above are safe
+      // ONLY because they mutate an EXISTING candidate row that already holds those
+      // joins ({ ...c, ...next }); an INSERT has no existing row to merge onto, so
+      // appending payload.new alone would render a card missing the role title,
+      // name/photo, salary expectations, tags, and feedback. load() re-fetches the
+      // joined projection + previews; the loadingRef guard coalesces it with any
+      // reload already in flight.
       else if (payload.eventType === 'INSERT') { if (!loadingRef.current) void load() }
     }
 

@@ -12,8 +12,7 @@ import type {
   CartLine, MenuCategory, MenuItem, Modifier, OrderType, Promotion, RestaurantTable,
 } from '../../lib/restaurant/types'
 import { MYR } from '../../lib/restaurant/format'
-
-const TAX_RATE = 0.06
+import { TAX_RATE, taxOn } from '../../lib/restaurant/pricing'
 
 export default function Kiosk() {
   const { branchId, employee } = useRestaurant()
@@ -133,7 +132,7 @@ export default function Kiosk() {
   }, [cart.map((l) => l.menuItem.id + ':' + l.quantity).join('|'), promos.length, tableId, subtotal, customerPhone, branchId, tables])
 
   const discount = Math.min(subtotal, autoDiscount + couponDiscount + serverPromoDiscount)
-  const tax      = Math.round((subtotal - discount) * TAX_RATE * 100) / 100
+  const tax      = taxOn(subtotal - discount, TAX_RATE)
   const total    = Math.round((subtotal - discount + tax) * 100) / 100
 
   const addToCart = (item: MenuItem, mods: Modifier[], note: string) => {

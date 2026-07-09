@@ -2,10 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams, useSearchParams, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { placeGuestOrder } from '../../lib/restaurant/store'
+import { taxOn } from '../../lib/restaurant/pricing'
 import { MYR } from '../../lib/restaurant/format'
 import type { Branch, CartLine, MenuCategory, MenuItem, Modifier, RestaurantTable } from '../../lib/restaurant/types'
-
-const TAX_RATE = 0.06
 
 export default function GuestMenu() {
   const { branchId } = useParams<{ branchId: string }>()
@@ -85,7 +84,7 @@ export default function GuestMenu() {
   const cartCount = cart.reduce((s, l) => s + l.quantity, 0)
   const subtotal  = cart.reduce((s, l) =>
     s + l.quantity * (Number(l.menuItem.price) + l.modifiers.reduce((m, x) => m + Number(x.price_delta), 0)), 0)
-  const tax   = Math.round(subtotal * TAX_RATE * 100) / 100
+  const tax   = taxOn(subtotal)
   const total = Math.round((subtotal + tax) * 100) / 100
 
   const addToCart = (item: MenuItem, mods: Modifier[], note: string) => {

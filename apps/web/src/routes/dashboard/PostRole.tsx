@@ -15,6 +15,7 @@ import {
   ScheduleBlock, OpenToSelect, EligibilitySelect, NonNegotiablesInput,
   type LanguageReq, type ScheduleValue, type NNAtom,
 } from '../../components/role-form'
+import { validateSalaryRange } from '../../shared/domain/salary/validateSalaryRange'
 import { DRAFT_KEY, type TeamMember } from './postrole/types'
 import { buildTeamMemberCharacters } from './postrole/teamCharacters'
 import DraftBanners from './postrole/DraftBanners'
@@ -355,7 +356,12 @@ export default function PostRole() {
     setErr(null)
     if (!hmId) { setErr('No hiring manager profile found.'); return }
     if (requiredTraits.length === 0) { setErr('Pick at least one required trait.'); return }
-    if (salaryMin > salaryMax) { setErr('Salary min must be less than or equal to max.'); return }
+    {
+      const salaryErr = validateSalaryRange(salaryMin, salaryMax, {
+        minMaxMessage: 'Salary min must be less than or equal to max.',
+      })
+      if (salaryErr) { setErr(salaryErr); return }
+    }
 
     submittingRef.current = true
     setBusy(true)

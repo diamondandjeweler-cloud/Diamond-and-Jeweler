@@ -7,6 +7,7 @@
  * as long as the schema is exposed in PostgREST's db_schema config (it is).
  */
 import { supabase } from '../supabase'
+import { TAX_RATE, taxOn } from './pricing'
 import type {
   Branch, RestaurantTable, Section, Reservation, WaitlistEntry,
   MenuCategory, MenuItem, Modifier, Ingredient, Recipe,
@@ -196,7 +197,7 @@ export async function addItemToOrder(
   // Bump totals
   const lineSubtotal = unitPrice * quantity
   const newSubtotal = Number(order.subtotal) + lineSubtotal
-  const newTax = Math.round((newSubtotal - Number(order.discount)) * 0.06 * 100) / 100
+  const newTax = taxOn(newSubtotal - Number(order.discount))
   const newTotal = newSubtotal - Number(order.discount) + newTax
   await db.from('orders').update({
     subtotal: newSubtotal, tax: newTax, total: newTotal, status: 'sent',
@@ -236,7 +237,7 @@ export async function reorderToOpenOrder(orderId: string, _employeeId: string | 
     lineSubtotal += Number(l.unit_price) * Number(l.quantity) + Number(l.modifiers_total)
   }
   const newSubtotal = Number(order.subtotal) + lineSubtotal
-  const newTax = Math.round((newSubtotal - Number(order.discount)) * 0.06 * 100) / 100
+  const newTax = taxOn(newSubtotal - Number(order.discount))
   const newTotal = newSubtotal - Number(order.discount) + newTax
   await db.from('orders').update({ subtotal: newSubtotal, tax: newTax, total: newTotal, status: 'sent' }).eq('id', orderId)
   return lines.length
@@ -743,7 +744,7 @@ export async function placeOrder(params: {
   delivery_address?: string | null
   delivery_fee?: number | null
   lines: CartLine[]
-  taxRate?: number          // 0.06 for 6% SST
+  taxRate: number           // e.g. TAX_RATE (0.06) for 6% SST — required; pass 0 for tax-exempt
   discountAmount?: number
   membership_id?: string | null
 }): Promise<Order> {
@@ -753,7 +754,7 @@ export async function placeOrder(params: {
   )
   const discount = Math.min(params.discountAmount ?? 0, subtotal)
   const taxable = Math.max(0, subtotal - discount)
-  const tax = Math.round(taxable * (params.taxRate ?? 0) * 100) / 100
+  const tax = taxOn(taxable, params.taxRate)
   const total = Math.round((taxable + tax + Number(params.delivery_fee ?? 0)) * 100) / 100
 
   const { data: order, error: e1 } = await db.from('orders').insert({
@@ -822,12 +823,11 @@ export async function placeGuestOrder(params: {
   customer_phone?: string | null
   lines: CartLine[]
 }): Promise<Order> {
-  const TAX_RATE = 0.06
   const subtotal = params.lines.reduce(
     (s, l) => s + l.quantity * (Number(l.menuItem.price) + l.modifiers.reduce((m, x) => m + Number(x.price_delta), 0)),
     0,
   )
-  const tax = Math.round(subtotal * TAX_RATE * 100) / 100
+  const tax = taxOn(subtotal, TAX_RATE)
   const total = Math.round((subtotal + tax) * 100) / 100
 
   const { data: order, error: e1 } = await db.from('orders').insert({

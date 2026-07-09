@@ -8,6 +8,7 @@ import { getOpenHmNudgeForRole, recordStaleLoopResponse } from '../../data/repos
 import { callFunction } from '../../lib/functions'
 import { FormSkeleton } from '../../components/ListSkeleton'
 import { useSeo } from '../../lib/useSeo'
+import { validateSalaryRange } from '../../shared/domain/salary/validateSalaryRange'
 import type { RoleRow } from '../../types/db'
 
 const TRAITS = [
@@ -102,8 +103,11 @@ export default function EditRole() {
     const currentRow = rowRef.current ?? row
     if (!currentRow || savingRef.current) return
     setErr(null)
-    if ((currentRow.salary_min ?? 0) > (currentRow.salary_max ?? 0)) {
-      setErr(t('editRole.salaryMinMax', 'Salary min must be ≤ max.'))
+    const salaryErr = validateSalaryRange(currentRow.salary_min ?? 0, currentRow.salary_max ?? 0, {
+      minMaxMessage: t('editRole.salaryMinMax', 'Salary min must be ≤ max.'),
+    })
+    if (salaryErr) {
+      setErr(salaryErr)
       return
     }
     if (currentRow.required_traits.length === 0) {

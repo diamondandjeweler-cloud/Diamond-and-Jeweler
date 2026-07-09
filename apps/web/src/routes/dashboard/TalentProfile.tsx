@@ -10,6 +10,7 @@ import { PREFERENCE_ASPECTS } from '../../data/preference-aspects'
 import { useTranslation } from 'react-i18next'
 import { useSeo } from '../../lib/useSeo'
 import { signedUrl, uploadPrivate } from '../../lib/storage'
+import { validateSalaryRange } from '../../shared/domain/salary/validateSalaryRange'
 
 type PrivacyMode = 'public' | 'anonymous' | 'whitelist'
 
@@ -261,14 +262,14 @@ export default function TalentProfile() {
     if (!talent) return
     setErr(null); setWaSaved(false); setBusy(true)
 
-    if (salaryMin < 0 || salaryMax < 0) {
-      setErr('Salary cannot be negative.'); setBusy(false); return
-    }
-    if (salaryMax > 500_000) {
-      setErr('Maximum salary cannot exceed RM 500,000 / month.'); setBusy(false); return
-    }
-    if (salaryMin > salaryMax && salaryMax > 0) {
-      setErr('Minimum salary must be ≤ maximum.'); setBusy(false); return
+    const salaryErr = validateSalaryRange(salaryMin, salaryMax, {
+      negative: { message: 'Salary cannot be negative.' },
+      ceiling: { limit: 500_000, message: 'Maximum salary cannot exceed RM 500,000 / month.' },
+      minMaxRequiresMaxAboveZero: true,
+      minMaxMessage: 'Minimum salary must be ≤ maximum.',
+    })
+    if (salaryErr) {
+      setErr(salaryErr); setBusy(false); return
     }
 
     const payload = {

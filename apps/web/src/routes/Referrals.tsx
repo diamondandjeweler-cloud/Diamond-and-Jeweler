@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../state/useSession'
-import { supabase } from '../lib/supabase'
+import { callFunction } from '../lib/functions'
 import { getConfigValues } from '../data/repositories/systemConfig'
 import { createReferral, generateReferralCode, referralsForReferrer } from '../data/repositories/referrals'
 import { listRolesForRedeemPicker } from '../data/repositories/roles'
@@ -189,16 +189,7 @@ export default function Referrals() {
     if (!pickedRoleId) { void noticeDialog({ title: 'Pick a role first', message: 'Select a role before redeeming.' }); return }
     setRedeeming(true)
     try {
-      const r = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/redeem-points`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token ?? ''}`,
-        },
-        body: JSON.stringify({ target_type: 'role', role_id: pickedRoleId }),
-      })
-      const j = await r.json() as { error?: string; cost?: number }
-      if (!r.ok) throw new Error(j.error || 'Failed')
+      const j = await callFunction<{ cost?: number }>('redeem-points', { target_type: 'role', role_id: pickedRoleId })
       await refresh()
       // Refresh role quotas locally.
       setRoles((prev) => prev.map((row) => row.id === pickedRoleId
@@ -215,16 +206,7 @@ export default function Referrals() {
   const redeemForTalent = async () => {
     setRedeeming(true)
     try {
-      const r = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/redeem-points`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token ?? ''}`,
-        },
-        body: JSON.stringify({ target_type: 'talent' }),
-      })
-      const j = await r.json() as { error?: string; cost?: number }
-      if (!r.ok) throw new Error(j.error || 'Failed')
+      const j = await callFunction<{ cost?: number }>('redeem-points', { target_type: 'talent' })
       await refresh()
       flashCopy(`Redeemed ${j.cost ?? pointsCfg.perExtra} Diamond Points — your next match is being generated.`)
     } catch (e) {

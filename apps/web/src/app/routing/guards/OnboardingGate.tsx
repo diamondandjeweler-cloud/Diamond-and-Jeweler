@@ -1,8 +1,8 @@
 import { Navigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
-import { useSession } from '../state/useSession'
+import { useSession } from '../../../state/useSession'
 import { useShallow } from 'zustand/react/shallow'
-import LoadingSpinner from './LoadingSpinner'
+import LoadingSpinner from '../../../components/LoadingSpinner'
 
 /**
  * Redirects authenticated users who haven't completed onboarding to the right

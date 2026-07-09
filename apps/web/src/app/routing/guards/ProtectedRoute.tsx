@@ -1,8 +1,8 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import type { ReactNode } from 'react'
-import { useSession } from '../state/useSession'
+import { useSession } from '../../../state/useSession'
 import { useShallow } from 'zustand/react/shallow'
-import LoadingSpinner from './LoadingSpinner'
+import LoadingSpinner from '../../../components/LoadingSpinner'
 
 export default function ProtectedRoute({ children }: { children: ReactNode }) {
   const location = useLocation()

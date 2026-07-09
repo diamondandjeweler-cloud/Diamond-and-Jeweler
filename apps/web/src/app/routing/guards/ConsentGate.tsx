@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
-import { useSession } from '../state/useSession'
+import { useSession } from '../../../state/useSession'
 import { useShallow } from 'zustand/react/shallow'
-import LoadingSpinner from './LoadingSpinner'
-import { getCachedLegalVersionSync, getCurrentLegalVersion, consentSatisfiesVersion } from '../lib/legalVersion'
+import LoadingSpinner from '../../../components/LoadingSpinner'
+import { getCachedLegalVersionSync, getCurrentLegalVersion, consentSatisfiesVersion } from '../../../lib/legalVersion'
 
 /**
  * Forces consent before any authenticated route. Runs *before* OnboardingGate

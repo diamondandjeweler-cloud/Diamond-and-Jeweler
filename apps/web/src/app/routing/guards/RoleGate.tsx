@@ -1,10 +1,10 @@
 import { Navigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { useSession } from '../state/useSession'
+import { useSession } from '../../../state/useSession'
 import { useShallow } from 'zustand/react/shallow'
-import LoadingSpinner from './LoadingSpinner'
-import type { Role } from '../types/db'
+import LoadingSpinner from '../../../components/LoadingSpinner'
+import type { Role } from '../../../types/db'
 
 interface Props {
   allow: Role[]

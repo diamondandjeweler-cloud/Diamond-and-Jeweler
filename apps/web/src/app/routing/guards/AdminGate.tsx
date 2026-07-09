@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import type { ReactNode } from 'react'
-import { useSession } from '../state/useSession'
+import { useSession } from '../../../state/useSession'
 import { useShallow } from 'zustand/react/shallow'
-import { clearAdminVerified, isAdminVerificationFresh, markAdminVerified } from '../lib/adminReauth'
-import LoadingSpinner from './LoadingSpinner'
-import { supabase } from '../lib/supabase'
+import { clearAdminVerified, isAdminVerificationFresh, markAdminVerified } from '../../../lib/adminReauth'
+import LoadingSpinner from '../../../components/LoadingSpinner'
+import { supabase } from '../../../lib/supabase'
 
 type AalState = 'loading' | 'aal2' | 'need_challenge' | 'need_enroll'
 

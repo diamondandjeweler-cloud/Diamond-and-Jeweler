@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import type { ReactNode } from 'react'
-import type { Profile, Role } from '../types/db'
+import type { Profile, Role } from '../../../types/db'
 
 // ===========================================================================
 // CHARACTERIZATION TEST — route-guard composition (Phase 4 clean-arch, C3)
@@ -46,7 +46,7 @@ const state: MockState = {
 // zustand store is used both as a hook `useSession()` and as
 // `useSession.getState()` / `.getState().refreshIsHM()` (RoleGate.tsx:37,56).
 // The mock must be a callable that also carries a `.getState()`.
-vi.mock('../state/useSession', () => {
+vi.mock('../../../state/useSession', () => {
   const useSession = Object.assign(() => state, { getState: () => state })
   return { useSession, bootstrapSession: vi.fn() }
 })
@@ -55,8 +55,8 @@ vi.mock('../state/useSession', () => {
 // synchronously (no spinner, no network). consentSatisfiesVersion keeps its
 // REAL semantics via the actual implementation to characterize the redirect.
 let currentLegal: string | null = 'v1.0'
-vi.mock('../lib/legalVersion', async () => {
-  const actual = await vi.importActual<typeof import('../lib/legalVersion')>('../lib/legalVersion')
+vi.mock('../../../lib/legalVersion', async () => {
+  const actual = await vi.importActual<typeof import('../../../lib/legalVersion')>('../../../lib/legalVersion')
   return {
     ...actual,
     getCachedLegalVersionSync: () => currentLegal,

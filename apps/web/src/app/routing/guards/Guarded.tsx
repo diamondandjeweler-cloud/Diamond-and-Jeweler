@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import RoleGate from './RoleGate'
 import ConsentGate from './ConsentGate'
 import OnboardingGate from './OnboardingGate'
-import type { Role } from '../types/db'
+import type { Role } from '../../../types/db'
 
 /**
  * Presentational route-guard composer (Phase 4 clean-arch, C3).

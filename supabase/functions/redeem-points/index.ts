@@ -190,18 +190,45 @@ async function handler(req: Request): Promise<Response> {
         .eq('extra_matches_used', used) // optimistic concurrency guard
     }
 
-    // Trigger an extra-match generation. Service-role auth.
+    // Deliver synchronously and couple the outcome to the response: a dropped or
+    // empty generation must NOT silently burn the points + quota. On a Supabase
+    // edge isolate an un-awaited fetch can be torn down after the response, and a
+    // 4xx/5xx would be swallowed by a bare .catch — so we await, read
+    // matches_added, and report it (mirrors urgent-priority-search's
+    // consume-then-report contract). Auto-refund on a 0/failed delivery is
+    // deferred: redeem_points_for is idempotent on `redeem:{target}:{used}`, so a
+    // naive refund+retry replays the same key — a proper compensating flow needs
+    // an RPC change (tracked as a follow-up).
     const url = `${Deno.env.get('SUPABASE_URL')}/functions/v1/match-generate`
     const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${svcKey}` },
-      body: JSON.stringify({ role_id: roleId, is_extra_match: true }),
-    }).catch(() => { /* best effort */ })
+    let matchesAdded = 0
+    try {
+      const genRes = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${svcKey}` },
+        body: JSON.stringify({ role_id: roleId, is_extra_match: true }),
+      })
+      if (genRes.ok) {
+        const genJson = await genRes.json().catch(() => ({})) as { matches_added?: number }
+        matchesAdded = genJson.matches_added ?? 0
+      } else {
+        await reportError(new Error(`match-generate returned ${genRes.status}`), { fn: 'redeem-points', stage: 'deliver', role_id: roleId })
+      }
+    } catch (e) {
+      await reportError(e, { fn: 'redeem-points', stage: 'deliver', role_id: roleId })
+    }
 
     return {
       _status: 200,
-      _body: { message: 'Redeemed', cost, target_type: targetType, role_id: roleId, talent_id: talentId },
+      _body: {
+        message: matchesAdded > 0 ? 'Redeemed' : 'Redeemed — no new candidate available right now',
+        cost,
+        matches_added: matchesAdded,
+        delivered: matchesAdded > 0,
+        target_type: targetType,
+        role_id: roleId,
+        talent_id: talentId,
+      },
     }
   })
 

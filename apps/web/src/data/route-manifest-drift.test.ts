@@ -17,7 +17,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { LOCATION_SLUGS, HIRE_SLUGS, LOCATIONS, HIRES } from './silo-data'
+import { LOCATION_SLUGS, HIRE_SLUGS, LOCATIONS, HIRES } from '../shared/content/silo-data'
 
 const read = (rel: string) => readFileSync(new URL(rel, import.meta.url), 'utf8')
 const injectMeta = read('../../scripts/inject-meta.mjs')

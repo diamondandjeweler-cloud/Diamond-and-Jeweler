@@ -1,7 +1,7 @@
 import { Link, useParams, Navigate } from 'react-router-dom'
 import { useSeo } from '../lib/useSeo'
 import RelatedLinks from '../components/RelatedLinks'
-import { ROLES, LOCATIONS, HIRES, type RoleSlug, type InterviewStage } from '../data/silo-data'
+import { ROLES, LOCATIONS, HIRES, type RoleSlug, type InterviewStage } from '../shared/content/silo-data'
 
 const ORIGIN = 'https://diamondandjeweler.com'
 

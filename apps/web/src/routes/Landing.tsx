@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useSession } from '../state/useSession'
 import { useShallow } from 'zustand/react/shallow'
 import { useSeo } from '../lib/useSeo'
-import { ROLES, LOCATIONS, ROLE_SLUGS, LOCATION_SLUGS } from '../data/silo-data'
+import { ROLES, LOCATIONS, ROLE_SLUGS, LOCATION_SLUGS } from '../shared/content/silo-data'
 import DarkModeToggle from '../components/DarkModeToggle'
 import {
   BackgroundDecor,

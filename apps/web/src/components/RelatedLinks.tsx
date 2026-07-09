@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ROLES, LOCATIONS, type RoleSlug, type LocationSlug } from '../data/silo-data'
+import { ROLES, LOCATIONS, type RoleSlug, type LocationSlug } from '../shared/content/silo-data'
 
 interface RelatedLinksProps {
   roles?: RoleSlug[]

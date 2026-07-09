@@ -1,7 +1,7 @@
 import { Link, useLocation, Navigate } from 'react-router-dom'
 import { useSeo } from '../lib/useSeo'
 import RelatedLinks from '../components/RelatedLinks'
-import { LOCATIONS, ROLES, type LocationSlug } from '../data/silo-data'
+import { LOCATIONS, ROLES, type LocationSlug } from '../shared/content/silo-data'
 
 const ORIGIN = 'https://diamondandjeweler.com'
 

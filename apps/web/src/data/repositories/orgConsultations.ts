@@ -1,6 +1,6 @@
 import { supabase } from '../../lib/supabase'
 import type { Database } from '../../types/db.generated'
-import type { OrgConsultationRow, OrgTierCode } from '../../lib/orgChart'
+import type { OrgConsultationRow, OrgTierCode } from '../../shared/domain/orgChart/orgChart'
 
 type OrgConsultationUpdate = Database['public']['Tables']['org_consultations']['Update']
 

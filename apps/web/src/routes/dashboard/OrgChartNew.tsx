@@ -5,7 +5,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { insertOrgConsultation } from '../../data/repositories/orgConsultations'
 import { Alert, Button, Card, Field, Input, PageHeader } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
-import { ORG_TIERS, orgTierForSize } from '../../lib/orgChart'
+import { ORG_TIERS, orgTierForSize } from '../../shared/domain/orgChart/orgChart'
 
 export default function OrgChartNew() {
   useSeo({ title: 'New Org Chart Consultation', noindex: true })

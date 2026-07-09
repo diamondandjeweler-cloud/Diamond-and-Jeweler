@@ -9,8 +9,8 @@ import { useSeo } from '../../lib/useSeo'
 import {
   type OrgConsultationRow, type OrgMember,
   orgArchetypeLabel, runAnalysis,
-} from '../../lib/orgChart'
-import { sanitiseClientText } from '../../lib/orgChartSanitiser'
+} from '../../shared/domain/orgChart/orgChart'
+import { sanitiseClientText } from '../../shared/domain/orgChart/orgChartSanitiser'
 
 type EditingMember = OrgMember & { _editIdx: number }
 

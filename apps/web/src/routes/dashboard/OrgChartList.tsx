@@ -7,7 +7,7 @@ import { Badge, Button, Card, EmptyState, PageHeader, type BadgeTone } from '../
 import { Async } from '../../components/patterns/Async'
 import ListSkeleton from '../../components/ListSkeleton'
 import { useSeo } from '../../lib/useSeo'
-import type { OrgConsultationRow } from '../../lib/orgChart'
+import type { OrgConsultationRow } from '../../shared/domain/orgChart/orgChart'
 
 const STATUS_LABEL: Record<OrgConsultationRow['status'], string> = {
   draft: 'Draft',

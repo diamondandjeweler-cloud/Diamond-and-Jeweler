@@ -27,7 +27,6 @@ import {
   type ExtractionMessage,
   type ExtractedProfile,
 } from '../_shared/talent-extraction.ts'
-import { matchForRole, MatchError } from '../_shared/match-core.ts'
 import { enforceRateLimit, RateLimitError } from '../_shared/ratelimit.ts'
 
 interface Body {
@@ -136,9 +135,9 @@ async function processExtraction(
     if (error) throw error
     console.log(`[enqueue-talent-extraction] talent=${talentId} complete`)
 
-    // Now that the talent is matchable, enqueue active roles for rematch and
-    // kick the queue worker. The 2-min cron is a safety net; this gets the
-    // new talent in front of HMs within one matcher cycle.
+    // Now that the talent is matchable, enqueue active roles for rematch.
+    // process-match-queue (pg_cron every 1m) drains the queue, so the new
+    // talent is in front of HMs within one matcher cycle.
     await triggerRematch(talentId)
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -173,24 +172,26 @@ async function triggerRematch(talentId: string): Promise<void> {
       return
     }
     const ids = (roles ?? []).map((r) => (r as { id: string }).id)
-    console.log(`[enqueue-talent-extraction] talent=${talentId} rematching ${ids.length} active roles`)
+    console.log(`[enqueue-talent-extraction] talent=${talentId} enqueueing ${ids.length} active roles for rematch`)
+    if (ids.length === 0) return
 
-    let succeeded = 0
-    let failed = 0
-    for (const roleId of ids) {
-      try {
-        const result = await matchForRole({ roleId, isServiceRole: true })
-        if (result.matches_added > 0) {
-          console.log(`[enqueue-talent-extraction] role=${roleId} added ${result.matches_added} matches`)
-        }
-        succeeded++
-      } catch (err) {
-        const msg = err instanceof MatchError ? err.message : err instanceof Error ? err.message : String(err)
-        console.warn(`[enqueue-talent-extraction] role=${roleId} match failed: ${msg}`)
-        failed++
-      }
+    // Enqueue into match_queue instead of a SERIAL fan-out of synchronous
+    // matchForRole runs (the old loop held this worker for one full
+    // generation × up to 50 roles). process-match-queue (every 1m) drains
+    // the queue with bounded concurrency calling the SAME matchForRole, so
+    // approval mode / refresh limits still apply at drain time.
+    // enqueue_roles_for_rematch (migration 0167) skips inactive /
+    // vacancy-expired roles and dedups against pending/processing items.
+    const { data: n, error: enqErr } = await db.rpc('enqueue_roles_for_rematch', {
+      p_role_ids: ids,
+      p_priority: 5,
+    })
+    if (enqErr) {
+      console.warn(`[enqueue-talent-extraction] enqueue_roles_for_rematch failed: ${enqErr.message}`)
+      return
     }
-    console.log(`[enqueue-talent-extraction] rematch done talent=${talentId} ok=${succeeded} fail=${failed}`)
+    const enqueued = typeof n === 'number' ? n : 0
+    console.log(`[enqueue-talent-extraction] rematch done talent=${talentId} enqueued=${enqueued}`)
   } catch (err) {
     console.warn(`[enqueue-talent-extraction] rematch trigger error: ${err}`)
   }

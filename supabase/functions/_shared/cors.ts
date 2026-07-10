@@ -5,6 +5,9 @@ export const corsHeaders: HeadersInit = {
   'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  // Retry-After is not a CORS-safelisted response header; without this the
+  // browser client can never read it off our 429s (server still sends it).
+  'Access-Control-Expose-Headers': 'Retry-After',
 }
 
 /**

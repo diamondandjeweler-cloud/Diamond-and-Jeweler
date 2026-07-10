@@ -86,7 +86,7 @@ serve(async (req) => {
   // (match-core.ts ~L157: MatchError('Role not found', 404)).
   const { data: role, error: roleErr } = await db
     .from('roles')
-    .select('id, hiring_manager_id')
+    .select('id, hiring_manager_id, status, vacancy_expires_at')
     .eq('id', body.role_id).single()
   if (roleErr || !role) return json({ error: 'Role not found' }, 404)
 
@@ -98,6 +98,27 @@ serve(async (req) => {
     const { data: hmOwner } = await db.from('hiring_managers')
       .select('id').eq('id', role.hiring_manager_id).eq('profile_id', auth.userId).maybeSingle()
     if (!hmOwner) return json({ error: 'Not the role owner' }, 403)
+  }
+
+  // Parity gates with match-core (L158-181) — same messages and status codes,
+  // so the old synchronous HTTP contract survives the enqueue conversion
+  // (MyRoles' catch-toast, and the HM_DOB_REQUIRED "complete your profile"
+  // contract). Deliberately AFTER the ownership 403 so role state is never
+  // disclosed to non-owners (an improvement over the old sync ordering).
+  // matchForRole re-enforces all of these at drain time; these checks exist to
+  // restore the user-facing signal and to stop unmatchable roles from burning
+  // queue retries into silent 'failed' rows. (≤1m TOCTOU to drain is fine.)
+  if (role.status !== 'active') return json({ error: `Role status is ${role.status}` }, 400)
+  if (role.vacancy_expires_at && new Date(role.vacancy_expires_at) < new Date()) {
+    return json({ error: 'Vacancy has expired — extend it to resume matching' }, 400)
+  }
+  const { data: hm } = await db.from('hiring_managers')
+    .select('date_of_birth_encrypted')
+    .eq('id', role.hiring_manager_id).maybeSingle()
+  if (!hm?.date_of_birth_encrypted) {
+    return json({
+      error: 'HM_DOB_REQUIRED: Your hiring profile is missing a date of birth. Add it from your profile so we can match you with the right talent.',
+    }, 422)
   }
 
   // Priority 10 > bulk-rematch priority 5 (match_queue drains priority DESC),

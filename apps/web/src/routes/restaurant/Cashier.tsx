@@ -634,6 +634,7 @@ function ShiftCard({ shift, onChanged, branchId }: { shift: CashierShift | null;
   const [closingCash, setClosingCash]   = useState('')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg]   = useState<string | null>(null)
+  const [varianceGate, setVarianceGate] = useState<{ amount: number; expected: number; variance: number; cashSales: number; by: Record<string, number> } | null>(null)
 
   if (!employee) {
     return (
@@ -670,12 +671,6 @@ function ShiftCard({ shift, onChanged, branchId }: { shift: CashierShift | null;
     // behavior-preserving scope.
     alert(`X-report\nSince: ${new Date(since).toLocaleTimeString()}\nTxn: ${tally.totals.count}\nRevenue: ${MYR(tally.totals.amount)}\n` + Object.entries(tally.by_method).map(([m,v]) => `${m}: ${MYR(v)}`).join('\n'))
   }
-
-  // TODO(P7): this useState sits below the `if (!employee)` early return above — a
-  // genuine rules-of-hooks violation. Restructuring ShiftCard is deferred to the P7
-  // restaurant extraction; disabled for behavior-preserving lint onboarding.
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const [varianceGate, setVarianceGate] = useState<{ amount: number; expected: number; variance: number; cashSales: number; by: Record<string, number> } | null>(null)
 
   const doZ = async () => {
     if (!shift) return

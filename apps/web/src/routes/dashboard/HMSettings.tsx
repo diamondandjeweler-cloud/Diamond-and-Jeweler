@@ -4,6 +4,7 @@ import { useSession } from '../../state/useSession'
 import { useShallow } from 'zustand/react/shallow'
 import { updateProfile } from '../../data/repositories/profiles'
 import { Button, Alert, PageHeader } from '../../components/ui'
+import { Switch } from '../../ui'
 import { useSeo } from '../../lib/useSeo'
 
 export default function HMSettings() {
@@ -66,17 +67,11 @@ export default function HMSettings() {
               className="w-full border border-border dark:bg-surface dark:text-fg rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={whatsappOptIn}
-              onChange={(e) => setWhatsappOptIn(e.target.checked)}
-              className="mt-0.5"
-            />
-            <span className="text-sm text-ink-700 dark:text-fg-strong">
-              {t('hmSettings.optInLabel', 'Send me WhatsApp notifications for new candidate matches, interview updates, and important alerts.')}
-            </span>
-          </label>
+          <Switch
+            checked={whatsappOptIn}
+            onCheckedChange={setWhatsappOptIn}
+            label={t('hmSettings.optInLabel', 'Send me WhatsApp notifications for new candidate matches, interview updates, and important alerts.')}
+          />
         </div>
 
         {err && <Alert tone="red">{err}</Alert>}

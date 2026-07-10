@@ -81,6 +81,10 @@ export const Avatar = forwardRef<HTMLSpanElement, AvatarProps>(
             src={src}
             alt=""
             aria-hidden
+            // avatars are common in long lists (candidate cards, admin panels)
+            // — lazy/async by default so a list of photos doesn't eager-load
+            loading="lazy"
+            decoding="async"
             className="h-full w-full object-cover"
             onError={() => setFailedSrc(src ?? null)}
           />

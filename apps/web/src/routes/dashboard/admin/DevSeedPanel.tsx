@@ -13,6 +13,7 @@ import { testerTalents, updateTalentById } from '../../../data/repositories/tale
 import type { Json } from '../../../types/db.generated'
 import { formatError } from '../../../lib/errors'
 import ListSkeleton from '../../../components/ListSkeleton'
+import { DataList, type DataListColumn } from '../../../ui'
 
 interface TesterTalent {
   talent_id: string
@@ -196,6 +197,41 @@ export default function DevSeedPanel() {
 
   if (loading) return <ListSkeleton rows={3} variant="row" />
 
+  const columns: DataListColumn<TesterTalent>[] = [
+    { key: 'full_name', header: 'Tester' },
+    // typography in the cell, not className (className also styles the header <th>)
+    { key: 'email', header: 'Email', render: (t) => <span className="font-mono text-xs">{t.email}</span> },
+    { key: 'resume', header: 'Resume', render: (t) => (t.has_parsed_resume ? '✓' : '—') },
+    { key: 'interview', header: 'Interview', render: (t) => (t.has_interview_answers ? '✓' : '—') },
+    {
+      key: 'actions',
+      header: <span className="sr-only">Actions</span>,
+      className: 'text-right',
+      render: (t) => (
+        <>
+          <button
+            type="button"
+            onClick={() => void seedTalent(t)}
+            disabled={busyId === t.talent_id}
+            className="rounded border dark:border-border px-2 py-1 text-xs hover:bg-gray-50 dark:hover:bg-surface-2 dark:text-fg-strong disabled:opacity-50"
+          >
+            {busyId === t.talent_id ? 'Working…' : 'Seed'}
+          </button>
+          {(t.has_parsed_resume || t.has_interview_answers) && (
+            <button
+              type="button"
+              onClick={() => void clearTalent(t)}
+              disabled={busyId === t.talent_id}
+              className="ml-2 rounded border dark:border-border px-2 py-1 text-xs text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 disabled:opacity-50"
+            >
+              Clear
+            </button>
+          )}
+        </>
+      ),
+    },
+  ]
+
   return (
     <div>
       <div className="mb-4 rounded border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
@@ -210,54 +246,17 @@ export default function DevSeedPanel() {
       {err && <p className="mb-3 text-sm text-red-600">{err}</p>}
       {msg && <p className="mb-3 text-sm text-green-700">{msg}</p>}
 
-      <div className="overflow-x-auto rounded border dark:border-border bg-surface">
-        <table className="w-full text-sm dark:text-fg-strong">
-          <thead className="bg-gray-50 dark:bg-gray-900">
-            <tr className="text-left">
-              <th className="px-3 py-2 font-medium">Tester</th>
-              <th className="px-3 py-2 font-medium">Email</th>
-              <th className="px-3 py-2 font-medium">Resume</th>
-              <th className="px-3 py-2 font-medium">Interview</th>
-              <th className="px-3 py-2"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {talents.length === 0 && (
-              <tr><td colSpan={5} className="px-3 py-4 text-center text-fg-muted">
-                No <code>@{TEST_DOMAIN}</code> talents found. Run the tester seed first.
-              </td></tr>
-            )}
-            {talents.map((t) => (
-              <tr key={t.talent_id} className="border-t dark:border-border">
-                <td className="px-3 py-2">{t.full_name}</td>
-                <td className="px-3 py-2 font-mono text-xs">{t.email}</td>
-                <td className="px-3 py-2">{t.has_parsed_resume ? '✓' : '—'}</td>
-                <td className="px-3 py-2">{t.has_interview_answers ? '✓' : '—'}</td>
-                <td className="px-3 py-2 text-right">
-                  <button
-                    type="button"
-                    onClick={() => void seedTalent(t)}
-                    disabled={busyId === t.talent_id}
-                    className="rounded border dark:border-border px-2 py-1 text-xs hover:bg-gray-50 dark:hover:bg-surface-2 dark:text-fg-strong disabled:opacity-50"
-                  >
-                    {busyId === t.talent_id ? 'Working…' : 'Seed'}
-                  </button>
-                  {(t.has_parsed_resume || t.has_interview_answers) && (
-                    <button
-                      type="button"
-                      onClick={() => void clearTalent(t)}
-                      disabled={busyId === t.talent_id}
-                      className="ml-2 rounded border dark:border-border px-2 py-1 text-xs text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 disabled:opacity-50"
-                    >
-                      Clear
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataList
+        columns={columns}
+        rows={talents}
+        rowKey={(t) => t.talent_id}
+        caption="Tester talents"
+        empty={
+          <p className="py-4 text-center text-sm text-fg-muted">
+            No <code>@{TEST_DOMAIN}</code> talents found. Run the tester seed first.
+          </p>
+        }
+      />
     </div>
   )
 }

@@ -7,6 +7,7 @@ import { updateProfile } from '../../data/repositories/profiles'
 import { talentProfileByProfileId, updateTalentById } from '../../data/repositories/talents'
 import { latestResumeDocument, insertTalentDocuments } from '../../data/repositories/talentDocuments'
 import { FormSkeleton } from '../../components/ListSkeleton'
+import { Switch } from '../../ui'
 import { PREFERENCE_ASPECTS } from '../../data/preference-aspects'
 import { useTranslation } from 'react-i18next'
 import { useSeo } from '../../lib/useSeo'
@@ -442,14 +443,11 @@ export default function TalentProfile() {
         <form onSubmit={save} className="space-y-6">
           <section>
             <h2 className="font-semibold mb-2 dark:text-fg">Availability</h2>
-            <label className="flex items-center gap-2 text-sm dark:text-fg-strong">
-              <input
-                type="checkbox"
-                checked={openToOffers}
-                onChange={(e) => setOpenToOffers(e.target.checked)}
-              />
-              I'm open to new offers
-            </label>
+            <Switch
+              checked={openToOffers}
+              onCheckedChange={setOpenToOffers}
+              label="I'm open to new offers"
+            />
             <p className="text-xs text-fg-muted mt-1">
               Turn this off to stop receiving new matches without deleting your account.
             </p>
@@ -470,14 +468,11 @@ export default function TalentProfile() {
                 />
               </div>
               <div className="flex items-end">
-                <label className="flex items-center gap-2 text-sm dark:text-fg-strong">
-                  <input
-                    type="checkbox"
-                    checked={whatsappOptIn}
-                    onChange={(e) => setWhatsappOptIn(e.target.checked)}
-                  />
-                  {t('whatsapp.optIn')}
-                </label>
+                <Switch
+                  checked={whatsappOptIn}
+                  onCheckedChange={setWhatsappOptIn}
+                  label={t('whatsapp.optIn')}
+                />
               </div>
             </div>
             <button

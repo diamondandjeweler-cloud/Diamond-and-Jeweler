@@ -6,6 +6,7 @@ import { listFloatingHms, listLinkedHmsForCompany } from '../../../data/reposito
 import { callFunction } from '../../../lib/functions'
 import ListSkeleton from '../../../components/ListSkeleton'
 import { Button, Alert, Input } from '../../../components/ui'
+import { Avatar } from '../../../ui'
 
 interface FloatingHM {
   id: string
@@ -185,9 +186,13 @@ export default function LinkHMPanel() {
           <div className="space-y-2">
             {linked!.map((hm) => (
               <div key={hm.id} className="bg-gray-50 dark:bg-surface border dark:border-border rounded-lg p-3 flex items-center gap-3">
-                <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold shrink-0">
-                  {(hm.profiles?.full_name ?? '?')[0].toUpperCase()}
-                </div>
+                <Avatar
+                  name={hm.profiles?.full_name ?? '?'}
+                  size="sm"
+                  // a nameless '?' hashes to the red tint, which misreads as an
+                  // error state — pin the fallback to the neutral gray tint
+                  className={hm.profiles?.full_name ? undefined : 'bg-ink-100 text-ink-700'}
+                />
                 <div>
                   <p className="text-sm font-medium text-fg">{hm.profiles?.full_name ?? '—'}</p>
                   <p className="text-xs text-fg-muted">{hm.profiles?.email ?? '—'} {hm.job_title ? `· ${hm.job_title}` : ''}</p>

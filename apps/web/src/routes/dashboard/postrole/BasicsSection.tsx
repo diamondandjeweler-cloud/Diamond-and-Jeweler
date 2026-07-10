@@ -1,6 +1,7 @@
 import { memo } from 'react'
 import { FormSection } from '../../../components/role-form'
 import { Input, Textarea } from '../../../components/ui'
+import { Tooltip } from '../../../ui'
 
 interface BasicsSectionProps {
   title: string
@@ -49,15 +50,23 @@ function BasicsSection({
       <div>
         <div className="flex items-end justify-between gap-3 mb-1">
           <div className="field-label">Description</div>
-          <button
-            type="button"
-            onClick={() => void onGenerateDraft()}
-            disabled={drafting || !title.trim()}
-            className="text-xs px-2.5 py-1 rounded-md border border-border text-ink-700 dark:text-fg-strong hover:border-ink-400 dark:hover:border-gray-500 hover:text-fg disabled:opacity-50 disabled:cursor-not-allowed transition"
-            title={!title.trim() ? 'Type a role title first' : 'Generate a starter draft from the title'}
-          >
-            {drafting ? 'Drafting…' : description ? 'Regenerate draft' : 'Generate draft'}
-          </button>
+          <Tooltip content={!title.trim() ? 'Type a role title first' : 'Generate a starter draft from the title'}>
+            {/* Focusable proxy (per Tooltip docs): a disabled button emits no
+                focus/pointer events, so the span keeps the tip keyboard-reachable
+                — but ONLY while disabled, so it never adds a redundant tab stop
+                next to an enabled, already-focusable button. */}
+            {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- conditional disabled-trigger tooltip proxy; see comment above */}
+            <span tabIndex={drafting || !title.trim() ? 0 : undefined} className="inline-block">
+              <button
+                type="button"
+                onClick={() => void onGenerateDraft()}
+                disabled={drafting || !title.trim()}
+                className="text-xs px-2.5 py-1 rounded-md border border-border text-ink-700 dark:text-fg-strong hover:border-ink-400 dark:hover:border-gray-500 hover:text-fg disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                {drafting ? 'Drafting…' : description ? 'Regenerate draft' : 'Generate draft'}
+              </button>
+            </span>
+          </Tooltip>
         </div>
         <Textarea
           hint="What the candidate will own. Keep it concrete. Click 'Generate draft' if you're stuck."

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import MatchExplain from '../../../components/MatchExplain'
 import ScreeningChecklist from '../../../components/ScreeningChecklist'
 import { Button, Card, Badge } from '../../../components/ui'
+import { Avatar } from '../../../ui'
 import type { CultureComparison, InterviewRound, InterviewProposal } from '../../../types/db'
 import { hmOutcomes } from './types'
 import type { CandidateRow, ProfilePreview, ContactInfo, FeedbackEntry } from './types'
@@ -79,7 +80,11 @@ function CandidateCardImpl({
         )}
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-start gap-3 min-w-0">
-            {photoUrl ? (
+            {realName ? (
+              // Real (revealed) identity — Avatar handles both the photo and
+              // the initials fallback with a name-stable tint.
+              <Avatar name={realName} src={photoUrl ?? undefined} size="lg" className="h-14 w-14 text-base" />
+            ) : photoUrl ? (
               <img
                 src={photoUrl}
                 alt={displayName}
@@ -88,8 +93,10 @@ function CandidateCardImpl({
                 className="w-14 h-14 rounded-full object-cover border border-border shrink-0"
               />
             ) : (
+              // Anonymized candidate — keep the deliberate neutral '?' glyph
+              // (an initials avatar would fake an identity here).
               <div className="w-14 h-14 rounded-full bg-surface-2 text-ink-400 dark:text-fg-muted flex items-center justify-center text-base font-medium shrink-0">
-                {(realName ?? '?').slice(0, 1).toUpperCase()}
+                ?
               </div>
             )}
             <div className="min-w-0">

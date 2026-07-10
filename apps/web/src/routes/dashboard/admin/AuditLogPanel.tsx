@@ -3,6 +3,7 @@ import { getAdminAuditLog } from '../../../data/repositories/admin'
 import ListSkeleton from '../../../components/ListSkeleton'
 import { formatError } from '../../../lib/errors'
 import { useQuery } from '../../../lib/useQuery'
+import { DataList, type DataListColumn } from '../../../ui'
 
 // F14 — switched from a direct PostgREST select on `audit_log` to a
 // SECURITY DEFINER RPC `get_admin_audit_log`. The audit_log RLS policies
@@ -37,6 +38,65 @@ const ACTION_GROUPS: Array<{ label: string; actions: string[] }> = [
   { label: 'Matching', actions: ['match_generated', 'match_accepted', 'match_declined', 'match_expired'] },
   { label: 'Compliance', actions: ['breach_detected', 'breach_notified_dpo', 'breach_notified_user'] },
   { label: 'System', actions: ['data_purged', 'cron_run'] },
+]
+
+// Column model for the DataList primitive. Cell markup is lifted verbatim
+// from the old hand-rolled <table>; per-cell classes (font-mono, truncate,
+// whitespace-nowrap) live on inner elements rather than column.className so
+// they style values only, not the column headers.
+const AUDIT_COLUMNS: DataListColumn<AuditRow>[] = [
+  {
+    key: 'created_at',
+    header: 'When (MYT)',
+    render: (r) => (
+      <span className="whitespace-nowrap">
+        {new Date(r.created_at).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur', hour12: false })}
+      </span>
+    ),
+  },
+  {
+    key: 'action',
+    header: 'Action',
+    render: (r) => <span className="font-mono">{r.action}</span>,
+  },
+  {
+    key: 'actor',
+    header: 'Actor',
+    render: (r) => (
+      <span className="font-mono">
+        {r.actor_id ? <span title={r.actor_id}>{r.actor_id.slice(0, 8)}</span> : <span className="text-fg-subtle">—</span>}
+        {r.actor_role && <span className="ml-1 text-fg-muted">({r.actor_role})</span>}
+      </span>
+    ),
+  },
+  {
+    key: 'subject',
+    header: 'Subject',
+    render: (r) => (
+      <span className="font-mono">
+        {r.subject_id ? <span title={r.subject_id}>{r.subject_id.slice(0, 8)}</span> : <span className="text-fg-subtle">—</span>}
+      </span>
+    ),
+  },
+  {
+    key: 'resource',
+    header: 'Resource',
+    render: (r) => (
+      <>
+        {r.resource_type && <span className="text-fg-muted">{r.resource_type}</span>}
+        {r.resource_id && <span className="ml-1 font-mono text-fg-muted" title={r.resource_id}>{r.resource_id.slice(0, 12)}</span>}
+      </>
+    ),
+  },
+  {
+    key: 'metadata',
+    header: 'Metadata',
+    render: (r) => (
+      <div className="max-w-md truncate font-mono text-fg-muted" title={JSON.stringify(r.metadata)}>
+        {Object.keys(r.metadata ?? {}).length > 0 ? JSON.stringify(r.metadata) : ''}
+      </div>
+    ),
+  },
 ]
 
 async function fetchAuditLog(
@@ -158,50 +218,14 @@ export default function AuditLogPanel() {
       </div>
 
       {err && <p className="text-sm text-red-600 mb-3">{err}</p>}
-      {loading ? (
-        <ListSkeleton rows={5} variant="row" />
-      ) : rows.length === 0 ? (
-        <p className="text-sm text-fg-muted">No events match this view.</p>
-      ) : (
-        <div className="overflow-x-auto border dark:border-border rounded">
-          <table className="w-full text-xs dark:text-fg-strong">
-            <thead className="bg-gray-50 dark:bg-surface text-fg-muted">
-              <tr>
-                <th className="text-left px-2 py-1.5">When (MYT)</th>
-                <th className="text-left px-2 py-1.5">Action</th>
-                <th className="text-left px-2 py-1.5">Actor</th>
-                <th className="text-left px-2 py-1.5">Subject</th>
-                <th className="text-left px-2 py-1.5">Resource</th>
-                <th className="text-left px-2 py-1.5">Metadata</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id} className="border-t dark:border-border hover:bg-gray-50 dark:hover:bg-surface">
-                  <td className="px-2 py-1.5 whitespace-nowrap">
-                    {new Date(r.created_at).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur', hour12: false })}
-                  </td>
-                  <td className="px-2 py-1.5 font-mono">{r.action}</td>
-                  <td className="px-2 py-1.5 font-mono">
-                    {r.actor_id ? <span title={r.actor_id}>{r.actor_id.slice(0, 8)}</span> : <span className="text-fg-subtle">—</span>}
-                    {r.actor_role && <span className="ml-1 text-fg-muted">({r.actor_role})</span>}
-                  </td>
-                  <td className="px-2 py-1.5 font-mono">
-                    {r.subject_id ? <span title={r.subject_id}>{r.subject_id.slice(0, 8)}</span> : <span className="text-fg-subtle">—</span>}
-                  </td>
-                  <td className="px-2 py-1.5">
-                    {r.resource_type && <span className="text-fg-muted">{r.resource_type}</span>}
-                    {r.resource_id && <span className="ml-1 font-mono text-fg-muted" title={r.resource_id}>{r.resource_id.slice(0, 12)}</span>}
-                  </td>
-                  <td className="px-2 py-1.5 font-mono text-fg-muted max-w-md truncate" title={JSON.stringify(r.metadata)}>
-                    {Object.keys(r.metadata ?? {}).length > 0 ? JSON.stringify(r.metadata) : ''}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <DataList
+        columns={AUDIT_COLUMNS}
+        rows={rows}
+        rowKey={(r) => r.id}
+        caption="Platform audit log"
+        loading={loading && <ListSkeleton rows={5} variant="row" />}
+        empty={<p className="text-sm text-fg-muted">No events match this view.</p>}
+      />
 
       <div className="flex justify-between items-center mt-3">
         <span className="text-xs text-fg-muted">

@@ -1,5 +1,6 @@
 import { memo } from 'react'
 import { FormSection } from '../../../components/role-form'
+import { Switch } from '../../../ui'
 
 interface HardFiltersSectionProps {
   requiresWeekend: boolean
@@ -21,9 +22,11 @@ interface HardFiltersSectionProps {
 }
 
 /**
- * The "Hard filters" form section — the eight boolean deal-breaker checkboxes.
- * Relocated VERBATIM from PostRole.tsx: same list order, same labels, same
- * markup and class names. Each row reads/writes only its own state via props.
+ * The "Hard filters" form section — the eight boolean deal-breaker toggles.
+ * Extracted from PostRole.tsx (same list order, same labels); the native
+ * checkboxes were later converted to the <Switch> primitive (Phase 6 adoption)
+ * — each is a controlled boolean setting with no form-submission participation,
+ * so switch semantics (Space toggles) apply.
  */
 function HardFiltersSection({
   requiresWeekend, setRequiresWeekend,
@@ -50,13 +53,15 @@ function HardFiltersSection({
         { state: requiresRelocation,      setter: setRequiresRelocation,      label: 'Must be willing to relocate' },
         { state: requiresOvertime,        setter: setRequiresOvertime,        label: 'Overtime is expected' },
         { state: isCommissionBased,       setter: setIsCommissionBased,       label: 'Commission-based or variable pay structure' },
-      ].map(({ state, setter, label }) => (
-        <label key={label} className="flex items-center gap-3 border border-border rounded-lg px-3 py-2.5 cursor-pointer hover:bg-ink-50 dark:hover:bg-surface transition-colors">
-          <input
-            type="checkbox"
+      ].map(({ state, setter, label }, i) => (
+        // Whole row stays clickable: the <label htmlFor> forwards activation to
+        // the Radix switch button (a labelable element), same as the old
+        // label-wrapped checkbox.
+        <label key={label} htmlFor={`hard-filter-${i}`} className="flex items-center gap-3 border border-border rounded-lg px-3 py-2.5 cursor-pointer hover:bg-ink-50 dark:hover:bg-surface transition-colors">
+          <Switch
+            id={`hard-filter-${i}`}
             checked={state}
-            onChange={(e) => setter(e.target.checked)}
-            className="h-4 w-4 rounded border-ink-300 dark:border-border-strong accent-brand-500"
+            onCheckedChange={setter}
           />
           <span className="text-sm text-ink-800 dark:text-fg-strong">{label}</span>
         </label>

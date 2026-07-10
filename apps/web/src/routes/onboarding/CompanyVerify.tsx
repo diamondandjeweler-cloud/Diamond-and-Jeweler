@@ -5,6 +5,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { companyForVerifyById, updateCompanyById, type CompanyUpdate } from '../../data/repositories/companies'
 import { uploadPrivate } from '../../lib/storage'
 import { Button } from '../../components/ui'
+import { Skeleton } from '../../ui'
 
 export default function CompanyVerify() {
   const { session, profile } = useSession(useShallow((s) => ({ session: s.session, profile: s.profile })))
@@ -102,9 +103,11 @@ export default function CompanyVerify() {
   }
 
   if (!company) {
+    // Skeleton.Card stands in the exact wrapper + card box the loaded form
+    // renders into (max-w-lg / py-10 / px-4), so the swap causes no layout shift.
     return (
-      <div className="max-w-lg mx-auto py-16 text-center">
-        <p className="text-ink-500 animate-pulse">Loading…</p>
+      <div className="max-w-lg mx-auto py-10 px-4">
+        <Skeleton.Card />
       </div>
     )
   }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { approveWaitlistEntry, listWaitlist } from '../../../data/repositories/waitlist'
 import ListSkeleton from '../../../components/ListSkeleton'
 import { Async } from '../../../components/patterns/Async'
+import { DataList, type DataListColumn } from '../../../ui'
 
 interface WaitlistRow {
   id: string
@@ -39,6 +40,33 @@ export default function WaitlistPanel() {
     else setRows((rs) => (rs ?? []).map((r) => (r.id === id ? { ...r, approved: true } : r)))
   }
 
+  const columns: DataListColumn<WaitlistRow>[] = [
+    { key: 'email', header: 'Email' },
+    { key: 'full_name', header: 'Name', render: (r) => r.full_name ?? '—' },
+    { key: 'intended_role', header: 'Role', render: (r) => r.intended_role ?? '—' },
+    {
+      key: 'created_at',
+      header: 'Submitted',
+      render: (r) => new Date(r.created_at).toLocaleDateString(),
+    },
+    {
+      key: 'actions',
+      header: <span className="sr-only">Actions</span>,
+      className: 'text-right',
+      render: (r) =>
+        r.approved ? (
+          <span className="text-green-700 text-xs">Approved</span>
+        ) : (
+          <button
+            onClick={() => void approve(r.id)}
+            className="text-brand-600 hover:underline text-xs"
+          >
+            Approve
+          </button>
+        ),
+    },
+  ]
+
   return (
     <div>
       {err && <p className="text-sm text-red-600 mb-3">{err}</p>}
@@ -49,39 +77,12 @@ export default function WaitlistPanel() {
         empty={<p className="text-sm text-gray-600 dark:text-fg-strong">Waitlist is empty.</p>}
       >
         {(items) => (
-          <table className="w-full text-sm dark:text-fg-strong">
-            <thead>
-              <tr className="text-left text-fg-muted border-b dark:border-border">
-                <th className="py-2">Email</th>
-                <th>Name</th>
-                <th>Role</th>
-                <th>Submitted</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((r) => (
-                <tr key={r.id} className="border-b dark:border-border last:border-0">
-                  <td className="py-2">{r.email}</td>
-                  <td>{r.full_name ?? '—'}</td>
-                  <td>{r.intended_role ?? '—'}</td>
-                  <td>{new Date(r.created_at).toLocaleDateString()}</td>
-                  <td className="text-right">
-                    {r.approved ? (
-                      <span className="text-green-700 text-xs">Approved</span>
-                    ) : (
-                      <button
-                        onClick={() => void approve(r.id)}
-                        className="text-brand-600 hover:underline text-xs"
-                      >
-                        Approve
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataList
+            columns={columns}
+            rows={items}
+            rowKey={(r) => r.id}
+            caption="Waitlist entries"
+          />
         )}
       </Async>
     </div>

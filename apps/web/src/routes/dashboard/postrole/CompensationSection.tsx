@@ -1,6 +1,7 @@
 import { memo } from 'react'
 import { FormSection } from '../../../components/role-form'
 import { Input, Select, Alert } from '../../../components/ui'
+import { Switch } from '../../../ui'
 
 interface CompensationSectionProps {
   workArr: 'remote' | 'hybrid' | 'onsite'
@@ -87,21 +88,13 @@ function CompensationSection({
         <Alert tone="amber" title="Market-rate check">{marketWarning}</Alert>
       )}
 
-      <label htmlFor="post-role-accept-no-exp" className="flex items-start gap-2 text-sm cursor-pointer">
-        <input
-          id="post-role-accept-no-exp"
-          type="checkbox"
-          checked={acceptNoExperience}
-          onChange={(e) => setAcceptNoExperience(e.target.checked)}
-          className="mt-0.5"
-        />
-        <span>
-          <span className="font-medium text-fg">Open to applicants without prior experience in this field.</span>
-          <span className="block text-xs text-fg-muted mt-0.5">
-            Off-field candidates won&apos;t be filtered out. Senior / lead roles still require relevant background unless this is checked.
-          </span>
-        </span>
-      </label>
+      <Switch
+        id="post-role-accept-no-exp"
+        checked={acceptNoExperience}
+        onCheckedChange={setAcceptNoExperience}
+        label="Open to applicants without prior experience in this field."
+        description="Off-field candidates won't be filtered out. Senior / lead roles still require relevant background unless this is checked."
+      />
     </FormSection>
   )
 }

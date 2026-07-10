@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { adminUserList, updateProfile } from '../../../data/repositories/profiles'
 import { callFunction } from '../../../lib/functions'
 import ListSkeleton from '../../../components/ListSkeleton'
+import { DataList, type DataListColumn } from '../../../ui'
 
 interface UserRow {
   id: string
@@ -86,6 +87,79 @@ export default function UserPanel() {
     }
   }
 
+  const columns: DataListColumn<UserRow>[] = [
+    {
+      key: 'user',
+      header: 'Name / email',
+      render: (u) => (
+        <>
+          <div className={u.is_banned ? 'line-through text-fg-subtle' : 'font-medium'}>
+            {u.full_name}
+          </div>
+          <div className="text-xs text-fg-muted">{u.email}</div>
+        </>
+      ),
+    },
+    {
+      key: 'role',
+      header: 'Role',
+      // typography lives in the cell, not className — column.className also
+      // styles the <th>, where 'capitalize' would fight the uppercase micro-label
+      render: (u) => <span className="capitalize">{u.role.replace('_', ' ')}</span>,
+    },
+    {
+      key: 'onboarded',
+      header: 'Onboarded',
+      render: (u) => (u.onboarding_complete ? '✓' : '—'),
+    },
+    {
+      key: 'ghost',
+      header: 'Ghost',
+      render: (u) => (
+        <span className={u.ghost_score >= 3 ? 'text-red-600 font-semibold' : undefined}>
+          {u.ghost_score}
+        </span>
+      ),
+    },
+    {
+      key: 'joined',
+      header: 'Joined',
+      render: (u) => (
+        <span className="text-fg-muted text-xs">{new Date(u.created_at).toLocaleDateString()}</span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: <span className="sr-only">Actions</span>,
+      className: 'text-right whitespace-nowrap space-x-3',
+      render: (u) => (
+        <>
+          <button
+            onClick={() => openChangeRole(u)}
+            className="text-xs text-fg-muted hover:underline"
+          >
+            Change role
+          </button>
+          {u.is_banned ? (
+            <button
+              onClick={() => void setBan(u.id, false)}
+              className="text-xs text-brand-600 hover:underline"
+            >
+              Unban
+            </button>
+          ) : (
+            <button
+              onClick={() => void setBan(u.id, true)}
+              className="text-xs text-red-600 hover:underline"
+            >
+              Ban
+            </button>
+          )}
+        </>
+      ),
+    },
+  ]
+
   return (
     <div>
       <div className="flex gap-2 mb-4">
@@ -112,65 +186,14 @@ export default function UserPanel() {
         </button>
       </div>
       {err && <p className="text-sm text-red-600 mb-2">{err}</p>}
-      {loading ? <ListSkeleton rows={5} variant="row" /> : (
-        rows.length === 0 ? <p className="text-sm text-fg-muted">No users match.</p> : (
-          <table className="w-full text-sm dark:text-fg-strong">
-            <thead>
-              <tr className="text-left text-fg-muted border-b dark:border-border">
-                <th className="py-2">Name / email</th>
-                <th>Role</th>
-                <th>Onboarded</th>
-                <th>Ghost</th>
-                <th>Joined</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((u) => (
-                <tr key={u.id} className="border-b dark:border-border last:border-0 align-top">
-                  <td className="py-2">
-                    <div className={u.is_banned ? 'line-through text-fg-subtle' : 'font-medium'}>
-                      {u.full_name}
-                    </div>
-                    <div className="text-xs text-fg-muted">{u.email}</div>
-                  </td>
-                  <td className="capitalize">{u.role.replace('_', ' ')}</td>
-                  <td>{u.onboarding_complete ? '✓' : '—'}</td>
-                  <td className={u.ghost_score >= 3 ? 'text-red-600 font-semibold' : ''}>
-                    {u.ghost_score}
-                  </td>
-                  <td className="text-fg-muted text-xs">
-                    {new Date(u.created_at).toLocaleDateString()}
-                  </td>
-                  <td className="text-right whitespace-nowrap space-x-3">
-                    <button
-                      onClick={() => openChangeRole(u)}
-                      className="text-xs text-fg-muted hover:underline"
-                    >
-                      Change role
-                    </button>
-                    {u.is_banned ? (
-                      <button
-                        onClick={() => void setBan(u.id, false)}
-                        className="text-xs text-brand-600 hover:underline"
-                      >
-                        Unban
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => void setBan(u.id, true)}
-                        className="text-xs text-red-600 hover:underline"
-                      >
-                        Ban
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )
-      )}
+      <DataList
+        columns={columns}
+        rows={rows}
+        rowKey={(u) => u.id}
+        caption="Users"
+        loading={loading && <ListSkeleton rows={5} variant="row" />}
+        empty={<p className="text-sm text-fg-muted">No users match.</p>}
+      />
 
       {changeRoleModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">

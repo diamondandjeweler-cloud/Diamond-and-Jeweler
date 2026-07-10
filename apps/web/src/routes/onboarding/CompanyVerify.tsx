@@ -4,6 +4,7 @@ import { useSession } from '../../state/useSession'
 import { useShallow } from 'zustand/react/shallow'
 import { companyForVerifyById, updateCompanyById, type CompanyUpdate } from '../../data/repositories/companies'
 import { uploadPrivate } from '../../lib/storage'
+import { Button } from '../../components/ui'
 
 export default function CompanyVerify() {
   const { session, profile } = useSession(useShallow((s) => ({ session: s.session, profile: s.profile })))
@@ -127,12 +128,12 @@ export default function CompanyVerify() {
           DNJ admin will review and verify <strong>{company.name}</strong> within 1 business day.
           Your hiring manager will be notified once approved.
         </p>
-        <button
+        <Button
+          variant="primary"
           onClick={() => navigate('/', { replace: true })}
-          className="btn-primary"
         >
           Back to home
-        </button>
+        </Button>
       </div>
     )
   }

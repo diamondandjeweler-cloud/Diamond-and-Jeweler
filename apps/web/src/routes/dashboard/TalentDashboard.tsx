@@ -117,9 +117,11 @@ export default function TalentDashboard() {
                 {t('talentDash.iosHint')}
               </span>
             )}
-            <Link to="/talent/profile" className="btn-secondary">
-              {t('talentDash.editProfile')}
-            </Link>
+            <Button asChild variant="secondary">
+              <Link to="/talent/profile">
+                {t('talentDash.editProfile')}
+              </Link>
+            </Button>
           </div>
         }
       />
@@ -227,9 +229,11 @@ export default function TalentDashboard() {
               title={t('talentDash.emptyTitle')}
               description={t('talentDash.emptyDescription')}
               action={
-                <Link to="/talent/profile" className="btn-secondary">
-                  {t('talentDash.refineProfile')}
-                </Link>
+                <Button asChild variant="secondary">
+                  <Link to="/talent/profile">
+                    {t('talentDash.refineProfile')}
+                  </Link>
+                </Button>
               }
             />
           </Card>

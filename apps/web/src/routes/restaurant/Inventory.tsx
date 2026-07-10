@@ -111,21 +111,21 @@ function StockTab({ ingredients, branchId, employeeId, onChanged }: { ingredient
                   <td className="p-3 text-right">{MYR(Number(i.cost_per_unit))}</td>
                   <td className="p-3 text-right">{MYR(val)}</td>
                   <td className="p-3 text-right space-x-1">
-                    <button className="btn-ghost btn-sm"
+                    <Button variant="ghost" size="sm"
                       onClick={async () => {
                         const delta = parseFloat(window.prompt('Adjust by (positive or negative):') || '0')
                         if (!Number.isFinite(delta) || delta === 0) return
                         const reason = window.prompt('Reason (optional)') ?? undefined
                         await adjustStock(i.id, delta, 'adjustment', { branch_id: branchId, reason, created_by: employeeId ?? undefined })
                         await onChanged()
-                      }}>Adjust</button>
-                    <button className="btn-ghost btn-sm"
+                      }}>Adjust</Button>
+                    <Button variant="ghost" size="sm"
                       onClick={async () => {
                         const v = window.prompt('Receive how much?', '0')
                         const qty = parseFloat(v || '0'); if (qty <= 0) return
                         await adjustStock(i.id, qty, 'receive', { branch_id: branchId, unit_cost: Number(i.cost_per_unit), created_by: employeeId ?? undefined })
                         await onChanged()
-                      }}>Receive</button>
+                      }}>Receive</Button>
                   </td>
                 </tr>
               )

@@ -270,7 +270,7 @@ function MenuTab({ categories, items, branchId, onChanged }: {
                         {m.is_active ? <Badge tone="green">on</Badge> : <Badge tone="red">off</Badge>}
                       </td>
                       <td className="p-3 space-x-1 whitespace-nowrap">
-                        <button className="btn-ghost btn-sm" onClick={() => {
+                        <Button variant="ghost" size="sm" onClick={() => {
                           setCreating(false); setEditing(m)
                           setForm({
                             name: m.name, description: m.description ?? '', price: Number(m.price),
@@ -283,15 +283,15 @@ function MenuTab({ categories, items, branchId, onChanged }: {
                             foodpanda_id: m.platform_ids?.foodpanda ?? '',
                             shopee_id:    m.platform_ids?.shopee    ?? '',
                           })
-                        }}>Edit</button>
-                        <button className="btn-ghost btn-sm text-brand-700"
+                        }}>Edit</Button>
+                        <Button variant="ghost" size="sm" className="text-brand-700"
                           onClick={() => setExpandedMods(modsOpen ? null : m.id)}>
                           Add-ons {modsOpen ? '▲' : '▼'}
-                        </button>
-                        <button className="btn-ghost btn-sm text-red-600"
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-red-600"
                           onClick={async () => { if (await confirmDialog({ title: 'Delete menu item?', message: `Delete "${m.name}"? This cannot be undone.`, confirmLabel: 'Delete', tone: 'danger' })) { await deleteMenuItem(m.id); await onChanged() } }}>
                           Delete
-                        </button>
+                        </Button>
                       </td>
                     </tr>
                     {modsOpen && (
@@ -371,14 +371,14 @@ function CategoriesSection({ categories, branchId, onChanged }: {
                       onKeyDown={(e) => { if (e.key === 'Enter') void save(c.id); if (e.key === 'Escape') setEditing(null) }}
                       className="flex-1 border border-brand-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
                     />
-                    <button className="btn-ghost btn-sm text-brand-700" onClick={() => void save(c.id)}>Save</button>
-                    <button className="btn-ghost btn-sm" onClick={() => setEditing(null)}>Cancel</button>
+                    <Button variant="ghost" size="sm" className="text-brand-700" onClick={() => void save(c.id)}>Save</Button>
+                    <Button variant="ghost" size="sm" onClick={() => setEditing(null)}>Cancel</Button>
                   </>
                 ) : (
                   <>
                     <span className="flex-1 text-sm text-ink-800">{c.name}</span>
-                    <button className="btn-ghost btn-sm" onClick={() => { setEditing(c.id); setEditName(c.name) }}>Rename</button>
-                    <button className="btn-ghost btn-sm text-red-600" onClick={() => void remove(c.id, c.name)}>Delete</button>
+                    <Button variant="ghost" size="sm" onClick={() => { setEditing(c.id); setEditName(c.name) }}>Rename</Button>
+                    <Button variant="ghost" size="sm" className="text-red-600" onClick={() => void remove(c.id, c.name)}>Delete</Button>
                   </>
                 )}
               </div>
@@ -464,8 +464,8 @@ function ModifiersSection({ menuItemId, itemName }: { menuItemId: string; itemNa
                   <input type="number" step="0.50" value={editPrice} onChange={(e) => setEditPrice(e.target.value)}
                     className="w-20 border border-brand-300 rounded px-2 py-1 text-xs text-right focus:outline-none focus:ring-1 focus:ring-brand-400" />
                   <span className="text-xs text-ink-400">RM</span>
-                  <button className="btn-ghost btn-sm text-brand-700 text-xs" onClick={() => void save(m.id)}>Save</button>
-                  <button className="btn-ghost btn-sm text-xs" onClick={() => setEditing(null)}>✕</button>
+                  <Button variant="ghost" size="sm" className="text-brand-700 text-xs" onClick={() => void save(m.id)}>Save</Button>
+                  <Button variant="ghost" size="sm" className="text-xs" onClick={() => setEditing(null)}>✕</Button>
                 </>
               ) : (
                 <>
@@ -473,8 +473,8 @@ function ModifiersSection({ menuItemId, itemName }: { menuItemId: string; itemNa
                   <span className="text-ink-500 text-xs w-20 text-right">
                     {Number(m.price_delta) === 0 ? 'Free' : `+${MYR(Number(m.price_delta))}`}
                   </span>
-                  <button className="btn-ghost btn-sm text-xs" onClick={() => { setEditing(m.id); setEditName(m.name); setEditPrice(String(m.price_delta)) }}>Edit</button>
-                  <button className="btn-ghost btn-sm text-red-500 text-xs" onClick={() => void remove(m.id, m.name)}>✕</button>
+                  <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setEditing(m.id); setEditName(m.name); setEditPrice(String(m.price_delta)) }}>Edit</Button>
+                  <Button variant="ghost" size="sm" className="text-red-500 text-xs" onClick={() => void remove(m.id, m.name)}>✕</Button>
                 </>
               )}
             </div>
@@ -551,9 +551,9 @@ function TablesTab({ tables, branchId, onChanged }: { tables: RestaurantTable[];
                   <td className="p-3">{t.area ?? '—'}</td>
                   <td className="p-3"><Badge tone={t.status === 'free' ? 'green' : t.status === 'occupied' ? 'red' : 'gray'}>{t.status}</Badge></td>
                   <td className="p-3 space-x-1">
-                    <button className="btn-ghost btn-sm" onClick={() => setQrTableId(qrTableId === t.id ? null : t.id)}>QR</button>
-                    <button className="btn-ghost btn-sm" onClick={async () => { await updateTable(t.id, { status: 'out_of_service' }); await onChanged() }}>Retire</button>
-                    <button className="btn-ghost btn-sm text-red-600" onClick={async () => { if (await confirmDialog({ title: 'Delete table?', message: `Delete table ${t.table_number}?`, confirmLabel: 'Delete', tone: 'danger' })) { await deleteTable(t.id); await onChanged() } }}>Delete</button>
+                    <Button variant="ghost" size="sm" onClick={() => setQrTableId(qrTableId === t.id ? null : t.id)}>QR</Button>
+                    <Button variant="ghost" size="sm" onClick={async () => { await updateTable(t.id, { status: 'out_of_service' }); await onChanged() }}>Retire</Button>
+                    <Button variant="ghost" size="sm" className="text-red-600" onClick={async () => { if (await confirmDialog({ title: 'Delete table?', message: `Delete table ${t.table_number}?`, confirmLabel: 'Delete', tone: 'danger' })) { await deleteTable(t.id); await onChanged() } }}>Delete</Button>
                   </td>
                 </tr>
                 {qrTableId === t.id && (
@@ -569,13 +569,17 @@ function TablesTab({ tables, branchId, onChanged }: { tables: RestaurantTable[];
                         <div>
                           <div className="font-medium text-ink-900 mb-1">Table {t.table_number} — Guest Menu QR</div>
                           <div className="text-xs text-ink-500 mb-3 break-all font-mono">{window.location.origin}/menu/{branchId}?table={t.id}</div>
-                          <a href={`https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(`${window.location.origin}/menu/${branchId}?table=${t.id}`)}`}
-                            download={`table-${t.table_number}-qr.png`} target="_blank" rel="noreferrer" className="btn-ghost btn-sm mr-2">
-                            Download PNG
-                          </a>
-                          <a href={`/menu/${branchId}?table=${t.id}`} target="_blank" rel="noreferrer" className="btn-ghost btn-sm">
-                            Preview menu →
-                          </a>
+                          <Button asChild variant="ghost" size="sm">
+                            <a href={`https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(`${window.location.origin}/menu/${branchId}?table=${t.id}`)}`}
+                              download={`table-${t.table_number}-qr.png`} target="_blank" rel="noreferrer" className="mr-2">
+                              Download PNG
+                            </a>
+                          </Button>
+                          <Button asChild variant="ghost" size="sm">
+                            <a href={`/menu/${branchId}?table=${t.id}`} target="_blank" rel="noreferrer">
+                              Preview menu →
+                            </a>
+                          </Button>
                         </div>
                       </div>
                     </td>

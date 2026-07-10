@@ -1,5 +1,6 @@
 import { Component, type ReactNode } from 'react'
 import * as Sentry from '@sentry/react'
+import { Button } from './ui'
 
 interface Props { children: ReactNode }
 interface State { err: Error | null; reloading: boolean }
@@ -106,12 +107,12 @@ export default class ErrorBoundary extends Component<Props, State> {
                 ? this.state.err.message
                 : 'An unexpected error occurred. Please try again.'}
             </p>
-            <button
+            <Button
+              variant="primary"
               onClick={() => window.location.assign('/')}
-              className="btn-primary"
             >
               Back to home
-            </button>
+            </Button>
           </div>
         </div>
       )

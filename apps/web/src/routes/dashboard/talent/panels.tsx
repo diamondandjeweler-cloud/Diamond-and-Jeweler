@@ -33,7 +33,7 @@ function ExpiryBannerImpl({
         </ul>
         <div className="flex gap-2 flex-wrap">
           <Button onClick={onReviveConfirm} loading={reviving} size="sm">{t('talentDash.confirmRevive')}</Button>
-          <Link to="/talent/profile" className="btn-secondary text-xs px-3 py-1.5 rounded-md">{t('talentDash.updateFirst')}</Link>
+          <Button asChild variant="secondary"><Link to="/talent/profile" className="text-xs px-3 py-1.5 rounded-md">{t('talentDash.updateFirst')}</Link></Button>
           <button onClick={onReviveCancel} className="text-xs text-ink-400 dark:text-fg-muted hover:text-ink-600 dark:hover:text-fg-strong px-2">{t('talentDash.cancel')}</button>
         </div>
       </div>
@@ -63,7 +63,7 @@ function ExpiryBannerImpl({
       </ul>
       <div className="flex gap-2 flex-wrap">
         <Button onClick={onReviveConfirm} loading={reviving} size="sm" variant="secondary">{t('talentDash.confirmExtend')}</Button>
-        <Link to="/talent/profile" className="btn-secondary text-xs px-3 py-1.5 rounded-md">{t('talentDash.updateFirst')}</Link>
+        <Button asChild variant="secondary"><Link to="/talent/profile" className="text-xs px-3 py-1.5 rounded-md">{t('talentDash.updateFirst')}</Link></Button>
         <button onClick={onReviveCancel} className="text-xs text-ink-400 dark:text-fg-muted hover:text-ink-600 dark:hover:text-fg-strong px-2">{t('talentDash.cancel')}</button>
       </div>
     </div>

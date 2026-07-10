@@ -265,9 +265,9 @@ export default function HMDashboard() {
         description={t('hmDash.pageDescription')}
         actions={
           <>
-            <Link to="/hm/org-chart" className="btn-secondary">{t('hmDash.orgChartConsultant')}</Link>
-            <Link to="/hm/roles" className="btn-secondary">{t('hmDash.myRoles')}</Link>
-            <Link to="/hm/post-role" className="btn-primary">{t('hmDash.postRole')}</Link>
+            <Button asChild variant="secondary"><Link to="/hm/org-chart">{t('hmDash.orgChartConsultant')}</Link></Button>
+            <Button asChild variant="secondary"><Link to="/hm/roles">{t('hmDash.myRoles')}</Link></Button>
+            <Button asChild variant="primary"><Link to="/hm/post-role">{t('hmDash.postRole')}</Link></Button>
           </>
         }
       />
@@ -421,13 +421,15 @@ export default function HMDashboard() {
                 {t('hmDash.draftReviewHint')}
               </p>
               <div className="mt-5">
-                <Link
-                  to={`/hm/post-role/${onboardingDraftRole.id}`}
-                  className="btn-primary inline-flex items-center gap-2 text-base px-6 py-3"
-                >
-                  {t('hmDash.draftActivateCta')}
-                  <span aria-hidden="true">→</span>
-                </Link>
+                <Button asChild variant="primary">
+                  <Link
+                    to={`/hm/post-role/${onboardingDraftRole.id}`}
+                    className="inline-flex items-center gap-2 text-base px-6 py-3"
+                  >
+                    {t('hmDash.draftActivateCta')}
+                    <span aria-hidden="true">→</span>
+                  </Link>
+                </Button>
               </div>
             </div>
           </div>
@@ -440,7 +442,7 @@ export default function HMDashboard() {
                 : oldestRoleOver24h
                   ? t('hmDash.emptyNoMatchesDesc')
                   : t('hmDash.emptyCuratingDesc')}
-              action={roleCount === 0 ? <Link to="/hm/post-role" className="btn-primary">{t('hmDash.postRole')}</Link> : undefined}
+              action={roleCount === 0 ? <Button asChild variant="primary"><Link to="/hm/post-role">{t('hmDash.postRole')}</Link></Button> : undefined}
             />
           </Card>
         )

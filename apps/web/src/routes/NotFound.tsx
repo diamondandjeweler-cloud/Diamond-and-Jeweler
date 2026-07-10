@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useSeo } from '../lib/useSeo'
+import { Button } from '../components/ui'
 
 export default function NotFound() {
   const { t } = useTranslation()
@@ -13,7 +14,7 @@ export default function NotFound() {
         <p className="text-ink-500 mb-6">
           {t('notFound.body')}
         </p>
-        <Link to="/" className="btn-primary">{t('notFound.backHome')}</Link>
+        <Button asChild variant="primary"><Link to="/">{t('notFound.backHome')}</Link></Button>
       </div>
     </div>
   )

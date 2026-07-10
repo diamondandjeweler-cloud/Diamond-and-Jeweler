@@ -326,8 +326,8 @@ function OrderPay({
             <div className="flex gap-2 mb-3">
               <span className="text-sm text-ink-500 self-center">Tip:</span>
               {[0, 0.05, 0.10, 0.15].map((p) => (
-                <button key={p} className="btn-ghost btn-sm" type="button"
-                  onClick={() => applyTip(p * Number(order.subtotal))}>{p === 0 ? 'None' : `${p * 100}%`}</button>
+                <Button key={p} variant="ghost" size="sm" type="button"
+                  onClick={() => applyTip(p * Number(order.subtotal))}>{p === 0 ? 'None' : `${p * 100}%`}</Button>
               ))}
               <input type="number" step="0.01" placeholder="Custom" className="text-sm w-20"
                 value={tip} onChange={(e) => setTip(e.target.value)}
@@ -544,12 +544,13 @@ function EinvoiceBadge({ orderId, orderStatus }: { orderId: string; orderStatus:
           </a>
         )}
         {(sub.submission_status === 'failed' || sub.submission_status === 'escalated') && (
-          <button
-            className="btn-ghost btn-sm"
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => { void triggerSubmit(sub.id); setPollNonce((n) => n + 1) }}
           >
             Retry
-          </button>
+          </Button>
         )}
       </div>
     </div>
@@ -819,7 +820,7 @@ function AddItemPicker({
     <div className="card-elevated p-4 mb-4">
       <div className="flex items-center justify-between mb-2">
         <h4 className="font-display">Add item to this order</h4>
-        <button className="btn-ghost btn-sm" onClick={onCancel}>Cancel</button>
+        <Button variant="ghost" size="sm" onClick={onCancel}>Cancel</Button>
       </div>
       <input className="w-full mb-3" placeholder="Search menu…" value={q} onChange={(e) => setQ(e.target.value)} />
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-64 overflow-y-auto">

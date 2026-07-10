@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useSeo } from '../lib/useSeo'
+import { Button } from '../components/ui'
 
 // Terminal notice shown after the session layer detects profiles.is_banned and
 // signs the user out (see state/useSession.ts enforceBan). Public + noindex so a
@@ -18,7 +19,7 @@ export default function Banned() {
             support@diamondandjeweler.com
           </a>.
         </p>
-        <Link to="/" className="btn-primary">Return to homepage</Link>
+        <Button asChild variant="primary"><Link to="/">Return to homepage</Link></Button>
       </div>
     </div>
   )

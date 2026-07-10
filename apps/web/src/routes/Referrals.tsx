@@ -341,7 +341,7 @@ export default function Referrals() {
                     </td>
                     <td className="p-3 text-fg-muted">{new Date(r.created_at).toLocaleDateString()}</td>
                     <td className="p-3 text-right">
-                      <button onClick={() => copyLink(r.code)} className="btn-ghost btn-sm">Copy link</button>
+                      <Button variant="ghost" size="sm" onClick={() => copyLink(r.code)}>Copy link</Button>
                     </td>
                   </tr>
                 ))}

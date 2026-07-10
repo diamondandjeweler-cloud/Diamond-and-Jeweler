@@ -8,6 +8,7 @@ import NotificationBell from './NotificationBell'
 import SupportForm from './SupportForm'
 import DarkModeToggle from './DarkModeToggle'
 import LanguageSwitcher from './LanguageSwitcher'
+import { Button } from './ui'
 
 export default function Layout() {
   const { profile, signOut, isHM } = useSession(useShallow((s) => ({ profile: s.profile, signOut: s.signOut, isHM: s.isHM })))
@@ -80,13 +81,14 @@ export default function Layout() {
                 </div>
               </div>
             )}
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               type="button"
               onClick={() => void signOut()}
-              className="btn-ghost btn-sm"
             >
               {t('common.signOut')}
-            </button>
+            </Button>
           </div>
         </div>
 

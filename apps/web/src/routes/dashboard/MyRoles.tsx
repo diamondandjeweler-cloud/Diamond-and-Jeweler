@@ -146,9 +146,11 @@ export default function MyRoles() {
         title={t('myRoles.title')}
         description={t('myRoles.description')}
         actions={
-          <Link to="/hm/post-role" className="btn-primary">
-            {t('myRoles.postRole')}
-          </Link>
+          <Button asChild variant="primary">
+            <Link to="/hm/post-role">
+              {t('myRoles.postRole')}
+            </Link>
+          </Button>
         }
       />
 
@@ -223,9 +225,11 @@ export default function MyRoles() {
               title={t('myRoles.emptyTitle')}
               description={t('myRoles.emptyDescription')}
               action={
-                <Link to="/hm/post-role" className="btn-primary">
-                  {t('myRoles.postFirstRole')}
-                </Link>
+                <Button asChild variant="primary">
+                  <Link to="/hm/post-role">
+                    {t('myRoles.postFirstRole')}
+                  </Link>
+                </Button>
               }
             />
           </Card>
@@ -284,9 +288,11 @@ export default function MyRoles() {
                     {/* Primary edit path → full-fidelity PostRole form (all ~45
                         role columns). The legacy /hm/roles/:id/edit route stays
                         mounted only for stale-loop nudge email links. */}
-                    <Link to={`/hm/post-role/${r.id}`} className="btn-secondary btn-sm">
-                      {t('myRoles.edit')}
-                    </Link>
+                    <Button asChild variant="secondary" size="sm">
+                      <Link to={`/hm/post-role/${r.id}`}>
+                        {t('myRoles.edit')}
+                      </Link>
+                    </Button>
                     {r.status === 'active' && (
                       <Button
                         size="sm"

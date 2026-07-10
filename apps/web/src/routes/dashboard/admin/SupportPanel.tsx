@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { profilesByIds } from '../../../data/repositories/profiles'
 import { ticketListBase, updateTicket } from '../../../data/repositories/supportTickets'
 import ListSkeleton from '../../../components/ListSkeleton'
+import { Button } from '../../../components/ui'
 
 type TicketStatus = 'open' | 'in_progress' | 'resolved'
 type TicketCategory = 'enquiry' | 'bug' | 'feature' | 'payment'
@@ -106,7 +107,7 @@ export default function SupportPanel() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-semibold text-fg">Support tickets</h2>
-        <button type="button" onClick={() => void reload()} className="btn-ghost btn-sm">Refresh</button>
+        <Button variant="ghost" size="sm" type="button" onClick={() => void reload()}>Refresh</Button>
       </div>
 
       {err && <p className="text-red-600 text-sm mb-4">{err}</p>}
@@ -226,48 +227,53 @@ export default function SupportPanel() {
                         className="flex-1 resize-none rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                         placeholder="Internal note (not visible to user)…"
                       />
-                      <button
+                      <Button
+                        variant="secondary"
+                        size="sm"
                         type="button"
                         onClick={() => void saveNote(ticket)}
                         disabled={!noteInput[ticket.id]?.trim() || working === ticket.id}
-                        className="btn-secondary btn-sm self-end"
+                        className="self-end"
                       >
                         Save
-                      </button>
+                      </Button>
                     </div>
                   </div>
 
                   {/* Actions */}
                   <div className="flex gap-2 flex-wrap">
                     {ticket.status === 'open' && (
-                      <button
+                      <Button
+                        variant="secondary"
+                        size="sm"
                         type="button"
                         onClick={() => void setStatus(ticket, 'in_progress')}
                         disabled={working === ticket.id}
-                        className="btn-secondary btn-sm"
                       >
                         Mark in progress
-                      </button>
+                      </Button>
                     )}
                     {ticket.status !== 'resolved' && (
-                      <button
+                      <Button
+                        variant="primary"
+                        size="sm"
                         type="button"
                         onClick={() => void setStatus(ticket, 'resolved')}
                         disabled={working === ticket.id}
-                        className="btn-primary btn-sm"
                       >
                         Resolve &amp; close
-                      </button>
+                      </Button>
                     )}
                     {ticket.status === 'resolved' && (
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         type="button"
                         onClick={() => void setStatus(ticket, 'open')}
                         disabled={working === ticket.id}
-                        className="btn-ghost btn-sm"
                       >
                         Reopen
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>

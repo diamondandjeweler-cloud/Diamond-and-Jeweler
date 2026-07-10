@@ -67,9 +67,11 @@ export default function OrgChartList() {
         title="Org Chart Consultant"
         description="Corporate team restructure analysis — RM 99 to RM 3,999 per engagement"
         actions={
-          <Link to="/hm/org-chart/new" className="btn-primary">
-            + New Consultation
-          </Link>
+          <Button asChild variant="primary">
+            <Link to="/hm/org-chart/new">
+              + New Consultation
+            </Link>
+          </Button>
         }
       />
 
@@ -88,9 +90,11 @@ export default function OrgChartList() {
             title="No consultations yet"
             description="Start a new consultation to upload a team roster and generate an org-chart restructure report."
             action={
-              <Link to="/hm/org-chart/new" className="btn-primary">
-                + New Consultation
-              </Link>
+              <Button asChild variant="primary">
+                <Link to="/hm/org-chart/new">
+                  + New Consultation
+                </Link>
+              </Button>
             }
           />
         }

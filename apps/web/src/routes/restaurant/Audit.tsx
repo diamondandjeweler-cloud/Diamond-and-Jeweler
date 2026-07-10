@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from 'react'
-import { Alert, Badge, Card, CardBody, EmptyState, Spinner, Stat } from '../../components/ui'
+import { Alert, Badge, Button, Card, CardBody, EmptyState, Spinner, Stat } from '../../components/ui'
 import { useRestaurant } from '../../lib/restaurant/context'
 import { listAudit, listOrders, listWaste } from '../../lib/restaurant/store'
 import type { AuditLog, Order, WasteLog } from '../../lib/restaurant/types'
@@ -78,7 +78,7 @@ export default function Audit() {
       {tab === 'log' && <Card><CardBody>
         <div className="flex items-center justify-between mb-3 gap-3">
           <input type="search" placeholder="Filter by action / reason / entity…" className="flex-1 text-sm" value={filter} onChange={(e) => setFilter(e.target.value)} />
-          <button className="btn-ghost btn-sm" onClick={exportCsv}>Export CSV</button>
+          <Button variant="ghost" size="sm" onClick={exportCsv}>Export CSV</Button>
         </div>
         {filtered.length === 0 ? (
           <div className="text-sm text-ink-500 py-8 text-center">No audit entries match.</div>
@@ -169,7 +169,7 @@ function EinvoiceTab({ branchId }: { branchId: string }) {
             <option value="credit_note">Credit note</option>
           </select>
         </div>
-        <button className="btn-ghost btn-sm ml-auto" onClick={() => void refresh()}>Refresh</button>
+        <Button variant="ghost" size="sm" className="ml-auto" onClick={() => void refresh()}>Refresh</Button>
       </div>
 
       {filtered.length === 0 ? (
@@ -198,14 +198,14 @@ function EinvoiceTab({ branchId }: { branchId: string }) {
                   <td className="py-2">{r.attempt_count}</td>
                   <td className="py-2 text-xs text-ink-500 max-w-md truncate">{r.error_message ?? '—'}</td>
                   <td className="py-2 text-right space-x-1">
-                    <button className="btn-ghost btn-sm" onClick={() => setExpanded(expanded === r.id ? null : r.id)}>
+                    <Button variant="ghost" size="sm" onClick={() => setExpanded(expanded === r.id ? null : r.id)}>
                       {expanded === r.id ? 'Hide' : 'Payload'}
-                    </button>
+                    </Button>
                     {(r.submission_status === 'pending' || r.submission_status === 'pending_retry'
                       || r.submission_status === 'failed' || r.submission_status === 'escalated') && (
-                      <button className="btn-ghost btn-sm" onClick={() => void triggerSubmit(r.id).then(() => refresh())}>
+                      <Button variant="ghost" size="sm" onClick={() => void triggerSubmit(r.id).then(() => refresh())}>
                         Retry
-                      </button>
+                      </Button>
                     )}
                   </td>
                 </tr>

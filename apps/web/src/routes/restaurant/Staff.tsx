@@ -93,7 +93,7 @@ function ClockTab({ branchId, employees, onDuty, activeEmployeeId, setEmployeeId
             <div className="mt-4 pt-4 border-t text-sm">
               <div className="text-ink-500">Currently signed in as an employee:</div>
               <div className="font-medium">{employees.find((e) => e.id === activeEmployeeId)?.name ?? '—'}</div>
-              <button className="btn-ghost btn-sm mt-2" onClick={() => setEmployeeId(null)}>Sign out</button>
+              <Button variant="ghost" size="sm" className="mt-2" onClick={() => setEmployeeId(null)}>Sign out</Button>
             </div>
           )}
           <div className="mt-4 text-xs text-ink-400">Tip: seed PINs are 1111, 2222, 3333, 4444, 5555, 9999.</div>
@@ -176,10 +176,10 @@ function RosterTab({ employees, branchId, onChanged }: { employees: Employee[]; 
                 <td className="p-3 text-right">RM {Number(e.hourly_rate ?? 0).toFixed(2)}</td>
                 <td className="p-3">{e.is_active ? <Badge tone="green">active</Badge> : <Badge tone="red">inactive</Badge>}</td>
                 <td className="p-3">
-                  <button className="btn-ghost btn-sm" onClick={async () => {
+                  <Button variant="ghost" size="sm" onClick={async () => {
                     await updateEmployee(e.id, { is_active: !e.is_active })
                     await onChanged()
-                  }}>{e.is_active ? 'Deactivate' : 'Activate'}</button>
+                  }}>{e.is_active ? 'Deactivate' : 'Activate'}</Button>
                 </td>
               </tr>
             ))}
@@ -219,7 +219,7 @@ function TimesheetTab({ timesheets, employees, onChanged: _ }: { timesheets: Tim
           <h3 className="font-display text-lg">Last 7 days</h3>
           <div className="flex items-center gap-3 text-sm">
             <span className="text-ink-500">Total: {total.toFixed(1)}h</span>
-            <button className="btn-ghost btn-sm" onClick={exportPayrollCsv}>Export payroll CSV</button>
+            <Button variant="ghost" size="sm" onClick={exportPayrollCsv}>Export payroll CSV</Button>
           </div>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">

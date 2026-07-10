@@ -3,6 +3,7 @@ import { listAiChatMessages } from '../../../data/repositories/aiChat'
 import { insertTicket } from '../../../data/repositories/supportTickets'
 import { profilesByIds } from '../../../data/repositories/profiles'
 import ListSkeleton from '../../../components/ListSkeleton'
+import { Button } from '../../../components/ui'
 
 type Endpoint = 'chat-support' | 'chat-onboard'
 type UserRoleFilter = 'talent' | 'hiring_manager' | 'hr_admin' | 'admin' | 'all'
@@ -219,7 +220,7 @@ export default function AIChatPanel() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-semibold text-fg">AI chat conversations</h2>
-        <button type="button" onClick={() => void reload()} className="btn-ghost btn-sm">Refresh</button>
+        <Button variant="ghost" size="sm" type="button" onClick={() => void reload()}>Refresh</Button>
       </div>
 
       {err && <p className="text-red-600 text-sm mb-4">{err}</p>}
@@ -362,7 +363,9 @@ export default function AIChatPanel() {
                     </div>
 
                     <div className="flex gap-2 flex-wrap items-center">
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         type="button"
                         onClick={() => {
                           const text = c.messages
@@ -370,18 +373,18 @@ export default function AIChatPanel() {
                             .join('\n\n')
                           void navigator.clipboard.writeText(text)
                         }}
-                        className="btn-ghost btn-sm"
                       >
                         Copy transcript
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
                         type="button"
                         onClick={() => void flagAsTicket(c)}
                         disabled={flagging === c.id || flagged[c.id]}
-                        className="btn-secondary btn-sm"
                       >
                         {flagged[c.id] ? 'Ticket raised' : flagging === c.id ? 'Flagging…' : 'Flag as support ticket'}
-                      </button>
+                      </Button>
                       <span className="text-[11px] text-fg-muted">
                         Started {fmt(c.started_at)}
                       </span>
@@ -411,13 +414,15 @@ export default function AIChatPanel() {
                 <p className="text-sm text-ink-800 dark:text-fg break-words">{q.content}</p>
                 <p className="text-[11px] text-fg-muted mt-0.5">Last seen {fmt(q.last_seen)}</p>
               </div>
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 type="button"
                 onClick={() => { setSearch(q.content); setTab('conversations') }}
-                className="btn-ghost btn-sm shrink-0"
+                className="shrink-0"
               >
                 View chats
-              </button>
+              </Button>
             </div>
           ))}
         </div>

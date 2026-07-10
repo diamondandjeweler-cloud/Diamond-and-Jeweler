@@ -78,15 +78,16 @@ function SchedulingSectionImpl({
                   </div>
                   <div className="flex gap-2 flex-wrap items-center">
                     {s.meeting_url ? (
-                      <a
-                        href={s.meeting_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn-brand btn-sm"
-                      >
-                        {t('hrDash.joinMeeting')}
-                        {s.meeting_provider ? ` · ${s.meeting_provider}` : ''}
-                      </a>
+                      <Button asChild variant="brand" size="sm">
+                        <a
+                          href={s.meeting_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {t('hrDash.joinMeeting')}
+                          {s.meeting_provider ? ` · ${s.meeting_provider}` : ''}
+                        </a>
+                      </Button>
                     ) : (
                       <Button
                         size="sm"

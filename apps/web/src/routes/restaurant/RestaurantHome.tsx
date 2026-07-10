@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Card, CardBody, CardHeader, EmptyState, LiveDot, Spinner, Stat } from '../../components/ui'
+import { Button, Card, CardBody, CardHeader, EmptyState, LiveDot, Spinner, Stat } from '../../components/ui'
 import { useRestaurant } from '../../lib/restaurant/context'
 import {
   listActiveOrders, listIngredients, listKitchenTickets, listTables, dailySales,
@@ -85,14 +85,14 @@ export default function RestaurantHome() {
             eyebrow="Service"
             title="Active orders"
             subtitle={`${orders.length} open · live updating`}
-            right={<Link className="btn-secondary btn-sm" to="/restaurant/orders">View all →</Link>}
+            right={<Button asChild variant="secondary" size="sm"><Link to="/restaurant/orders">View all →</Link></Button>}
           />
           <CardBody className="pt-0">
             {orders.length === 0 ? (
               <EmptyState
                 title="No active orders"
                 description="Place one from the Kiosk to see it here."
-                action={<Link className="btn-brand btn-sm" to="/restaurant/kiosk">Open kiosk</Link>}
+                action={<Button asChild variant="brand" size="sm"><Link to="/restaurant/kiosk">Open kiosk</Link></Button>}
               />
             ) : (
               <ul className="divide-y divide-ink-100">
@@ -119,7 +119,7 @@ export default function RestaurantHome() {
             eyebrow="Kitchen"
             title="Ticket queue"
             subtitle={`${tickets.length} active`}
-            right={<Link className="btn-secondary btn-sm" to="/restaurant/kds">Open KDS →</Link>}
+            right={<Button asChild variant="secondary" size="sm"><Link to="/restaurant/kds">Open KDS →</Link></Button>}
           />
           <CardBody className="pt-0">
             {tickets.length === 0 ? (
@@ -154,7 +154,7 @@ export default function RestaurantHome() {
             eyebrow="Inventory"
             title="Low stock"
             subtitle={`${lowStock.length} ingredient${lowStock.length === 1 ? '' : 's'} below reorder`}
-            right={<Link className="btn-secondary btn-sm" to="/restaurant/inventory">Inventory →</Link>}
+            right={<Button asChild variant="secondary" size="sm"><Link to="/restaurant/inventory">Inventory →</Link></Button>}
           />
           <CardBody className="pt-0">
             {lowStock.length === 0 ? (
@@ -179,7 +179,7 @@ export default function RestaurantHome() {
             eyebrow="Floor"
             title="Tables"
             subtitle={`${tables.length} tables · ${utilization}% utilization`}
-            right={<Link className="btn-secondary btn-sm" to="/restaurant/floor">Open floor →</Link>}
+            right={<Button asChild variant="secondary" size="sm"><Link to="/restaurant/floor">Open floor →</Link></Button>}
           />
           <CardBody className="pt-0">
             <div className="grid grid-cols-6 gap-2">
@@ -204,10 +204,10 @@ export default function RestaurantHome() {
       </div>
 
       <div className="flex flex-wrap gap-2 pt-4 border-t border-ink-200">
-        <Link to="/restaurant/kiosk" className="btn-brand">+ New order</Link>
-        <Link to="/restaurant/floor" className="btn-secondary">Seat a table</Link>
-        <Link to="/restaurant/cashier" className="btn-secondary">Open cashier</Link>
-        <Link to="/restaurant/staff"  className="btn-ghost">Staff & clock-in</Link>
+        <Button asChild variant="brand"><Link to="/restaurant/kiosk">+ New order</Link></Button>
+        <Button asChild variant="secondary"><Link to="/restaurant/floor">Seat a table</Link></Button>
+        <Button asChild variant="secondary"><Link to="/restaurant/cashier">Open cashier</Link></Button>
+        <Button asChild variant="ghost"><Link to="/restaurant/staff">Staff & clock-in</Link></Button>
       </div>
     </div>
   )

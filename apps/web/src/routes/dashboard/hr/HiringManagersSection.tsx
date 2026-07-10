@@ -23,7 +23,7 @@ function HiringManagersSectionImpl({
         title={t('hrDash.hmSectionTitle')}
         subtitle={t('hrDash.hmSectionSubtitle')}
         count={hms?.length}
-        action={<Link to="/hr/invite" className="btn-primary btn-sm">{t('hrDash.inviteHm')}</Link>}
+        action={<Button asChild variant="primary" size="sm"><Link to="/hr/invite">{t('hrDash.inviteHm')}</Link></Button>}
       />
       <Async
         data={hms ?? undefined}
@@ -50,7 +50,7 @@ function HiringManagersSectionImpl({
             <EmptyState
               title={t('hrDash.hmEmptyTitle')}
               description={t('hrDash.hmEmptyDesc')}
-              action={<Link to="/hr/invite" className="btn-primary">{t('hrDash.inviteFirstHm')}</Link>}
+              action={<Button asChild variant="primary"><Link to="/hr/invite">{t('hrDash.inviteFirstHm')}</Link></Button>}
             />
           </Card>
         }

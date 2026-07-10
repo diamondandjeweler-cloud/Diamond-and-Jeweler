@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Alert, Badge, Card, CardBody, EmptyState, Spinner } from '../../components/ui'
+import { Alert, Badge, Button, Card, CardBody, EmptyState, Spinner } from '../../components/ui'
 import { useRestaurant } from '../../lib/restaurant/context'
 import {
   listOrders, listOrderItemsForOrders, listMenuItems, listTables, listEmployees, listTimesheets,
@@ -357,7 +357,7 @@ function TaxReport({ orders }: { orders: Order[] }) {
         <div className="flex gap-3 text-sm items-baseline">
           <span className="text-ink-500">Gross: <strong>{MYR(totalGross)}</strong></span>
           <span className="text-ink-500">Tax: <strong>{MYR(totalTax)}</strong></span>
-          <button className="btn-ghost btn-sm" onClick={exportCsv}>Export CSV</button>
+          <Button variant="ghost" size="sm" onClick={exportCsv}>Export CSV</Button>
         </div>
       </div>
       <table className="w-full text-sm">
@@ -413,8 +413,8 @@ function AccountingExport({ orders }: { orders: Order[]; payments: never[] }) {
       <h3 className="font-display text-lg mb-3">Accounting export</h3>
       <p className="text-sm text-ink-500 mb-4">Export paid orders to your accounting platform. Re-importable; idempotent on order IDs.</p>
       <div className="flex flex-wrap gap-2">
-        <button className="btn-secondary" onClick={exportQuickBooks}>Export QuickBooks (.iif)</button>
-        <button className="btn-secondary" onClick={exportXero}>Export Xero (.csv)</button>
+        <Button variant="secondary" onClick={exportQuickBooks}>Export QuickBooks (.iif)</Button>
+        <Button variant="secondary" onClick={exportXero}>Export Xero (.csv)</Button>
       </div>
     </div>
   )

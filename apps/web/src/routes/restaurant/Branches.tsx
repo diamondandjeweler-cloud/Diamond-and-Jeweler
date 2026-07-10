@@ -165,7 +165,7 @@ function TransfersTab({ transfers, branches, ingredients, srcBranchId, employeeI
                     <td className="py-2"><Badge tone={t.status === 'received' ? 'green' : t.status === 'cancelled' ? 'red' : 'amber'}>{t.status}</Badge></td>
                     <td className="py-2">
                       {t.status === 'sent' && t.to_branch_id === srcBranchId && (
-                        <button className="btn-ghost btn-sm" onClick={async () => { await receiveTransfer(t.id, employeeId); await onChanged() }}>Receive</button>
+                        <Button variant="ghost" size="sm" onClick={async () => { await receiveTransfer(t.id, employeeId); await onChanged() }}>Receive</Button>
                       )}
                     </td>
                   </tr>

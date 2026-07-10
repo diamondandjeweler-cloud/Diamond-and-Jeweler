@@ -340,7 +340,7 @@ export default function Kiosk() {
                 value={couponCode}
                 onChange={(e) => setCouponCode(e.target.value)}
               />
-              <button className="btn-ghost btn-sm" onClick={applyCoupon} type="button">Apply</button>
+              <Button variant="ghost" size="sm" onClick={applyCoupon} type="button">Apply</Button>
             </div>
             {appliedCoupon && (
               <div className="text-xs text-emerald-700 mb-2">Coupon {appliedCoupon.code} applied.</div>
@@ -373,7 +373,7 @@ export default function Kiosk() {
                     </a>
                   </div>
                 )}
-                <button className="btn-secondary btn-sm mt-2" onClick={() => { setSuccess(null); setLastOrderId(null); navigate('/restaurant/orders') }}>{t('restaurant.kiosk.viewOrders')}</button>
+                <Button variant="secondary" size="sm" className="mt-2" onClick={() => { setSuccess(null); setLastOrderId(null); navigate('/restaurant/orders') }}>{t('restaurant.kiosk.viewOrders')}</Button>
               </div>
             )}
 

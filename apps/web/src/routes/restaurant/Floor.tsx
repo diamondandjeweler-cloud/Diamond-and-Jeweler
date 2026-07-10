@@ -98,13 +98,14 @@ function FloorTab({ tables, onClick, onChanged }: { tables: RestaurantTable[]; o
           <span className="flex items-center gap-1"><span className="w-3 h-3 bg-amber-400 rounded" />Reserved {counts.reserved}</span>
           <span className="flex items-center gap-1"><span className="w-3 h-3 bg-yellow-400 rounded" />Cleaning {counts.cleaning}</span>
         </div>
-        <button
+        <Button
           type="button"
+          variant={editMode ? 'brand' : 'secondary'}
+          size="sm"
           onClick={() => setEditMode((v) => !v)}
-          className={`btn-sm ${editMode ? 'btn-brand' : 'btn-secondary'}`}
         >
           {editMode ? 'Done editing' : 'Edit floor plan'}
-        </button>
+        </Button>
       </div>
       {areas.map((area) => (
         <Card key={area}>
@@ -340,10 +341,10 @@ function ReservationsTab({ reservations, tables, onChanged }: { reservations: Re
                     <div className="flex items-center gap-2">
                       <Badge tone={r.status === 'confirmed' ? 'brand' : r.status === 'seated' ? 'green' : 'gray'}>{r.status}</Badge>
                       {r.status === 'confirmed' && (
-                        <button className="text-xs btn-ghost btn-sm"
+                        <Button variant="ghost" size="sm" className="text-xs"
                           onClick={async () => { await updateReservation(r.id, { status: 'seated' }); if (r.table_id) await updateTableStatus(r.table_id, 'occupied'); await onChanged() }}>
                           Seat
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </li>
@@ -410,15 +411,15 @@ function WaitlistTab({ waitlist, onChanged }: { waitlist: WaitlistEntry[]; onCha
                   <div className="flex items-center gap-2">
                     <Badge tone={w.status === 'notified' ? 'amber' : 'gray'}>{w.status}</Badge>
                     {w.status === 'waiting' && (
-                      <button className="btn-ghost btn-sm"
+                      <Button variant="ghost" size="sm"
                         onClick={async () => { await updateWaitlist(w.id, { status: 'notified' }); await onChanged() }}>
                         Notify
-                      </button>
+                      </Button>
                     )}
-                    <button className="btn-ghost btn-sm"
+                    <Button variant="ghost" size="sm"
                       onClick={async () => { await updateWaitlist(w.id, { status: 'seated', seated_at: new Date().toISOString() }); await onChanged() }}>
                       Seat
-                    </button>
+                    </Button>
                   </div>
                 </li>
               ))}

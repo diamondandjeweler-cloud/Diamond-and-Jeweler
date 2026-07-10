@@ -2,7 +2,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { RestaurantProvider, useRestaurant } from '../../lib/restaurant/context'
-import { Alert, Badge, PageHeader, Spinner } from '../../components/ui'
+import { Alert, Badge, Button, PageHeader, Spinner } from '../../components/ui'
 import { useSession } from '../../state/useSession'
 import { useShallow } from 'zustand/react/shallow'
 import OrgSetup from './OrgSetup'
@@ -115,15 +115,16 @@ function Inner() {
                 </svg>
               </div>
               {employee ? (
-                <button
+                <Button
                   type="button"
-                  className="btn-secondary btn-sm"
+                  variant="secondary"
+                  size="sm"
                   onClick={() => setEmployeeId(null)}
                   title="Sign out of employee session"
                 >
                   <span className="h-2 w-2 rounded-full bg-emerald-500" />
                   {employee.name} · {employee.role}
-                </button>
+                </Button>
               ) : (
                 <span className="text-xs text-ink-500 px-3 py-2 rounded-md bg-white/60 border border-ink-200">No staff PIN</span>
               )}

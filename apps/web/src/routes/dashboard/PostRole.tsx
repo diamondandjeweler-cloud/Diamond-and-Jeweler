@@ -9,11 +9,11 @@ import { hmIdByProfileId } from '../../data/repositories/hiringManagers'
 import { getMarketRate } from '../../data/repositories/marketRates'
 import { callFunction } from '../../lib/functions'
 import { FormSkeleton } from '../../components/ListSkeleton'
-import { Button, Card, Alert, Input, Select, Textarea, PageHeader } from '../../components/ui'
+import { Card, Alert, Select, PageHeader } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
 import {
-  FormSection, SkillChipInput, LanguageRequirement, EnvironmentFlags,
-  ScheduleBlock, OpenToSelect, EligibilitySelect, NonNegotiablesInput,
+  FormSection, EnvironmentFlags,
+  ScheduleBlock, NonNegotiablesInput,
   type LanguageReq, type ScheduleValue, type NNAtom,
 } from '../../components/role-form'
 import { validateSalaryRange } from '../../shared/domain/salary/validateSalaryRange'
@@ -24,6 +24,13 @@ import DraftBanners from './postrole/DraftBanners'
 import HardFiltersSection from './postrole/HardFiltersSection'
 import TraitPicker from './postrole/TraitPicker'
 import TeamDynamicSection from './postrole/TeamDynamicSection'
+import PostRoleHeader from './postrole/PostRoleHeader'
+import BasicsSection from './postrole/BasicsSection'
+import CompensationSection from './postrole/CompensationSection'
+import EducationSkillsSection from './postrole/EducationSkillsSection'
+import RoleLogisticsSection from './postrole/RoleLogisticsSection'
+import EligibilityUrgencySection from './postrole/EligibilityUrgencySection'
+import FormActions from './postrole/FormActions'
 
 export default function PostRole() {
   const { id: editRoleId } = useParams<{ id?: string }>()
@@ -519,17 +526,7 @@ export default function PostRole() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <PageHeader
-        eyebrow={isEdit ? 'Review role' : 'New role'}
-        title={isEdit ? (fromOnboarding ? 'Review your first role' : 'Edit role') : 'Post a role'}
-        description={
-          isEdit
-            ? fromOnboarding
-              ? 'We pre-filled this from your onboarding answers. Check each section, adjust anything that\'s off, then activate it to start receiving candidates.'
-              : 'Update the details below. Changes apply immediately to matching.'
-            : 'Up to three candidates will be curated for this role as talents become eligible. Pilot estimate: ~14 days.'
-        }
-      />
+      <PostRoleHeader isEdit={isEdit} fromOnboarding={fromOnboarding} />
 
       <DraftBanners
         hasDraft={hasDraft}
@@ -543,120 +540,30 @@ export default function PostRole() {
         <form onSubmit={submit} className="p-4 md:p-6 space-y-4">
 
           {/* ── Basics ──────────────────────────────────────────────────── */}
-          <FormSection title="Basics" defaultOpen>
-            <Input
-              label="Role title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              placeholder="e.g. Senior Backend Engineer"
-            />
-
-            <div>
-              <div className="flex items-end justify-between gap-3 mb-1">
-                <div className="field-label">Description</div>
-                <button
-                  type="button"
-                  onClick={() => void generateDraft()}
-                  disabled={drafting || !title.trim()}
-                  className="text-xs px-2.5 py-1 rounded-md border border-border text-ink-700 dark:text-fg-strong hover:border-ink-400 dark:hover:border-gray-500 hover:text-fg disabled:opacity-50 disabled:cursor-not-allowed transition"
-                  title={!title.trim() ? 'Type a role title first' : 'Generate a starter draft from the title'}
-                >
-                  {drafting ? 'Drafting…' : description ? 'Regenerate draft' : 'Generate draft'}
-                </button>
-              </div>
-              <Textarea
-                hint="What the candidate will own. Keep it concrete. Click 'Generate draft' if you're stuck."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={5}
-              />
-              {draftErr && <p className="text-xs text-red-600 mt-1">{draftErr}</p>}
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-5">
-              <Input label="Department" value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="e.g. Engineering" />
-              <Input label="Location" value={location} onChange={(e) => setLocation(e.target.value)} />
-            </div>
-
-            <Input
-              label="Office postcode (optional)"
-              hint="Used for proximity matching when applicants opt-in to commute distance."
-              value={locationPostcode}
-              onChange={(e) => setLocationPostcode(e.target.value.replace(/[^0-9]/g, '').slice(0, 5))}
-              inputMode="numeric"
-              maxLength={5}
-              placeholder="e.g. 50450"
-            />
-
-            <Input
-              label="Industry (optional)"
-              hint="e.g. accounting, retail, F&B, software. Used by the matching engine to gauge background fit."
-              value={industry}
-              onChange={(e) => setIndustry(e.target.value)}
-              placeholder="e.g. accounting"
-            />
-          </FormSection>
+          <BasicsSection
+            title={title} setTitle={setTitle}
+            description={description} setDescription={setDescription}
+            department={department} setDepartment={setDepartment}
+            location={location} setLocation={setLocation}
+            locationPostcode={locationPostcode} setLocationPostcode={setLocationPostcode}
+            industry={industry} setIndustry={setIndustry}
+            drafting={drafting} draftErr={draftErr}
+            onGenerateDraft={generateDraft}
+          />
 
           {/* ── Compensation & employment type ───────────────────────────── */}
-          <FormSection title="Compensation & employment type" defaultOpen>
-            <div className="grid md:grid-cols-2 gap-5">
-              <Select label="Work arrangement" value={workArr} onChange={(e) => setWorkArr(e.target.value as typeof workArr)}>
-                <option value="remote">Remote</option>
-                <option value="hybrid">Hybrid</option>
-                <option value="onsite">Onsite</option>
-              </Select>
-              <Select label="Experience level" value={experience} onChange={(e) => setExperience(e.target.value as typeof experience)}>
-                <option value="entry">Entry</option>
-                <option value="junior">Junior</option>
-                <option value="mid">Mid</option>
-                <option value="senior">Senior</option>
-                <option value="lead">Lead</option>
-              </Select>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-5">
-              <Select label="Employment type" value={employmentType} onChange={(e) => setEmploymentType(e.target.value as typeof employmentType)}>
-                <option value="full_time">Full-time</option>
-                <option value="part_time">Part-time</option>
-                <option value="contract">Contract</option>
-                <option value="gig">Gig / project</option>
-                <option value="internship">Internship</option>
-              </Select>
-              {(employmentType === 'gig' || employmentType === 'part_time' || employmentType === 'contract') ? (
-                <Input label="Hourly rate (RM)" type="number" min={0} step="0.01" value={hourlyRate || ''} onChange={(e) => setHourlyRate(parseFloat(e.target.value) || 0)} />
-              ) : (
-                <Input label="Salary min (RM / month)" type="number" min={0} value={salaryMin || ''} onChange={(e) => setSalaryMin(parseInt(e.target.value, 10) || 0)} />
-              )}
-              {(employmentType === 'gig' || employmentType === 'contract') ? (
-                <Input label="Duration (days)" type="number" min={1} value={durationDays} onChange={(e) => setDurationDays(e.target.value === '' ? '' : Math.max(1, parseInt(e.target.value, 10) || 1))} />
-              ) : (
-                <Input label="Salary max (RM / month)" type="number" min={0} value={salaryMax || ''} onChange={(e) => setSalaryMax(parseInt(e.target.value, 10) || 0)} />
-              )}
-            </div>
-
-            <Input label="Start date (optional)" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-
-            {marketWarning && (
-              <Alert tone="amber" title="Market-rate check">{marketWarning}</Alert>
-            )}
-
-            <label htmlFor="post-role-accept-no-exp" className="flex items-start gap-2 text-sm cursor-pointer">
-              <input
-                id="post-role-accept-no-exp"
-                type="checkbox"
-                checked={acceptNoExperience}
-                onChange={(e) => setAcceptNoExperience(e.target.checked)}
-                className="mt-0.5"
-              />
-              <span>
-                <span className="font-medium text-fg">Open to applicants without prior experience in this field.</span>
-                <span className="block text-xs text-fg-muted mt-0.5">
-                  Off-field candidates won&apos;t be filtered out. Senior / lead roles still require relevant background unless this is checked.
-                </span>
-              </span>
-            </label>
-          </FormSection>
+          <CompensationSection
+            workArr={workArr} setWorkArr={setWorkArr}
+            experience={experience} setExperience={setExperience}
+            employmentType={employmentType} setEmploymentType={setEmploymentType}
+            hourlyRate={hourlyRate} setHourlyRate={setHourlyRate}
+            salaryMin={salaryMin} setSalaryMin={setSalaryMin}
+            salaryMax={salaryMax} setSalaryMax={setSalaryMax}
+            durationDays={durationDays} setDurationDays={setDurationDays}
+            startDate={startDate} setStartDate={setStartDate}
+            acceptNoExperience={acceptNoExperience} setAcceptNoExperience={setAcceptNoExperience}
+            marketWarning={marketWarning}
+          />
 
           {/* ── Schedule & shift ─────────────────────────────────────────── */}
           <FormSection
@@ -668,57 +575,13 @@ export default function PostRole() {
           </FormSection>
 
           {/* ── Education, skills, languages ─────────────────────────────── */}
-          <FormSection
-            title="Education, skills & languages"
-            description="Tag what's truly required — these become hard filters in matching."
-            defaultOpen
-          >
-            <div className="grid md:grid-cols-2 gap-5">
-              <Select label="Minimum education" value={minEducationLevel} onChange={(e) => setMinEducationLevel(e.target.value)}>
-                <option value="">No formal requirement</option>
-                <option value="spm">SPM</option>
-                <option value="diploma">Diploma</option>
-                <option value="professional_cert">Professional certificate</option>
-                <option value="degree">Degree</option>
-                <option value="masters">Master&apos;s</option>
-                <option value="phd">PhD</option>
-              </Select>
-              {minEducationLevel === 'degree' && (
-                <Select label="Minimum class (degree only)" value={minEducationClass} onChange={(e) => setMinEducationClass(e.target.value)}>
-                  <option value="">Any</option>
-                  <option value="pass">Pass</option>
-                  <option value="third">Third class</option>
-                  <option value="second_lower">2nd class lower</option>
-                  <option value="second_upper">2nd class upper</option>
-                  <option value="first">First class</option>
-                </Select>
-              )}
-            </div>
-
-            <SkillChipInput
-              label="Required skills"
-              hint="Hard filter — candidates without these are excluded. Up to 15."
-              value={requiredSkills}
-              onChange={setRequiredSkills}
-              max={15}
-            />
-
-            <SkillChipInput
-              label="Preferred skills (nice to have)"
-              hint="Soft signal — boosts score but never excludes."
-              value={preferredSkills}
-              onChange={setPreferredSkills}
-              max={15}
-            />
-
-            <LanguageRequirement
-              label="Languages required"
-              hint="Talent must be able to communicate at the specified level."
-              value={languagesRequired}
-              onChange={setLanguagesRequired}
-              side="role"
-            />
-          </FormSection>
+          <EducationSkillsSection
+            minEducationLevel={minEducationLevel} setMinEducationLevel={setMinEducationLevel}
+            minEducationClass={minEducationClass} setMinEducationClass={setMinEducationClass}
+            requiredSkills={requiredSkills} setRequiredSkills={setRequiredSkills}
+            preferredSkills={preferredSkills} setPreferredSkills={setPreferredSkills}
+            languagesRequired={languagesRequired} setLanguagesRequired={setLanguagesRequired}
+          />
 
           {/* ── Work environment ─────────────────────────────────────────── */}
           <FormSection
@@ -730,80 +593,20 @@ export default function PostRole() {
           </FormSection>
 
           {/* ── Role logistics ───────────────────────────────────────────── */}
-          <FormSection
-            title="Role logistics"
-            description="Headcount, reporting, probation, interview process."
-            defaultOpen={false}
-          >
-            <div className="grid md:grid-cols-2 gap-5">
-              <Input
-                label="Headcount needed"
-                type="number"
-                min={1} max={1000}
-                value={headcount}
-                onChange={(e) => setHeadcount(Math.max(1, parseInt(e.target.value, 10) || 1))}
-              />
-              <Input
-                label="Direct team size (existing)"
-                type="number"
-                min={0}
-                value={directTeamSize}
-                onChange={(e) => setDirectTeamSize(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0))}
-                placeholder="e.g. 5"
-              />
-            </div>
-
-            <Input
-              label="Reports to (job title)"
-              value={reportsToTitle}
-              onChange={(e) => setReportsToTitle(e.target.value)}
-              placeholder="e.g. Outlet Manager"
-            />
-
-            <div className="grid md:grid-cols-2 gap-5">
-              <Input
-                label="Probation period (months)"
-                type="number"
-                min={0} max={12}
-                value={probationMonths}
-                onChange={(e) => setProbationMonths(e.target.value === '' ? '' : Math.max(0, Math.min(12, parseInt(e.target.value, 10) || 0)))}
-                placeholder="e.g. 3"
-              />
-              <Select label="Interview process" value={interviewProcess} onChange={(e) => setInterviewProcess(e.target.value)}>
-                <option value="">Not specified</option>
-                <option value="walk_in">Walk-in</option>
-                <option value="single_interview">Single interview</option>
-                <option value="two_rounds">Two rounds</option>
-                <option value="assessment_required">Assessment required</option>
-                <option value="panel">Panel interview</option>
-              </Select>
-            </div>
-          </FormSection>
+          <RoleLogisticsSection
+            headcount={headcount} setHeadcount={setHeadcount}
+            directTeamSize={directTeamSize} setDirectTeamSize={setDirectTeamSize}
+            reportsToTitle={reportsToTitle} setReportsToTitle={setReportsToTitle}
+            probationMonths={probationMonths} setProbationMonths={setProbationMonths}
+            interviewProcess={interviewProcess} setInterviewProcess={setInterviewProcess}
+          />
 
           {/* ── Eligibility & urgency ────────────────────────────────────── */}
-          <FormSection
-            title="Eligibility & urgency"
-            description="Who can apply, how soon you need them."
-            defaultOpen={false}
-          >
-            <Select label="Start urgency" value={startUrgency} onChange={(e) => setStartUrgency(e.target.value)}>
-              <option value="">Not specified</option>
-              <option value="immediate">Immediate</option>
-              <option value="within_2_weeks">Within 2 weeks</option>
-              <option value="within_1_month">Within 1 month</option>
-              <option value="flexible">Flexible</option>
-            </Select>
-
-            <OpenToSelect
-              label="Open to"
-              hint="Tick all that apply. Empty = no restriction."
-              value={openTo}
-              onChange={setOpenTo}
-              side="role"
-            />
-
-            <EligibilitySelect value={eligibilityWorkAuth} onChange={setEligibilityWorkAuth} />
-          </FormSection>
+          <EligibilityUrgencySection
+            startUrgency={startUrgency} setStartUrgency={setStartUrgency}
+            openTo={openTo} setOpenTo={setOpenTo}
+            eligibilityWorkAuth={eligibilityWorkAuth} setEligibilityWorkAuth={setEligibilityWorkAuth}
+          />
 
           {/* ── Hard filters (existing booleans) ─────────────────────────── */}
           <HardFiltersSection
@@ -860,22 +663,19 @@ export default function PostRole() {
 
           {err && <Alert tone="red">{err}</Alert>}
 
-          <div className="flex gap-2 justify-between pt-4 border-t border-ink-100 dark:border-border">
-            <Button type="button" variant="secondary" onClick={() => navigate('/hm')} disabled={busy}>Cancel</Button>
-            <div className="flex items-center gap-3">
-              {(draftSaved || cloudSaved) && <span className="text-xs text-ink-400 dark:text-fg-muted">{cloudSaved ? 'Cloud saved' : 'Draft saved'}</span>}
-              <Button type="button" variant="secondary" onClick={() => void saveToCloud()} loading={dbDraftSaving} disabled={!hmId || busy}>
-                Save draft
-              </Button>
-              <Button type="submit" loading={busy} disabled={!title || requiredTraits.length === 0}>
-                {busy
-                  ? (isEdit ? 'Saving…' : 'Posting…')
-                  : isEdit
-                    ? (fromOnboarding ? 'Activate role & start matching' : 'Save changes')
-                    : 'Post role & start matching'}
-              </Button>
-            </div>
-          </div>
+          <FormActions
+            busy={busy}
+            draftSaved={draftSaved}
+            cloudSaved={cloudSaved}
+            dbDraftSaving={dbDraftSaving}
+            hmId={hmId}
+            title={title}
+            requiredTraits={requiredTraits}
+            isEdit={isEdit}
+            fromOnboarding={fromOnboarding}
+            onCancel={() => navigate('/hm')}
+            onSaveDraft={() => void saveToCloud()}
+          />
         </form>
       </Card>
     </div>

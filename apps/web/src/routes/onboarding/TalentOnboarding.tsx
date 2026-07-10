@@ -27,7 +27,6 @@ import { encryptDob, markOnboardingComplete } from '../../lib/api'
 import { callFunction } from '../../lib/functions'
 import { type Gender } from '../../shared/domain/lifeChart/lifeChartCharacter'
 import ChatShell, { ChatMessage } from '../../components/ChatShell'
-import { Button, Alert } from '../../components/ui'
 import DobConfirmModal from '../../components/DobConfirmModal'
 import {
   type LanguageReq, type NNAtom,
@@ -35,11 +34,16 @@ import {
 import { type Phase, type ApiMessage } from './talent/helpers'
 import { buildTalentInsert, type TalentOnboardingData } from './talent/submitTalentOnboarding'
 import { useOnboardingChat } from './useOnboardingChat'
-import { ProgressStep, FileRow } from './talent/StepBits'
 import DobStep from './talent/DobStep'
 import DealBreakersStep from './talent/DealBreakersStep'
 import ExtrasStep from './talent/ExtrasStep'
 import ReviewStep from './talent/ReviewStep'
+import ResumeStep from './talent/ResumeStep'
+import BasicsStep from './talent/BasicsStep'
+import ChatComposer from './talent/ChatComposer'
+import DocsStep from './talent/DocsStep'
+import SubmitStep from './talent/SubmitStep'
+import DiamondPointsBanner from './talent/DiamondPointsBanner'
 
 export default function TalentOnboarding() {
   const { t } = useTranslation()
@@ -478,39 +482,32 @@ export default function TalentOnboarding() {
       const dobFilled = !!dob && !!gender && !!race && !!religion && languages.length > 0
       const nextPhase: Phase = chatDone ? (dobFilled ? 'docs' : 'dob') : 'chat'
       return (
-        <div className="space-y-3">
-          <p className="text-sm text-ink-700 dark:text-fg-strong font-medium">{t('talentOnboard.resumeProgressIntro')}</p>
-          <div className="space-y-1.5">
-            <ProgressStep label={t('talentOnboard.stepNameContact')} done={!!fullName} doneLabel={t('talentOnboard.stepDone')} nextLabel={t('talentOnboard.stepNext')} />
-            <ProgressStep label={t('talentOnboard.stepChat')} done={chatDone} active={!chatDone} doneLabel={t('talentOnboard.stepDone')} nextLabel={t('talentOnboard.stepNext')} />
-            <ProgressStep label={t('talentOnboard.stepBackgroundDob')} done={dobFilled} active={chatDone && !dobFilled} doneLabel={t('talentOnboard.stepDone')} nextLabel={t('talentOnboard.stepNext')} />
-            <ProgressStep label={t('talentOnboard.stepDocuments')} done={false} active={dobFilled} doneLabel={t('talentOnboard.stepDone')} nextLabel={t('talentOnboard.stepNext')} />
-          </div>
-          <Button onClick={() => setPhase(nextPhase)} className="w-full mt-2" size="lg">
-            {t('talentOnboard.continueWhereLeftOff')}
-          </Button>
-          <button
-            type="button"
-            className="w-full text-xs text-ink-400 dark:text-fg-muted hover:text-ink-600 dark:hover:text-fg-strong py-1"
-            onClick={() => {
-              if (draftKey) localStorage.removeItem(draftKey)
-              setPhase('basics')
-              setFullName(''); setPhone(''); setDob(''); setGender('')
-              setRace(''); setReligion(''); setLanguages([])
-              setLocationMatters(null); setLocationPostcode(''); setOpenToNewField(false)
-              setLog([]); setApiMessages([])
-              chatInitRef.current = false
-            }}
-          >
-            {t('talentOnboard.startOver')}
-          </button>
-        </div>
+        <ResumeStep
+          t={t}
+          fullName={fullName}
+          chatDone={chatDone}
+          dobFilled={dobFilled}
+          onContinue={() => setPhase(nextPhase)}
+          onStartOver={() => {
+            if (draftKey) localStorage.removeItem(draftKey)
+            setPhase('basics')
+            setFullName(''); setPhone(''); setDob(''); setGender('')
+            setRace(''); setReligion(''); setLanguages([])
+            setLocationMatters(null); setLocationPostcode(''); setOpenToNewField(false)
+            setLog([]); setApiMessages([])
+            chatInitRef.current = false
+          }}
+        />
       )
     }
 
     if (phase === 'basics') {
       return (
-        <form
+        <BasicsStep
+          t={t}
+          fullName={fullName} setFullName={setFullName}
+          phone={phone} setPhone={setPhone}
+          switching={switching} switchErr={switchErr}
           onSubmit={(e) => {
             e.preventDefault()
             if (fullName.trim() && phone.trim()) {
@@ -518,106 +515,21 @@ export default function TalentOnboarding() {
             setPhase('chat')
           }
           }}
-          className="space-y-3"
-        >
-          <p className="text-sm text-fg-muted">
-            {t('talentOnboard.basicsIntro')}
-          </p>
-          <div>
-            <label htmlFor="talent-onboard-full-name" className="block text-sm font-medium text-ink-700 dark:text-fg-strong mb-1">{t('common.fullName')}</label>
-            <input
-              id="talent-onboard-full-name"
-              type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder={t('talentOnboard.fullNamePlaceholder')}
-              // First wizard field; intentional focus on entry.
-              // eslint-disable-next-line jsx-a11y/no-autofocus
-              autoFocus
-              className="w-full border border-border bg-surface dark:text-fg dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="talent-onboard-phone" className="block text-sm font-medium text-ink-700 dark:text-fg-strong mb-1">{t('common.phone')}</label>
-            <input
-              id="talent-onboard-phone"
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder={t('talentOnboard.phonePlaceholder')}
-              className="w-full border border-border bg-surface dark:text-fg dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-            />
-          </div>
-          <Button
-            type="submit"
-            disabled={!fullName.trim() || !phone.trim()}
-            className="w-full"
-            size="lg"
-          >
-            {t('talentOnboard.continueToChat')}
-          </Button>
-          <div className="text-center pt-1">
-            <button
-              type="button"
-              onClick={() => void handleSwitchToHiring()}
-              disabled={switching}
-              className="text-xs text-ink-400 dark:text-fg-muted hover:text-ink-600 dark:hover:text-fg-strong underline"
-            >
-              {switching ? t('talentOnboard.switching') : t('talentOnboard.switchToHiring')}
-            </button>
-            {switchErr && <p className="text-xs text-red-600 mt-1">{switchErr}</p>}
-          </div>
-        </form>
+          onSwitchToHiring={() => void handleSwitchToHiring()}
+        />
       )
     }
 
     if (phase === 'chat') {
       return (
-        <form
-          onSubmit={(e) => { e.preventDefault(); void sendMessage(input) }}
-          className="flex items-end gap-2"
-        >
-          <textarea
-            ref={chatInputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                void sendMessage(input)
-              }
-            }}
-            placeholder={
-              isStreaming
-                ? t('talentOnboard.chatTyping')
-                : t('talentOnboard.chatPlaceholder')
-            }
-            rows={2}
-            disabled={isStreaming}
-            className="flex-1 resize-none rounded-xl border border-border bg-surface dark:text-fg dark:placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:bg-surface-2"
-            // Active chat surface — autoFocus when entering this step is intentional.
-            // eslint-disable-next-line jsx-a11y/no-autofocus
-            autoFocus
-          />
-          {isStreaming ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="secondary"
-              onClick={() => stop()}
-            >
-              {t('talentOnboard.stop')}
-            </Button>
-          ) : (
-            <Button
-              type="submit"
-              disabled={!input.trim()}
-              size="sm"
-            >
-              {t('common.send')}
-            </Button>
-          )}
-        </form>
+        <ChatComposer
+          t={t}
+          inputRef={chatInputRef}
+          input={input} setInput={setInput}
+          isStreaming={isStreaming}
+          onSend={() => void sendMessage(input)}
+          onStop={() => stop()}
+        />
       )
     }
 
@@ -703,56 +615,14 @@ export default function TalentOnboarding() {
 
     if (phase === 'docs') {
       return (
-        <div className="space-y-3">
-          <p className="text-sm text-fg-muted">
-            {t('talentOnboard.docsIntro')}
-          </p>
-          <FileRow
-            label={t('talentOnboard.photoLabel')}
-            accept="image/jpeg,image/png,image/webp"
-            file={photoFile}
-            onChange={setPhotoFile}
-            hint={t('talentOnboard.photoHint')}
-            maxBytes={2 * 1024 * 1024}
-            required
-            chooseLabel={t('talentOnboard.choose')}
-            noFileLabel={t('talentOnboard.noFileSelected')}
-            tooLargeLabel={(mb) => t('talentOnboard.fileTooLarge', { mb })}
-          />
-          <FileRow
-            label={t('talentOnboard.resumeLabel')}
-            accept="application/pdf,.doc,.docx"
-            file={resumeFile}
-            onChange={setResumeFile}
-            maxBytes={10 * 1024 * 1024}
-            required
-            chooseLabel={t('talentOnboard.choose')}
-            noFileLabel={t('talentOnboard.noFileSelected')}
-            tooLargeLabel={(mb) => t('talentOnboard.fileTooLarge', { mb })}
-          />
-          <FileRow
-            label={t('talentOnboard.coverLetterLabel')}
-            accept="application/pdf,.doc,.docx"
-            file={coverLetterFile}
-            onChange={setCoverLetterFile}
-            maxBytes={10 * 1024 * 1024}
-            chooseLabel={t('talentOnboard.choose')}
-            noFileLabel={t('talentOnboard.noFileSelected')}
-            tooLargeLabel={(mb) => t('talentOnboard.fileTooLarge', { mb })}
-          />
-          <p className="text-xs text-fg-muted italic">
-            {t('talentOnboard.nricNote')}
-          </p>
-          {err && <Alert tone="red">{err}</Alert>}
-          <Button
-            onClick={() => setPhase('review')}
-            disabled={!photoFile || !resumeFile}
-            className="w-full"
-            size="lg"
-          >
-            {t('talentOnboard.reviewConfirm')}
-          </Button>
-        </div>
+        <DocsStep
+          t={t}
+          photoFile={photoFile} setPhotoFile={setPhotoFile}
+          resumeFile={resumeFile} setResumeFile={setResumeFile}
+          coverLetterFile={coverLetterFile} setCoverLetterFile={setCoverLetterFile}
+          err={err}
+          onReview={() => setPhase('review')}
+        />
       )
     }
 
@@ -776,34 +646,12 @@ export default function TalentOnboarding() {
 
     if (phase === 'submit') {
       return (
-        <div className="space-y-4 text-center py-2">
-          {err ? (
-            <>
-              <Alert tone="red">{err}</Alert>
-              <Button onClick={() => void finalise()} loading={busy} className="w-full">
-                {t('talentOnboard.retry')}
-              </Button>
-              <button
-                type="button"
-                onClick={() => { setErr(null); setPhase('review') }}
-                className="w-full text-xs text-ink-400 dark:text-fg-muted hover:text-ink-600 dark:hover:text-fg-strong py-1"
-              >{t('talentOnboard.backToReview')}</button>
-            </>
-          ) : (
-            <>
-              <div className="flex justify-center">
-                <svg className="animate-spin h-8 w-8 text-brand-500" viewBox="0 0 24 24" fill="none" aria-hidden>
-                  <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-                  <path className="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-              </div>
-              <p className="text-base font-medium text-fg">{t('talentOnboard.savingProfile')}</p>
-              <p className="text-sm text-fg-muted leading-relaxed max-w-xs mx-auto">
-                {t('talentOnboard.savingProfileHint')}
-              </p>
-            </>
-          )}
-        </div>
+        <SubmitStep
+          t={t}
+          err={err} busy={busy}
+          onRetry={() => void finalise()}
+          onBackToReview={() => { setErr(null); setPhase('review') }}
+        />
       )
     }
 
@@ -832,13 +680,7 @@ export default function TalentOnboarding() {
     phase === 'review'       ? 95 :
     phase === 'submit'       ? 97 : 100
 
-  const DiamondPointsInfo = phase === 'basics' ? (
-    <div className="mb-4 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-900">
-      <span className="font-semibold">{t('talentOnboard.freeMatchesBold')}</span>{' '}
-      {t('talentOnboard.freeMatchesBody')}
-      {' '}<span className="font-semibold">{t('talentOnboard.freeMatchesRate')}</span>
-    </div>
-  ) : null
+  const DiamondPointsInfo = phase === 'basics' ? <DiamondPointsBanner t={t} /> : null
 
   return (
     <>

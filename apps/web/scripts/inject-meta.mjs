@@ -1,8 +1,9 @@
 /**
  * Post-build script: generates per-route HTML files in dist/ with
  * route-specific <title>, <meta description>, <link canonical>, OG tags,
- * and a <noscript> body block for silo pages so crawlers see meaningful
- * content before JS hydrates (fixes soft-404 classification).
+ * and a visible prerendered <article> for silo pages so crawlers AND the
+ * first paint see meaningful content before the SPA boots (fixes soft-404
+ * classification; createRoot clears it on mount).
  *
  * Vercel's `handle: filesystem` routing serves these files for direct URL
  * access and browser refreshes. React Router handles client-side navigation
@@ -23,8 +24,9 @@ const BASE = 'https://diamondandjeweler.com'
 
 /**
  * Public routes that need unique metadata.
- * `bullets` is optional — if present, a <noscript> content block is injected
- * into <div id="root"> so crawlers see meaningful HTML before JS loads.
+ * `bullets` is optional — if present, a visible prerendered <article> is
+ * injected into <div id="root"> so crawlers and the first paint see
+ * meaningful HTML before the SPA boots (createRoot clears it on mount).
  */
 const ROUTES = {
   // ----- Utility pages — noindex (thin content, no crawl value) -----
@@ -695,22 +697,29 @@ function escapeHtml(str) {
 }
 
 /**
- * Build a <noscript> block with semantic content so crawlers see meaningful
- * HTML before JS hydrates. React replaces <div id="root"> on mount so JS
- * users never see this. Googlebot indexes <noscript> content.
+ * Build a VISIBLE prerender block with semantic content so crawlers and the
+ * first paint see meaningful HTML before the SPA boots (previously this same
+ * article was wrapped in <noscript>, so JS-enabled visitors — i.e. every real
+ * user and the rendering Googlebot — stared at an empty #root until ~220KB of
+ * JS parsed; real-content LCP was gated on the full SPA boot).
+ *
+ * Safe with the SPA: main.tsx uses createRoot (NOT hydrateRoot), which clears
+ * all existing children of #root on first render — no hydration mismatch is
+ * possible, the block simply becomes the pre-mount content. JS-off users see
+ * it too (it is plain static HTML), so the old <noscript> fallback is
+ * subsumed. Links inside it are real hrefs served by Vercel's filesystem
+ * routing, so they work even before React mounts.
  */
-function buildNoscriptBlock(title, description, bullets) {
+function buildPrerenderBlock(title, description, bullets) {
   if (!bullets || bullets.length === 0) return ''
   const items = bullets.map((b) => `<li>${escapeHtml(b)}</li>`).join('')
   return [
-    '<noscript>',
-    '<article style="font-family:sans-serif;max-width:680px;margin:2rem auto;padding:1rem">',
+    '<article data-prerender style="font-family:sans-serif;max-width:680px;margin:2rem auto;padding:1rem">',
     `<h1>${escapeHtml(title)}</h1>`,
     `<p>${escapeHtml(description)}</p>`,
     `<ul>${items}</ul>`,
     '<p><a href="/careers">Browse all jobs on DNJ</a></p>',
     '</article>',
-    '</noscript>',
   ].join('')
 }
 
@@ -767,9 +776,9 @@ function injectMeta(html, route, title, description, bullets, noindex, keywords,
       .replace(/(<meta name="twitter:image" content=")[^"]*(")/,      `$1${img}$2`)
   }
 
-  const noscript = buildNoscriptBlock(title, description, bullets)
-  if (noscript) {
-    out = out.replace('<div id="root"></div>', `<div id="root">${noscript}</div>`)
+  const prerender = buildPrerenderBlock(title, description, bullets)
+  if (prerender) {
+    out = out.replace('<div id="root"></div>', `<div id="root">${prerender}</div>`)
   }
   return out
 }

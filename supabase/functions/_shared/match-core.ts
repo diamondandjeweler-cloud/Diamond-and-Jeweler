@@ -36,6 +36,13 @@ export const CULTURE_KEYS = [
 export interface MatchParams {
   roleId: string
   isExtraMatch?: boolean
+  /**
+   * The extra_match_purchases row that paid for this generation (hm_extra only),
+   * threaded payment-webhook → match-generate → here so the delivered match is
+   * linked back to its purchase (matches.source_purchase_id) and admin-refund can
+   * expire it on refund. Undefined for free/organic matches.
+   */
+  sourcePurchaseId?: string
   /** True when called from a service-role context (queue worker, cron). Bypasses ownership check. */
   isServiceRole?: boolean
   /** The authenticated user's ID — required when isServiceRole=false. */
@@ -108,7 +115,7 @@ interface ScoredCandidate {
 // ── Main exported function ────────────────────────────────────────────────────
 
 export async function matchForRole(params: MatchParams): Promise<MatchResult> {
-  const { roleId, isExtraMatch = false, isServiceRole = false, callerUserId } = params
+  const { roleId, isExtraMatch = false, isServiceRole = false, callerUserId, sourcePurchaseId } = params
   const db = params.db ?? adminClient()
 
   // Per-generation memo for IMMUTABLE/STABLE pure-function RPCs
@@ -1225,6 +1232,9 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
     status: initialStatus,
     expires_at: expiresAt,
     is_extra_match: isExtraMatch,
+    // Link the delivered match back to the purchase that paid for it (hm_extra),
+    // so admin-refund can expire it on refund. NULL for free/organic matches.
+    source_purchase_id: sourcePurchaseId ?? null,
   }))
   const { data: inserted, error: insErr } = await db.from('matches').insert(toInsert).select('id, talent_id')
   if (insErr) {

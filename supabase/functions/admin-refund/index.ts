@@ -179,6 +179,39 @@ serve(async (req) => {
     }
   }
 
+  // For an extra-match refund, expire the delivered match so a refunded buyer
+  // does not keep it — but only while it is still un-acted. If the HM/talent has
+  // engaged (invite / scheduling / interview / offer / hire), leave it in place
+  // and warn finance so a refund never yanks a live interview. Non-fatal: the
+  // money refund already stands. Free/organic matches have source_purchase_id
+  // NULL and are never touched.
+  let matchWarning: string | undefined
+  if (!isPoints) {
+    const UNACTED = ['pending_approval', 'generated', 'viewed']
+    const INERT   = ['expired', 'declined_by_talent', 'declined_by_manager']
+    const { data: linked, error: linkedErr } = await db
+      .from('matches')
+      .select('id, status')
+      .eq('source_purchase_id', purchase.id)
+    if (linkedErr) {
+      matchWarning = `Refund succeeded but the delivered match could not be looked up (${linkedErr.message}); expire it manually.`
+    } else {
+      const rows = (linked ?? []) as { id: string; status: string }[]
+      const toExpire  = rows.filter((m) => UNACTED.includes(m.status))
+      const progressed = rows.filter((m) => !UNACTED.includes(m.status) && !INERT.includes(m.status))
+      if (toExpire.length > 0) {
+        const { error: expErr } = await db
+          .from('matches')
+          .update({ status: 'expired' })
+          .in('id', toExpire.map((m) => m.id))
+        if (expErr) matchWarning = `Refund succeeded but expiring the delivered match failed (${expErr.message}); expire it manually.`
+      }
+      if (progressed.length > 0) {
+        matchWarning = `Refunded extra match already progressed (${progressed.map((m) => m.status).join(', ')}) — left in place; review manually.`
+      }
+    }
+  }
+
   await logAudit({
     actorId: auth.userId,
     actorRole: 'admin',
@@ -194,12 +227,14 @@ serve(async (req) => {
       billplz_bill_id: purchase.payment_intent_id,
       billplz_status: refund.status,
       reason,
+      ...(matchWarning ? { match_warning: matchWarning } : {}),
     },
   })
 
+  const warning = [pointsWarning, matchWarning].filter(Boolean).join(' | ')
   return json({
     refunded: true,
     billplz_status: refund.status,
-    ...(pointsWarning ? { warning: pointsWarning } : {}),
+    ...(warning ? { warning } : {}),
   })
 })

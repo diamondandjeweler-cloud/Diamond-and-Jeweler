@@ -161,7 +161,9 @@ async function handlePaymentWebhook(req: Request): Promise<Response> {
     fetch(`${supabaseUrl}/functions/v1/match-generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${svcKey}` },
-      body: JSON.stringify({ role_id: purchase.role_id, is_extra_match: true }),
+      // Pass the purchase id so the delivered match is linked back to it
+      // (matches.source_purchase_id), letting admin-refund expire it on refund.
+      body: JSON.stringify({ role_id: purchase.role_id, is_extra_match: true, source_purchase_id: purchase.id }),
     }).catch(() => { /* best effort */ })
   }
 

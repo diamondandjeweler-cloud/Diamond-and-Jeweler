@@ -12,11 +12,16 @@ import {
 import type {
   MenuItem, Order, OrderItem, Payment, PaymentMethod, RestaurantTable, CashierShift,
 } from '../../lib/restaurant/types'
-import { MYR, minutesAgo } from '../../lib/restaurant/format'
+import { MYR } from '../../lib/restaurant/format'
 import {
   getSubmissionByOrder, triggerSubmit, getOrderBuyerFields, updateOrderBuyerFields,
   type MyInvoisSubmission, type BuyerClassification,
 } from '../../lib/restaurant/einvoice'
+import OrderListPanel from './cashier/OrderListPanel'
+import OrderPayHeader from './cashier/OrderPayHeader'
+import OrderLinesList from './cashier/OrderLinesList'
+import OrderTotalsSummary from './cashier/OrderTotalsSummary'
+import PaymentsHistoryList from './cashier/PaymentsHistoryList'
 
 export default function Cashier() {
   const { branchId, employee } = useRestaurant()
@@ -81,48 +86,14 @@ export default function Cashier() {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Order list */}
       <div>
-        <Card>
-          <CardBody>
-            <h2 className="font-display text-lg mb-3">Open orders</h2>
-            <input
-              type="search"
-              placeholder="Search table, name, phone, id…"
-              className="w-full mb-3"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            {filtered.length === 0 ? (
-              <div className="text-sm text-ink-500 py-6 text-center">No matching orders</div>
-            ) : (
-              <ul className="space-y-2">
-                {filtered.map((o) => {
-                  const tbl = tableById.get(o.table_id ?? '')
-                  return (
-                    <li key={o.id}>
-                      <button
-                        onClick={() => setActive(o.id)}
-                        className={`w-full text-left p-2 rounded-md border ${
-                          active === o.id ? 'border-brand-600 bg-brand-50' : 'border-ink-200 hover:bg-ink-50'
-                        }`}
-                      >
-                        <div className="flex justify-between">
-                          <div>
-                            <div className="font-medium">
-                              {tbl ? `Table ${tbl.table_number}` : o.order_type}
-                              {o.customer_name && ` · ${o.customer_name}`}
-                            </div>
-                            <div className="text-xs text-ink-500">#{o.id.slice(0,6)} · {minutesAgo(o.created_at)}m</div>
-                          </div>
-                          <div className="font-display">{MYR(Number(o.total))}</div>
-                        </div>
-                      </button>
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
-          </CardBody>
-        </Card>
+        <OrderListPanel
+          orders={filtered}
+          tableById={tableById}
+          activeId={active}
+          search={search}
+          onSearchChange={setSearch}
+          onSelect={setActive}
+        />
 
         <ShiftCard
           shift={shift}
@@ -256,34 +227,12 @@ function OrderPay({
   return (
     <Card>
       <CardBody>
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h2 className="font-display text-xl">Order #{order.id.slice(0,8)}</h2>
-            <div className="text-sm text-ink-500">
-              {order.order_type}
-              {table && <> · Table {table.table_number}</>}
-              {order.customer_name && <> · {order.customer_name}</>}
-            </div>
-          </div>
-          <Badge tone={order.status === 'paid' ? 'gray' : 'brand'}>{order.status}</Badge>
-        </div>
+        <OrderPayHeader order={order} table={table} />
 
         <BuyerFieldsPanel orderId={order.id} />
         <EinvoiceBadge orderId={order.id} orderStatus={order.status} />
 
-        <ul className="space-y-1 mb-3">
-          {items.map((li) => {
-            const mi = menuById.get(li.menu_item_id)
-            return (
-              <li key={li.id} className="flex justify-between text-sm">
-                <span className={li.status === 'voided' ? 'line-through text-ink-400' : ''}>
-                  {li.quantity}× {mi?.name ?? 'Item'}
-                </span>
-                <span>{MYR(li.quantity * (Number(li.unit_price) + Number(li.modifiers_total)))}</span>
-              </li>
-            )
-          })}
-        </ul>
+        <OrderLinesList items={items} menuById={menuById} />
 
         {order.status !== 'paid' && order.status !== 'closed' && (
           <div className="flex gap-2 mb-4 flex-wrap">
@@ -311,15 +260,7 @@ function OrderPay({
           />
         )}
 
-        <dl className="text-sm space-y-1 mb-4 border-t pt-3">
-          <div className="flex justify-between"><dt className="text-ink-500">Subtotal</dt><dd>{MYR(Number(order.subtotal))}</dd></div>
-          {Number(order.discount) > 0 && <div className="flex justify-between text-emerald-700"><dt>Discount</dt><dd>−{MYR(Number(order.discount))}</dd></div>}
-          <div className="flex justify-between"><dt className="text-ink-500">Tax</dt><dd>{MYR(Number(order.tax))}</dd></div>
-          {Number(order.tip) > 0 && <div className="flex justify-between"><dt className="text-ink-500">Tip</dt><dd>{MYR(Number(order.tip))}</dd></div>}
-          <div className="flex justify-between font-display text-lg"><dt>Total</dt><dd>{MYR(Number(order.total))}</dd></div>
-          <div className="flex justify-between text-ink-500"><dt>Paid</dt><dd>{MYR(paid)}</dd></div>
-          <div className="flex justify-between text-lg"><dt>Balance</dt><dd>{MYR(remaining)}</dd></div>
-        </dl>
+        <OrderTotalsSummary order={order} paid={paid} remaining={remaining} />
 
         {remaining > 0 && (
           <>
@@ -387,25 +328,7 @@ function OrderPay({
         )}
 
         {payments.length > 0 && (
-          <div className="mt-4 pt-4 border-t">
-            <div className="text-xs text-ink-500 uppercase tracking-wide mb-2">Payments</div>
-            <ul className="space-y-1 text-sm">
-              {payments.map((p) => (
-                <li key={p.id} className="flex items-center justify-between">
-                  <span className={p.status === 'refunded' ? 'line-through' : ''}>
-                    {p.method} · {MYR(Number(p.amount))}
-                    {p.receipt_no && <span className="ml-2 text-xs text-ink-400">{p.receipt_no}</span>}
-                  </span>
-                  {p.status === 'completed' && (
-                    <button className="text-xs text-red-500" onClick={() => setRefundOpenFor(p)}>
-                      Refund
-                    </button>
-                  )}
-                  {p.status === 'refunded' && <span className="text-xs text-red-500">refunded</span>}
-                </li>
-              ))}
-            </ul>
-          </div>
+          <PaymentsHistoryList payments={payments} onRequestRefund={(p) => setRefundOpenFor(p)} />
         )}
 
         {err && <div className="mt-3"><Alert tone="red">{err}</Alert></div>}

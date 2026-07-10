@@ -13,9 +13,15 @@ import {
   listOrgMembers, addOrgMemberByEmail, removeOrgMember, updateOrgName,
   createBranch,
 } from '../../lib/restaurant/store'
-import type { CourseType, MenuCategory, MenuItem, Modifier, OrgMember, RestaurantTable, TableArea, TableShape } from '../../lib/restaurant/types'
+import type { MenuCategory, MenuItem, Modifier, OrgMember, RestaurantTable, TableArea, TableShape } from '../../lib/restaurant/types'
 import { MYR } from '../../lib/restaurant/format'
 import { getMyInvoisConfig, upsertMyInvoisConfig, type MyInvoisConfig } from '../../lib/restaurant/einvoice'
+import { DeliveryTab } from './admin/DeliveryTab'
+import { MenuItemsTable } from './admin/MenuItemsTable'
+import { MenuItemFormCard, type ItemForm } from './admin/MenuItemFormCard'
+import { TableQrRow } from './admin/TableQrRow'
+import { OrgMembersTable } from './admin/OrgMembersTable'
+import { MyInvoisFormFields } from './admin/MyInvoisFormFields'
 
 const ADMIN_EMPLOYEE_ROLES = ['admin', 'owner', 'shift_manager']
 const ADMIN_USER_ROLES     = ['admin', 'restaurant_staff']
@@ -84,13 +90,6 @@ export default function Admin() {
    MENU TAB
 ───────────────────────────────────────────── */
 
-type ItemForm = {
-  name: string; description: string; price: number; category_id: string
-  station: string; course_type: CourseType; is_active: boolean
-  image_url: string; available_from: string; available_until: string
-  grab_id: string; foodpanda_id: string; shopee_id: string
-}
-
 const BLANK_ITEM: ItemForm = {
   name: '', description: '', price: 0, category_id: '', station: 'kitchen',
   course_type: 'main', is_active: true, image_url: '', available_from: '', available_until: '',
@@ -142,6 +141,28 @@ function MenuTab({ categories, items, branchId, onChanged }: {
     } catch (e) { setErr((e as Error).message) }
   }
 
+  // Hoisted verbatim from the (former inline) table-row JSX — bodies unchanged.
+  const handleEdit = (m: MenuItem) => {
+    setCreating(false); setEditing(m)
+    setForm({
+      name: m.name, description: m.description ?? '', price: Number(m.price),
+      category_id: m.category_id ?? '', station: m.station ?? '',
+      course_type: m.course_type, is_active: m.is_active,
+      image_url: m.image_url ?? '',
+      available_from: m.available_from ?? '',
+      available_until: m.available_until ?? '',
+      grab_id:      m.platform_ids?.grab      ?? '',
+      foodpanda_id: m.platform_ids?.foodpanda ?? '',
+      shopee_id:    m.platform_ids?.shopee    ?? '',
+    })
+  }
+
+  const handleToggleMods = (id: string) => setExpandedMods(expandedMods === id ? null : id)
+
+  const handleDelete = async (m: MenuItem) => {
+    if (await confirmDialog({ title: 'Delete menu item?', message: `Delete "${m.name}"? This cannot be undone.`, confirmLabel: 'Delete', tone: 'danger' })) { await deleteMenuItem(m.id); await onChanged() }
+  }
+
   return (
     <div className="space-y-5">
       {/* ── Categories ── */}
@@ -157,156 +178,29 @@ function MenuTab({ categories, items, branchId, onChanged }: {
         </div>
 
         {(creating || editing) && (
-          <Card className="mb-4"><CardBody>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <Input label="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-              <Input label="Price (RM)" type="number" step="0.01" value={String(form.price)}
-                onChange={(e) => setForm({ ...form, price: parseFloat(e.target.value) || 0 })} />
-              <Select label="Category" value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })}>
-                <option value="">— none —</option>
-                {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </Select>
-              <Input label="Station" value={form.station} onChange={(e) => setForm({ ...form, station: e.target.value })} placeholder="kitchen / grill / bar…" />
-              <Select label="Course type" value={form.course_type} onChange={(e) => setForm({ ...form, course_type: e.target.value as CourseType })}>
-                {(['appetizer','main','dessert','drink','side','any'] as CourseType[]).map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </Select>
-              <Select label="Active" value={form.is_active ? '1' : '0'} onChange={(e) => setForm({ ...form, is_active: e.target.value === '1' })}>
-                <option value="1">Active</option><option value="0">Inactive</option>
-              </Select>
-              <div className="md:col-span-3">
-                <Input label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-              </div>
-
-              {/* Availability times */}
-              <Input label="Available from (time)" type="time" value={form.available_from}
-                onChange={(e) => setForm({ ...form, available_from: e.target.value })} />
-              <Input label="Available until (time)" type="time" value={form.available_until}
-                onChange={(e) => setForm({ ...form, available_until: e.target.value })} />
-
-              {/* Delivery platform IDs */}
-              <div className="md:col-span-3 border-t border-ink-100 pt-3 mt-1">
-                <div className="text-xs font-semibold text-ink-500 uppercase tracking-wide mb-2">Delivery platform item IDs <span className="font-normal normal-case text-ink-400">(optional — paste the item ID from each platform portal)</span></div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <Input label="GrabFood item ID" value={form.grab_id} placeholder="e.g. GF-ITEM-12345"
-                    onChange={(e) => setForm({ ...form, grab_id: e.target.value })} />
-                  <Input label="FoodPanda item ID" value={form.foodpanda_id} placeholder="e.g. FP-456789"
-                    onChange={(e) => setForm({ ...form, foodpanda_id: e.target.value })} />
-                  <Input label="Shopee Food item ID" value={form.shopee_id} placeholder="e.g. SE-789012"
-                    onChange={(e) => setForm({ ...form, shopee_id: e.target.value })} />
-                </div>
-              </div>
-
-              {/* Image upload */}
-              <div className="md:col-span-1">
-                <div className="text-xs font-medium text-ink-700 mb-1">Photo</div>
-                <div className="flex items-center gap-3">
-                  {form.image_url
-                    ? <img src={form.image_url} alt="preview" loading="lazy" decoding="async" className="w-14 h-14 rounded-lg object-cover border border-ink-200" />
-                    : <div className="w-14 h-14 rounded-lg bg-ink-100 flex items-center justify-center text-ink-400 text-xs border border-ink-200">None</div>
-                  }
-                  <input ref={fileRef} type="file" accept="image/*" className="hidden"
-                    onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleImageFile(f) }} />
-                  <div className="flex flex-col gap-1">
-                    <Button size="sm" variant="secondary" loading={uploading} onClick={() => fileRef.current?.click()}>
-                      {uploading ? 'Uploading…' : form.image_url ? 'Change' : 'Upload'}
-                    </Button>
-                    {form.image_url && (
-                      <button className="text-xs text-red-500 hover:underline" onClick={() => setForm((f) => ({ ...f, image_url: '' }))}>Remove</button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {err && <Alert tone="red">{err}</Alert>}
-            <div className="flex gap-2 mt-3">
-              <Button onClick={save}>{editing ? 'Update item' : 'Create item'}</Button>
-              <Button variant="ghost" onClick={reset}>Cancel</Button>
-            </div>
-          </CardBody></Card>
+          <MenuItemFormCard
+            form={form}
+            setForm={setForm}
+            categories={categories}
+            uploading={uploading}
+            err={err}
+            fileRef={fileRef}
+            isEditing={!!editing}
+            onImageFile={handleImageFile}
+            onSave={save}
+            onCancel={reset}
+          />
         )}
 
-        <Card><CardBody className="p-0">
-          <table className="w-full text-sm">
-            <thead className="text-left text-xs text-ink-500 bg-ink-50">
-              <tr>
-                <th className="p-3">Photo</th>
-                <th className="p-3">Name</th>
-                <th className="p-3">Category</th>
-                <th className="p-3">Course</th>
-                <th className="p-3 text-right">Price</th>
-                <th className="p-3">Hours</th>
-                <th className="p-3">Active</th>
-                <th className="p-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((m) => {
-                const cat = m.category_id ? categoryById.get(m.category_id) : undefined
-                const modsOpen = expandedMods === m.id
-                return (
-                  <Fragment key={m.id}>
-                    <tr className="border-t border-ink-100 hover:bg-ink-50/50">
-                      <td className="p-3">
-                        {m.image_url
-                          ? <img src={m.image_url} alt={m.name} loading="lazy" decoding="async" className="w-10 h-10 rounded-lg object-cover border border-ink-100" />
-                          : <div className="w-10 h-10 rounded-lg bg-ink-100 flex items-center justify-center text-ink-300">
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-                            </div>
-                        }
-                      </td>
-                      <td className="p-3 font-medium">{m.name}</td>
-                      <td className="p-3 text-ink-500">{cat?.name ?? '—'}</td>
-                      <td className="p-3"><Badge tone="gray">{m.course_type}</Badge></td>
-                      <td className="p-3 text-right font-medium">{MYR(Number(m.price))}</td>
-                      <td className="p-3 text-xs text-ink-500">
-                        {m.available_from && m.available_until
-                          ? `${m.available_from}–${m.available_until}`
-                          : m.available_from ? `From ${m.available_from}` : '—'}
-                      </td>
-                      <td className="p-3">
-                        {m.is_active ? <Badge tone="green">on</Badge> : <Badge tone="red">off</Badge>}
-                      </td>
-                      <td className="p-3 space-x-1 whitespace-nowrap">
-                        <Button variant="ghost" size="sm" onClick={() => {
-                          setCreating(false); setEditing(m)
-                          setForm({
-                            name: m.name, description: m.description ?? '', price: Number(m.price),
-                            category_id: m.category_id ?? '', station: m.station ?? '',
-                            course_type: m.course_type, is_active: m.is_active,
-                            image_url: m.image_url ?? '',
-                            available_from: m.available_from ?? '',
-                            available_until: m.available_until ?? '',
-                            grab_id:      m.platform_ids?.grab      ?? '',
-                            foodpanda_id: m.platform_ids?.foodpanda ?? '',
-                            shopee_id:    m.platform_ids?.shopee    ?? '',
-                          })
-                        }}>Edit</Button>
-                        <Button variant="ghost" size="sm" className="text-brand-700"
-                          onClick={() => setExpandedMods(modsOpen ? null : m.id)}>
-                          Add-ons {modsOpen ? '▲' : '▼'}
-                        </Button>
-                        <Button variant="ghost" size="sm" className="text-red-600"
-                          onClick={async () => { if (await confirmDialog({ title: 'Delete menu item?', message: `Delete "${m.name}"? This cannot be undone.`, confirmLabel: 'Delete', tone: 'danger' })) { await deleteMenuItem(m.id); await onChanged() } }}>
-                          Delete
-                        </Button>
-                      </td>
-                    </tr>
-                    {modsOpen && (
-                      <tr className="border-t border-brand-100 bg-brand-50/40">
-                        <td colSpan={8} className="p-0">
-                          <ModifiersSection menuItemId={m.id} itemName={m.name} />
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
-                )
-              })}
-            </tbody>
-          </table>
-        </CardBody></Card>
+        <MenuItemsTable
+          items={items}
+          categoryById={categoryById}
+          expandedMods={expandedMods}
+          onEdit={handleEdit}
+          onToggleMods={handleToggleMods}
+          onDelete={handleDelete}
+          renderExpanded={(m) => <ModifiersSection menuItemId={m.id} itemName={m.name} />}
+        />
       </div>
     </div>
   )
@@ -556,159 +450,12 @@ function TablesTab({ tables, branchId, onChanged }: { tables: RestaurantTable[];
                     <Button variant="ghost" size="sm" className="text-red-600" onClick={async () => { if (await confirmDialog({ title: 'Delete table?', message: `Delete table ${t.table_number}?`, confirmLabel: 'Delete', tone: 'danger' })) { await deleteTable(t.id); await onChanged() } }}>Delete</Button>
                   </td>
                 </tr>
-                {qrTableId === t.id && (
-                  <tr className="border-t border-brand-100 bg-brand-50">
-                    <td colSpan={6} className="p-4">
-                      <div className="flex items-center gap-6">
-                        <img
-                          alt={`QR for table ${t.table_number}`}
-                          width={120} height={120}
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`${window.location.origin}/menu/${branchId}?table=${t.id}`)}`}
-                          className="rounded-lg border border-ink-200 bg-white p-1"
-                        />
-                        <div>
-                          <div className="font-medium text-ink-900 mb-1">Table {t.table_number} — Guest Menu QR</div>
-                          <div className="text-xs text-ink-500 mb-3 break-all font-mono">{window.location.origin}/menu/{branchId}?table={t.id}</div>
-                          <Button asChild variant="ghost" size="sm">
-                            <a href={`https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(`${window.location.origin}/menu/${branchId}?table=${t.id}`)}`}
-                              download={`table-${t.table_number}-qr.png`} target="_blank" rel="noreferrer" className="mr-2">
-                              Download PNG
-                            </a>
-                          </Button>
-                          <Button asChild variant="ghost" size="sm">
-                            <a href={`/menu/${branchId}?table=${t.id}`} target="_blank" rel="noreferrer">
-                              Preview menu →
-                            </a>
-                          </Button>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                )}
+                {qrTableId === t.id && <TableQrRow table={t} branchId={branchId} />}
               </Fragment>
             ))}
           </tbody>
         </table>
       </CardBody></Card>
-    </div>
-  )
-}
-
-/* ─────────────────────────────────────────────
-   DELIVERY PLATFORMS TAB
-───────────────────────────────────────────── */
-
-const PLATFORMS = [
-  {
-    id:   'grab',
-    name: 'GrabFood',
-    color: 'bg-green-50 border-green-200',
-    badge: 'bg-green-600',
-    steps: [
-      'Apply for GrabFood Merchant API access at grab.com/my/merchant',
-      'After approval, go to Merchant Portal → Integrations → Webhooks',
-      'Register webhook URL: https://www.diamondandjeweler.com/api/webhooks/grab',
-      'Copy the signing secret → add to Vercel env as GRAB_SECRET',
-      'Copy your Merchant ID  → add to Vercel env as GRAB_MERCHANT_ID',
-      'Set GRAB_BRANCH_ID to your branch ID (visible in browser URL when on this page)',
-    ],
-    envVars: ['GRAB_SECRET', 'GRAB_MERCHANT_ID', 'GRAB_BRANCH_ID'],
-  },
-  {
-    id:   'foodpanda',
-    name: 'FoodPanda',
-    color: 'bg-pink-50 border-pink-200',
-    badge: 'bg-pink-600',
-    steps: [
-      'Contact FoodPanda Malaysia via vendor.foodpanda.my to request API access',
-      'After approval, go to Vendor Portal → API & Webhooks',
-      'Register webhook URL: https://www.diamondandjeweler.com/api/webhooks/foodpanda',
-      'Copy the HMAC secret  → add to Vercel env as FOODPANDA_SECRET',
-      'Set FOODPANDA_BRANCH_ID to your branch ID',
-    ],
-    envVars: ['FOODPANDA_SECRET', 'FOODPANDA_BRANCH_ID'],
-  },
-  {
-    id:   'shopee',
-    name: 'Shopee Food',
-    color: 'bg-orange-50 border-orange-200',
-    badge: 'bg-orange-500',
-    steps: [
-      'Apply for Shopee Food partner access at open.shopee.com',
-      'After approval, go to Partner Portal → Webhook Settings',
-      'Register webhook URL: https://www.diamondandjeweler.com/api/webhooks/shopee',
-      'Copy the partner key  → add to Vercel env as SHOPEE_SECRET',
-      'Set SHOPEE_BRANCH_ID to your branch ID',
-    ],
-    envVars: ['SHOPEE_SECRET', 'SHOPEE_BRANCH_ID'],
-  },
-]
-
-function DeliveryTab() {
-  return (
-    <div className="space-y-5">
-      {/* How it works */}
-      <Card><CardBody>
-        <h2 className="font-display text-lg mb-2">How delivery integration works</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-ink-600">
-          {[
-            ['1. Register', 'Apply for API/merchant access with each platform. This requires a business registration.'],
-            ['2. Add credentials', 'Paste the secret keys into Vercel → Project → Settings → Environment Variables.'],
-            ['3. Map menu items', 'In Menu & pricing → Edit each item → fill in the platform item IDs so orders match correctly.'],
-            ['4. Orders flow in', 'Platform orders hit your webhook → parsed → sent to KDS automatically, tagged with source.'],
-          ].map(([title, desc]) => (
-            <div key={title} className="bg-ink-50 rounded-xl p-4">
-              <div className="font-semibold text-ink-800 mb-1">{title}</div>
-              <div>{desc}</div>
-            </div>
-          ))}
-        </div>
-        <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
-          <strong>Add env vars in Vercel:</strong> go to{' '}
-          <a href="https://vercel.com/diamondandjeweler-5185s-projects/bole/settings/environment-variables"
-            target="_blank" rel="noreferrer" className="underline font-medium">
-            Vercel → bole → Settings → Environment Variables
-          </a>{' '}
-          and add each key below. Then redeploy.
-        </div>
-        <div className="mt-2 text-xs text-ink-500 font-mono bg-ink-50 rounded p-2">
-          SUPABASE_SERVICE_ROLE_KEY = &lt;your-service-role-key-from-supabase-dashboard&gt;
-        </div>
-      </CardBody></Card>
-
-      {/* Platform cards */}
-      {PLATFORMS.map((p) => (
-        <div key={p.id} className={`border rounded-xl overflow-hidden ${p.color}`}>
-          <div className="px-5 py-4 flex items-center gap-3">
-            <span className={`${p.badge} text-white text-xs font-bold px-2 py-0.5 rounded`}>{p.name}</span>
-            <span className="text-sm text-ink-500">Not yet connected — follow the steps below</span>
-          </div>
-          <div className="bg-white px-5 py-4 border-t border-ink-100">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Steps */}
-              <div>
-                <div className="text-xs font-semibold text-ink-600 uppercase tracking-wide mb-2">Setup steps</div>
-                <ol className="space-y-1.5 text-sm text-ink-700 list-decimal list-inside">
-                  {p.steps.map((s) => <li key={s}>{s}</li>)}
-                </ol>
-              </div>
-              {/* Env vars + webhook URL */}
-              <div>
-                <div className="text-xs font-semibold text-ink-600 uppercase tracking-wide mb-2">Vercel environment variables</div>
-                <div className="space-y-1.5 mb-4">
-                  {p.envVars.map((v) => (
-                    <div key={v} className="font-mono text-xs bg-ink-50 border border-ink-200 rounded px-3 py-1.5 text-ink-700">{v}</div>
-                  ))}
-                </div>
-                <div className="text-xs font-semibold text-ink-600 uppercase tracking-wide mb-1">Webhook URL to register</div>
-                <div className="font-mono text-xs bg-ink-50 border border-ink-200 rounded px-3 py-2 text-brand-700 break-all">
-                  https://www.diamondandjeweler.com/api/webhooks/{p.id}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      ))}
     </div>
   )
 }
@@ -762,31 +509,7 @@ function MyInvoisTab({ branchId }: { branchId: string }) {
           </div>
           <Badge tone={cfg?.is_active ? 'green' : 'gray'}>{cfg?.is_active ? 'active' : 'inactive'}</Badge>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <Input label="TIN" value={form.tin ?? ''} onChange={(e) => setForm({ ...form, tin: e.target.value })} />
-          <Input label="SST registration no." value={form.sst_no ?? ''} onChange={(e) => setForm({ ...form, sst_no: e.target.value })} />
-          <Input label="Business name" value={form.business_name ?? ''} onChange={(e) => setForm({ ...form, business_name: e.target.value })} />
-          <Input label="SSM registration no." value={form.registration_no ?? ''} onChange={(e) => setForm({ ...form, registration_no: e.target.value })} />
-          <Select label="Environment" value={form.environment ?? 'sandbox'} onChange={(e) => setForm({ ...form, environment: e.target.value as 'sandbox' | 'production' })}>
-            <option value="sandbox">Sandbox</option><option value="production">Production</option>
-          </Select>
-          <Input label="Country code" value={form.country_code ?? 'MY'} onChange={(e) => setForm({ ...form, country_code: e.target.value })} />
-          <div className="md:col-span-3"><Input label="Address line" value={form.address_line ?? ''} onChange={(e) => setForm({ ...form, address_line: e.target.value })} /></div>
-          <Input label="City" value={form.city ?? ''} onChange={(e) => setForm({ ...form, city: e.target.value })} />
-          <Input label="State" value={form.state ?? ''} onChange={(e) => setForm({ ...form, state: e.target.value })} />
-          <Input label="Postcode" value={form.postcode ?? ''} onChange={(e) => setForm({ ...form, postcode: e.target.value })} />
-          <Input label="Vault: client_id name" value={form.client_id_secret_name ?? ''} onChange={(e) => setForm({ ...form, client_id_secret_name: e.target.value })} placeholder="myinvois_client_id_kl" />
-          <Input label="Vault: client_secret name" value={form.client_secret_secret_name ?? ''} onChange={(e) => setForm({ ...form, client_secret_secret_name: e.target.value })} />
-          <Input label="Vault: cert name" value={form.cert_secret_name ?? ''} onChange={(e) => setForm({ ...form, cert_secret_name: e.target.value })} />
-          <Input label="Vault: cert password name" value={form.cert_password_secret_name ?? ''} onChange={(e) => setForm({ ...form, cert_password_secret_name: e.target.value })} />
-          <Select label="Consolidate B2C nightly" value={form.consolidate_b2c ? '1' : '0'} onChange={(e) => setForm({ ...form, consolidate_b2c: e.target.value === '1' })}>
-            <option value="1">Yes</option><option value="0">No</option>
-          </Select>
-          <Input label="B2C threshold (RM)" type="number" step="0.01" value={String(form.b2c_threshold_myr ?? 10000)} onChange={(e) => setForm({ ...form, b2c_threshold_myr: parseFloat(e.target.value) || 0 })} />
-          <Select label="E-invoicing active" value={form.is_active ? '1' : '0'} onChange={(e) => setForm({ ...form, is_active: e.target.value === '1' })}>
-            <option value="0">Inactive</option><option value="1">Active</option>
-          </Select>
-        </div>
+        <MyInvoisFormFields form={form} setForm={setForm} />
         {err && <Alert tone="red">{err}</Alert>}
         {okMsg && <Alert tone="green">{okMsg}</Alert>}
         <div className="mt-4"><Button onClick={save} loading={saving}>Save configuration</Button></div>
@@ -903,39 +626,7 @@ function OrgTab({ org, orgId, isOwner, onOrgUpdated, onBranchAdded }: {
         {loadingMembers ? (
           <div className="py-4 text-center"><Spinner /></div>
         ) : (
-          <table className="w-full text-sm">
-            <thead><tr className="text-left text-ink-400 border-b border-ink-100">
-              <th className="pb-2 font-medium">User ID</th>
-              <th className="pb-2 font-medium">Role</th>
-              <th className="pb-2 font-medium">Joined</th>
-              {isOwner && <th />}
-            </tr></thead>
-            <tbody>
-              {members.map((m) => (
-                <tr key={m.id} className="border-b border-ink-50 last:border-0">
-                  <td className="py-2 font-mono text-xs text-ink-500">{m.user_id.slice(0, 8)}…</td>
-                  <td className="py-2">
-                    <Badge tone={m.is_owner ? 'amber' : 'gray'}>{m.is_owner ? 'Owner' : 'Member'}</Badge>
-                  </td>
-                  <td className="py-2 text-ink-400">{new Date(m.created_at).toLocaleDateString()}</td>
-                  {isOwner && (
-                    <td className="py-2 text-right">
-                      <button
-                        type="button"
-                        onClick={() => void removeMember(m.user_id)}
-                        className="text-red-500 hover:text-red-700 text-xs px-2 py-1 rounded hover:bg-red-50"
-                      >
-                        Remove
-                      </button>
-                    </td>
-                  )}
-                </tr>
-              ))}
-              {members.length === 0 && (
-                <tr><td colSpan={4} className="py-4 text-center text-ink-400">No members yet.</td></tr>
-              )}
-            </tbody>
-          </table>
+          <OrgMembersTable members={members} isOwner={isOwner} onRemove={removeMember} />
         )}
 
         {isOwner && (

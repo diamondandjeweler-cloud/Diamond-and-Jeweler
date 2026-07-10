@@ -36,6 +36,24 @@ registerRoute(
   new NetworkOnly()
 )
 
+// Lazy route chunks globIgnored from the precache (authed dashboards +
+// restaurant screens — see vite.config.ts injectManifest.globIgnores) —
+// cache-first so a returning kiosk/dashboard doesn't re-download them after
+// HTTP-cache eviction. Safe: filenames are content-hashed (immutable), and
+// precached scripts are served by the precache route before this one matches.
+registerRoute(
+  ({ request, url }) =>
+    request.destination === 'script' &&
+    url.origin === self.location.origin &&
+    url.pathname.startsWith('/assets/'),
+  new CacheFirst({
+    cacheName: 'lazy-chunks',
+    plugins: [
+      new ExpirationPlugin({ maxEntries: 64, maxAgeSeconds: 60 * 60 * 24 * 30 }),
+    ],
+  })
+)
+
 // Same-origin images (og-image, favicon, etc.) — cache-first, 30-day TTL.
 registerRoute(
   ({ request, url }) =>

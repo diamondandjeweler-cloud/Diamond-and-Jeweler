@@ -391,13 +391,15 @@ function ItemModal({
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [note, setNote] = useState('')
   const toggle = (id: string) => setSelected((prev) => {
-    const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n
+    const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n
   })
   const selectedMods = modifiers.filter((m) => selected.has(m.id))
   const priceDelta = selectedMods.reduce((s, m) => s + Number(m.price_delta), 0)
 
   return (
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- pre-existing modal-backdrop click-to-close; behavior-preserving lint onboarding
     <div className="fixed inset-0 z-50 bg-black/50 flex items-end" onClick={onClose}>
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- pre-existing stopPropagation wrapper; behavior-preserving lint onboarding */}
       <div
         className="bg-white rounded-t-3xl w-full max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}

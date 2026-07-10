@@ -18,7 +18,6 @@ export default [
       'storybook-static/**',
       'vite.config.ts',
       'vitest.config.ts',
-      'src/routes/restaurant/**',
     ],
   },
 
@@ -106,12 +105,16 @@ export default [
   // Direct supabase.from(...) / supabase.rpc(...) belongs in src/data/repositories/*.
   // The repository migration reached zero raw call sites in recruitment surfaces,
   // so this is a hard rule. lib/restaurant/** is exempt — it IS the restaurant
-  // bounded-context's data layer (routes/restaurant is already excluded via the
-  // global ignores above). `ignores` alongside `files` reproduces eslintrc
+  // bounded-context's data layer. `ignores` alongside `files` reproduces eslintrc
   // `excludedFiles` (non-global, this config only).
   {
     files: ['src/**/*.ts', 'src/**/*.tsx'],
-    ignores: ['src/data/repositories/**', 'src/lib/restaurant/**'],
+    ignores: [
+      'src/data/repositories/**',
+      'src/lib/restaurant/**',
+      // restaurant routes are that bounded context's UI+data until the P7 extraction — direct supabase.schema('restaurant') access is tolerated there, but all OTHER rules now apply.
+      'src/routes/restaurant/**',
+    ],
     rules: {
       'no-restricted-syntax': [
         'error',
@@ -192,6 +195,7 @@ export default [
               group: [
                 '**/lib/supabase',
                 '**/lib/functions',
+                '**/lib/api',
                 '**/data/repositories/**',
                 '**/supabaseClient',
               ],

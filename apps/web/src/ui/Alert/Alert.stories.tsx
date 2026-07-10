@@ -18,7 +18,7 @@ type Story = StoryObj<typeof Alert>
 /* ------------------ Tones ------------------ */
 
 export const Brand: Story = {
-  args: { tone: 'brand', title: 'New feature', children: 'Life-chart matching is now available on every job post.' },
+  args: { tone: 'brand', title: 'New feature', children: 'AI-powered matching is now available on every job post.' },
 }
 
 export const Amber: Story = {

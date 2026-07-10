@@ -14,7 +14,9 @@ describe('<Button />', () => {
       </Button>,
     )
     const btn = screen.getByRole('button', { name: 'Save' })
-    expect(btn.className).toContain('btn-brand')
+    // tv() Button emits utilities, not the legacy .btn-brand class — the
+    // gradient stop is the brand variant's distinctive marker.
+    expect(btn.className).toContain('from-brand-600')
     await userEvent.click(btn)
     expect(onClick).toHaveBeenCalledTimes(1)
   })
@@ -34,7 +36,7 @@ describe('<Button />', () => {
     )
     const link = screen.getByRole('link', { name: 'Pricing' })
     expect(link).toHaveAttribute('href', '/pricing')
-    expect(link.className).toContain('btn-secondary')
+    expect(link.className).toContain('bg-surface') // secondary's token fill
     // No extra <button> wrapper — Slot merged onto the anchor.
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
   })

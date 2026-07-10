@@ -91,11 +91,14 @@
     background-image: linear-gradient(180deg, theme('colors.brand.500'), theme('colors.brand.600'));
     box-shadow: 0 6px 20px -8px rgba(62, 79, 211, 0.45);
   }
+  /* secondary/ghost mirror src/ui/Button/Button.variants.ts exactly so raw
+     class sites render identical to <Button> — neutral colors ride the
+     semantic tokens (tokens.css) and flip under .dark with no override. */
   .btn-secondary {
-    @apply btn bg-white text-ink-800 border border-ink-200 px-4 py-2.5 hover:bg-ink-50 hover:border-ink-300;
+    @apply btn bg-surface text-fg border border-border px-4 py-2.5 hover:bg-surface-2 hover:border-border-strong;
   }
   .btn-ghost {
-    @apply btn text-ink-700 px-3 py-2 hover:bg-ink-100;
+    @apply btn text-ink-700 dark:text-fg-muted px-3 py-2 hover:bg-surface-2;
   }
   .btn-danger {
     @apply btn bg-red-600 text-white px-4 py-2.5 hover:bg-red-700 shadow-soft;
@@ -108,12 +111,12 @@
 
   /* Card */
   .card {
-    @apply bg-white border border-ink-200/70 rounded-xl2 shadow-soft;
+    @apply bg-surface border border-border rounded-xl2 shadow-soft;
   }
   .card-p { @apply p-6; }
-  .card-hover { @apply hover:shadow-card hover:border-ink-300 transition-all duration-200; }
+  .card-hover { @apply hover:shadow-card hover:border-border-strong transition-all duration-200; }
   .card-elevated {
-    @apply bg-white border border-ink-200/70 rounded-xl2;
+    @apply bg-surface border border-border rounded-xl2;
     box-shadow:
       0 1px 0 rgba(255,255,255,0.6) inset,
       0 1px 2px rgba(20,21,17,0.04),
@@ -160,17 +163,6 @@
     border-color: theme('colors.brand.600');
   }
 
-  /* Badge */
-  .badge {
-    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium;
-  }
-  .badge-gray    { @apply badge bg-ink-100 text-ink-700 ring-1 ring-inset ring-ink-200/70; }
-  .badge-brand   { @apply badge bg-brand-50 text-brand-700 ring-1 ring-inset ring-brand-200/70; }
-  .badge-green   { @apply badge bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200/70; }
-  .badge-amber   { @apply badge bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200/70; }
-  .badge-red     { @apply badge bg-red-50 text-red-700 ring-1 ring-inset ring-red-200/70; }
-  .badge-accent  { @apply badge bg-accent-500/10 text-accent-700 ring-1 ring-inset ring-accent-500/20; }
-
   /* Chips (filter / status) */
   .chip {
     @apply inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border bg-white border-ink-200 text-ink-700 hover:border-ink-300 transition-colors;
@@ -203,27 +195,6 @@
     background-image:
       radial-gradient(rgba(20,21,17,0.04) 1px, transparent 1px);
     background-size: 4px 4px;
-  }
-
-  /* Stat tile styling */
-  .stat {
-    @apply card-elevated p-5 relative overflow-hidden;
-  }
-  .stat::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 50%);
-    pointer-events: none;
-  }
-  .stat-label {
-    @apply text-[11px] font-semibold text-ink-500 uppercase tracking-[0.1em] mb-1.5;
-  }
-  .stat-value {
-    @apply font-display text-[1.75rem] leading-none;
-  }
-  .stat-hint {
-    @apply text-xs text-ink-500 mt-2;
   }
 
   /* Section heading */
@@ -299,19 +270,14 @@
 .dark select:disabled,
 .dark textarea:disabled { background-color: #1c1c1e; color: #52525b; }
 
-.dark .card { background-color: #27272a; border-color: rgba(63,63,70,0.7); }
+/* .card/.card-elevated colors now flip via the semantic tokens; only the
+   elevated shadow (not tokenizable) keeps a dark override — mirroring the
+   dark: shadow in src/ui/Card/Card.variants.ts byte-for-byte. */
 .dark .card-elevated {
-  background-color: #27272a;
-  border-color: rgba(63,63,70,0.7);
   box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -10px rgba(0,0,0,0.4);
 }
 
 .dark .app-shell-header { background-color: rgba(24,24,27,0.85); border-color: #3f3f46; }
-
-.dark .btn-secondary { background-color: #27272a; border-color: #3f3f46; color: #d4d4d8; }
-.dark .btn-secondary:hover { background-color: #3f3f46; border-color: #52525b; }
-.dark .btn-ghost { color: #a1a1aa; }
-.dark .btn-ghost:hover { background-color: #27272a; }
 
 .dark .pillnav { background-color: #27272a; border-color: rgba(63,63,70,0.8); }
 .dark .pillnav-item { color: #71717a; }
@@ -323,17 +289,10 @@
 .dark .tab:hover { color: #e4e4e7; }
 .dark .tab.active { color: #818cf8; border-color: #818cf8; }
 
-.dark .badge-gray { background-color: #27272a; color: #a1a1aa; }
-
 .dark .chip { background-color: #27272a; border-color: #3f3f46; color: #d4d4d8; }
 .dark .chip.active { background-color: #3f3f46; color: #e4e4e7; border-color: #3f3f46; }
 
 .dark .divider { border-color: #3f3f46; }
-
-.dark .stat { background-color: #27272a; }
-.dark .stat::before { background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 50%); }
-.dark .stat-label { color: #71717a; }
-.dark .stat-hint { color: #71717a; }
 
 .dark ::-webkit-scrollbar-thumb { background: #3f3f46; }
 .dark ::-webkit-scrollbar-thumb:hover { background: #52525b; }

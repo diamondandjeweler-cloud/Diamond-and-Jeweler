@@ -2,144 +2,21 @@
  * Small set of UI primitives used across the app. Not a full library —
  * just enough to keep surfaces visually consistent.
  */
-import { ReactNode, ReactElement, ButtonHTMLAttributes, InputHTMLAttributes, TextareaHTMLAttributes, SelectHTMLAttributes, forwardRef, useId, useState, isValidElement, cloneElement, type Ref } from 'react'
-import { Slot } from '@radix-ui/react-slot'
-import { cn } from '../lib/cn'
+import { ReactNode, ReactElement, InputHTMLAttributes, TextareaHTMLAttributes, SelectHTMLAttributes, forwardRef, useId, useState, isValidElement, cloneElement } from 'react'
 
-/* ------------------ Button ------------------ */
-
-type Variant = 'primary' | 'brand' | 'secondary' | 'ghost' | 'danger' | 'success'
-type Size = 'sm' | 'md' | 'lg'
-
-export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: Variant
-  size?: Size
-  loading?: boolean
-  leftIcon?: ReactNode
-  rightIcon?: ReactNode
-  /** Render as the single child element (e.g. a react-router <Link>) while
-   *  keeping button styling. The child supplies its own content. */
-  asChild?: boolean
-}
-
-const BTN_BASE: Record<Variant, string> = {
-  primary:   'btn-primary',
-  brand:     'btn-brand',
-  secondary: 'btn-secondary',
-  ghost:     'btn-ghost',
-  danger:    'btn-danger',
-  success:   'btn-success',
-}
-const BTN_SIZE: Record<Size, string> = {
-  sm: 'btn-sm',
-  md: '',
-  lg: 'btn-lg',
-}
-
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ variant = 'primary', size = 'md', loading, leftIcon, rightIcon, asChild, children, className, disabled, ...rest }, ref) => {
-    const cls = cn(BTN_BASE[variant], BTN_SIZE[size], className)
-    // Polymorphic path: merge styling onto the caller's single child (e.g. a
-    // <Link>). The child owns its content, so icons/spinner are only composed
-    // in the native-button path below.
-    if (asChild) {
-      return (
-        <Slot ref={ref as Ref<HTMLElement>} className={cls} aria-busy={loading ? true : undefined} {...rest}>
-          {children}
-        </Slot>
-      )
-    }
-    return (
-      <button
-        ref={ref}
-        className={cls}
-        disabled={disabled || loading}
-        aria-busy={loading ? true : undefined}
-        {...rest}
-      >
-        {loading ? <Spinner size={size} /> : leftIcon}
-        {children}
-        {rightIcon}
-      </button>
-    )
-  },
-)
-Button.displayName = 'Button'
-
-/* ------------------ Spinner ------------------ */
-
-export function Spinner({ size = 'md' }: { size?: Size }) {
-  const px = size === 'sm' ? 12 : size === 'lg' ? 18 : 14
-  return (
-    <svg className="animate-spin" width={px} height={px} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
-      <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-    </svg>
-  )
-}
-
-/* ------------------ Card ------------------ */
-
-export function Card({
-  children, className, hoverable, elevated, as: Tag = 'div',
-}: {
-  children: ReactNode
-  className?: string
-  hoverable?: boolean
-  elevated?: boolean
-  as?: 'div' | 'article' | 'section'
-}) {
-  const base = elevated ? 'card-elevated' : 'card'
-  return (
-    <Tag className={`${base} dark:bg-gray-800 dark:border-gray-700 ${hoverable ? 'card-hover' : ''} ${className ?? ''}`}>
-      {children}
-    </Tag>
-  )
-}
-
-export function CardBody({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={`p-6 ${className ?? ''}`}>{children}</div>
-}
-
-export function CardHeader({
-  title, subtitle, right, eyebrow,
-}: {
-  title: ReactNode
-  subtitle?: ReactNode
-  right?: ReactNode
-  eyebrow?: ReactNode
-}) {
-  return (
-    <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-3">
-      <div className="min-w-0">
-        {eyebrow && <div className="eyebrow mb-1">{eyebrow}</div>}
-        <h2 className="font-display text-xl text-ink-900 dark:text-white truncate">{title}</h2>
-        {subtitle && <p className="mt-1 text-sm text-ink-500 dark:text-gray-400">{subtitle}</p>}
-      </div>
-      {right && <div className="shrink-0">{right}</div>}
-    </div>
-  )
-}
-
-/* ------------------ Badge ------------------ */
-
-export type BadgeTone = 'gray' | 'brand' | 'green' | 'amber' | 'red' | 'accent'
-
-export function Badge({ children, tone = 'gray', className, dot }: { children: ReactNode; tone?: BadgeTone; className?: string; dot?: boolean }) {
-  const dotColor =
-    tone === 'green'  ? 'bg-emerald-500' :
-    tone === 'amber'  ? 'bg-amber-500' :
-    tone === 'red'    ? 'bg-red-500' :
-    tone === 'brand'  ? 'bg-brand-500' :
-    tone === 'accent' ? 'bg-accent-500' :
-    'bg-ink-400'
-  return (
-    <span className={`badge-${tone} ${className ?? ''}`}>
-      {dot && <span className={`h-1.5 w-1.5 rounded-full ${dotColor}`} />}
-      {children}
-    </span>
-  )
-}
+/* ------------------------------------------------------------------
+ * Migrated primitives — implementations live in src/ui/<Name>/ (tv() +
+ * semantic tokens; see src/ui/tokens.css). Re-exported here so every
+ * existing `import { … } from '../components/ui'` keeps working; new code
+ * should import from the src/ui barrel.
+ * ------------------------------------------------------------------ */
+export { Button, Spinner } from '../ui/Button'
+export type { ButtonProps } from '../ui/Button'
+export { Card, CardBody, CardHeader } from '../ui/Card'
+export { Badge } from '../ui/Badge'
+export type { BadgeTone } from '../ui/Badge'
+export { Alert } from '../ui/Alert'
+export { Stat } from '../ui/Stat'
 
 /* ------------------ Field (label + input) ------------------ */
 
@@ -320,87 +197,6 @@ export function PageHeader({
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
     </div>
   )
-}
-
-/* ------------------ Stat tile ------------------ */
-
-export function Stat({
-  label, value, hint, tone = 'default', icon,
-}: {
-  label: string
-  value: ReactNode
-  hint?: ReactNode
-  tone?: 'default' | 'brand' | 'accent' | 'success' | 'danger'
-  icon?: ReactNode
-}) {
-  const valueClass =
-    tone === 'brand'   ? 'text-brand-700' :
-    tone === 'accent'  ? 'text-accent-700' :
-    tone === 'success' ? 'text-emerald-700' :
-    tone === 'danger'  ? 'text-red-700' :
-    'text-ink-900 dark:text-white'
-  const ringClass =
-    tone === 'brand'   ? 'before:bg-brand-500/[0.04]' :
-    tone === 'accent'  ? 'before:bg-accent-500/[0.05]' :
-    tone === 'success' ? 'before:bg-emerald-500/[0.05]' :
-    tone === 'danger'  ? 'before:bg-red-500/[0.04]' :
-    ''
-  return (
-    <div className={`stat dark:bg-gray-800 ${ringClass}`}>
-      <div className="flex items-start justify-between gap-2 relative">
-        <div className="stat-label dark:text-gray-400">{label}</div>
-        {icon && <div className="text-ink-300 dark:text-gray-500">{icon}</div>}
-      </div>
-      <div className={`stat-value relative ${valueClass}`}>{value}</div>
-      {hint && <div className="stat-hint relative dark:text-gray-400">{hint}</div>}
-    </div>
-  )
-}
-
-/* ------------------ Alert ------------------ */
-
-export function Alert({
-  tone = 'brand', title, children, icon,
-}: {
-  tone?: 'brand' | 'amber' | 'red' | 'green'
-  title?: ReactNode
-  children: ReactNode
-  icon?: ReactNode
-}) {
-  const map = {
-    brand: 'bg-brand-50 border-brand-200/70 text-brand-900 dark:bg-brand-950/40 dark:border-brand-800/50 dark:text-brand-100',
-    amber: 'bg-amber-50 border-amber-200/70 text-amber-900 dark:bg-amber-950/40 dark:border-amber-800/50 dark:text-amber-100',
-    red:   'bg-red-50 border-red-200/70 text-red-900 dark:bg-red-950/40 dark:border-red-800/50 dark:text-red-100',
-    green: 'bg-emerald-50 border-emerald-200/70 text-emerald-900 dark:bg-emerald-950/40 dark:border-emerald-800/50 dark:text-emerald-100',
-  } as const
-  const iconColor = {
-    brand: 'text-brand-600 dark:text-brand-300',
-    amber: 'text-amber-600 dark:text-amber-300',
-    red:   'text-red-600 dark:text-red-300',
-    green: 'text-emerald-600 dark:text-emerald-300',
-  } as const
-  return (
-    <div className={`rounded-xl border px-4 py-3 text-sm ${map[tone]} flex items-start gap-3`} role="alert">
-      <div className={`shrink-0 mt-0.5 ${iconColor[tone]}`}>{icon ?? <AlertIcon tone={tone} />}</div>
-      <div className="min-w-0 flex-1">
-        {title && <div className="font-semibold mb-0.5">{title}</div>}
-        <div>{children}</div>
-      </div>
-    </div>
-  )
-}
-
-function AlertIcon({ tone }: { tone: 'brand' | 'amber' | 'red' | 'green' }) {
-  if (tone === 'red') {
-    return <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" /><path d="M12 8v5M12 16v.01" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>
-  }
-  if (tone === 'amber') {
-    return <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 3l9 16H3l9-16z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /><path d="M12 10v4M12 17v.01" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>
-  }
-  if (tone === 'green') {
-    return <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" /><path d="M8 12.5l3 3 5-6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
-  }
-  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" /><path d="M12 8v.01M12 11v5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>
 }
 
 /* ------------------ Section heading ------------------ */

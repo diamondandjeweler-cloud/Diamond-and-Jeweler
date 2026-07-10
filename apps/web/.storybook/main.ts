@@ -5,6 +5,9 @@ const config: StorybookConfig = {
   addons: [
     '@storybook/addon-essentials',
     '@storybook/addon-interactions',
+    // Runs axe per-story — catches primitive-level a11y violations that the
+    // page-level Playwright axe gate (tests/e2e/a11y.spec.ts) only sees late.
+    '@storybook/addon-a11y',
   ],
   framework: {
     name: '@storybook/react-vite',

@@ -19,9 +19,12 @@
   --surface:       #ffffff; /* cards / panels                */
   --surface-2:     #f8f8f7; /* subtle / hover      (ink-50)  */
 
-  /* Borders */
-  --border:        #dedfda; /* default hairline    (ink-200) */
-  --border-strong: #bbbdb5; /* emphasised          (ink-300) */
+  /* Borders — the default hairline carries the 70% alpha the legacy
+     .card/.card-elevated/badge rings actually used (ink-200/70), mirroring the
+     dark value which is also alpha. Solid-#dedfda call sites (divider, inputs)
+     keep their explicit ink-200 utilities until they migrate. */
+  --border:        rgba(222, 223, 218, 0.7); /* default hairline (ink-200/70) */
+  --border-strong: #bbbdb5;                  /* emphasised       (ink-300)    */
 
   /* Foreground / text */
   --fg:            #141511; /* primary text        (ink-900) */

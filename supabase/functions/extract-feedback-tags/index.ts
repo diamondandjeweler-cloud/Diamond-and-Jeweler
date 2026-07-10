@@ -82,7 +82,7 @@ serve(async (req) => {
   } catch (e) {
     if (e instanceof RateLimitError) {
       return new Response(JSON.stringify({ error: 'Rate limit exceeded. Try again later.' }), {
-        status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': String(e.retryAfterSeconds ?? 3600) },
       })
     }
     throw e

@@ -87,7 +87,7 @@ serve(async (req) => {
   try {
     await enforceRateLimit(adminClient(), 'extract-deal-breakers:' + auth.userId, 20, 3600)
   } catch (e) {
-    if (e instanceof RateLimitError) return json({ error: 'Rate limit exceeded. Try again later.' }, 429)
+    if (e instanceof RateLimitError) return json({ error: 'Rate limit exceeded. Try again later.' }, 429, { 'Retry-After': String(e.retryAfterSeconds ?? 3600) })
     throw e
   }
 

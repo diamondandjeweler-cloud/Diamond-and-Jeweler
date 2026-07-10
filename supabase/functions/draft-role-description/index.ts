@@ -59,7 +59,7 @@ serve(async (req) => {
     await enforceRateLimit(adminClient(), 'draft-role-description:' + auth.userId, 20, 3600)
   } catch (e) {
     if (e instanceof RateLimitError) {
-      return json({ error: 'Too many requests. Please try again later.' }, 429)
+      return json({ error: 'Too many requests. Please try again later.' }, 429, { 'Retry-After': String(e.retryAfterSeconds ?? 3600) })
     }
     throw e
   }

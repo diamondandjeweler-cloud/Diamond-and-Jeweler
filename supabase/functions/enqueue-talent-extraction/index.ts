@@ -61,7 +61,7 @@ serve(async (req) => {
   try {
     await enforceRateLimit(db, 'enqueue-talent-extraction:' + auth.userId, 20, 3600)
   } catch (e) {
-    if (e instanceof RateLimitError) return json({ error: 'rate_limited' }, 429)
+    if (e instanceof RateLimitError) return json({ error: 'rate_limited' }, 429, { 'Retry-After': String(e.retryAfterSeconds ?? 3600) })
     throw e
   }
 
@@ -245,10 +245,10 @@ function buildTalentPatch(extracted: ExtractedProfile): Record<string, unknown> 
   }
 }
 
-function json(body: unknown, status = 200): Response {
+function json(body: unknown, status = 200, headers?: Record<string, string>): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...corsHeaders, 'Content-Type': 'application/json', ...headers },
   })
 }
 

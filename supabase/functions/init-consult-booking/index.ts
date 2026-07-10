@@ -51,7 +51,7 @@ async function handler(req: Request): Promise<Response> {
   try {
     await enforceRateLimit(adminClient(), 'init-consult-booking:' + auth.userId, 20, 3600)
   } catch (e) {
-    if (e instanceof RateLimitError) return json({ error: 'rate_limited' }, 429)
+    if (e instanceof RateLimitError) return json({ error: 'rate_limited' }, 429, { 'Retry-After': String(e.retryAfterSeconds ?? 3600) })
     throw e
   }
 

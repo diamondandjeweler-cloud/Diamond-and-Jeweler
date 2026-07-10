@@ -34,7 +34,7 @@ serve(async (req) => {
     try {
       await enforceRateLimit(adminClient(), 'match-generate:' + auth.userId, 20, 3600)
     } catch (e) {
-      if (e instanceof RateLimitError) return json({ error: 'rate_limited' }, 429)
+      if (e instanceof RateLimitError) return json({ error: 'rate_limited' }, 429, { 'Retry-After': String(e.retryAfterSeconds ?? 3600) })
       throw e
     }
   }

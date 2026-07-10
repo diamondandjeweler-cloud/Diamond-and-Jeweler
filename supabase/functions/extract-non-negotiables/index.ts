@@ -62,7 +62,7 @@ serve(async (req) => {
     await enforceRateLimit(db, 'extract-non-negotiables:' + auth.userId, 20, 3600)
   } catch (e) {
     if (e instanceof RateLimitError) {
-      return json({ error: 'Rate limit exceeded; try again later.' }, 429)
+      return json({ error: 'Rate limit exceeded; try again later.' }, 429, { 'Retry-After': String(e.retryAfterSeconds ?? 3600) })
     }
     throw e
   }

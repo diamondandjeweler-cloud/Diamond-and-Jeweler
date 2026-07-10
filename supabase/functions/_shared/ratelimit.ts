@@ -2,9 +2,18 @@ import { type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0
 
 /**
  * Thrown by enforceRateLimit when the caller has exceeded their limit.
- * Callers catch this and return a 429 in their own error/CORS style.
+ * Callers catch this and return a 429 in their own error/CORS style,
+ * surfacing `retryAfterSeconds` as the Retry-After response header.
  */
-export class RateLimitError extends Error {}
+export class RateLimitError extends Error {
+  /** Seconds until the rate-limit window resets (the window length). */
+  retryAfterSeconds: number
+
+  constructor(message = 'rate_limited', retryAfterSeconds = 3600) {
+    super(message)
+    this.retryAfterSeconds = retryAfterSeconds
+  }
+}
 
 /**
  * Per-key, per-window rate limit backed by the DB function
@@ -34,6 +43,6 @@ export async function enforceRateLimit(
   }
 
   if (data === false) {
-    throw new RateLimitError('rate_limited')
+    throw new RateLimitError('rate_limited', windowSeconds)
   }
 }

@@ -85,6 +85,16 @@ supabase/
 → Postgres. Auth = Supabase PKCE; JWT in session + HttpOnly `sb-jwt` cookie; presence hint via
 readable `dnj-auth=1` cookie (presence only — real authz is RLS + edge middleware).
 
+### API routing invariant
+
+1. If an action needs privilege elevation, spans >1 row atomically, moves money/points, or
+   calls an LLM → **Edge Function**; otherwise a repository call over **PostgREST+RLS**.
+2. Multi-candidate scoring / fan-out must be **async-drained via `match_queue`** — being an
+   Edge Function does NOT make it async; never add a new synchronous `matchForRole` entry point.
+
+Error envelope: edge functions must always return a top-level **string** `error` field (never
+an object) — the client wrapper (`apps/web/src/lib/functions.ts`) stringifies it.
+
 ## 6. Danger zones — touch ONLY with the named gate
 
 | Area | Where | Rule / Gate |

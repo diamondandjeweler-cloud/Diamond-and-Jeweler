@@ -97,7 +97,7 @@ function DecisionCardImpl({
         {title}
       </h2>
       <div className="mx-auto mb-3 h-px w-14 bg-gradient-to-r from-transparent via-[#C9A24D] to-transparent opacity-70" />
-      <p className="text-[13px] text-gray-600 dark:text-gray-400 max-w-xs mx-auto mb-4 leading-snug">
+      <p className="text-[13px] text-fg-muted max-w-xs mx-auto mb-4 leading-snug">
         {description.split('. ').map((s, i, arr) => (
           <span key={i} className="block">
             {s}{i < arr.length - 1 ? '.' : ''}

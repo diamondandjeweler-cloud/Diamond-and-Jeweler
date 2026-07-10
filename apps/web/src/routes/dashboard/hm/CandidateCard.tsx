@@ -85,16 +85,16 @@ function CandidateCardImpl({
                 alt={displayName}
                 loading="lazy"
                 decoding="async"
-                className="w-14 h-14 rounded-full object-cover border border-ink-100 dark:border-gray-700 shrink-0"
+                className="w-14 h-14 rounded-full object-cover border border-border shrink-0"
               />
             ) : (
-              <div className="w-14 h-14 rounded-full bg-ink-100 dark:bg-gray-700 text-ink-400 dark:text-gray-400 flex items-center justify-center text-base font-medium shrink-0">
+              <div className="w-14 h-14 rounded-full bg-surface-2 text-ink-400 dark:text-fg-muted flex items-center justify-center text-base font-medium shrink-0">
                 {(realName ?? '?').slice(0, 1).toUpperCase()}
               </div>
             )}
             <div className="min-w-0">
-              <h3 className="font-display text-lg text-ink-900 dark:text-white mb-0.5 truncate">{displayName}</h3>
-              <p className="text-sm text-ink-500 dark:text-gray-400">{t('hmDash.forRole', { role: row.roles?.title ?? t('hmDash.roleFallback') })}</p>
+              <h3 className="font-display text-lg text-fg mb-0.5 truncate">{displayName}</h3>
+              <p className="text-sm text-fg-muted">{t('hmDash.forRole', { role: row.roles?.title ?? t('hmDash.roleFallback') })}</p>
             </div>
           </div>
           <Badge tone={tone}>
@@ -122,20 +122,20 @@ function CandidateCardImpl({
           )}
         </div>
 
-        <div className="bg-ink-50 dark:bg-gray-700 rounded-lg p-3 mb-4 text-sm">
-          <div className="text-xs text-ink-500 dark:text-gray-400 uppercase tracking-wide mb-0.5">{t('hmDash.expects')}</div>
-          <div className="text-ink-900 dark:text-white font-medium">
+        <div className="bg-surface-2 rounded-lg p-3 mb-4 text-sm">
+          <div className="text-xs text-fg-muted uppercase tracking-wide mb-0.5">{t('hmDash.expects')}</div>
+          <div className="text-fg font-medium">
             RM {fmt(row.talents?.expected_salary_min)} – {fmt(row.talents?.expected_salary_max)}
-            <span className="text-ink-400 dark:text-gray-400 font-normal"> {t('hmDash.perMonth')}</span>
+            <span className="text-ink-400 dark:text-fg-muted font-normal"> {t('hmDash.perMonth')}</span>
           </div>
         </div>
 
         {topTags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mb-4">
             {topTags.map(([tag, score]) => (
-              <span key={tag} className="text-xs bg-ink-100 dark:bg-gray-700 text-ink-700 dark:text-gray-300 px-2 py-1 rounded-md">
+              <span key={tag} className="text-xs bg-surface-2 text-ink-700 dark:text-gray-300 px-2 py-1 rounded-md">
                 <span className="font-medium">{tag.replace(/_/g, ' ')}</span>
-                <span className="text-ink-400 dark:text-gray-400 ml-1">{Math.round(score * 100)}</span>
+                <span className="text-ink-400 dark:text-fg-muted ml-1">{Math.round(score * 100)}</span>
               </span>
             ))}
           </div>
@@ -178,7 +178,7 @@ function CandidateCardImpl({
             <ul className="px-3 py-2 text-xs text-ink-700 dark:text-gray-300 space-y-1">
               {[pendingProposal.slot_1_at, pendingProposal.slot_2_at, pendingProposal.slot_3_at].map((at, i) => (
                 <li key={i}>
-                  <span className="text-ink-400 dark:text-gray-400 mr-2">{t('hmDash.slot', { n: i + 1 })}</span>
+                  <span className="text-ink-400 dark:text-fg-muted mr-2">{t('hmDash.slot', { n: i + 1 })}</span>
                   {new Date(at).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur', dateStyle: 'medium', timeStyle: 'short' })} MYT
                 </li>
               ))}
@@ -188,15 +188,15 @@ function CandidateCardImpl({
 
         {/* Interview rounds panel */}
         {rounds.length > 0 && (
-          <div className="mt-4 border border-ink-100 dark:border-gray-700 rounded-lg overflow-hidden">
-            <div className="bg-ink-50 dark:bg-gray-700 px-3 py-2 text-xs font-semibold text-ink-600 dark:text-gray-300 uppercase tracking-wide">
+          <div className="mt-4 border border-border rounded-lg overflow-hidden">
+            <div className="bg-surface-2 px-3 py-2 text-xs font-semibold text-ink-600 dark:text-gray-300 uppercase tracking-wide">
               {t('hmDash.interviewRounds')}
             </div>
             {rounds.map((r) => (
-              <div key={r.id} className="flex flex-wrap items-center justify-between gap-y-1 px-3 py-2 border-t border-ink-100 dark:border-gray-700 first:border-t-0">
+              <div key={r.id} className="flex flex-wrap items-center justify-between gap-y-1 px-3 py-2 border-t border-border first:border-t-0">
                 <div className="min-w-0 flex-1">
-                  <span className="text-xs font-medium text-ink-900 dark:text-white">{t('hmDash.round', { n: r.round_number })}</span>
-                  <span className="text-xs text-ink-400 dark:text-gray-400 ml-2">
+                  <span className="text-xs font-medium text-fg">{t('hmDash.round', { n: r.round_number })}</span>
+                  <span className="text-xs text-ink-400 dark:text-fg-muted ml-2">
                     {new Date(r.scheduled_at).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur', dateStyle: 'medium', timeStyle: 'short' })} MYT
                   </span>
                 </div>
@@ -235,7 +235,7 @@ function CandidateCardImpl({
               <p className="text-xs text-red-600">{t('hmDash.contactLoadFailed')}</p>
             ) : (
               <div className="space-y-1 text-sm">
-                <p className="font-medium text-ink-900 dark:text-white">{contact.full_name}</p>
+                <p className="font-medium text-fg">{contact.full_name}</p>
                 <p className="text-ink-700 dark:text-gray-300">{contact.email}</p>
                 {contact.phone && <p className="text-ink-700 dark:text-gray-300">{contact.phone}</p>}
               </div>
@@ -352,7 +352,7 @@ function CandidateCardImpl({
 
           {/* Feedback widget */}
           {['interview_completed', 'offer_made', 'hired', 'declined_by_manager', 'declined_by_talent'].includes(row.status) && (
-            <div className="border border-ink-200 dark:border-gray-700 rounded-lg p-3 space-y-2 bg-ink-50 dark:bg-gray-700">
+            <div className="border border-border rounded-lg p-3 space-y-2 bg-surface-2">
               <p className="text-xs font-semibold text-ink-700 dark:text-gray-300 uppercase tracking-wide">
                 {t('hmDash.rateThisMatch')}
               </p>
@@ -369,7 +369,7 @@ function CandidateCardImpl({
                   </button>
                 ))}
                 {feedbackEntry.rating > 0 && (
-                  <span className="ml-2 text-xs text-ink-500 dark:text-gray-400">
+                  <span className="ml-2 text-xs text-fg-muted">
                     {['', t('hmDash.ratingPoor'), t('hmDash.ratingBelowAverage'), t('hmDash.ratingAverage'), t('hmDash.ratingGood'), t('hmDash.ratingExcellent')][feedbackEntry.rating]}
                   </span>
                 )}
@@ -377,7 +377,7 @@ function CandidateCardImpl({
               <select
                 value={feedbackEntry.outcome}
                 onChange={(e) => onFeedbackChange({ outcome: e.target.value })}
-                className="w-full border border-ink-200 dark:border-gray-700 rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 bg-white dark:bg-gray-800 dark:text-white"
+                className="w-full border border-border rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 bg-surface dark:text-fg"
               >
                 {hmOutcomes(t).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
@@ -386,7 +386,7 @@ function CandidateCardImpl({
                 onChange={(e) => onFeedbackChange({ freeText: e.target.value })}
                 placeholder={t('hmDash.feedbackPlaceholder')}
                 rows={2}
-                className="w-full border border-ink-200 dark:border-gray-700 rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 bg-white dark:bg-gray-800 dark:text-white resize-none"
+                className="w-full border border-border rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 bg-surface dark:text-fg resize-none"
               />
               {feedbackEntry.saved ? (
                 <p className="text-xs text-emerald-600 font-medium">
@@ -448,8 +448,8 @@ function CultureCompare({ comparison }: { comparison: CultureComparison }) {
   const { t } = useTranslation()
   if (comparison.talent_top_wants.length === 0 && comparison.hm_top_offers.length === 0) return null
   return (
-    <div className="mt-3 border border-ink-100 dark:border-gray-700 rounded-lg p-3 bg-white dark:bg-gray-800">
-      <p className="text-xs font-semibold uppercase tracking-wide text-ink-500 dark:text-gray-400 mb-2">{t('hmDash.cultureAlignment')}</p>
+    <div className="mt-3 border border-border rounded-lg p-3 bg-surface">
+      <p className="text-xs font-semibold uppercase tracking-wide text-fg-muted mb-2">{t('hmDash.cultureAlignment')}</p>
       <div className="flex flex-wrap gap-1.5">
         {comparison.overlap.map((k) => (
           <span key={k} className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">
@@ -463,7 +463,7 @@ function CultureCompare({ comparison }: { comparison: CultureComparison }) {
         ))}
       </div>
       {(comparison.overlap.length > 0 || comparison.talent_only.length > 0) && (
-        <p className="text-xs text-ink-400 dark:text-gray-400 mt-1.5">
+        <p className="text-xs text-ink-400 dark:text-fg-muted mt-1.5">
           {comparison.overlap.length > 0 && <span className="mr-3">{t('hmDash.cultureAligned')}</span>}
           {comparison.talent_only.length > 0 && <span>{t('hmDash.cultureTalentWants')}</span>}
         </p>

@@ -36,7 +36,7 @@ export default function BlogArticleShell({
 }) {
   return (
     <div className="min-h-screen bg-white dark:bg-navy-900 text-navy-900 dark:text-white font-sans">
-      <header className="border-b border-gray-100 dark:border-gray-700 dark:bg-navy-800">
+      <header className="border-b border-border dark:bg-navy-800">
         <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2" aria-label="DNJ home">
             <span className="font-extrabold tracking-tight text-[20px]">DNJ</span>

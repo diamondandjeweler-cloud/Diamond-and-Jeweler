@@ -338,9 +338,9 @@ export default function HMDashboard() {
       {/* Schedule round modal — HM proposes 3 slots, talent picks one */}
       {schedulingFor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6">
-            <h2 className="text-lg font-bold mb-1 dark:text-white">{t('hmDash.proposeTimesTitle')}</h2>
-            <p className="text-xs text-ink-500 dark:text-gray-400 mb-4">
+          <div className="bg-surface rounded-xl shadow-xl w-full max-w-md p-6">
+            <h2 className="text-lg font-bold mb-1 dark:text-fg">{t('hmDash.proposeTimesTitle')}</h2>
+            <p className="text-xs text-fg-muted mb-4">
               {t('hmDash.proposeTimesHint')}
             </p>
             {[0, 1, 2].map((i) => (
@@ -357,7 +357,7 @@ export default function HMDashboard() {
                     next[i] = e.target.value
                     return next
                   })}
-                  className="w-full border dark:border-gray-700 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full border dark:border-border dark:bg-surface-2 dark:text-fg rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
             ))}
@@ -392,7 +392,7 @@ export default function HMDashboard() {
         </div>
       ) : candidates.length === 0 ? (
         onboardingDraftRole ? (
-          <div className="rounded-xl border-2 border-brand-500 bg-white dark:bg-gray-800 overflow-hidden shadow-sm">
+          <div className="rounded-xl border-2 border-brand-500 bg-surface overflow-hidden shadow-sm">
             <div className="bg-brand-600 px-5 py-3 flex items-center gap-2">
               <svg className="w-5 h-5 text-white shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path fillRule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0L3.3 9.7a1 1 0 011.4-1.4l3.3 3.3 6.8-6.8a1 1 0 011.4 0z" clipRule="evenodd" />
@@ -400,7 +400,7 @@ export default function HMDashboard() {
               <span className="text-white font-semibold text-sm">{t('hmDash.draftBannerTitle')}</span>
             </div>
             <div className="p-6">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">{onboardingDraftRole.title}</h3>
+              <h3 className="text-xl font-bold text-fg">{onboardingDraftRole.title}</h3>
               <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600 dark:text-gray-300">
                 {onboardingDraftRole.industry && <span>{onboardingDraftRole.industry}</span>}
                 {(onboardingDraftRole.salary_min || onboardingDraftRole.salary_max) && (
@@ -485,7 +485,7 @@ export default function HMDashboard() {
               </div>
               {pointsBalance != null && (
                 <div className="text-xs text-ink-600 dark:text-gray-300 whitespace-nowrap">
-                  {t('hmDash.balanceLabel')} <span className="font-semibold text-ink-900 dark:text-white">{t('hmDash.pointsValue', { n: pointsBalance })}</span>
+                  {t('hmDash.balanceLabel')} <span className="font-semibold text-fg">{t('hmDash.pointsValue', { n: pointsBalance })}</span>
                 </div>
               )}
             </div>
@@ -498,8 +498,8 @@ export default function HMDashboard() {
               {roleExtras.map((r) => (
                 <div key={r.id} className="flex flex-wrap items-center justify-between gap-3 border-t border-amber-200 pt-3 first:border-t-0 first:pt-0">
                   <div>
-                    <div className="text-sm font-medium text-ink-900 dark:text-white">{r.title}</div>
-                    <div className="text-xs text-ink-500 dark:text-gray-400">{t('hmDash.activeCandidatesCount', { count: r.activeCount })}</div>
+                    <div className="text-sm font-medium text-fg">{r.title}</div>
+                    <div className="text-xs text-fg-muted">{t('hmDash.activeCandidatesCount', { count: r.activeCount })}</div>
                   </div>
                   <Button
                     size="sm"
@@ -518,8 +518,8 @@ export default function HMDashboard() {
       {eligibleExtras.length > 0 && (
         <Card className="mt-8 border-dashed border-accent-500">
           <div className="p-6">
-            <div className="text-sm font-medium text-ink-900 dark:text-white mb-1">{t('hmDash.needMoreTitle')}</div>
-            <p className="text-sm text-ink-500 dark:text-gray-400 mb-4">
+            <div className="text-sm font-medium text-fg mb-1">{t('hmDash.needMoreTitle')}</div>
+            <p className="text-sm text-fg-muted mb-4">
               {t('hmDash.needMoreBody', { points: POINTS_PER_EXTRA })}{pointsBalance != null ? t('hmDash.needMoreBalance', { balance: pointsBalance }) : ''}
             </p>
             <div className="space-y-2">
@@ -528,17 +528,17 @@ export default function HMDashboard() {
                   const busy = unlockingRoleId === r.id || redeemingRoleId === r.id
                   const insufficientPoints = pointsBalance != null && pointsBalance < POINTS_PER_EXTRA
                   return (
-                    <div key={r.id} className="border-t border-ink-100 dark:border-gray-700 pt-3 first:border-t-0 first:pt-0">
+                    <div key={r.id} className="border-t border-border pt-3 first:border-t-0 first:pt-0">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
-                          <div className="text-sm font-medium text-ink-900 dark:text-white">{r.title}</div>
-                          <div className="text-xs text-ink-500 dark:text-gray-400">{t('hmDash.extraUnlocksRemaining', { count: 3 - r.extraUsed })}</div>
+                          <div className="text-sm font-medium text-fg">{r.title}</div>
+                          <div className="text-xs text-fg-muted">{t('hmDash.extraUnlocksRemaining', { count: 3 - r.extraUsed })}</div>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                           {insufficientPoints ? (
                             <Link
                               to="/points"
-                              className="inline-flex items-center rounded-md border border-ink-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-1.5 text-xs font-medium text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-gray-700"
+                              className="inline-flex items-center rounded-md border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink-700 dark:text-gray-300 hover:bg-surface-2"
                             >
                               {t('hmDash.getPoints', { points: POINTS_PER_EXTRA })}
                             </Link>
@@ -562,7 +562,7 @@ export default function HMDashboard() {
                         </div>
                       </div>
                       {insufficientPoints && (
-                        <div className="mt-2 text-xs text-ink-500 dark:text-gray-400">
+                        <div className="mt-2 text-xs text-fg-muted">
                           {t('hmDash.insufficientPoints', { have: pointsBalance ?? 0, need: POINTS_PER_EXTRA })}{' '}
                           <Link to="/points" className="font-medium text-brand-700 hover:underline">{t('hmDash.walletPage')}</Link>.
                         </div>

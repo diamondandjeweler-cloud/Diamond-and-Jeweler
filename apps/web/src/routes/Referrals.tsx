@@ -218,7 +218,7 @@ export default function Referrals() {
   }
 
   if (!session) return null
-  if (loading) return <div className="py-12 text-center text-ink-500 dark:text-gray-400"><Spinner /> {t('common.loading')}</div>
+  if (loading) return <div className="py-12 text-center text-fg-muted"><Spinner /> {t('common.loading')}</div>
 
   const rewarded = list.filter((r) => r.status === 'rewarded')
   const points = profile?.points ?? 0
@@ -304,10 +304,10 @@ export default function Referrals() {
       <Card className="mb-6">
         <CardBody>
           <div className="flex items-center gap-1.5 mb-1">
-            <h2 className="font-display text-lg dark:text-white">Send a personalised invite</h2>
+            <h2 className="font-display text-lg dark:text-fg">Send a personalised invite</h2>
             <Badge tone="amber">Single-use</Badge>
           </div>
-          <p className="text-xs text-ink-500 dark:text-gray-400 mb-3">
+          <p className="text-xs text-fg-muted mb-3">
             We tie this code to your friend's email — single use, one person only. (For unlimited sharing, use the link above instead.)
           </p>
           <div className="flex gap-2 items-end">
@@ -326,12 +326,12 @@ export default function Referrals() {
             <EmptyState title="No referrals yet" description="Generate your first invite above, or share the link at the top." />
           ) : (
             <table className="w-full text-sm">
-              <thead className="text-left text-xs text-ink-500 dark:text-gray-400 bg-ink-50 dark:bg-gray-800">
+              <thead className="text-left text-xs text-fg-muted bg-ink-50 dark:bg-surface">
                 <tr><th className="p-3">Email</th><th className="p-3">{t('referral.yourCode')}</th><th className="p-3">Status</th><th className="p-3">Created</th><th className="p-3"></th></tr>
               </thead>
               <tbody>
                 {list.map((r) => (
-                  <tr key={r.id} className="border-t border-ink-100 dark:border-gray-700">
+                  <tr key={r.id} className="border-t border-border">
                     <td className="p-3">{r.referred_email}</td>
                     <td className="p-3 font-mono text-xs">{r.code}</td>
                     <td className="p-3">
@@ -339,7 +339,7 @@ export default function Referrals() {
                         {r.status}
                       </Badge>
                     </td>
-                    <td className="p-3 text-ink-500 dark:text-gray-400">{new Date(r.created_at).toLocaleDateString()}</td>
+                    <td className="p-3 text-fg-muted">{new Date(r.created_at).toLocaleDateString()}</td>
                     <td className="p-3 text-right">
                       <button onClick={() => copyLink(r.code)} className="btn-ghost btn-sm">Copy link</button>
                     </td>
@@ -355,7 +355,7 @@ export default function Referrals() {
       {isHM && (
         <Card className="mt-6">
           <CardBody>
-            <h2 className="font-display text-lg mb-2 dark:text-white">Redeem points for an extra match</h2>
+            <h2 className="font-display text-lg mb-2 dark:text-fg">Redeem points for an extra match</h2>
             <p className="text-sm text-ink-600 dark:text-gray-300 mb-3">
               Spend {pointsCfg.perExtra} Diamond Points to add 1 extra match slot on a role.
             </p>
@@ -392,7 +392,7 @@ export default function Referrals() {
               </div>
             )}
             {!canRedeem && (
-              <p className="text-xs text-ink-500 dark:text-gray-400 mt-2">
+              <p className="text-xs text-fg-muted mt-2">
                 You need {pointsCfg.perExtra - points} more Diamond Points. Earn them by referring friends or sharing match feedback.
               </p>
             )}
@@ -404,7 +404,7 @@ export default function Referrals() {
       {isTalent && (
         <Card className="mt-6">
           <CardBody>
-            <h2 className="font-display text-lg mb-2 dark:text-white">Redeem points for an extra match</h2>
+            <h2 className="font-display text-lg mb-2 dark:text-fg">Redeem points for an extra match</h2>
             <p className="text-sm text-ink-600 dark:text-gray-300 mb-3">
               Spend {pointsCfg.perExtra} Diamond Points to unlock 1 extra match opportunity for yourself (capped at 3 paid extras total).
             </p>
@@ -417,7 +417,7 @@ export default function Referrals() {
               Redeem {pointsCfg.perExtra} Diamond Points → 1 extra match
             </Button>
             {!canRedeem && (
-              <p className="text-xs text-ink-500 dark:text-gray-400 mt-2">
+              <p className="text-xs text-fg-muted mt-2">
                 You need {pointsCfg.perExtra - points} more Diamond Points. Earn them by referring friends or sharing match feedback.
               </p>
             )}

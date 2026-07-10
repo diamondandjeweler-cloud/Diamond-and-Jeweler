@@ -72,12 +72,12 @@ function MustHavesStepImpl({
         {t('hmOnboard.mustHavesIntro')}
       </p>
       <div className="space-y-2">
-        <p className="text-xs font-semibold text-ink-500 dark:text-gray-400 uppercase tracking-wide">{t('hmOnboard.roleConstraintsHeading')}</p>
+        <p className="text-xs font-semibold text-fg-muted uppercase tracking-wide">{t('hmOnboard.roleConstraintsHeading')}</p>
         {structuredItems.map(({ state, setter, label }) => (
-          <label key={label} className="flex items-center gap-3 border border-ink-200 dark:border-gray-700 rounded-lg px-3 py-2.5 cursor-pointer hover:bg-ink-50 dark:hover:bg-gray-800 transition-colors">
+          <label key={label} className="flex items-center gap-3 border border-border rounded-lg px-3 py-2.5 cursor-pointer hover:bg-ink-50 dark:hover:bg-surface transition-colors">
             <input
               type="checkbox" checked={state} onChange={(e) => setter(e.target.checked)}
-              className="h-4 w-4 rounded border-ink-300 dark:border-gray-600 accent-brand-500"
+              className="h-4 w-4 rounded border-border-strong accent-brand-500"
             />
             <span className="text-sm text-ink-800 dark:text-gray-300">{label}</span>
           </label>
@@ -85,14 +85,14 @@ function MustHavesStepImpl({
       </div>
 
       <div>
-        <p className="text-xs font-semibold text-ink-500 dark:text-gray-400 uppercase tracking-wide mb-2">{t('hmOnboard.additionalReqHeading')}</p>
-        <p className="text-xs text-ink-400 dark:text-gray-400 mb-2">{t('hmOnboard.additionalReqHint')}</p>
+        <p className="text-xs font-semibold text-fg-muted uppercase tracking-wide mb-2">{t('hmOnboard.additionalReqHeading')}</p>
+        <p className="text-xs text-ink-400 dark:text-fg-muted mb-2">{t('hmOnboard.additionalReqHint')}</p>
         <div className="flex gap-2">
           <input
             type="text" value={mustHaveInput} onChange={(e) => setMustHaveInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addItem() } }}
             placeholder={t('hmOnboard.additionalReqPlaceholder')}
-            className="flex-1 border border-ink-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="flex-1 border border-border dark:bg-surface dark:text-fg rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             // Wizard step surfaces this input front and centre; intentional focus.
             // eslint-disable-next-line jsx-a11y/no-autofocus
             autoFocus
@@ -107,12 +107,12 @@ function MustHavesStepImpl({
       {mustHaveItems.length > 0 && (
         <ul className="space-y-2">
           {mustHaveItems.map((item) => (
-            <li key={item} className="flex items-start gap-2 bg-ink-50 dark:bg-gray-800 border border-ink-200 dark:border-gray-700 rounded-lg px-3 py-2">
+            <li key={item} className="flex items-start gap-2 bg-ink-50 dark:bg-surface border border-border rounded-lg px-3 py-2">
               <span className="h-1.5 w-1.5 rounded-full bg-brand-400 shrink-0 mt-1.5" />
               <span className="flex-1 text-sm text-ink-800 dark:text-gray-300">{item}</span>
               <button
                 type="button" onClick={() => setMustHaveItems((prev) => prev.filter((i) => i !== item))}
-                className="text-ink-400 dark:text-gray-400 hover:text-red-500 transition-colors shrink-0 text-base leading-none" aria-label={t('hmOnboard.remove')}
+                className="text-ink-400 dark:text-fg-muted hover:text-red-500 transition-colors shrink-0 text-base leading-none" aria-label={t('hmOnboard.remove')}
               >×</button>
             </li>
           ))}

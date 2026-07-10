@@ -171,11 +171,11 @@ export default function MyRoles() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="appeal-modal-title"
-            className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full p-6"
+            className="relative bg-surface rounded-lg shadow-xl max-w-lg w-full p-6"
           >
             <h3
               id="appeal-modal-title"
-              className="text-lg font-semibold text-ink-900 dark:text-white mb-1"
+              className="text-lg font-semibold text-fg mb-1"
             >
               {t('myRoles.appealTitle')}
             </h3>
@@ -194,9 +194,9 @@ export default function MyRoles() {
               maxLength={2000}
               disabled={appeal.busy}
               placeholder={t('myRoles.appealPlaceholder')}
-              className="w-full text-sm border border-ink-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded p-2 mb-2"
+              className="w-full text-sm border border-border dark:bg-surface dark:text-fg rounded p-2 mb-2"
             />
-            <p className="text-xs text-ink-400 dark:text-gray-400 mb-3 text-right">
+            <p className="text-xs text-ink-400 dark:text-fg-muted mb-3 text-right">
               {appeal.text.length} / 2000
             </p>
             {appeal.err && <p className="text-sm text-red-600 mb-2">{appeal.err}</p>}
@@ -238,12 +238,12 @@ export default function MyRoles() {
                 <div className="p-5 flex flex-wrap gap-4 justify-between items-start">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                      <h3 className="font-display text-lg text-ink-900 dark:text-white">
+                      <h3 className="font-display text-lg text-fg">
                         {r.title}
                       </h3>
                       <StatusBadge status={r.status} />
                       <ModerationBadge status={r.moderation_status} />
-                      <span className="text-xs text-ink-500 dark:text-gray-400">
+                      <span className="text-xs text-fg-muted">
                         {t('myRoles.activeMatches', { count: r.match_count ?? 0 })}
                       </span>
                     </div>
@@ -259,7 +259,7 @@ export default function MyRoles() {
                     {(r.salary_min || r.salary_max) && (
                       <p className="text-sm text-ink-700 dark:text-gray-300 mt-0.5">
                         RM {fmt(r.salary_min)} – {fmt(r.salary_max)}
-                        <span className="text-ink-400 dark:text-gray-400">
+                        <span className="text-ink-400 dark:text-fg-muted">
                           {' '}
                           {t('myRoles.perMonth')}
                         </span>
@@ -270,7 +270,7 @@ export default function MyRoles() {
                         {r.required_traits.map((t) => (
                           <span
                             key={t}
-                            className="text-xs bg-ink-100 dark:bg-gray-700 text-ink-700 dark:text-gray-300 px-2 py-0.5 rounded-md"
+                            className="text-xs bg-surface-2 text-ink-700 dark:text-gray-300 px-2 py-0.5 rounded-md"
                           >
                             {t.replace(/_/g, ' ')}
                           </span>
@@ -351,7 +351,7 @@ function RoleStructuredSummary({ role }: { role: RoleRow }) {
   if (openTo.length > 0)
     bits.push(t('myRoles.openTo', { list: openTo.map((s) => s.replace(/_/g, ' ')).join(', ') }))
   if (bits.length === 0) return null
-  return <p className="text-xs text-ink-500 dark:text-gray-400 mt-2">{bits.join(' · ')}</p>
+  return <p className="text-xs text-fg-muted mt-2">{bits.join(' · ')}</p>
 }
 
 function VacancyExpiry({ expiresAt, status }: { expiresAt: string | null; status: RoleStatus }) {
@@ -406,7 +406,7 @@ function ModerationNotice({ role, onAppeal }: { role: RoleRow; onAppeal: () => v
           ? 'bg-red-50 border-red-200 text-red-800'
           : role.moderation_status === 'flagged'
             ? 'bg-amber-50 border-amber-200 text-amber-900'
-            : 'bg-ink-50 dark:bg-gray-800 border-ink-200 dark:border-gray-700 text-ink-700 dark:text-gray-300'
+            : 'bg-ink-50 dark:bg-surface border-border text-ink-700 dark:text-gray-300'
       }`}
     >
       <div className="flex items-start justify-between gap-2">
@@ -433,7 +433,7 @@ function ModerationNotice({ role, onAppeal }: { role: RoleRow; onAppeal: () => v
         {canAppeal && (
           <button
             onClick={onAppeal}
-            className="shrink-0 text-xs px-2.5 py-1 bg-white dark:bg-gray-800 border border-current rounded hover:bg-ink-50 dark:hover:bg-gray-700"
+            className="shrink-0 text-xs px-2.5 py-1 bg-surface border border-current rounded hover:bg-surface-2"
           >
             {t('myRoles.appeal')}
           </button>

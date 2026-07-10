@@ -118,7 +118,7 @@ function HowItWorksSectionImpl() {
           <h2 id="how-it-works-heading" className="text-2xl md:text-3xl font-bold tracking-tight text-navy-900 dark:text-white">
             {t('landing.howTitle')}
           </h2>
-          <p className="text-gray-500 dark:text-gray-400 mt-2 max-w-lg mx-auto text-sm leading-relaxed">
+          <p className="text-fg-muted mt-2 max-w-lg mx-auto text-sm leading-relaxed">
             {t('landing.howSubtitle')}
           </p>
         </div>
@@ -130,7 +130,7 @@ function HowItWorksSectionImpl() {
               <span className="text-gold-500 font-bold text-lg leading-none">01</span>
             </div>
             <h3 className="font-bold text-navy-900 dark:text-white mb-2">{t('landing.howStep1Title')}</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+            <p className="text-sm text-fg-muted leading-relaxed">
               {t('landing.howStep1Desc')}
             </p>
           </div>
@@ -157,7 +157,7 @@ function HowItWorksSectionImpl() {
               <span className="text-gold-500 font-bold text-lg leading-none">03</span>
             </div>
             <h3 className="font-bold text-navy-900 dark:text-white mb-2">{t('landing.howStep3Title')}</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+            <p className="text-sm text-fg-muted leading-relaxed">
               {t('landing.howStep3Desc')}
             </p>
           </div>
@@ -170,7 +170,7 @@ function HowItWorksSectionImpl() {
           >
             {t('landing.howStartProfile')} <Arrow />
           </Link>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{t('landing.howFreeNote')}</p>
+          <p className="text-xs text-fg-muted mt-2">{t('landing.howFreeNote')}</p>
         </div>
       </div>
     </section>
@@ -325,7 +325,7 @@ function SocialProofStripImpl() {
         {signals.map((s) => (
           <li key={s.label} className="text-center">
             <div className="text-navy-800 dark:text-midnight-400 font-extrabold text-xl tracking-tight">{s.stat}</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">{s.label}</div>
+            <div className="text-xs text-fg-muted mt-0.5 leading-snug">{s.label}</div>
           </li>
         ))}
       </ul>
@@ -384,7 +384,7 @@ function WhatsAppCTAImpl() {
         <h2 id="contact-heading" className="text-xl font-bold text-navy-900 dark:text-white mb-2">
           {t('landing.contactTitle')}
         </h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-6 leading-relaxed">
+        <p className="text-sm text-fg-muted max-w-sm mx-auto mb-6 leading-relaxed">
           {t('landing.contactBodyLead')}{' '}
           <a href="mailto:support@diamondandjeweler.com" className="text-navy-700 underline underline-offset-2">
             support@diamondandjeweler.com
@@ -404,7 +404,7 @@ function WhatsAppCTAImpl() {
           </svg>
           {t('landing.whatsappButton')}
         </a>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">{t('landing.whatsappHours')}</p>
+        <p className="text-xs text-fg-muted mt-3">{t('landing.whatsappHours')}</p>
       </div>
     </section>
   )

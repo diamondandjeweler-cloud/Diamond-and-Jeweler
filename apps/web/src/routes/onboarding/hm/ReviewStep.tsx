@@ -96,7 +96,7 @@ function ReviewStepImpl({
       </Button>
       <button
         type="button" onClick={onBack}
-        className="w-full text-xs text-ink-400 dark:text-gray-400 hover:text-ink-600 dark:hover:text-gray-300 py-1"
+        className="w-full text-xs text-ink-400 dark:text-fg-muted hover:text-ink-600 dark:hover:text-gray-300 py-1"
       >{t('hmOnboard.goBackChange')}</button>
     </div>
   )

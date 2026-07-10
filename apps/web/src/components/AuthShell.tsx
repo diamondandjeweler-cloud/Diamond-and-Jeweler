@@ -88,7 +88,7 @@ export default function AuthShell({
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       {/* ── Form side ─────────────────────────────────────── */}
-      <div className="flex flex-col justify-center px-6 md:px-10 py-10 bg-white dark:bg-[#18181b]">
+      <div className="flex flex-col justify-center px-6 md:px-10 py-10 bg-white dark:bg-canvas">
         <div className="max-w-md w-full mx-auto">
           {/* Accent bar */}
           <div
@@ -104,7 +104,7 @@ export default function AuthShell({
               gradTo={cfg.logoGradTo}
               gradId={`logo-grad-${cfg.logoGradFrom.replace('#', '')}`}
             />
-            <span className="font-sans font-semibold text-xl tracking-wide text-ink-900 dark:text-white">
+            <span className="font-sans font-semibold text-xl tracking-wide text-fg">
               DNJ
             </span>
           </Link>

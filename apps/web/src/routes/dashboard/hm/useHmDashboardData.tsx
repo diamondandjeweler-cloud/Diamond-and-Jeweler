@@ -442,7 +442,7 @@ export function useHmDashboardData(userId: string | undefined) {
         text: (
           <>
             {t('hmDash.urgentNeedPoints', { cost: URGENT_COST, have: pointsBalance })}{' '}
-            <Link to="/points" className="font-semibold underline hover:text-ink-900 dark:hover:text-white">
+            <Link to="/points" className="font-semibold underline hover:text-fg">
               {t('hmDash.buyOrEarnMore')}
             </Link>
           </>

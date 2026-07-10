@@ -46,7 +46,7 @@ function BasicsStepImpl({
           // First field of the onboarding step; autoFocus mirrors a fresh wizard arrival.
           // eslint-disable-next-line jsx-a11y/no-autofocus
           autoFocus
-          className="w-full border border-ink-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="w-full border border-border dark:bg-surface dark:text-fg rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
       </div>
       <div>
@@ -55,7 +55,7 @@ function BasicsStepImpl({
           id="hm-onboard-job-title"
           type="text" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)}
           placeholder={t('hmOnboard.jobTitlePlaceholder')}
-          className="w-full border border-ink-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="w-full border border-border dark:bg-surface dark:text-fg rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
       </div>
       <Button type="submit" disabled={!fullName.trim() || !jobTitle.trim()} className="w-full" size="lg">
@@ -66,7 +66,7 @@ function BasicsStepImpl({
           type="button"
           onClick={onSwitchToTalent}
           disabled={switching}
-          className="text-xs text-ink-400 dark:text-gray-400 hover:text-ink-600 dark:hover:text-gray-300 underline"
+          className="text-xs text-ink-400 dark:text-fg-muted hover:text-ink-600 dark:hover:text-gray-300 underline"
         >
           {switching ? t('hmOnboard.switching') : t('hmOnboard.switchToTalent')}
         </button>

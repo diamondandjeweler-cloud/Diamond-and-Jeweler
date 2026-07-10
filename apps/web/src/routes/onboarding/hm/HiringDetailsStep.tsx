@@ -47,7 +47,7 @@ function HiringDetailsStepImpl({
           {(['yes', 'pending', 'unknown'] as const).map((v) => (
             <button
               key={v} type="button" onClick={() => setBudgetApproved(v)}
-              className={`border rounded-lg px-3 py-2 text-sm capitalize ${budgetApproved === v ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 dark:border-gray-700 text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-gray-800'}`}
+              className={`border rounded-lg px-3 py-2 text-sm capitalize ${budgetApproved === v ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-surface'}`}
             >{v === 'yes' ? t('hmOnboard.budgetYes') : v === 'pending' ? t('hmOnboard.budgetPending') : t('hmOnboard.budgetUnknown')}</button>
           ))}
         </div>
@@ -65,7 +65,7 @@ function HiringDetailsStepImpl({
           id="hm-onboard-deadline"
           type="date" value={deadlineToFill} onChange={(e) => setDeadlineToFill(e.target.value)}
           min={new Date().toISOString().slice(0, 10)}
-          className="w-full border border-ink-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="w-full border border-border dark:bg-surface dark:text-fg rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
       </div>
 
@@ -76,7 +76,7 @@ function HiringDetailsStepImpl({
           {[1, 2, 3, 4].map((n) => (
             <button
               key={n} type="button" onClick={() => setInterviewRoundsHM(n)}
-              className={`border rounded-lg px-3 py-2 text-sm ${interviewRoundsHM === n ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 dark:border-gray-700 text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-gray-800'}`}
+              className={`border rounded-lg px-3 py-2 text-sm ${interviewRoundsHM === n ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-surface'}`}
             >{n}{n === 4 ? '+' : ''}</button>
           ))}
         </div>
@@ -88,11 +88,11 @@ function HiringDetailsStepImpl({
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button" onClick={() => setSalaryFlex(true)}
-            className={`border rounded-lg px-3 py-2 text-sm ${salaryFlex === true ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 dark:border-gray-700 text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-gray-800'}`}
+            className={`border rounded-lg px-3 py-2 text-sm ${salaryFlex === true ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-surface'}`}
           >{t('hmOnboard.salaryFlexYes')}</button>
           <button
             type="button" onClick={() => setSalaryFlex(false)}
-            className={`border rounded-lg px-3 py-2 text-sm ${salaryFlex === false ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 dark:border-gray-700 text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-gray-800'}`}
+            className={`border rounded-lg px-3 py-2 text-sm ${salaryFlex === false ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-surface'}`}
           >{t('hmOnboard.salaryFlexNo')}</button>
         </div>
       </div>
@@ -100,14 +100,14 @@ function HiringDetailsStepImpl({
       {/* Failure at 90 days */}
       <div className="space-y-1">
         <label htmlFor="hm-onboard-failure-90d" className="block text-sm font-medium text-ink-700 dark:text-gray-300">
-          {t('hmOnboard.failure90Label')} <span className="text-ink-400 dark:text-gray-400 font-normal">{t('hmOnboard.optionalParen')}</span>
+          {t('hmOnboard.failure90Label')} <span className="text-ink-400 dark:text-fg-muted font-normal">{t('hmOnboard.optionalParen')}</span>
         </label>
-        <p className="text-xs text-ink-400 dark:text-gray-400">{t('hmOnboard.failure90Hint')}</p>
+        <p className="text-xs text-ink-400 dark:text-fg-muted">{t('hmOnboard.failure90Hint')}</p>
         <textarea
           id="hm-onboard-failure-90d"
           value={failureAt90Days} onChange={(e) => setFailureAt90Days(e.target.value)}
           rows={3} placeholder={t('hmOnboard.failure90Placeholder')}
-          className="w-full border border-ink-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+          className="w-full border border-border dark:bg-surface dark:text-fg rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
         />
       </div>
 

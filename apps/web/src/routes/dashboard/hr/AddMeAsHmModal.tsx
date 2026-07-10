@@ -22,8 +22,8 @@ function AddMeAsHmModalImpl({
       aria-labelledby="add-me-hm-title"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
     >
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
-        <h2 id="add-me-hm-title" className="text-xl font-semibold text-ink-900 dark:text-white">
+      <div className="bg-surface rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
+        <h2 id="add-me-hm-title" className="text-xl font-semibold text-fg">
           {t('hrDash.addMeModalTitle')}
         </h2>
         <p className="text-sm text-ink-700 dark:text-gray-300">

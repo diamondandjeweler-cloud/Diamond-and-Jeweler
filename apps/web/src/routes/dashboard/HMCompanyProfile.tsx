@@ -91,7 +91,7 @@ export default function HMCompanyProfile() {
         </div>
 
         {company && (
-          <div className="rounded-xl border border-ink-200 dark:border-gray-700 bg-ink-50 dark:bg-gray-800 p-4 space-y-2">
+          <div className="rounded-xl border border-border bg-ink-50 dark:bg-surface p-4 space-y-2">
             <h2 className="text-sm font-semibold text-ink-700 dark:text-gray-300 uppercase tracking-wide mb-3">{t('hmCompany.companyHeading', 'Company')}</h2>
             <InfoRow label={t('hmCompany.nameLabel', 'Name')} value={company.name} />
             {company.industry && <InfoRow label={t('hmCompany.industryLabel', 'Industry')} value={company.industry} />}
@@ -115,8 +115,8 @@ export default function HMCompanyProfile() {
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex gap-2 text-sm">
-      <span className="text-ink-500 dark:text-gray-400 w-24 shrink-0">{label}</span>
-      <span className="text-ink-900 dark:text-white">{value}</span>
+      <span className="text-fg-muted w-24 shrink-0">{label}</span>
+      <span className="text-fg">{value}</span>
     </div>
   )
 }

@@ -208,9 +208,9 @@ export default function EditRole() {
   if (!row) {
     return (
       <div className="max-w-2xl mx-auto">
-        <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg p-6">
-          <h1 className="text-2xl font-bold mb-2 dark:text-white">{t('editRole.title', 'Edit role')}</h1>
-          <p className="text-sm text-ink-500 dark:text-gray-400 mb-6">{t('editRole.subtitle', 'Update the role details below.')}</p>
+        <div className="bg-surface border dark:border-border rounded-lg p-6">
+          <h1 className="text-2xl font-bold mb-2 dark:text-fg">{t('editRole.title', 'Edit role')}</h1>
+          <p className="text-sm text-fg-muted mb-6">{t('editRole.subtitle', 'Update the role details below.')}</p>
           <FormSkeleton fields={10} />
         </div>
       </div>
@@ -226,8 +226,8 @@ export default function EditRole() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg p-6">
-        <h1 className="text-2xl font-bold mb-2 dark:text-white">{t('editRole.title', 'Edit role')}</h1>
+      <div className="bg-surface border dark:border-border rounded-lg p-6">
+        <h1 className="text-2xl font-bold mb-2 dark:text-fg">{t('editRole.title', 'Edit role')}</h1>
         {activateMode && r.from_onboarding && r.status === 'paused' ? (
           <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2 mb-4">
             <Trans i18nKey="editRole.prefilledNotice" defaults="This role was pre-filled from your onboarding answers. Review the details below, then click <1>Activate role</1> to start receiving candidates.">
@@ -254,7 +254,7 @@ export default function EditRole() {
               {nudge.gap_payload.gaps!.map((g, i) => {
                 const applied = appliedKinds.has(g.kind)
                 return (
-                  <li key={i} className="flex items-start gap-3 text-sm bg-white dark:bg-gray-800 border border-blue-100 dark:border-gray-700 rounded px-3 py-2">
+                  <li key={i} className="flex items-start gap-3 text-sm bg-surface border border-blue-100 dark:border-border rounded px-3 py-2">
                     <span className="flex-1 text-gray-800 dark:text-gray-300">{describeGap(g)}</span>
                     {canApply(g) && (
                       <button type="button" onClick={() => applyGap(g)} disabled={applied}
@@ -274,27 +274,27 @@ export default function EditRole() {
         <form onSubmit={save} className="space-y-4">
           <Field label={t('editRole.fieldTitle', 'Title')} required>
             <input value={r.title} onChange={(e) => set('title', e.target.value)}
-              className="w-full border dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded px-3 py-2" required />
+              className="w-full border dark:border-border dark:bg-surface dark:text-fg rounded px-3 py-2" required />
           </Field>
           <Field label={t('editRole.fieldDescription', 'Description')}>
             <textarea value={r.description ?? ''} onChange={(e) => set('description', e.target.value)}
-              rows={4} className="w-full border dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded px-3 py-2" />
+              rows={4} className="w-full border dark:border-border dark:bg-surface dark:text-fg rounded px-3 py-2" />
           </Field>
           <div className="grid grid-cols-2 gap-4">
             <Field label={t('editRole.fieldDepartment', 'Department')}>
               <input value={r.department ?? ''} onChange={(e) => set('department', e.target.value)}
-                className="w-full border dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded px-3 py-2" />
+                className="w-full border dark:border-border dark:bg-surface dark:text-fg rounded px-3 py-2" />
             </Field>
             <Field label={t('editRole.fieldLocation', 'Location')}>
               <input value={r.location ?? ''} onChange={(e) => set('location', e.target.value)}
-                className="w-full border dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded px-3 py-2" />
+                className="w-full border dark:border-border dark:bg-surface dark:text-fg rounded px-3 py-2" />
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Field label={t('editRole.fieldWorkArrangement', 'Work arrangement')}>
               <select value={r.work_arrangement ?? 'hybrid'}
                 onChange={(e) => set('work_arrangement', e.target.value as RoleRow['work_arrangement'])}
-                className="w-full border dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded px-3 py-2">
+                className="w-full border dark:border-border dark:bg-surface dark:text-fg rounded px-3 py-2">
                 <option value="remote">{t('editRole.arrangementRemote', 'Remote')}</option>
                 <option value="hybrid">{t('editRole.arrangementHybrid', 'Hybrid')}</option>
                 <option value="onsite">{t('editRole.arrangementOnsite', 'Onsite')}</option>
@@ -303,7 +303,7 @@ export default function EditRole() {
             <Field label={t('editRole.fieldExperienceLevel', 'Experience level')}>
               <select value={r.experience_level ?? 'mid'}
                 onChange={(e) => set('experience_level', e.target.value as RoleRow['experience_level'])}
-                className="w-full border dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded px-3 py-2">
+                className="w-full border dark:border-border dark:bg-surface dark:text-fg rounded px-3 py-2">
                 <option value="entry">{t('editRole.levelEntry', 'Entry')}</option>
                 <option value="junior">{t('editRole.levelJunior', 'Junior')}</option>
                 <option value="mid">{t('editRole.levelMid', 'Mid')}</option>
@@ -316,12 +316,12 @@ export default function EditRole() {
             <Field label={t('editRole.fieldSalaryMin', 'Salary min (RM)')}>
               <input type="number" min={0} value={r.salary_min ?? ''}
                 onChange={(e) => set('salary_min', parseInt(e.target.value, 10) || null)}
-                className="w-full border dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded px-3 py-2" />
+                className="w-full border dark:border-border dark:bg-surface dark:text-fg rounded px-3 py-2" />
             </Field>
             <Field label={t('editRole.fieldSalaryMax', 'Salary max (RM)')}>
               <input type="number" min={0} value={r.salary_max ?? ''}
                 onChange={(e) => set('salary_max', parseInt(e.target.value, 10) || null)}
-                className="w-full border dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded px-3 py-2" />
+                className="w-full border dark:border-border dark:bg-surface dark:text-fg rounded px-3 py-2" />
             </Field>
           </div>
           <div>
@@ -339,10 +339,10 @@ export default function EditRole() {
                         ? r.required_traits.filter((x) => x !== t)
                         : [...r.required_traits, t])
                     }
-                    className={`text-sm px-3 py-1 rounded border dark:border-gray-700 ${
+                    className={`text-sm px-3 py-1 rounded border dark:border-border ${
                       on ? 'bg-brand-600 text-white border-brand-600'
-                         : atCap ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600'
-                         : 'bg-white dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                         : atCap ? 'bg-gray-100 dark:bg-surface text-gray-400 dark:text-gray-600'
+                         : 'bg-surface dark:text-gray-300 hover:bg-surface-2'
                     }`}>
                     {t}
                   </button>
@@ -355,7 +355,7 @@ export default function EditRole() {
 
           <div className="flex gap-2 justify-between pt-2">
             <button type="button" onClick={() => navigate('/hm/roles')}
-              className="px-4 py-2 border dark:border-gray-700 dark:text-gray-300 rounded hover:bg-gray-50 dark:hover:bg-gray-700" disabled={busy}>
+              className="px-4 py-2 border dark:border-border dark:text-gray-300 rounded hover:bg-surface-2" disabled={busy}>
               {t('editRole.cancel', 'Cancel')}
             </button>
             <button type="submit" disabled={busy}

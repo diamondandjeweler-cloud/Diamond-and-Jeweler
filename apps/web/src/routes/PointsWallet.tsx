@@ -115,7 +115,7 @@ export default function PointsWallet() {
       {/* How to earn */}
       <Card className="mb-8">
         <CardBody>
-          <h2 className="font-display text-base font-semibold mb-3 dark:text-white">{t('points.howToEarnTitle')}</h2>
+          <h2 className="font-display text-base font-semibold mb-3 dark:text-fg">{t('points.howToEarnTitle')}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-ink-700 dark:text-gray-300">
             {[
               ['+5', t('points.ruleRejectMatch')],
@@ -131,7 +131,7 @@ export default function PointsWallet() {
               </div>
             ))}
           </div>
-          <div className="mt-4 pt-4 border-t border-ink-100 dark:border-gray-700">
+          <div className="mt-4 pt-4 border-t border-border">
             <Link to="/referrals" className="text-sm text-brand-600 font-medium hover:underline">
               {t('points.viewReferralLink')}
             </Link>
@@ -140,16 +140,16 @@ export default function PointsWallet() {
       </Card>
 
       {/* Buy points */}
-      <h2 className="font-display text-base font-semibold mb-3 dark:text-white">{t('points.buyTitle')}</h2>
+      <h2 className="font-display text-base font-semibold mb-3 dark:text-fg">{t('points.buyTitle')}</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
         {packages.map((pkg) => (
           <Card key={pkg.id} className="relative overflow-hidden">
             <CardBody>
-              <div className="text-lg font-bold text-ink-900 dark:text-white mb-0.5">{pkg.name}</div>
+              <div className="text-lg font-bold text-fg mb-0.5">{pkg.name}</div>
               <div className="text-3xl font-display font-bold text-brand-700 mb-1">
-                {pkg.points} <span className="text-base font-normal text-ink-500 dark:text-gray-400">{t('points.balance').toLowerCase()}</span>
+                {pkg.points} <span className="text-base font-normal text-fg-muted">{t('points.balance').toLowerCase()}</span>
               </div>
-              <div className="text-sm text-ink-500 dark:text-gray-400 mb-4">{t('points.costSuffix', { rm: pkg.price_rm.toFixed(2) })}</div>
+              <div className="text-sm text-fg-muted mb-4">{t('points.costSuffix', { rm: pkg.price_rm.toFixed(2) })}</div>
               <Button
                 onClick={() => void buyPackage(pkg)}
                 loading={buyingId === pkg.id}
@@ -162,20 +162,20 @@ export default function PointsWallet() {
           </Card>
         ))}
         {packages.length === 0 && (
-          <div className="col-span-2 text-sm text-ink-500 dark:text-gray-400">{t('common.comingSoon')}</div>
+          <div className="col-span-2 text-sm text-fg-muted">{t('common.comingSoon')}</div>
         )}
       </div>
       {buyErr && <div className="mb-4"><Alert tone="red">{buyErr}</Alert></div>}
 
       {/* Ledger */}
-      <h2 className="font-display text-base font-semibold mb-3 dark:text-white">{t('points.history')}</h2>
+      <h2 className="font-display text-base font-semibold mb-3 dark:text-fg">{t('points.history')}</h2>
       <Card>
         <CardBody className="p-0">
           {ledger.length === 0 ? (
             <EmptyState title={t('points.noTransactions')} description={t('points.noTransactionsHint')} />
           ) : (
             <table className="w-full text-sm">
-              <thead className="text-left text-xs text-ink-500 dark:text-gray-400 bg-ink-50 dark:bg-gray-800">
+              <thead className="text-left text-xs text-fg-muted bg-ink-50 dark:bg-surface">
                 <tr>
                   <th className="p-3">{t('common.submit')}</th>
                   <th className="p-3 text-right">{t('points.balance')}</th>
@@ -184,7 +184,7 @@ export default function PointsWallet() {
               </thead>
               <tbody>
                 {ledger.map((row) => (
-                  <tr key={row.id} className="border-t border-ink-100 dark:border-gray-700">
+                  <tr key={row.id} className="border-t border-border">
                     <td className="p-3 text-ink-800 dark:text-gray-300">
                       {REASON_LABEL[row.reason] ?? row.reason}
                     </td>
@@ -193,7 +193,7 @@ export default function PointsWallet() {
                         {row.delta >= 0 ? '+' : ''}{row.delta}
                       </Badge>
                     </td>
-                    <td className="p-3 text-right text-ink-500 dark:text-gray-400 hidden sm:table-cell">
+                    <td className="p-3 text-right text-fg-muted hidden sm:table-cell">
                       {new Date(row.created_at).toLocaleDateString('en-MY')}
                     </td>
                   </tr>
@@ -208,7 +208,7 @@ export default function PointsWallet() {
         <button
           type="button"
           onClick={() => void refresh()}
-          className="text-xs text-ink-400 dark:text-gray-400 hover:text-ink-600 dark:hover:text-gray-300"
+          className="text-xs text-ink-400 dark:text-fg-muted hover:text-ink-600 dark:hover:text-gray-300"
         >
           {t('points.refresh')}
         </button>

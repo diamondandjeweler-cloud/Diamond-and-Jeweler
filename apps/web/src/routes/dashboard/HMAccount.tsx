@@ -40,8 +40,8 @@ export default function HMAccount() {
       <div className="space-y-6">
         <div className="space-y-4">
           <div>
-            <p className="block text-sm font-medium text-ink-500 dark:text-gray-400 mb-1">{t('hmAccount.emailLabel', 'Email address')}</p>
-            <p className="text-sm text-ink-900 dark:text-white px-3 py-2 bg-ink-50 dark:bg-gray-800 border border-ink-200 dark:border-gray-700 rounded-lg">
+            <p className="block text-sm font-medium text-fg-muted mb-1">{t('hmAccount.emailLabel', 'Email address')}</p>
+            <p className="text-sm text-fg px-3 py-2 bg-ink-50 dark:bg-surface border border-border rounded-lg">
               {session?.user.email}
             </p>
           </div>
@@ -59,9 +59,9 @@ export default function HMAccount() {
           {t('hmAccount.saveButton', 'Save changes')}
         </Button>
 
-        <div className="border-t border-ink-200 dark:border-gray-700 pt-4">
+        <div className="border-t border-border pt-4">
           <h2 className="text-sm font-semibold text-ink-700 dark:text-gray-300 mb-2">{t('hmAccount.passwordHeading', 'Password')}</h2>
-          <p className="text-sm text-ink-500 dark:text-gray-400 mb-3">
+          <p className="text-sm text-fg-muted mb-3">
             {t('hmAccount.passwordHelp', 'Request a password reset link to be sent to your email address.')}
           </p>
           <Link to="/password-reset" className="text-sm text-brand-600 hover:text-brand-700 underline">

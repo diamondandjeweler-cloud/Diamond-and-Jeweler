@@ -56,10 +56,10 @@ function SchedulingSectionImpl({
               <Card key={s.interview_id}>
                 <div className="p-5 flex flex-wrap items-center justify-between gap-4">
                   <div>
-                    <h3 className="font-display text-lg text-ink-900 dark:text-white">
+                    <h3 className="font-display text-lg text-fg">
                       {s.role_title}
                     </h3>
-                    <div className="text-xs text-ink-500 dark:text-gray-400 mt-0.5">
+                    <div className="text-xs text-fg-muted mt-0.5">
                       {t('hrDash.candidate')} ·{' '}
                       {s.scheduled_at
                         ? new Date(s.scheduled_at).toLocaleString('en-MY', {
@@ -153,10 +153,10 @@ function SchedulingSectionImpl({
                   <div className="p-5">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <h3 className="font-display text-lg text-ink-900 dark:text-white">
+                        <h3 className="font-display text-lg text-fg">
                           {p.roles?.title}
                         </h3>
-                        <div className="text-xs text-ink-500 dark:text-gray-400 mt-0.5 flex items-center gap-2">
+                        <div className="text-xs text-fg-muted mt-0.5 flex items-center gap-2">
                           <span>{t('hrDash.candidate')}</span>
                           <Badge tone="green">
                             {t('hrDash.percentMatch', {
@@ -172,7 +172,7 @@ function SchedulingSectionImpl({
                       )}
                     </div>
                     {schedulingId === p.id && (
-                      <div className="mt-5 grid md:grid-cols-3 gap-3 pt-5 border-t border-ink-100 dark:border-gray-700">
+                      <div className="mt-5 grid md:grid-cols-3 gap-3 pt-5 border-t border-ink-100 dark:border-border">
                         <Input
                           label={t('hrDash.dateTimeLabel')}
                           type="datetime-local"

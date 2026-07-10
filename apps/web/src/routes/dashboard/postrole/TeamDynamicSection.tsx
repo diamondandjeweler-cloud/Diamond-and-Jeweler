@@ -42,7 +42,7 @@ function TeamDynamicSection({ teamSize, setTeamSize, teamMembers, setTeamMembers
       {teamMembers.length > 0 && (
         <div className="space-y-3 mt-3">
           {teamMembers.map((m, idx) => (
-            <div key={idx} className="grid grid-cols-1 md:grid-cols-2 gap-3 border border-ink-100 dark:border-gray-700 rounded-lg p-3">
+            <div key={idx} className="grid grid-cols-1 md:grid-cols-2 gap-3 border border-ink-100 dark:border-border rounded-lg p-3">
               <Input
                 label={`Colleague ${idx + 1} year of birth`}
                 type="number"

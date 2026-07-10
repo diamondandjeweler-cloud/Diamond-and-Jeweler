@@ -51,7 +51,7 @@ export default function WaitlistPanel() {
         {(items) => (
           <table className="w-full text-sm dark:text-gray-300">
             <thead>
-              <tr className="text-left text-gray-600 dark:text-gray-400 border-b dark:border-gray-700">
+              <tr className="text-left text-fg-muted border-b dark:border-border">
                 <th className="py-2">Email</th>
                 <th>Name</th>
                 <th>Role</th>
@@ -61,7 +61,7 @@ export default function WaitlistPanel() {
             </thead>
             <tbody>
               {items.map((r) => (
-                <tr key={r.id} className="border-b dark:border-gray-700 last:border-0">
+                <tr key={r.id} className="border-b dark:border-border last:border-0">
                   <td className="py-2">{r.email}</td>
                   <td>{r.full_name ?? '—'}</td>
                   <td>{r.intended_role ?? '—'}</td>

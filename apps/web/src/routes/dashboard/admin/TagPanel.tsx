@@ -52,13 +52,13 @@ export default function TagPanel() {
           value={newTag}
           onChange={(e) => setNewTag(e.target.value)}
           placeholder="new_tag_name"
-          className="border dark:border-gray-700 rounded px-3 py-2 text-sm"
+          className="border dark:border-border rounded px-3 py-2 text-sm"
           aria-label="New tag name"
         />
         <select
           value={newCat}
           onChange={(e) => setNewCat(e.target.value as typeof newCat)}
-          className="border dark:border-gray-700 rounded px-3 py-2 text-sm"
+          className="border dark:border-border rounded px-3 py-2 text-sm"
           aria-label="New tag category"
         >
           <option value="boss_expectation">boss_expectation</option>
@@ -77,15 +77,15 @@ export default function TagPanel() {
           <button
             key={r.id}
             onClick={() => void toggleActive(r)}
-            className={`text-xs px-2 py-1 rounded border dark:border-gray-700 ${
+            className={`text-xs px-2 py-1 rounded border dark:border-border ${
               r.is_active
-                ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
-                : 'bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-500 line-through'
+                ? 'bg-surface-2 text-gray-800 dark:text-fg'
+                : 'bg-surface text-fg-subtle line-through'
             }`}
             title={`Click to ${r.is_active ? 'deactivate' : 'reactivate'}`}
           >
             {r.tag_name}
-            <span className="text-gray-400 dark:text-gray-500 ml-1">({r.category})</span>
+            <span className="text-fg-subtle ml-1">({r.category})</span>
           </button>
         ))}
       </div>

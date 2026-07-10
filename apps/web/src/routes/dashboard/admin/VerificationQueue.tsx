@@ -57,11 +57,11 @@ export default function VerificationQueue() {
             {items.map((c) => (
               <div
                 key={c.id}
-                className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded p-4 flex justify-between items-center"
+                className="bg-surface border dark:border-border rounded p-4 flex justify-between items-center"
               >
                 <div>
-                  <div className="font-semibold dark:text-white">{c.name}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                  <div className="font-semibold dark:text-fg">{c.name}</div>
+                  <div className="text-xs text-fg-muted">
                     Company ID: {c.registration_number} · HR: {c.primary_hr_email}
                   </div>
                 </div>
@@ -69,7 +69,7 @@ export default function VerificationQueue() {
                   {c.business_license_path && (
                     <button
                       onClick={() => void viewLicense(c.business_license_path!)}
-                      className="border dark:border-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300"
+                      className="border dark:border-border px-3 py-1 rounded text-sm hover:bg-surface-2 dark:text-gray-300"
                     >
                       View license
                     </button>

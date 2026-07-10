@@ -48,18 +48,18 @@ function DobStepImpl({
       <input
         type="date" value={dob} onChange={(e) => { setDob(e.target.value); setDobSkipped(false) }}
         max={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 18); return d.toISOString().slice(0, 10) })()}
-        className="w-full border border-ink-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+        className="w-full border border-border dark:bg-surface dark:text-fg rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
       />
       <div className="space-y-1">
         <p className="text-sm text-ink-600 dark:text-gray-300">{t('hmOnboard.genderLabel')}</p>
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button" onClick={() => { setGender('male'); setDobSkipped(false) }}
-            className={`border rounded-lg px-3 py-2 text-sm ${gender === 'male' ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 dark:border-gray-700 text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-gray-800'}`}
+            className={`border rounded-lg px-3 py-2 text-sm ${gender === 'male' ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-surface'}`}
           >{t('hmOnboard.genderMale')}</button>
           <button
             type="button" onClick={() => { setGender('female'); setDobSkipped(false) }}
-            className={`border rounded-lg px-3 py-2 text-sm ${gender === 'female' ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 dark:border-gray-700 text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-gray-800'}`}
+            className={`border rounded-lg px-3 py-2 text-sm ${gender === 'female' ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-surface'}`}
           >{t('hmOnboard.genderFemale')}</button>
         </div>
       </div>
@@ -75,11 +75,11 @@ function DobStepImpl({
         className="w-full" size="lg"
       >{t('hmOnboard.reviewAndConfirm')}</Button>
 
-      <div className="pt-3 border-t border-ink-100 dark:border-gray-700">
+      <div className="pt-3 border-t border-border">
         {!dobSkipPrompt ? (
           <button
             type="button" onClick={() => setDobSkipPrompt(true)}
-            className="text-xs text-ink-400 dark:text-gray-400 hover:text-ink-600 dark:hover:text-gray-300 underline"
+            className="text-xs text-ink-400 dark:text-fg-muted hover:text-ink-600 dark:hover:text-gray-300 underline"
           >{t('hmOnboard.preferNotToShare')}</button>
         ) : (
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">

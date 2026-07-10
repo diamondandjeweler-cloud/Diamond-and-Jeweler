@@ -51,7 +51,7 @@ export function Field({
         </label>
       )}
       {isValidElement(children) ? cloneElement(children as ReactElement, a11yProps) : children}
-      {error ? <p id={errId} className="field-error" role="alert">{error}</p> : hint ? <p id={hintId} className="field-hint dark:text-gray-400">{hint}</p> : null}
+      {error ? <p id={errId} className="field-error" role="alert">{error}</p> : hint ? <p id={hintId} className="field-hint dark:text-fg-muted">{hint}</p> : null}
     </div>
   )
 }
@@ -116,12 +116,12 @@ export const PasswordInput = forwardRef<HTMLInputElement, Omit<InputHTMLAttribut
             tabIndex={-1}
             aria-label={show ? 'Hide password' : 'Show password'}
             onClick={() => setShow((s) => !s)}
-            className="absolute inset-y-0 right-0 flex items-center pr-3 text-ink-400 dark:text-gray-500 hover:text-ink-600 dark:hover:text-gray-300"
+            className="absolute inset-y-0 right-0 flex items-center pr-3 text-fg-subtle hover:text-ink-600 dark:hover:text-gray-300"
           >
             {show ? <EyeOffIcon /> : <EyeIcon />}
           </button>
         </div>
-        {error ? <p id={errId} className="field-error" role="alert">{error}</p> : hint ? <p id={hintId} className="field-hint dark:text-gray-400">{hint}</p> : null}
+        {error ? <p id={errId} className="field-error" role="alert">{error}</p> : hint ? <p id={hintId} className="field-hint dark:text-fg-muted">{hint}</p> : null}
       </div>
     )
   },
@@ -158,11 +158,11 @@ export function EmptyState({
 }) {
   return (
     <div className="text-center py-14 px-6">
-      <div className="mx-auto mb-4 h-12 w-12 flex items-center justify-center rounded-full bg-ink-100 dark:bg-gray-700 text-ink-400 dark:text-gray-400">
+      <div className="mx-auto mb-4 h-12 w-12 flex items-center justify-center rounded-full bg-surface-2 text-ink-400 dark:text-fg-muted">
         {icon ?? <DefaultEmptyIcon />}
       </div>
-      <h3 className="font-display text-lg text-ink-900 dark:text-white mb-1">{title}</h3>
-      {description && <p className="text-sm text-ink-500 dark:text-gray-400 mb-4 max-w-sm mx-auto">{description}</p>}
+      <h3 className="font-display text-lg text-fg mb-1">{title}</h3>
+      {description && <p className="text-sm text-fg-muted mb-4 max-w-sm mx-auto">{description}</p>}
       {action}
     </div>
   )
@@ -191,8 +191,8 @@ export function PageHeader({
     <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8">
       <div className="min-w-0">
         {eyebrow && <div className="eyebrow mb-2">{eyebrow}</div>}
-        <h1 className="font-display text-display-sm text-ink-900 dark:text-white mb-1.5 leading-tight">{title}</h1>
-        {description && <p className="text-ink-500 dark:text-gray-400 text-sm md:text-[15px] max-w-2xl">{description}</p>}
+        <h1 className="font-display text-display-sm text-fg mb-1.5 leading-tight">{title}</h1>
+        {description && <p className="text-fg-muted text-sm md:text-[15px] max-w-2xl">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
     </div>
@@ -212,7 +212,7 @@ export function SectionTitle({
     <div className="flex items-center justify-between gap-4 mb-4">
       <div>
         {eyebrow && <div className="eyebrow mb-1">{eyebrow}</div>}
-        <h2 className="font-display text-xl text-ink-900 dark:text-white">{title}</h2>
+        <h2 className="font-display text-xl text-fg">{title}</h2>
       </div>
       {action}
     </div>

@@ -14,34 +14,34 @@ function EmployerReputationPanelImpl({ reputation }: { reputation: HmReputation 
       <div className="p-4">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500 dark:text-gray-400 mb-0.5">{t('hmDash.reputationTitle')}</p>
-            <p className="text-xs text-ink-400 dark:text-gray-400">{t('hmDash.reputationBasedOn', { count: reputation.feedback_volume })}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-fg-muted mb-0.5">{t('hmDash.reputationTitle')}</p>
+            <p className="text-xs text-ink-400 dark:text-fg-muted">{t('hmDash.reputationBasedOn', { count: reputation.feedback_volume })}</p>
           </div>
           {score != null && <Badge tone={scoreTone as 'gray' | 'green' | 'amber' | 'brand' | 'accent' | 'red'}>{t('hmDash.scoreOutOf100', { score: Math.round(score) })}</Badge>}
         </div>
         <div className="flex gap-6 flex-wrap">
           {qf != null && (
             <div>
-              <p className="text-xs text-ink-500 dark:text-gray-400">{t('hmDash.reliabilityScore')}</p>
+              <p className="text-xs text-fg-muted">{t('hmDash.reliabilityScore')}</p>
               <div className="flex items-center gap-1.5">
-                <p className="text-sm font-semibold text-ink-900 dark:text-white">{t('hmDash.scoreOutOf100', { score: (qf * 100).toFixed(0) })}</p>
+                <p className="text-sm font-semibold text-fg">{t('hmDash.scoreOutOf100', { score: (qf * 100).toFixed(0) })}</p>
                 <Badge tone={qfTone as 'gray' | 'green' | 'amber' | 'brand' | 'accent' | 'red'} className="text-xs">
                   {qf >= 0.90 ? t('hmDash.reliabilityExcellent') : qf >= 0.80 ? t('hmDash.reliabilityGood') : t('hmDash.reliabilityNeedsAttention')}
                 </Badge>
               </div>
-              <p className="text-xs text-ink-400 dark:text-gray-400 mt-0.5">{t('hmDash.reliabilityFactors')}</p>
+              <p className="text-xs text-ink-400 dark:text-fg-muted mt-0.5">{t('hmDash.reliabilityFactors')}</p>
             </div>
           )}
           {reputation.hm_cancel_rate != null && (
             <div>
-              <p className="text-xs text-ink-500 dark:text-gray-400">{t('hmDash.cancelRate')}</p>
-              <p className="text-sm font-semibold text-ink-900 dark:text-white">{Math.round(reputation.hm_cancel_rate * 100)}%</p>
+              <p className="text-xs text-fg-muted">{t('hmDash.cancelRate')}</p>
+              <p className="text-sm font-semibold text-fg">{Math.round(reputation.hm_cancel_rate * 100)}%</p>
             </div>
           )}
           {reputation.phs_offer_accept_rate != null && (
             <div>
-              <p className="text-xs text-ink-500 dark:text-gray-400">{t('hmDash.offerAcceptRate')}</p>
-              <p className="text-sm font-semibold text-ink-900 dark:text-white">{Math.round(reputation.phs_offer_accept_rate * 100)}%</p>
+              <p className="text-xs text-fg-muted">{t('hmDash.offerAcceptRate')}</p>
+              <p className="text-sm font-semibold text-fg">{Math.round(reputation.phs_offer_accept_rate * 100)}%</p>
             </div>
           )}
         </div>

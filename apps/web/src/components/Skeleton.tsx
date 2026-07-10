@@ -52,7 +52,7 @@ export function SkeletonCard({ className = '' }: { className?: string }) {
       role="status"
       aria-busy="true"
       aria-label="Loading"
-      className={`bg-white dark:bg-zinc-800 border border-ink-200 dark:border-zinc-700 rounded-xl2 shadow-soft p-6 ${className}`}
+      className={`bg-surface border border-border rounded-xl2 shadow-soft p-6 ${className}`}
     >
       <div className="flex justify-between items-start mb-4 gap-3">
         <div className="flex-1 space-y-2">

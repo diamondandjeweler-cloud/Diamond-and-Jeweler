@@ -221,7 +221,7 @@ export default function Landing() {
   if (!loading && session && profile) return <Navigate to="/home" replace />
 
   return (
-    <div className="bg-white dark:bg-navy-900 text-navy-900 dark:text-white font-sans">
+    <div className="bg-white dark:bg-navy-900 text-navy-900 dark:text-fg font-sans">
       {/* ─── First screen ─── */}
       <div className="relative min-h-screen flex flex-col overflow-hidden">
         <a
@@ -252,7 +252,7 @@ export default function Landing() {
 
           <div className="flex items-center gap-3">
             <DarkModeToggle />
-            <div className="inline-flex items-center gap-2 border border-gray-300 dark:border-gray-600 px-3.5 py-1.5 rounded-full text-xs text-gray-700 dark:text-gray-300 bg-white dark:bg-navy-800 shadow-sm">
+            <div className="inline-flex items-center gap-2 border border-border-strong px-3.5 py-1.5 rounded-full text-xs text-gray-700 dark:text-gray-300 bg-white dark:bg-navy-800 shadow-sm">
               <span className="h-1.5 w-1.5 rounded-full bg-gold-500" />
               {t('landing.pilot')}
             </div>

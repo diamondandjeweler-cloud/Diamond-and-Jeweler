@@ -57,16 +57,16 @@ export default function Pricing() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-navy-900 text-navy-900 dark:text-white font-sans">
-      <header className="border-b border-gray-100 dark:border-gray-700 dark:bg-navy-800">
+      <header className="border-b border-border dark:bg-navy-800">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2" aria-label={t('pricing.homeAria')}>
             <span className="font-extrabold tracking-tight text-[20px]">DNJ</span>
-            <span className="text-[10px] tracking-[0.22em] text-gray-500 dark:text-gray-400">DIAMOND &amp; JEWELER</span>
+            <span className="text-[10px] tracking-[0.22em] text-fg-muted">DIAMOND &amp; JEWELER</span>
           </Link>
           <nav className="flex items-center gap-5 text-sm" aria-label={t('pricing.navAria')}>
-            <Link to="/careers" className="text-gray-600 dark:text-gray-400 hover:text-navy-900 dark:hover:text-white">{t('pricing.navJobs')}</Link>
-            <Link to="/about" className="text-gray-600 dark:text-gray-400 hover:text-navy-900 dark:hover:text-white">{t('pricing.navAbout')}</Link>
-            <Link to="/careers/urgent-hiring-malaysia-2026" className="text-gray-600 dark:text-gray-400 hover:text-navy-900 dark:hover:text-white">{t('pricing.navBlog')}</Link>
+            <Link to="/careers" className="text-fg-muted hover:text-navy-900 dark:hover:text-white">{t('pricing.navJobs')}</Link>
+            <Link to="/about" className="text-fg-muted hover:text-navy-900 dark:hover:text-white">{t('pricing.navAbout')}</Link>
+            <Link to="/careers/urgent-hiring-malaysia-2026" className="text-fg-muted hover:text-navy-900 dark:hover:text-white">{t('pricing.navBlog')}</Link>
             <Link to="/start/talent" className="text-navy-700 dark:text-midnight-400 font-semibold underline underline-offset-4">
               {t('pricing.navApply')}
             </Link>
@@ -75,7 +75,7 @@ export default function Pricing() {
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-10">
-        <nav aria-label={t('pricing.breadcrumbAria')} className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+        <nav aria-label={t('pricing.breadcrumbAria')} className="text-xs text-fg-muted mb-4">
           <Link to="/" className="hover:text-navy-900 dark:hover:text-white">{t('pricing.breadcrumbHome')}</Link>
           <span className="mx-2">/</span>
           <span aria-current="page" className="text-gray-700 dark:text-gray-300">{t('pricing.breadcrumbCurrent')}</span>
@@ -87,7 +87,7 @@ export default function Pricing() {
           <h1 className="text-3xl md:text-5xl font-bold tracking-tight mb-3">
             {t('pricing.heroTitle')}
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 max-w-xl mx-auto text-sm leading-relaxed">
+          <p className="text-fg-muted max-w-xl mx-auto text-sm leading-relaxed">
             {t('pricing.heroSubtitle')}
           </p>
         </section>
@@ -100,9 +100,9 @@ export default function Pricing() {
             <p className="text-[11px] font-bold tracking-[0.2em] text-gray-400 uppercase mb-2">{t('pricing.talentLabel')}</p>
             <div className="flex items-end gap-2 mb-1">
               <span className="text-4xl font-extrabold tracking-tight text-navy-900 dark:text-white">{t('pricing.talentPrice')}</span>
-              <span className="text-sm text-gray-500 dark:text-gray-400 mb-1">{t('pricing.talentPriceSuffix')}</span>
+              <span className="text-sm text-fg-muted mb-1">{t('pricing.talentPriceSuffix')}</span>
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
+            <p className="text-sm text-fg-muted mb-6 leading-relaxed">
               {t('pricing.talentBody')}
             </p>
             <ul className="space-y-2.5 flex-1 mb-8">
@@ -165,7 +165,7 @@ export default function Pricing() {
             {[1, 2, 3, 4].map((n) => (
               <li key={n}>
                 <div className="font-semibold text-navy-900 dark:text-white text-sm leading-snug whitespace-pre-line">{t(`pricing.trust${n}Title`)}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t(`pricing.trust${n}Sub`)}</div>
+                <div className="text-xs text-fg-muted mt-0.5">{t(`pricing.trust${n}Sub`)}</div>
               </li>
             ))}
           </ul>
@@ -176,7 +176,7 @@ export default function Pricing() {
           <h2 className="text-xl md:text-2xl font-bold mb-6">{t('pricing.faqTitle')}</h2>
           <div className="space-y-3">
             {FAQS.map((_, i) => (
-              <details key={i} className="group rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+              <details key={i} className="group rounded-lg border border-border p-4">
                 <summary className="cursor-pointer font-semibold text-navy-900 dark:text-white list-none flex items-center justify-between">
                   <span>{t(`pricing.faq${i + 1}q`)}</span>
                   <span className="text-gray-400 group-open:rotate-45 transition-transform">+</span>
@@ -213,7 +213,7 @@ export default function Pricing() {
         </section>
       </main>
 
-      <footer className="border-t border-gray-100 dark:border-gray-700 mt-10 py-6 text-center text-xs text-gray-500 dark:text-gray-400 dark:bg-navy-800">
+      <footer className="border-t border-border mt-10 py-6 text-center text-xs text-fg-muted dark:bg-navy-800">
         <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5">
           <Link to="/" className="hover:text-navy-900 dark:hover:text-white">{t('pricing.footerHome')}</Link>
           <span aria-hidden>·</span>

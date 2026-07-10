@@ -110,12 +110,12 @@ export default function AuditLogPanel() {
 
       <div className="flex flex-wrap gap-3 mb-4 items-end">
         <div>
-          <label htmlFor="audit-action" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Action</label>
+          <label htmlFor="audit-action" className="block text-xs text-fg-muted mb-1">Action</label>
           <select
             id="audit-action"
             value={actionFilter}
             onChange={(e) => { setActionFilter(e.target.value); setPage(0) }}
-            className="border dark:border-gray-700 rounded px-2 py-1 text-sm min-w-[200px]"
+            className="border dark:border-border rounded px-2 py-1 text-sm min-w-[200px]"
           >
             <option value="">All actions</option>
             {ACTION_GROUPS.map((g) => (
@@ -126,7 +126,7 @@ export default function AuditLogPanel() {
           </select>
         </div>
         <div className="flex-1 min-w-[240px]">
-          <label htmlFor="audit-actor" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+          <label htmlFor="audit-actor" className="block text-xs text-fg-muted mb-1">
             Actor or subject UUID
           </label>
           <div className="flex gap-1">
@@ -137,7 +137,7 @@ export default function AuditLogPanel() {
               onChange={(e) => setActorSearch(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') commitSearch(actorSearch) }}
               placeholder="Paste a user UUID and press Enter"
-              className="flex-1 border dark:border-gray-700 rounded px-2 py-1 text-sm font-mono"
+              className="flex-1 border dark:border-border rounded px-2 py-1 text-sm font-mono"
             />
             <button
               onClick={() => commitSearch(actorSearch)}
@@ -148,7 +148,7 @@ export default function AuditLogPanel() {
             {actorSearch && (
               <button
                 onClick={() => { setActorSearch(''); commitSearch('') }}
-                className="text-sm border dark:border-gray-700 px-3 py-1 rounded hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-300"
+                className="text-sm border dark:border-border px-3 py-1 rounded hover:bg-gray-50 dark:hover:bg-surface dark:text-gray-300"
               >
                 Clear
               </button>
@@ -161,11 +161,11 @@ export default function AuditLogPanel() {
       {loading ? (
         <ListSkeleton rows={5} variant="row" />
       ) : rows.length === 0 ? (
-        <p className="text-sm text-gray-500 dark:text-gray-400">No events match this view.</p>
+        <p className="text-sm text-fg-muted">No events match this view.</p>
       ) : (
-        <div className="overflow-x-auto border dark:border-gray-700 rounded">
+        <div className="overflow-x-auto border dark:border-border rounded">
           <table className="w-full text-xs dark:text-gray-300">
-            <thead className="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+            <thead className="bg-gray-50 dark:bg-surface text-fg-muted">
               <tr>
                 <th className="text-left px-2 py-1.5">When (MYT)</th>
                 <th className="text-left px-2 py-1.5">Action</th>
@@ -177,23 +177,23 @@ export default function AuditLogPanel() {
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.id} className="border-t dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+                <tr key={r.id} className="border-t dark:border-border hover:bg-gray-50 dark:hover:bg-surface">
                   <td className="px-2 py-1.5 whitespace-nowrap">
                     {new Date(r.created_at).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur', hour12: false })}
                   </td>
                   <td className="px-2 py-1.5 font-mono">{r.action}</td>
                   <td className="px-2 py-1.5 font-mono">
-                    {r.actor_id ? <span title={r.actor_id}>{r.actor_id.slice(0, 8)}</span> : <span className="text-gray-400 dark:text-gray-500">—</span>}
-                    {r.actor_role && <span className="ml-1 text-gray-500 dark:text-gray-400">({r.actor_role})</span>}
+                    {r.actor_id ? <span title={r.actor_id}>{r.actor_id.slice(0, 8)}</span> : <span className="text-fg-subtle">—</span>}
+                    {r.actor_role && <span className="ml-1 text-fg-muted">({r.actor_role})</span>}
                   </td>
                   <td className="px-2 py-1.5 font-mono">
-                    {r.subject_id ? <span title={r.subject_id}>{r.subject_id.slice(0, 8)}</span> : <span className="text-gray-400 dark:text-gray-500">—</span>}
+                    {r.subject_id ? <span title={r.subject_id}>{r.subject_id.slice(0, 8)}</span> : <span className="text-fg-subtle">—</span>}
                   </td>
                   <td className="px-2 py-1.5">
-                    {r.resource_type && <span className="text-gray-600 dark:text-gray-400">{r.resource_type}</span>}
-                    {r.resource_id && <span className="ml-1 font-mono text-gray-500 dark:text-gray-400" title={r.resource_id}>{r.resource_id.slice(0, 12)}</span>}
+                    {r.resource_type && <span className="text-fg-muted">{r.resource_type}</span>}
+                    {r.resource_id && <span className="ml-1 font-mono text-fg-muted" title={r.resource_id}>{r.resource_id.slice(0, 12)}</span>}
                   </td>
-                  <td className="px-2 py-1.5 font-mono text-gray-600 dark:text-gray-400 max-w-md truncate" title={JSON.stringify(r.metadata)}>
+                  <td className="px-2 py-1.5 font-mono text-fg-muted max-w-md truncate" title={JSON.stringify(r.metadata)}>
                     {Object.keys(r.metadata ?? {}).length > 0 ? JSON.stringify(r.metadata) : ''}
                   </td>
                 </tr>
@@ -204,21 +204,21 @@ export default function AuditLogPanel() {
       )}
 
       <div className="flex justify-between items-center mt-3">
-        <span className="text-xs text-gray-500 dark:text-gray-400">
+        <span className="text-xs text-fg-muted">
           Page {page + 1} · {rows.length} row{rows.length === 1 ? '' : 's'}
         </span>
         <div className="flex gap-2">
           <button
             onClick={() => setPage((p) => Math.max(0, p - 1))}
             disabled={page === 0 || loading}
-            className="text-sm border dark:border-gray-700 px-3 py-1 rounded hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-300 disabled:opacity-40"
+            className="text-sm border dark:border-border px-3 py-1 rounded hover:bg-gray-50 dark:hover:bg-surface dark:text-gray-300 disabled:opacity-40"
           >
             ← Newer
           </button>
           <button
             onClick={() => setPage((p) => p + 1)}
             disabled={rows.length < PAGE_SIZE || loading}
-            className="text-sm border dark:border-gray-700 px-3 py-1 rounded hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-300 disabled:opacity-40"
+            className="text-sm border dark:border-border px-3 py-1 rounded hover:bg-gray-50 dark:hover:bg-surface dark:text-gray-300 disabled:opacity-40"
           >
             Older →
           </button>

@@ -67,7 +67,7 @@ export default function KpiPanel() {
     <div>
       <div className="flex justify-between items-center mb-4">
         <p className="text-sm text-gray-600 dark:text-gray-300">Live platform metrics. All counts are exact, computed at load time.</p>
-        <button onClick={() => load()} className="border dark:border-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-300">
+        <button onClick={() => load()} className="border dark:border-border px-3 py-1 rounded text-sm hover:bg-gray-50 dark:hover:bg-surface dark:text-gray-300">
           Refresh
         </button>
       </div>
@@ -93,7 +93,7 @@ export default function KpiPanel() {
         <Stat label="Waitlist pending" value={kpis ? kpis.waitlist_pending : skel} highlight={(kpis?.waitlist_pending ?? 0) > 0} />
       </div>
 
-      <h3 className="font-semibold text-sm mb-3 dark:text-white">Rates</h3>
+      <h3 className="font-semibold text-sm mb-3 dark:text-fg">Rates</h3>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
         <Rate label="Match expiry rate"      value={expiry_rate} hint="expired / total matches" />
         <Rate label="Ghosting rate"          value={ghost_rate}  hint="ghost_score ≥ 3 / all users" />
@@ -101,7 +101,7 @@ export default function KpiPanel() {
               hint={kpis == null ? '…' : kpis.interview_hire_rate === null ? 'no interviews yet' : 'hired / (completed + hired)'} />
       </div>
 
-      <h3 className="font-semibold text-sm mb-3 dark:text-white">Latency</h3>
+      <h3 className="font-semibold text-sm mb-3 dark:text-fg">Latency</h3>
       <div className="grid grid-cols-1 gap-3 mb-6">
         <Stat
           label="Avg. time to first view (last 200 viewed matches)"
@@ -109,12 +109,12 @@ export default function KpiPanel() {
         />
       </div>
 
-      <h3 className="font-semibold text-sm mb-3 dark:text-white">Matches by status</h3>
-      <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded p-4">
+      <h3 className="font-semibold text-sm mb-3 dark:text-fg">Matches by status</h3>
+      <div className="bg-surface border dark:border-border rounded p-4">
         <table className="w-full text-sm">
           <tbody>
             {ADMIN_TRACKED_STATUSES.map((s) => (
-              <tr key={s} className="border-b dark:border-gray-700 last:border-0">
+              <tr key={s} className="border-b dark:border-border last:border-0">
                 <td className="py-1.5 capitalize text-gray-700 dark:text-gray-300">{s.replace(/_/g, ' ')}</td>
                 <td className="py-1.5 text-right font-mono dark:text-gray-300">{kpis ? kpis.by_status[s] : <Skeleton width={32} height={12} rounded="sm" />}</td>
               </tr>
@@ -130,9 +130,9 @@ function Stat({
   label, value, highlight,
 }: { label: string; value: React.ReactNode; highlight?: boolean }) {
   return (
-    <div className={`bg-white dark:bg-gray-800 border dark:border-gray-700 rounded p-3 ${highlight ? 'border-amber-300' : ''}`}>
-      <div className="text-xs text-gray-500 dark:text-gray-400">{label}</div>
-      <div className={`text-2xl font-semibold ${highlight ? 'text-amber-700 dark:text-amber-500' : 'dark:text-white'}`}>{value}</div>
+    <div className={`bg-surface border dark:border-border rounded p-3 ${highlight ? 'border-amber-300' : ''}`}>
+      <div className="text-xs text-fg-muted">{label}</div>
+      <div className={`text-2xl font-semibold ${highlight ? 'text-amber-700 dark:text-amber-500' : 'dark:text-fg'}`}>{value}</div>
     </div>
   )
 }
@@ -142,10 +142,10 @@ function Rate({ label, value, hint }: { label: string; value: number | null; hin
     ? <Skeleton width={56} height={28} />
     : `${(value * 100).toFixed(1)}%`
   return (
-    <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded p-3">
-      <div className="text-xs text-gray-500 dark:text-gray-400">{label}</div>
-      <div className="text-2xl font-semibold dark:text-white">{pct}</div>
-      <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">{hint}</div>
+    <div className="bg-surface border dark:border-border rounded p-3">
+      <div className="text-xs text-fg-muted">{label}</div>
+      <div className="text-2xl font-semibold dark:text-fg">{pct}</div>
+      <div className="text-xs text-fg-subtle mt-1">{hint}</div>
     </div>
   )
 }

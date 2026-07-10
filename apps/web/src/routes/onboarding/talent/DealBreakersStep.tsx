@@ -66,30 +66,30 @@ function DealBreakersStepImpl({
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-ink-600 dark:text-gray-300 leading-relaxed">
+      <p className="text-sm text-fg-muted leading-relaxed">
         {t('talentOnboard.dealBreakersIntroLead')} <strong>{t('talentOnboard.dealBreakersIntroBold')}</strong> {t('talentOnboard.dealBreakersIntroTail')}
       </p>
 
       {/* Quick structured toggles — machine-verified hard filters */}
       <div className="space-y-2">
-        <p className="text-xs font-semibold text-ink-500 dark:text-gray-400 uppercase tracking-wide">{t('talentOnboard.quickFiltersHeader')}</p>
-        <label className="flex items-center gap-3 border border-ink-200 dark:border-gray-700 rounded-lg px-3 py-2.5 cursor-pointer hover:bg-ink-50 dark:hover:bg-gray-800 transition-colors">
+        <p className="text-xs font-semibold text-fg-muted uppercase tracking-wide">{t('talentOnboard.quickFiltersHeader')}</p>
+        <label className="flex items-center gap-3 border border-border rounded-lg px-3 py-2.5 cursor-pointer hover:bg-ink-50 dark:hover:bg-surface transition-colors">
           <input
             type="checkbox"
             checked={noWeekendWork}
             onChange={(e) => setNoWeekendWork(e.target.checked)}
-            className="h-4 w-4 rounded border-ink-300 dark:border-gray-600 accent-brand-500"
+            className="h-4 w-4 rounded border-border-strong accent-brand-500"
           />
-          <span className="text-sm text-ink-800 dark:text-gray-300">{t('talentOnboard.dbNoWeekend')}</span>
+          <span className="text-sm text-fg">{t('talentOnboard.dbNoWeekend')}</span>
         </label>
-        <label className="flex items-center gap-3 border border-ink-200 dark:border-gray-700 rounded-lg px-3 py-2.5 cursor-pointer hover:bg-ink-50 dark:hover:bg-gray-800 transition-colors">
+        <label className="flex items-center gap-3 border border-border rounded-lg px-3 py-2.5 cursor-pointer hover:bg-ink-50 dark:hover:bg-surface transition-colors">
           <input
             type="checkbox"
             checked={noDrivingLicense}
             onChange={(e) => setNoDrivingLicense(e.target.checked)}
-            className="h-4 w-4 rounded border-ink-300 dark:border-gray-600 accent-brand-500"
+            className="h-4 w-4 rounded border-border-strong accent-brand-500"
           />
-          <span className="text-sm text-ink-800 dark:text-gray-300">{t('talentOnboard.dbNoLicence')}</span>
+          <span className="text-sm text-fg">{t('talentOnboard.dbNoLicence')}</span>
         </label>
         {[
           { state: noTravel,         setter: setNoTravel,         label: t('talentOnboard.dbNoTravel') },
@@ -100,18 +100,18 @@ function DealBreakersStepImpl({
           { state: noOvertime,       setter: setNoOvertime,       label: t('talentOnboard.dbNoOvertime') },
           { state: noCommissionOnly, setter: setNoCommissionOnly, label: t('talentOnboard.dbNoCommissionOnly') },
         ].map(({ state, setter, label }) => (
-          <label key={label} className="flex items-center gap-3 border border-ink-200 dark:border-gray-700 rounded-lg px-3 py-2.5 cursor-pointer hover:bg-ink-50 dark:hover:bg-gray-800 transition-colors">
+          <label key={label} className="flex items-center gap-3 border border-border rounded-lg px-3 py-2.5 cursor-pointer hover:bg-ink-50 dark:hover:bg-surface transition-colors">
             <input
               type="checkbox"
               checked={state}
               onChange={(e) => setter(e.target.checked)}
-              className="h-4 w-4 rounded border-ink-300 dark:border-gray-600 accent-brand-500"
+              className="h-4 w-4 rounded border-border-strong accent-brand-500"
             />
-            <span className="text-sm text-ink-800 dark:text-gray-300">{label}</span>
+            <span className="text-sm text-fg">{label}</span>
           </label>
         ))}
-        <div className="border border-ink-200 dark:border-gray-700 rounded-lg px-3 py-2.5">
-          <label htmlFor="talent-onboard-min-salary" className="block text-sm text-ink-800 dark:text-gray-300 mb-1.5">{t('talentOnboard.minSalaryLabel')}</label>
+        <div className="border border-border rounded-lg px-3 py-2.5">
+          <label htmlFor="talent-onboard-min-salary" className="block text-sm text-fg mb-1.5">{t('talentOnboard.minSalaryLabel')}</label>
           <div className="flex items-center gap-2">
             <input
               id="talent-onboard-min-salary"
@@ -121,13 +121,13 @@ function DealBreakersStepImpl({
               value={minSalaryHard ?? ''}
               onChange={(e) => setMinSalaryHard(e.target.value === '' ? null : Math.max(0, parseInt(e.target.value, 10) || 0))}
               placeholder={t('talentOnboard.minSalaryPlaceholder')}
-              className="flex-1 border border-ink-200 dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-white dark:placeholder-gray-500 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="flex-1 border border-border bg-surface dark:text-fg dark:placeholder-gray-500 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
             {minSalaryHard != null && (
               <button
                 type="button"
                 onClick={() => setMinSalaryHard(null)}
-                className="text-ink-400 dark:text-gray-400 hover:text-red-500 text-base leading-none"
+                className="text-ink-400 dark:text-fg-muted hover:text-red-500 text-base leading-none"
                 aria-label={t('talentOnboard.clear')}
               >×</button>
             )}
@@ -137,8 +137,8 @@ function DealBreakersStepImpl({
 
       {/* Free-text additional requirements */}
       <div>
-        <p className="text-xs font-semibold text-ink-500 dark:text-gray-400 uppercase tracking-wide mb-2">{t('talentOnboard.anythingElseHeader')}</p>
-        <p className="text-xs text-ink-400 dark:text-gray-400 mb-2">{t('talentOnboard.anythingElseHint')}</p>
+        <p className="text-xs font-semibold text-fg-muted uppercase tracking-wide mb-2">{t('talentOnboard.anythingElseHeader')}</p>
+        <p className="text-xs text-ink-400 dark:text-fg-muted mb-2">{t('talentOnboard.anythingElseHint')}</p>
         <div className="flex gap-2">
           <input
             type="text"
@@ -146,7 +146,7 @@ function DealBreakersStepImpl({
             onChange={(e) => setDealBreakerInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addItem() } }}
             placeholder={t('talentOnboard.requirementPlaceholder')}
-            className="flex-1 border border-ink-200 dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-white dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="flex-1 border border-border bg-surface dark:text-fg dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
           <button
             type="button"
@@ -163,13 +163,13 @@ function DealBreakersStepImpl({
       {dealBreakerItems.length > 0 && (
         <ul className="space-y-2">
           {dealBreakerItems.map((item) => (
-            <li key={item} className="flex items-start gap-2 bg-ink-50 dark:bg-gray-800 border border-ink-200 dark:border-gray-700 rounded-lg px-3 py-2">
+            <li key={item} className="flex items-start gap-2 bg-ink-50 dark:bg-surface border border-border rounded-lg px-3 py-2">
               <span className="h-1.5 w-1.5 rounded-full bg-red-400 shrink-0 mt-1.5" />
-              <span className="flex-1 text-sm text-ink-800 dark:text-gray-300">{item}</span>
+              <span className="flex-1 text-sm text-fg">{item}</span>
               <button
                 type="button"
                 onClick={() => setDealBreakerItems((prev) => prev.filter((i) => i !== item))}
-                className="text-ink-400 dark:text-gray-400 hover:text-red-500 transition-colors shrink-0 text-base leading-none"
+                className="text-ink-400 dark:text-fg-muted hover:text-red-500 transition-colors shrink-0 text-base leading-none"
                 aria-label={t('talentOnboard.remove')}
               >
                 ×
@@ -180,7 +180,7 @@ function DealBreakersStepImpl({
       )}
 
       {!hasAnyDealBreaker && (
-        <p className="text-xs text-ink-400 dark:text-gray-400 text-center py-1">{t('talentOnboard.noDealBreakers')}</p>
+        <p className="text-xs text-ink-400 dark:text-fg-muted text-center py-1">{t('talentOnboard.noDealBreakers')}</p>
       )}
 
       <Button

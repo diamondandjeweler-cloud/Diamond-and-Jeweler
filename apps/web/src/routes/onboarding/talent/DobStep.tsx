@@ -80,7 +80,7 @@ function DobStepImpl({
   const allValid = missingFields.length === 0
 
   const inputErrCls = (valid: boolean) =>
-    showErr(valid) ? 'border-red-400 bg-red-50' : 'border-ink-200 dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-white'
+    showErr(valid) ? 'border-red-400 bg-red-50' : 'border-border bg-surface dark:text-fg'
   const ringWrap = (valid: boolean) =>
     showErr(valid) ? 'rounded-lg ring-2 ring-red-300 p-1.5' : ''
 
@@ -90,7 +90,7 @@ function DobStepImpl({
         <strong>{t('talentOnboard.dobRequiredLead')}</strong> {t('talentOnboard.dobRequiredBody')}{' '}
         <strong>{t('talentOnboard.dobNeverShown')}</strong> {t('talentOnboard.dobRequiredTail')}
       </div>
-      <p className="text-xs text-ink-500 dark:text-gray-400">
+      <p className="text-xs text-fg-muted">
         {t('talentOnboard.ageRequirementLead')} <strong>{t('talentOnboard.ageRequirementBold')}</strong> {t('talentOnboard.ageRequirementTail')}
       </p>
       <input
@@ -102,28 +102,28 @@ function DobStepImpl({
         className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 ${inputErrCls(dobValid)}`}
       />
       <div className="space-y-1" data-dob-invalid={showErr(genderValid) ? 'true' : undefined}>
-        <p className={`text-sm ${showErr(genderValid) ? 'text-red-600 font-medium' : 'text-ink-600 dark:text-gray-300'}`}>
+        <p className={`text-sm ${showErr(genderValid) ? 'text-red-600 font-medium' : 'text-fg-muted'}`}>
           {t('talentOnboard.genderLabel')}{showErr(genderValid) && <span className="ml-1 text-xs">{t('talentOnboard.requiredParen')}</span>}
         </p>
         <div className={`grid grid-cols-2 gap-2 ${ringWrap(genderValid)}`}>
           <button
             type="button"
             onClick={() => setGender('male')}
-            className={`border rounded-lg px-3 py-2 text-sm ${gender === 'male' ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 dark:border-gray-700 text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-gray-800'}`}
+            className={`border rounded-lg px-3 py-2 text-sm ${gender === 'male' ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-surface'}`}
           >
             {t('talentOnboard.male')}
           </button>
           <button
             type="button"
             onClick={() => setGender('female')}
-            className={`border rounded-lg px-3 py-2 text-sm ${gender === 'female' ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 dark:border-gray-700 text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-gray-800'}`}
+            className={`border rounded-lg px-3 py-2 text-sm ${gender === 'female' ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-surface'}`}
           >
             {t('talentOnboard.female')}
           </button>
         </div>
       </div>
       <div className="space-y-1" data-dob-invalid={showErr(raceValid) ? 'true' : undefined}>
-        <p className={`text-sm ${showErr(raceValid) ? 'text-red-600 font-medium' : 'text-ink-600 dark:text-gray-300'}`}>
+        <p className={`text-sm ${showErr(raceValid) ? 'text-red-600 font-medium' : 'text-fg-muted'}`}>
           {t('talentOnboard.raceLabel')}{showErr(raceValid) && <span className="ml-1 text-xs">{t('talentOnboard.requiredParen')}</span>}
         </p>
         <div className={`grid grid-cols-2 gap-2 ${ringWrap(raceValid)}`}>
@@ -137,7 +137,7 @@ function DobStepImpl({
               key={r.value}
               type="button"
               onClick={() => setRace(r.value)}
-              className={`border rounded-lg px-3 py-2 text-sm ${race === r.value ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 dark:border-gray-700 text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-gray-800'}`}
+              className={`border rounded-lg px-3 py-2 text-sm ${race === r.value ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-surface'}`}
             >
               {r.label}
             </button>
@@ -145,13 +145,13 @@ function DobStepImpl({
         </div>
       </div>
       <div className="space-y-1" data-dob-invalid={showErr(religionValid) ? 'true' : undefined}>
-        <p className={`text-sm ${showErr(religionValid) ? 'text-red-600 font-medium' : 'text-ink-600 dark:text-gray-300'}`}>
+        <p className={`text-sm ${showErr(religionValid) ? 'text-red-600 font-medium' : 'text-fg-muted'}`}>
           {t('talentOnboard.religionLabel')}{showErr(religionValid) && <span className="ml-1 text-xs">{t('talentOnboard.requiredParen')}</span>}
         </p>
         <select
           value={religion}
           onChange={(e) => setReligion(e.target.value)}
-          className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white dark:bg-gray-800 dark:text-white ${inputErrCls(religionValid)}`}
+          className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-surface dark:text-fg ${inputErrCls(religionValid)}`}
         >
           <option value="">{t('talentOnboard.selectPlaceholder')}</option>
           <option value="islam">{t('talentOnboard.religionIslam')}</option>
@@ -165,7 +165,7 @@ function DobStepImpl({
         </select>
       </div>
       <div className="space-y-1" data-dob-invalid={showErr(languagesValid) ? 'true' : undefined}>
-        <p className={`text-sm ${showErr(languagesValid) ? 'text-red-600 font-medium' : 'text-ink-600 dark:text-gray-300'}`}>
+        <p className={`text-sm ${showErr(languagesValid) ? 'text-red-600 font-medium' : 'text-fg-muted'}`}>
           {t('talentOnboard.languagesLabel')}
           {showErr(languagesValid) && <span className="ml-1 text-xs">{t('talentOnboard.pickAtLeastOne')}</span>}
         </p>
@@ -187,7 +187,7 @@ function DobStepImpl({
                 key={value}
                 type="button"
                 onClick={() => setLanguages((prev) => active ? prev.filter((l) => l !== value) : [...prev, value])}
-                className={`border rounded-full px-3 py-1.5 text-xs ${active ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 dark:border-gray-700 text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-gray-800'}`}
+                className={`border rounded-full px-3 py-1.5 text-xs ${active ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-surface'}`}
               >
                 {label}
               </button>
@@ -199,7 +199,7 @@ function DobStepImpl({
         className="space-y-1"
         data-dob-invalid={showErr(locationMattersValid) || (locationMatters === true && showErr(postcodeValid)) ? 'true' : undefined}
       >
-        <p className={`text-sm ${showErr(locationMattersValid) ? 'text-red-600 font-medium' : 'text-ink-600 dark:text-gray-300'}`}>
+        <p className={`text-sm ${showErr(locationMattersValid) ? 'text-red-600 font-medium' : 'text-fg-muted'}`}>
           {t('talentOnboard.commuteQuestion')}
           {showErr(locationMattersValid) && <span className="ml-1 text-xs">{t('talentOnboard.requiredParen')}</span>}
         </p>
@@ -207,14 +207,14 @@ function DobStepImpl({
           <button
             type="button"
             onClick={() => setLocationMatters(true)}
-            className={`border rounded-lg px-3 py-2 text-sm ${locationMatters === true ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 dark:border-gray-700 text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-gray-800'}`}
+            className={`border rounded-lg px-3 py-2 text-sm ${locationMatters === true ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-surface'}`}
           >
             {t('talentOnboard.commuteYes')}
           </button>
           <button
             type="button"
             onClick={() => { setLocationMatters(false); setLocationPostcode('') }}
-            className={`border rounded-lg px-3 py-2 text-sm ${locationMatters === false ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 dark:border-gray-700 text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-gray-800'}`}
+            className={`border rounded-lg px-3 py-2 text-sm ${locationMatters === false ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-surface'}`}
           >
             {t('talentOnboard.commuteNo')}
           </button>
@@ -244,8 +244,8 @@ function DobStepImpl({
           className="mt-0.5"
         />
         <span>
-          <span className="font-medium text-ink-900 dark:text-white">{t('talentOnboard.openNewFieldLabel')}</span>
-          <span className="block text-xs text-ink-500 dark:text-gray-400 mt-0.5">
+          <span className="font-medium text-fg">{t('talentOnboard.openNewFieldLabel')}</span>
+          <span className="block text-xs text-fg-muted mt-0.5">
             {t('talentOnboard.openNewFieldHint')}
           </span>
         </span>

@@ -74,7 +74,7 @@ export default function AdminDashboard() {
       />
 
       <div
-        className="flex gap-1 border-b border-ink-200 dark:border-gray-700 mb-8 overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0"
+        className="flex gap-1 border-b border-border mb-8 overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0"
         role="tablist"
         aria-label="Admin sections"
       >

@@ -59,28 +59,28 @@ export default function NotificationLogPanel() {
           id="notif-channel-filter"
           value={channel}
           onChange={(e) => setChannel(e.target.value as typeof channel)}
-          className="border dark:border-gray-700 rounded px-2 py-1 text-sm"
+          className="border dark:border-border rounded px-2 py-1 text-sm"
         >
           <option value="all">All</option>
           <option value="email">Email</option>
           <option value="in_app">In-app</option>
         </select>
-        <button onClick={() => void reload()} className="border dark:border-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-300">
+        <button onClick={() => void reload()} className="border dark:border-border px-3 py-1 rounded text-sm hover:bg-gray-50 dark:hover:bg-surface dark:text-gray-300">
           Refresh
         </button>
       </div>
       {err && <p className="text-sm text-red-600 mb-2">{err}</p>}
       {loading ? <ListSkeleton rows={5} variant="row" /> : (
-        rows.length === 0 ? <p className="text-sm text-gray-500 dark:text-gray-400">No notifications logged.</p> : (
+        rows.length === 0 ? <p className="text-sm text-fg-muted">No notifications logged.</p> : (
           <div className="space-y-2">
             {rows.map((r) => (
-              <div key={r.id} className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded p-3">
+              <div key={r.id} className="bg-surface border dark:border-border rounded p-3">
                 <div className="flex justify-between items-start gap-3">
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate dark:text-white">{r.subject ?? `(${r.type})`}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                    <div className="text-sm font-medium truncate dark:text-fg">{r.subject ?? `(${r.type})`}</div>
+                    <div className="text-xs text-fg-muted">
                       → {r.profiles?.full_name ?? r.user_id.slice(0, 8)}{' '}
-                      <span className="text-gray-400 dark:text-gray-500">({r.profiles?.email ?? '—'})</span>
+                      <span className="text-fg-subtle">({r.profiles?.email ?? '—'})</span>
                       {' · '}
                       <span className="capitalize">{r.type.replace(/_/g, ' ')}</span>
                       {' · '}
@@ -93,7 +93,7 @@ export default function NotificationLogPanel() {
                       {r.read && <span className="text-green-700"> · read</span>}
                     </div>
                     {r.body && (
-                      <div className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2 whitespace-pre-line">{r.body}</div>
+                      <div className="text-xs text-fg-muted mt-1 line-clamp-2 whitespace-pre-line">{r.body}</div>
                     )}
                   </div>
                   <button

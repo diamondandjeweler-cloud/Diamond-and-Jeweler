@@ -55,16 +55,16 @@ export default function About() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-[#0B1220] text-[#0B1220] dark:text-white font-sans">
-      <header className="border-b border-gray-100 dark:border-gray-700 dark:bg-[#0B1742]">
+      <header className="border-b border-border dark:bg-[#0B1742]">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2" aria-label={t('about.homeAria')}>
             <span className="font-extrabold tracking-tight text-[20px]">DNJ</span>
-            <span className="text-[10px] tracking-[0.22em] text-gray-500 dark:text-gray-400">DIAMOND &amp; JEWELER</span>
+            <span className="text-[10px] tracking-[0.22em] text-fg-muted">DIAMOND &amp; JEWELER</span>
           </Link>
           <nav className="flex items-center gap-5 text-sm" aria-label={t('about.navAria')}>
-            <Link to="/careers" className="text-gray-600 dark:text-gray-400 hover:text-[#0B1220] dark:hover:text-white">{t('about.navJobs')}</Link>
-            <Link to="/pricing" className="text-gray-600 dark:text-gray-400 hover:text-[#0B1220] dark:hover:text-white">{t('about.navPricing')}</Link>
-            <Link to="/careers/urgent-hiring-malaysia-2026" className="text-gray-600 dark:text-gray-400 hover:text-[#0B1220] dark:hover:text-white">{t('about.navBlog')}</Link>
+            <Link to="/careers" className="text-fg-muted hover:text-[#0B1220] dark:hover:text-white">{t('about.navJobs')}</Link>
+            <Link to="/pricing" className="text-fg-muted hover:text-[#0B1220] dark:hover:text-white">{t('about.navPricing')}</Link>
+            <Link to="/careers/urgent-hiring-malaysia-2026" className="text-fg-muted hover:text-[#0B1220] dark:hover:text-white">{t('about.navBlog')}</Link>
             <Link to="/start/talent" className="text-[#1B2A6B] dark:text-[#a6b6ff] font-semibold underline underline-offset-4">
               {t('about.navApply')}
             </Link>
@@ -293,7 +293,7 @@ export default function About() {
 
       {/* #audit #26 — company info for B2B trust */}
       <section className="max-w-5xl mx-auto px-6 mt-12 mb-2">
-        <div className="rounded-xl bg-[#fafbff] dark:bg-[#0d1528] ring-1 ring-[#e8edff] dark:ring-[#1e2d52] px-6 py-5 flex flex-col md:flex-row md:items-center gap-4 md:gap-10 text-sm text-gray-600 dark:text-gray-400">
+        <div className="rounded-xl bg-[#fafbff] dark:bg-[#0d1528] ring-1 ring-[#e8edff] dark:ring-[#1e2d52] px-6 py-5 flex flex-col md:flex-row md:items-center gap-4 md:gap-10 text-sm text-fg-muted">
           <div>
             <span className="font-semibold text-[#0B1220] dark:text-white">DNJ — Diamond &amp; Jeweler</span>
             <span className="mx-2 text-gray-300">|</span>
@@ -308,7 +308,7 @@ export default function About() {
         </div>
       </section>
 
-      <footer className="border-t border-gray-100 dark:border-gray-700 mt-6 py-6 text-center text-xs text-gray-500 dark:text-gray-400 dark:bg-[#0B1742]">
+      <footer className="border-t border-border mt-6 py-6 text-center text-xs text-fg-muted dark:bg-[#0B1742]">
         <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5">
           <Link to="/" className="hover:text-[#0B1220] dark:hover:text-white">{t('about.footerHome')}</Link>
           <span aria-hidden>·</span>

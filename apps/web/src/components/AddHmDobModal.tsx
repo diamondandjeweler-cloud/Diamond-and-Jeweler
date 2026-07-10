@@ -65,8 +65,8 @@ export default function AddHmDobModal({ hmId, profileId, onSaved, onCancel }: Pr
       aria-labelledby="hm-add-dob-title"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
     >
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
-        <h2 id="hm-add-dob-title" className="text-xl font-semibold text-ink-900 dark:text-white">
+      <div className="bg-surface rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
+        <h2 id="hm-add-dob-title" className="text-xl font-semibold text-fg">
           A little more about you
         </h2>
         <p className="text-sm text-ink-700 dark:text-gray-300">
@@ -79,20 +79,20 @@ export default function AddHmDobModal({ hmId, profileId, onSaved, onCancel }: Pr
           value={dob}
           onChange={(e) => setDob(e.target.value)}
           max={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 18); return d.toISOString().slice(0, 10) })()}
-          className="w-full border border-ink-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
         <div className="space-y-1">
-          <p className="text-sm text-ink-600 dark:text-gray-400">Gender:</p>
+          <p className="text-sm text-fg-muted">Gender:</p>
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => setGender('male')}
-              className={`border rounded-lg px-3 py-2 text-sm ${gender === 'male' ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 dark:border-gray-700 text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-gray-700'}`}
+              className={`border rounded-lg px-3 py-2 text-sm ${gender === 'male' ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-gray-300 hover:bg-surface-2'}`}
             >Male</button>
             <button
               type="button"
               onClick={() => setGender('female')}
-              className={`border rounded-lg px-3 py-2 text-sm ${gender === 'female' ? 'bg-brand-500 text-white border-brand-500' : 'border-ink-200 dark:border-gray-700 text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-gray-700'}`}
+              className={`border rounded-lg px-3 py-2 text-sm ${gender === 'female' ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-gray-300 hover:bg-surface-2'}`}
             >Female</button>
           </div>
         </div>

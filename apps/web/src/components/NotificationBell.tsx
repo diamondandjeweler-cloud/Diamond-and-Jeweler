@@ -98,7 +98,7 @@ export default function NotificationBell() {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="relative p-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+        className="relative p-1.5 text-fg-muted hover:text-fg"
         aria-label={unread > 0 ? t('notif.unreadAria', { count: unread }) : t('notif.title')}
         aria-haspopup="true"
         aria-expanded={open}
@@ -115,10 +115,10 @@ export default function NotificationBell() {
         <div
           role="dialog"
           aria-label={t('notif.title')}
-          className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-lg z-20 max-h-96 overflow-y-auto"
+          className="absolute right-0 mt-2 w-80 bg-surface border dark:border-border rounded-lg shadow-lg z-20 max-h-96 overflow-y-auto"
         >
-          <div className="flex justify-between items-center p-3 border-b dark:border-gray-700">
-            <h3 className="font-semibold text-sm dark:text-white">{t('notif.title')}</h3>
+          <div className="flex justify-between items-center p-3 border-b dark:border-border">
+            <h3 className="font-semibold text-sm dark:text-fg">{t('notif.title')}</h3>
             {unread > 0 && (
               <button
                 onClick={() => void markAllRead()}
@@ -130,21 +130,21 @@ export default function NotificationBell() {
           </div>
 
           {items.length === 0 ? (
-            <p className="p-4 text-sm text-gray-500 dark:text-gray-400 text-center">{t('notif.empty')}</p>
+            <p className="p-4 text-sm text-fg-muted text-center">{t('notif.empty')}</p>
           ) : (
-            <ul className="divide-y dark:divide-gray-700">
+            <ul className="divide-y dark:divide-border">
               {items.map((n) => (
                 <li
                   key={n.id}
                   className={`p-3 text-sm ${n.read ? '' : 'bg-brand-50 dark:bg-brand-950/40'}`}
                 >
-                  {n.subject && <div className="font-medium dark:text-white">{n.subject}</div>}
+                  {n.subject && <div className="font-medium dark:text-fg">{n.subject}</div>}
                   {n.body && (
                     <div className="text-gray-600 dark:text-gray-300 text-xs mt-1 line-clamp-3 whitespace-pre-line">
                       {n.body}
                     </div>
                   )}
-                  <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+                  <div className="text-[10px] text-fg-subtle mt-1">
                     {new Date(n.sent_at).toLocaleString('en-MY', {
                       timeZone: 'Asia/Kuala_Lumpur',
                       dateStyle: 'short',

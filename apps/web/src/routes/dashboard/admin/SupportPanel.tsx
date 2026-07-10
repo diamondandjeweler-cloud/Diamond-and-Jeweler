@@ -105,14 +105,14 @@ export default function SupportPanel() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-lg font-semibold text-ink-900 dark:text-white">Support tickets</h2>
+        <h2 className="text-lg font-semibold text-fg">Support tickets</h2>
         <button type="button" onClick={() => void reload()} className="btn-ghost btn-sm">Refresh</button>
       </div>
 
       {err && <p className="text-red-600 text-sm mb-4">{err}</p>}
 
       {/* Filter tabs */}
-      <div className="flex gap-1 border-b border-ink-200 dark:border-gray-700 mb-6 overflow-x-auto">
+      <div className="flex gap-1 border-b border-border mb-6 overflow-x-auto">
         {filterTabs.map((t) => (
           <button
             key={t.key}
@@ -121,7 +121,7 @@ export default function SupportPanel() {
             className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors ${
               filter === t.key
                 ? 'border-brand-600 text-brand-700'
-                : 'border-transparent text-ink-500 dark:text-gray-400 hover:text-ink-900 dark:hover:text-white'
+                : 'border-transparent text-fg-muted hover:text-fg'
             }`}
           >
             {t.label}
@@ -132,16 +132,16 @@ export default function SupportPanel() {
       {loading ? (
         <ListSkeleton rows={5} variant="row" />
       ) : tickets.length === 0 ? (
-        <p className="text-ink-500 dark:text-gray-400 text-sm text-center py-12">No tickets found.</p>
+        <p className="text-fg-muted text-sm text-center py-12">No tickets found.</p>
       ) : (
         <div className="space-y-3">
           {tickets.map((ticket) => (
-            <div key={ticket.id} className="border border-ink-200 dark:border-gray-700 rounded-xl overflow-hidden bg-white dark:bg-gray-800">
+            <div key={ticket.id} className="border border-border rounded-xl overflow-hidden bg-surface">
               {/* Ticket summary row */}
               <button
                 type="button"
                 onClick={() => setExpanded((e) => e === ticket.id ? null : ticket.id)}
-                className="w-full text-left px-5 py-4 hover:bg-ink-50 dark:hover:bg-gray-700 transition-colors"
+                className="w-full text-left px-5 py-4 hover:bg-surface-2 transition-colors"
               >
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
@@ -156,17 +156,17 @@ export default function SupportPanel() {
                         <span className="text-[11px] text-red-600 font-semibold">⚠ HIGH PRIORITY</span>
                       )}
                     </div>
-                    <p className="text-sm text-ink-800 dark:text-gray-200 font-medium truncate">
+                    <p className="text-sm text-fg font-medium truncate">
                       {ticket.summary ?? 'No summary'}
                     </p>
-                    <p className="text-xs text-ink-500 dark:text-gray-400 mt-0.5">
+                    <p className="text-xs text-fg-muted mt-0.5">
                       {ticket.profiles?.full_name ?? 'Unknown'} · {ticket.profiles?.email ?? ticket.user_id?.slice(0, 8)} ·{' '}
                       {new Date(ticket.created_at).toLocaleString('en-MY', { dateStyle: 'medium', timeStyle: 'short' })}
                     </p>
                   </div>
                   <svg
                     width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                    className={`shrink-0 mt-1 text-ink-400 dark:text-gray-500 transition-transform ${expanded === ticket.id ? 'rotate-180' : ''}`}
+                    className={`shrink-0 mt-1 text-fg-subtle transition-transform ${expanded === ticket.id ? 'rotate-180' : ''}`}
                     aria-hidden
                   >
                     <polyline points="6 9 12 15 18 9"/>
@@ -176,10 +176,10 @@ export default function SupportPanel() {
 
               {/* Expanded detail */}
               {expanded === ticket.id && (
-                <div className="border-t border-ink-200 dark:border-gray-700 px-5 py-4 space-y-4 bg-ink-50/40 dark:bg-gray-900/40">
+                <div className="border-t border-border px-5 py-4 space-y-4 bg-ink-50/40 dark:bg-gray-900/40">
                   {/* Transcript */}
                   <div>
-                    <p className="text-xs font-semibold text-ink-500 dark:text-gray-400 uppercase tracking-wide mb-2">Chat transcript</p>
+                    <p className="text-xs font-semibold text-fg-muted uppercase tracking-wide mb-2">Chat transcript</p>
                     <div className="space-y-2 max-h-60 overflow-y-auto">
                       {(ticket.transcript ?? []).map((m, i) => (
                         <div key={i} className={`flex gap-2 ${m.from === 'user' ? 'justify-end' : ''}`}>
@@ -187,7 +187,7 @@ export default function SupportPanel() {
                             className={`max-w-[85%] rounded-xl px-3 py-2 text-sm leading-relaxed ${
                               m.from === 'user'
                                 ? 'bg-ink-900 dark:bg-brand-700 text-white'
-                                : 'bg-white dark:bg-gray-800 text-ink-800 dark:text-gray-200 border border-ink-200 dark:border-gray-700'
+                                : 'bg-surface text-fg border border-border'
                             }`}
                           >
                             {m.content}
@@ -210,20 +210,20 @@ export default function SupportPanel() {
                   {/* Admin notes */}
                   {ticket.admin_notes && (
                     <div>
-                      <p className="text-xs font-semibold text-ink-500 dark:text-gray-400 uppercase tracking-wide mb-1">Admin notes</p>
-                      <p className="text-sm text-ink-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-ink-200 dark:border-gray-700 rounded-lg px-3 py-2">{ticket.admin_notes}</p>
+                      <p className="text-xs font-semibold text-fg-muted uppercase tracking-wide mb-1">Admin notes</p>
+                      <p className="text-sm text-ink-700 dark:text-gray-300 bg-surface border border-border rounded-lg px-3 py-2">{ticket.admin_notes}</p>
                     </div>
                   )}
 
                   {/* Add note */}
                   <div>
-                    <p className="text-xs font-semibold text-ink-500 dark:text-gray-400 uppercase tracking-wide mb-1">Add note</p>
+                    <p className="text-xs font-semibold text-fg-muted uppercase tracking-wide mb-1">Add note</p>
                     <div className="flex gap-2">
                       <textarea
                         value={noteInput[ticket.id] ?? ''}
                         onChange={(e) => setNoteInput((n) => ({ ...n, [ticket.id]: e.target.value }))}
                         rows={2}
-                        className="flex-1 resize-none rounded-lg border border-ink-200 dark:border-gray-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                        className="flex-1 resize-none rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                         placeholder="Internal note (not visible to user)…"
                       />
                       <button

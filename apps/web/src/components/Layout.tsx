@@ -17,7 +17,7 @@ export default function Layout() {
   const navItems = navForRole(profile?.role, pathname, t, { isHM })
 
   return (
-    <div className="min-h-screen flex flex-col bg-white dark:bg-navy-900 text-ink-900 dark:text-white">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-navy-900 text-fg">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-ink-900 text-white px-3 py-2 rounded z-50 text-sm"
@@ -25,7 +25,7 @@ export default function Layout() {
         {t('landing.skipToMain')}
       </a>
 
-      <header className="app-shell-header dark:bg-navy-800 dark:border-gray-700" role="banner">
+      <header className="app-shell-header dark:bg-navy-800 dark:border-border" role="banner">
         <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-8">
             <Link
@@ -120,7 +120,7 @@ export default function Layout() {
 
       <SupportForm />
 
-      <footer className="border-t border-ink-200 dark:border-gray-700 bg-white/60 dark:bg-navy-800/80 backdrop-blur py-6 mt-8" role="contentinfo">
+      <footer className="border-t border-border bg-white/60 dark:bg-navy-800/80 backdrop-blur py-6 mt-8" role="contentinfo">
         <div className="max-w-7xl mx-auto px-4 md:px-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-ink-500">
           <div className="flex items-center gap-2">
             <Logo size={18} />

@@ -17,7 +17,7 @@ export default function DarkModeToggle() {
       type="button"
       onClick={toggle}
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-      className="text-gray-500 hover:text-navy-900 dark:text-gray-400 dark:hover:text-white transition-colors p-1"
+      className="text-fg-muted hover:text-navy-900 dark:hover:text-fg transition-colors p-1"
     >
       {isDark ? <SunIcon /> : <MoonIcon />}
     </button>

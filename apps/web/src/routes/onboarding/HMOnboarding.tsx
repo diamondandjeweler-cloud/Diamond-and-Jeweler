@@ -293,7 +293,7 @@ export default function HMOnboarding() {
   if (!session || !profile) return null
 
   if (hmMissing) return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-canvas p-4">
       <div className="w-full max-w-md space-y-4">
         <Alert tone="red">
           {t('hmOnboard.noHmRecord')}
@@ -451,7 +451,7 @@ export default function HMOnboarding() {
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void sendMessage(input) } }}
             placeholder={isStreaming ? t('hmOnboard.chatTyping') : t('hmOnboard.chatPlaceholder')}
             rows={2} disabled={isStreaming}
-            className="flex-1 resize-none rounded-xl border border-ink-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:bg-ink-50 dark:disabled:bg-gray-900"
+            className="flex-1 resize-none rounded-xl border border-border dark:bg-surface dark:text-fg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:bg-canvas"
             // Active chat surface — autoFocus when entering this step is intentional.
             // eslint-disable-next-line jsx-a11y/no-autofocus
             autoFocus
@@ -560,11 +560,11 @@ export default function HMOnboarding() {
               <button
                 type="button"
                 onClick={() => { setErr(null); setPhase('review') }}
-                className="w-full text-xs text-ink-400 dark:text-gray-400 hover:text-ink-600 dark:hover:text-gray-300 py-1"
+                className="w-full text-xs text-ink-400 dark:text-fg-muted hover:text-ink-600 dark:hover:text-gray-300 py-1"
               >{t('hmOnboard.backToReview')}</button>
             </>
           ) : (
-            <p className="text-sm text-ink-500 dark:text-gray-400 py-3 animate-pulse">{t('hmOnboard.buildingProfile')}</p>
+            <p className="text-sm text-fg-muted py-3 animate-pulse">{t('hmOnboard.buildingProfile')}</p>
           )}
         </div>
       )
@@ -576,8 +576,8 @@ export default function HMOnboarding() {
   if (phase === 'done') {
     return (
       <div className="max-w-lg mx-auto text-center py-16">
-        <h1 className="text-2xl font-bold mb-2 dark:text-white">{t('hmOnboard.doneTitle')}</h1>
-        <p className="text-ink-600 dark:text-gray-300">{t('hmOnboard.doneSubtitle')}</p>
+        <h1 className="text-2xl font-bold mb-2 dark:text-fg">{t('hmOnboard.doneTitle')}</h1>
+        <p className="text-fg-muted">{t('hmOnboard.doneSubtitle')}</p>
       </div>
     )
   }

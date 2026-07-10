@@ -302,16 +302,16 @@ export default function Careers() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-navy-900 text-navy-900 dark:text-white font-sans">
-      <header className="border-b border-gray-100 dark:border-gray-700 dark:bg-navy-800">
+      <header className="border-b border-border dark:bg-navy-800">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2" aria-label={t('careers.homeAria')}>
             <span className="font-extrabold tracking-tight text-[20px]">DNJ</span>
-            <span className="text-[10px] tracking-[0.22em] text-gray-500 dark:text-gray-400">DIAMOND &amp; JEWELER</span>
+            <span className="text-[10px] tracking-[0.22em] text-fg-muted">DIAMOND &amp; JEWELER</span>
           </Link>
           <nav aria-label={t('careers.navPrimaryAria')} className="flex items-center gap-5 text-sm">
-            <Link to="/pricing" className="text-gray-600 dark:text-gray-400 hover:text-navy-900 dark:hover:text-white">{t('careers.navPricing')}</Link>
-            <Link to="/about" className="text-gray-600 dark:text-gray-400 hover:text-navy-900 dark:hover:text-white">{t('careers.navAbout')}</Link>
-            <Link to="/careers/urgent-hiring-malaysia-2026" className="text-gray-600 dark:text-gray-400 hover:text-navy-900 dark:hover:text-white">{t('careers.navBlog')}</Link>
+            <Link to="/pricing" className="text-fg-muted hover:text-navy-900 dark:hover:text-white">{t('careers.navPricing')}</Link>
+            <Link to="/about" className="text-fg-muted hover:text-navy-900 dark:hover:text-white">{t('careers.navAbout')}</Link>
+            <Link to="/careers/urgent-hiring-malaysia-2026" className="text-fg-muted hover:text-navy-900 dark:hover:text-white">{t('careers.navBlog')}</Link>
             <Link to="/start/talent" className="text-navy-700 dark:text-midnight-400 font-semibold underline underline-offset-4">
               {t('careers.navApply')}
             </Link>
@@ -320,7 +320,7 @@ export default function Careers() {
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-10">
-        <nav aria-label={t('careers.breadcrumbAria')} className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+        <nav aria-label={t('careers.breadcrumbAria')} className="text-xs text-fg-muted mb-4">
           <Link to="/" className="hover:text-navy-900 dark:hover:text-white">{t('careers.breadcrumbHome')}</Link>
           <span className="mx-2">/</span>
           <span aria-current="page" className="text-gray-700 dark:text-gray-300">{t('careers.breadcrumbCurrent')}</span>
@@ -417,7 +417,7 @@ export default function Careers() {
               return (
               <li
                 key={r.title}
-                className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-midnight-800 p-5 hover:border-navy-800 dark:hover:border-brand-500 transition-colors group"
+                className="rounded-xl border border-border bg-white dark:bg-midnight-800 p-5 hover:border-navy-800 dark:hover:border-brand-500 transition-colors group"
               >
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <h3 className="text-base font-semibold text-navy-900 dark:text-white">{t(`careers.roles.${rk}.title`)}</h3>
@@ -426,7 +426,7 @@ export default function Careers() {
                     {t(`careers.roles.${rk}.salary`)}
                   </span>
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+                <p className="text-xs text-fg-muted">
                   {t(`careers.roles.${rk}.type`)} · {t(`careers.roles.${rk}.location`)} · {t(`careers.roles.${rk}.level`)}
                 </p>
                 <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 leading-snug">{t(`careers.roles.${rk}.blurb`)}</p>
@@ -434,7 +434,7 @@ export default function Careers() {
                   {r.slug && (
                     <Link
                       to={`/jobs/${r.slug}`}
-                      className="inline-flex items-center text-sm text-gray-500 dark:text-gray-400 hover:text-navy-900 dark:hover:text-white"
+                      className="inline-flex items-center text-sm text-fg-muted hover:text-navy-900 dark:hover:text-white"
                     >
                       {t('careers.viewRole')}
                     </Link>

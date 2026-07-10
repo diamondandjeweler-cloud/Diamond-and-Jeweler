@@ -141,10 +141,10 @@ export function Modal({
         aria-label={!title ? ariaLabel : undefined}
         tabIndex={-1}
         onKeyDown={onKeyDownTrap}
-        className="w-full bg-white dark:bg-gray-800 shadow-xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-4 focus:outline-none max-h-[85vh] overflow-y-auto rounded-t-2xl animate-slide-up sm:max-w-md sm:rounded-2xl sm:pb-6 sm:animate-none"
+        className="w-full bg-surface shadow-xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-4 focus:outline-none max-h-[85vh] overflow-y-auto rounded-t-2xl animate-slide-up sm:max-w-md sm:rounded-2xl sm:pb-6 sm:animate-none"
       >
         {title && (
-          <h2 id={titleId} className="text-xl font-semibold text-ink-900 dark:text-white">
+          <h2 id={titleId} className="text-xl font-semibold text-fg">
             {title}
           </h2>
         )}

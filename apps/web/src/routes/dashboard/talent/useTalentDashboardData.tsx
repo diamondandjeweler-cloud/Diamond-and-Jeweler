@@ -411,7 +411,7 @@ export function useTalentDashboardData() {
         text: (
           <>
             {t('talentDash.urgentNeedPoints', { cost: URGENT_COST, balance: pointsBalance })}{' '}
-            <Link to="/points" className="font-semibold underline hover:text-ink-900 dark:hover:text-white">
+            <Link to="/points" className="font-semibold underline hover:text-fg">
               {t('talentDash.urgentBuyOrEarn')}
             </Link>
           </>

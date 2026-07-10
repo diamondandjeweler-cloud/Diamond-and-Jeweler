@@ -69,7 +69,7 @@ export default function MatchPanel() {
           id="match-status-filter"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="border dark:border-gray-700 rounded px-2 py-1 text-sm"
+          className="border dark:border-border rounded px-2 py-1 text-sm"
         >
           <option value="all">All</option>
           <option value="generated">Generated</option>
@@ -82,20 +82,20 @@ export default function MatchPanel() {
           <option value="hired">Hired</option>
           <option value="expired">Expired</option>
         </select>
-        <button onClick={() => void reload()} className="border dark:border-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-300">
+        <button onClick={() => void reload()} className="border dark:border-border px-3 py-1 rounded text-sm hover:bg-gray-50 dark:hover:bg-surface dark:text-gray-300">
           Refresh
         </button>
       </div>
       {err && <p className="text-sm text-red-600 mb-2">{err}</p>}
       {loading ? <ListSkeleton rows={5} variant="row" /> : (
-        rows.length === 0 ? <p className="text-sm text-gray-500 dark:text-gray-400">No matches in this view.</p> : (
+        rows.length === 0 ? <p className="text-sm text-fg-muted">No matches in this view.</p> : (
           <div className="space-y-2">
             {rows.map((m) => (
-              <div key={m.id} className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded">
+              <div key={m.id} className="bg-surface border dark:border-border rounded">
                 <div className="flex justify-between items-center p-3">
                   <div className="flex-1">
-                    <div className="text-sm font-medium dark:text-white">{m.role_title ?? '(role gone)'}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                    <div className="text-sm font-medium dark:text-fg">{m.role_title ?? '(role gone)'}</div>
+                    <div className="text-xs text-fg-muted">
                       Talent {m.talent_id?.slice(0, 8) ?? '—'} ·{' '}
                       <span className="capitalize">{m.status.replace(/_/g, ' ')}</span> ·{' '}
                       {m.compatibility_score != null ? `${Math.round(m.compatibility_score)}%` : '—'} ·{' '}
@@ -120,13 +120,13 @@ export default function MatchPanel() {
                   </div>
                 </div>
                 {expanded === m.id && (
-                  <div className="border-t dark:border-gray-700 p-3 bg-gray-50 dark:bg-gray-900 dark:text-gray-300">
+                  <div className="border-t dark:border-border p-3 bg-gray-50 dark:bg-gray-900 dark:text-gray-300">
                     <div className="grid grid-cols-3 gap-3 text-xs mb-2">
-                      <div><span className="text-gray-500 dark:text-gray-400">Tag comp:</span> {m.tag_compatibility ?? '—'}</div>
-                      <div><span className="text-gray-500 dark:text-gray-400">Team-fit:</span> {m.life_chart_score ?? '—'}</div>
-                      <div><span className="text-gray-500 dark:text-gray-400">Expires:</span> {m.expires_at ? new Date(m.expires_at).toLocaleString() : '—'}</div>
+                      <div><span className="text-fg-muted">Tag comp:</span> {m.tag_compatibility ?? '—'}</div>
+                      <div><span className="text-fg-muted">Team-fit:</span> {m.life_chart_score ?? '—'}</div>
+                      <div><span className="text-fg-muted">Expires:</span> {m.expires_at ? new Date(m.expires_at).toLocaleString() : '—'}</div>
                     </div>
-                    <pre className="text-xs bg-white dark:bg-gray-800 border dark:border-gray-700 rounded p-2 overflow-x-auto dark:text-gray-300">
+                    <pre className="text-xs bg-surface border dark:border-border rounded p-2 overflow-x-auto dark:text-gray-300">
 {JSON.stringify(m.internal_reasoning, null, 2)}
                     </pre>
                   </div>

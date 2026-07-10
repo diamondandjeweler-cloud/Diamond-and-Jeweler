@@ -8,16 +8,18 @@
  * Service-role only.
  *
  * Pipeline:
- *   1. list_growth_nudge_candidates() returns opt-in talents in enabled
- *      regions whose pre-filter (cooldown, snooze, fortune_score) passes.
- *   2. For each candidate, decrypt DOB → compute age weight against the
- *      region's config → apply the final score threshold.
- *   3. For survivors, pick top-N active jobs and enqueue a 'growth_opportunity'
+ *   1. get_growth_nudge_qualified() (0182) runs the WHOLE qualification loop
+ *      server-side in one round-trip: candidate pre-filter → decrypt DOB →
+ *      age weight → final score threshold. Replaces the per-candidate
+ *      decrypt_dob N+1 (one edge→Postgres RPC per opt-in talent).
+ *   2. For qualified survivors — bounded fan-out (NUDGE_CONCURRENCY) —
+ *      pick top-N active jobs and dispatch a 'growth_opportunity'
  *      notification with role IDs in the payload.
- *   4. Log to nudge_history (also bumps cooldown).
+ *   3. Log to nudge_history (also bumps cooldown).
  *
- * Privacy posture:
- *   - Age + DOB never persisted; computed in-memory and discarded
+ * Privacy posture (strengthened by 0182):
+ *   - Age + DOB never persisted — and now never leave Postgres at all
+ *     (this function no longer sees the decrypted DOB, only booleans)
  *   - The eligibility-score blend never appears in the payload sent to notify
  *   - Audit log records "nudge_sent" + role count only — no scores, no age
  */
@@ -25,18 +27,14 @@ import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { corsHeaders, handleOptions } from '../_shared/cors.ts'
 import { adminClient } from '../_shared/supabase.ts'
 import { requireServiceRole } from '../_shared/auth.ts'
+import { allSettledBounded } from '../_shared/pool.ts'
 
-interface Candidate {
+interface QualifiedRow {
   talent_id: string
   profile_id: string
-  region_code: string
-  encrypted_dob: string
-  fortune_score: number
-  age_cutoff: number
-  age_ramp_years: number
-  age_weight_floor: number
-  score_threshold: number
   max_jobs_per_nudge: number
+  qualified: boolean
+  decrypt_failed: boolean
 }
 
 interface RoleRow {
@@ -48,23 +46,9 @@ interface RoleRow {
   rank_score: number
 }
 
-function ageFromDob(dobIso: string): number {
-  const d = new Date(dobIso)
-  if (Number.isNaN(d.getTime())) return Number.NaN
-  const now = new Date()
-  let age = now.getUTCFullYear() - d.getUTCFullYear()
-  const m = now.getUTCMonth() - d.getUTCMonth()
-  if (m < 0 || (m === 0 && now.getUTCDate() < d.getUTCDate())) age--
-  return age
-}
-
-function ageWeight(age: number, cutoff: number, ramp: number, floor: number): number {
-  if (Number.isNaN(age)) return 1
-  if (age <= cutoff) return 1
-  const excess = age - cutoff
-  if (excess >= ramp) return floor
-  return 1 - ((1 - floor) * excess) / Math.max(ramp, 1)
-}
+// Gentle on the shared PostgREST pool + the notify fan-out (Resend/WATI):
+// bounded parallelism, not a thundering herd — the previous loop was serial.
+const NUDGE_CONCURRENCY = 6
 
 serve(async (req) => {
   const pre = handleOptions(req); if (pre) return pre
@@ -73,37 +57,37 @@ serve(async (req) => {
 
   const db = adminClient()
 
-  const { data: candidates, error: cErr } = await db.rpc('list_growth_nudge_candidates')
-  if (cErr) {
-    return new Response(JSON.stringify({ ok: false, stage: 'list', error: cErr.message }), {
+  const { data: rows, error: qErr } = await db.rpc('get_growth_nudge_qualified')
+  if (qErr) {
+    return new Response(JSON.stringify({ ok: false, stage: 'list', error: qErr.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
-  const cands = (candidates ?? []) as Candidate[]
+  const all = (rows ?? []) as QualifiedRow[]
 
-  let scanned = cands.length
-  let qualified = 0
+  // Counter semantics preserved from the per-candidate loop:
+  //   scanned  = every candidate the pre-filter returned
+  //   errors   = decrypt failures + notify/record failures
+  //   qualified= passed the age-weighted threshold
+  const scanned = all.length
+  let errors = all.filter((r) => r.decrypt_failed).length
+  const survivors = all.filter((r) => r.qualified && !r.decrypt_failed)
+  const qualified = survivors.length
   let nudged = 0
   let skipped_no_jobs = 0
-  let errors = 0
 
-  for (const c of cands) {
+  const baseUrl = Deno.env.get('SUPABASE_URL')!
+  const svcKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+
+  await allSettledBounded(survivors, NUDGE_CONCURRENCY, async (c) => {
     try {
-      const { data: dob } = await db.rpc('decrypt_dob', { encrypted: c.encrypted_dob })
-      if (typeof dob !== 'string') { errors++; continue }
-      const age = ageFromDob(dob)
-      const weight = ageWeight(age, c.age_cutoff, c.age_ramp_years, Number(c.age_weight_floor))
-      const blended = Number(c.fortune_score) * weight
-      if (blended < Number(c.score_threshold)) continue
-      qualified++
-
       const { data: jobs } = await db.rpc('pick_top_jobs_for_talent', {
         p_talent_id: c.talent_id,
         p_limit: c.max_jobs_per_nudge ?? 3,
       })
       const jobList = (jobs ?? []) as RoleRow[]
-      if (jobList.length === 0) { skipped_no_jobs++; continue }
+      if (jobList.length === 0) { skipped_no_jobs++; return }
 
       const roleIds = jobList.map((j) => j.role_id)
       const payload = {
@@ -116,12 +100,10 @@ serve(async (req) => {
         })),
       }
 
-      // Dispatch via the notify edge fn synchronously. notify owns consent
-      // gating, locale rendering, and Resend/WATI fan-out. We only bump the
-      // cooldown if the dispatch returned 2xx — failures fall through and
-      // the user becomes eligible again next month.
-      const baseUrl = Deno.env.get('SUPABASE_URL')!
-      const svcKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      // Dispatch via the notify edge fn. notify owns consent gating, locale
+      // rendering, and Resend/WATI fan-out. We only bump the cooldown if the
+      // dispatch returned 2xx — failures fall through and the user becomes
+      // eligible again next month.
       let dispatched = false
       try {
         const r = await fetch(`${baseUrl}/functions/v1/notify`, {
@@ -137,20 +119,20 @@ serve(async (req) => {
       } catch {
         dispatched = false
       }
-      if (!dispatched) { errors++; continue }
+      if (!dispatched) { errors++; return }
 
       const { error: rErr } = await db.rpc('record_growth_nudge', {
         p_talent_id: c.talent_id,
         p_outbox_id: null,
         p_role_ids: roleIds,
       })
-      if (rErr) { errors++; continue }
+      if (rErr) { errors++; return }
 
       nudged++
     } catch {
       errors++
     }
-  }
+  })
 
   return new Response(JSON.stringify({
     ok: true,

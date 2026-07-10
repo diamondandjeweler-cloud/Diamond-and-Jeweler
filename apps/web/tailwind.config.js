@@ -41,6 +41,8 @@ export default {
           // accent-coloured body/label text; keep 500/600 for backgrounds + emphasis.
           700: '#8a6d1f',
           800: '#6b5518',
+          // opaque pale-gold tint (Avatar fallback etc.) — AA-safe with text-accent-800
+          100: '#f3ead6',
         },
 
         // ─────────────────────────────────────────────────────────────────

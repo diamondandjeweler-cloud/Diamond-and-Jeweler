@@ -13,6 +13,7 @@
    preloads without re-verifying the bundled woff2 subset URLs still resolve. */
 @import '@fontsource-variable/inter/wght.css';
 @import '@fontsource-variable/fraunces/wght.css';
+@import './ui/tokens.css';
 
 @tailwind base;
 @tailwind components;

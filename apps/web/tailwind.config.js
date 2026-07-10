@@ -88,6 +88,18 @@ export default {
         // Explicit aliases matching the brand-navy / brand-gold token spec.
         'brand-navy': '#0B1220',
         'brand-gold': '#C9A24D',
+
+        // ─────────────────────────────────────────────────────────────────
+        // Semantic surface/content tokens → CSS variables (src/ui/tokens.css).
+        // Flip once under `.dark`; components use bg-surface / text-fg /
+        // border-border instead of hand-rolled `dark:` utilities — one source
+        // of truth for theming. Additive: nothing references these yet, so the
+        // on-demand engine emits no new CSS until a component adopts a token.
+        // ─────────────────────────────────────────────────────────────────
+        canvas: 'var(--canvas)',
+        surface: { DEFAULT: 'var(--surface)', 2: 'var(--surface-2)' },
+        border: { DEFAULT: 'var(--border)', strong: 'var(--border-strong)' },
+        fg: { DEFAULT: 'var(--fg)', muted: 'var(--fg-muted)', subtle: 'var(--fg-subtle)' },
       },
       fontFamily: {
         // 'Inter Variable' / 'Fraunces Variable' are self-hosted via @fontsource

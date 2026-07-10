@@ -1,0 +1,43 @@
+/**
+ * Semantic design tokens — the single source of truth for theming.
+ *
+ * Components style with `bg-surface` / `text-fg` / `border-border` (mapped to
+ * these vars in tailwind.config.js) instead of hand-rolling `dark:` utilities.
+ * Dark mode flips the variables ONCE here, under the `.dark` class that
+ * index.html sets pre-paint — so a primitive is correct in both themes without
+ * ever writing `dark:`. This retires the split-brain where dark styling lived in
+ * three places (Tailwind @layer classes + ui.tsx maps + inline `dark:`).
+ *
+ * Values map to the existing brand/ink/accent scales (tailwind.config.js) and to
+ * the dark hex the app already used in its .dark overrides, so adopting a token
+ * is a visual no-op — it just moves the decision to one place.
+ */
+
+:root {
+  /* Backgrounds */
+  --canvas:        #f8f8f7; /* app background      (ink-50)  */
+  --surface:       #ffffff; /* cards / panels                */
+  --surface-2:     #f8f8f7; /* subtle / hover      (ink-50)  */
+
+  /* Borders */
+  --border:        #dedfda; /* default hairline    (ink-200) */
+  --border-strong: #bbbdb5; /* emphasised          (ink-300) */
+
+  /* Foreground / text */
+  --fg:            #141511; /* primary text        (ink-900) */
+  --fg-muted:      #5d5f55; /* secondary text      (ink-500) */
+  --fg-subtle:     #898c80; /* tertiary / icons    (ink-400) */
+}
+
+.dark {
+  --canvas:        #18181b; /* matches .dark body            */
+  --surface:       #27272a; /* matches .dark .card          */
+  --surface-2:     #3f3f46;
+
+  --border:        rgba(63, 63, 70, 0.7);
+  --border-strong: #52525b;
+
+  --fg:            #e4e4e7;
+  --fg-muted:      #a1a1aa;
+  --fg-subtle:     #71717a;
+}

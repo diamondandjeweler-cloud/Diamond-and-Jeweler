@@ -100,8 +100,22 @@ grant execute on function public.profile_visible_to_company_hr(uuid) to authenti
 -- effects; lower()/trim() do not throw on valid text. Requires superuser;
 -- runs as postgres on managed Supabase (same channel that applied 0133).
 
-ALTER FUNCTION public.user_is_hr_of_role(uuid)    LEAKPROOF;
-ALTER FUNCTION public.user_is_hr_of_company(uuid) LEAKPROOF;
+-- 2026-07-10 apply note: the Management API role is NOT superuser and
+-- "ALTER FUNCTION ... LEAKPROOF" fails with 42501. Verified live before this
+-- apply: all four helpers already have proleakproof = false in prod (0133's
+-- marking did not survive later CREATE OR REPLACE rewraps), so skipping the
+-- alter loses nothing versus current prod. Guarded so the migration stays
+-- appliable on any channel; a superuser can re-mark both helpers later.
+do $do$
+begin
+  begin
+    alter function public.user_is_hr_of_role(uuid)    leakproof;
+    alter function public.user_is_hr_of_company(uuid) leakproof;
+  exception when insufficient_privilege then
+    raise notice '0179: skipping LEAKPROOF (needs superuser); helpers stay non-leakproof as in current prod';
+  end;
+end
+$do$;
 
 -- ---------- provenance comments ----------
 

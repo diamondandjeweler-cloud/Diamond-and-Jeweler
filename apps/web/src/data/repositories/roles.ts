@@ -91,11 +91,16 @@ export function countActiveRolesForHm(hmId: string) {
     .eq('hiring_manager_id', hmId).eq('status', 'active')
 }
 
-/** HM's role list for the dashboard (id/title/status/extra_matches_used/created_at, first 200). */
+/** HM's role list for the dashboard (id/title/status/extra_matches_used/created_at, newest 200). */
 export function listRolesForHmDashboard(hmId: string) {
   return supabase.from('roles')
     .select('id, title, status, extra_matches_used, created_at')
     .eq('hiring_manager_id', hmId)
+    // Newest-first so the .limit(200) cap is DETERMINISTIC: without an order,
+    // which 200 roles a >200-role tenant saw (dashboard cards AND the realtime
+    // `role_id=in.(…)` filter built from these ids) was planner-arbitrary.
+    // Newest roles are the ones being actively worked.
+    .order('created_at', { ascending: false })
     .limit(200)
 }
 

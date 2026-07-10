@@ -92,7 +92,7 @@ function ExtrasStepImpl({
             setAvailableDaysPerWeek(Number.isFinite(n) ? Math.max(1, Math.min(7, n)) : '')
           }}
           placeholder={t('talentOnboard.daysPerWeekPlaceholder')}
-          className="w-full border border-border bg-surface dark:text-fg dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="w-full border border-border bg-surface dark:text-fg dark:placeholder-fg-subtle rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
       </div>
 

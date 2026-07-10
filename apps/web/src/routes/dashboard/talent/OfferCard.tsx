@@ -219,7 +219,7 @@ function OfferCardImpl({
                 onChange={(e) => onFeedbackChange({ freeText: e.target.value })}
                 placeholder={t('talentDash.feedbackPlaceholder')}
                 rows={2}
-                className="w-full border border-border rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 bg-surface dark:text-fg-strong dark:placeholder-gray-500 resize-none"
+                className="w-full border border-border rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 bg-surface dark:text-fg-strong dark:placeholder-fg-subtle resize-none"
               />
               {feedbackEntry.saved ? (
                 <p className="text-xs text-emerald-600 font-medium">

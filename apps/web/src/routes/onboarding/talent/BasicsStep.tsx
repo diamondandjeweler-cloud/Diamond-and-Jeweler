@@ -43,7 +43,7 @@ function BasicsStepImpl({ t, fullName, setFullName, phone, setPhone, switching, 
           // First wizard field; intentional focus on entry.
           // eslint-disable-next-line jsx-a11y/no-autofocus
           autoFocus
-          className="w-full border border-border bg-surface dark:text-fg dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="w-full border border-border bg-surface dark:text-fg dark:placeholder-fg-subtle rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
       </div>
       <div>
@@ -54,7 +54,7 @@ function BasicsStepImpl({ t, fullName, setFullName, phone, setPhone, switching, 
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
           placeholder={t('talentOnboard.phonePlaceholder')}
-          className="w-full border border-border bg-surface dark:text-fg dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="w-full border border-border bg-surface dark:text-fg dark:placeholder-fg-subtle rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
       </div>
       <Button

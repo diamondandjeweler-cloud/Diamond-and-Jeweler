@@ -466,7 +466,7 @@ export default function TalentProfile() {
                   value={whatsappNumber}
                   onChange={(e) => setWhatsappNumber(e.target.value)}
                   placeholder="+60 12 345 6789"
-                  className="w-full border dark:border-border bg-surface dark:text-fg dark:placeholder-gray-500 rounded px-3 py-2"
+                  className="w-full border dark:border-border bg-surface dark:text-fg dark:placeholder-fg-subtle rounded px-3 py-2"
                 />
               </div>
               <div className="flex items-end">
@@ -522,7 +522,7 @@ export default function TalentProfile() {
                     }
                   }}
                   placeholder="Company name…"
-                  className="flex-1 border dark:border-border bg-surface dark:text-fg dark:placeholder-gray-500 rounded px-3 py-2 text-sm"
+                  className="flex-1 border dark:border-border bg-surface dark:text-fg dark:placeholder-fg-subtle rounded px-3 py-2 text-sm"
                 />
                 <button
                   type="button"

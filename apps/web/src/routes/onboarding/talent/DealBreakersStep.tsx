@@ -121,7 +121,7 @@ function DealBreakersStepImpl({
               value={minSalaryHard ?? ''}
               onChange={(e) => setMinSalaryHard(e.target.value === '' ? null : Math.max(0, parseInt(e.target.value, 10) || 0))}
               placeholder={t('talentOnboard.minSalaryPlaceholder')}
-              className="flex-1 border border-border bg-surface dark:text-fg dark:placeholder-gray-500 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="flex-1 border border-border bg-surface dark:text-fg dark:placeholder-fg-subtle rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
             {minSalaryHard != null && (
               <button
@@ -146,7 +146,7 @@ function DealBreakersStepImpl({
             onChange={(e) => setDealBreakerInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addItem() } }}
             placeholder={t('talentOnboard.requirementPlaceholder')}
-            className="flex-1 border border-border bg-surface dark:text-fg dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="flex-1 border border-border bg-surface dark:text-fg dark:placeholder-fg-subtle rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
           <button
             type="button"

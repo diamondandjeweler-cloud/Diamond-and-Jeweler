@@ -44,7 +44,7 @@ function ChatComposerImpl({ t, inputRef, input, setInput, isStreaming, onSend, o
         }
         rows={2}
         disabled={isStreaming}
-        className="flex-1 resize-none rounded-xl border border-border bg-surface dark:text-fg dark:placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:bg-surface-2"
+        className="flex-1 resize-none rounded-xl border border-border bg-surface dark:text-fg dark:placeholder-fg-subtle px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:bg-surface-2"
         // Active chat surface — autoFocus when entering this step is intentional.
         // eslint-disable-next-line jsx-a11y/no-autofocus
         autoFocus

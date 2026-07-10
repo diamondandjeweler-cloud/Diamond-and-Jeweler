@@ -46,7 +46,7 @@ export function Field({
   return (
     <div className="field mb-3">
       {label && (
-        <label htmlFor={id} className="field-label dark:text-gray-300">
+        <label htmlFor={id} className="field-label dark:text-fg-strong">
           {label}{required && <span className="text-red-500 ml-0.5">*</span>}
         </label>
       )}
@@ -95,7 +95,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, Omit<InputHTMLAttribut
     return (
       <div className="field mb-3">
         {label && (
-          <label htmlFor={id} className="field-label dark:text-gray-300">
+          <label htmlFor={id} className="field-label dark:text-fg-strong">
             {label}{required && <span className="text-red-500 ml-0.5">*</span>}
           </label>
         )}
@@ -116,7 +116,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, Omit<InputHTMLAttribut
             tabIndex={-1}
             aria-label={show ? 'Hide password' : 'Show password'}
             onClick={() => setShow((s) => !s)}
-            className="absolute inset-y-0 right-0 flex items-center pr-3 text-fg-subtle hover:text-ink-600 dark:hover:text-gray-300"
+            className="absolute inset-y-0 right-0 flex items-center pr-3 text-fg-subtle hover:text-ink-600 dark:hover:text-fg-strong"
           >
             {show ? <EyeOffIcon /> : <EyeIcon />}
           </button>

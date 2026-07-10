@@ -272,7 +272,7 @@ export default function MatchApprovalPanel() {
         <h2 className="text-sm font-semibold text-fg">
           Pending approval{rows.length > 0 ? ` (${rows.length})` : ''}
         </h2>
-        <button onClick={() => void reload()} className="text-xs border dark:border-border px-2 py-1 rounded hover:bg-gray-50 dark:hover:bg-surface dark:text-gray-300">
+        <button onClick={() => void reload()} className="text-xs border dark:border-border px-2 py-1 rounded hover:bg-gray-50 dark:hover:bg-surface dark:text-fg-strong">
           Refresh
         </button>
         {rows.length > 1 && (
@@ -366,7 +366,7 @@ export default function MatchApprovalPanel() {
                     </button>
                     <button
                       onClick={() => toggleExpand(m)}
-                      className="px-3 py-1.5 bg-surface-2 text-gray-600 dark:text-gray-300 border dark:border-border-strong text-xs rounded hover:bg-gray-100 dark:hover:bg-gray-600"
+                      className="px-3 py-1.5 bg-surface-2 text-gray-600 dark:text-fg-strong border dark:border-border-strong text-xs rounded hover:bg-gray-100 dark:hover:bg-gray-600"
                     >
                       {expanded === m.id ? 'Hide' : 'Details'}
                     </button>
@@ -375,16 +375,16 @@ export default function MatchApprovalPanel() {
 
                 {/* Expanded detail */}
                 {expanded === m.id && (
-                  <div className="border-t dark:border-border bg-gray-50 dark:bg-gray-900 p-4 space-y-3 dark:text-gray-300">
+                  <div className="border-t dark:border-border bg-gray-50 dark:bg-gray-900 p-4 space-y-3 dark:text-fg-strong">
                     {/* DOB comparison */}
                     <div className="grid grid-cols-2 gap-4 text-xs">
                       <div className="bg-surface border dark:border-border rounded p-3">
-                        <p className="font-semibold text-gray-700 dark:text-gray-300 mb-1">Hiring Manager</p>
+                        <p className="font-semibold text-gray-700 dark:text-fg-strong mb-1">Hiring Manager</p>
                         <p>Signal: <strong>{m.roles?.hiring_managers?.life_chart_character ?? '—'}</strong></p>
                         <p>DOB: {dobs ? (dobs.hm ?? 'not set') : 'Loading…'}</p>
                       </div>
                       <div className="bg-surface border dark:border-border rounded p-3">
-                        <p className="font-semibold text-gray-700 dark:text-gray-300 mb-1">Talent</p>
+                        <p className="font-semibold text-gray-700 dark:text-fg-strong mb-1">Talent</p>
                         <p>Signal: <strong>{m.talents?.life_chart_character ?? '—'}</strong></p>
                         <p>DOB: {dobs ? (dobs.talent ?? 'not set') : 'Loading…'}</p>
                       </div>
@@ -398,7 +398,7 @@ export default function MatchApprovalPanel() {
                           {Object.entries(tags)
                             .sort(([, a], [, b]) => b - a)
                             .map(([k, v]) => (
-                              <span key={k} className="text-xs bg-surface border dark:border-border rounded px-1.5 py-0.5 text-gray-700 dark:text-gray-300">
+                              <span key={k} className="text-xs bg-surface border dark:border-border rounded px-1.5 py-0.5 text-gray-700 dark:text-fg-strong">
                                 {TAG_LABELS[k] ?? k}: {Math.round(v * 100)}%
                               </span>
                             ))}
@@ -410,7 +410,7 @@ export default function MatchApprovalPanel() {
                     {m.internal_reasoning && (
                       <div>
                         <p className="text-xs font-semibold text-fg-muted mb-1">Scoring breakdown</p>
-                        <pre className="text-xs bg-surface border dark:border-border rounded p-2 overflow-x-auto max-h-64 dark:text-gray-300">
+                        <pre className="text-xs bg-surface border dark:border-border rounded p-2 overflow-x-auto max-h-64 dark:text-fg-strong">
 {JSON.stringify(m.internal_reasoning, null, 2)}
                         </pre>
                       </div>

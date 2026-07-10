@@ -109,14 +109,14 @@ function DobStepImpl({
           <button
             type="button"
             onClick={() => setGender('male')}
-            className={`border rounded-lg px-3 py-2 text-sm ${gender === 'male' ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-surface'}`}
+            className={`border rounded-lg px-3 py-2 text-sm ${gender === 'male' ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-fg-strong hover:bg-ink-50 dark:hover:bg-surface'}`}
           >
             {t('talentOnboard.male')}
           </button>
           <button
             type="button"
             onClick={() => setGender('female')}
-            className={`border rounded-lg px-3 py-2 text-sm ${gender === 'female' ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-surface'}`}
+            className={`border rounded-lg px-3 py-2 text-sm ${gender === 'female' ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-fg-strong hover:bg-ink-50 dark:hover:bg-surface'}`}
           >
             {t('talentOnboard.female')}
           </button>
@@ -137,7 +137,7 @@ function DobStepImpl({
               key={r.value}
               type="button"
               onClick={() => setRace(r.value)}
-              className={`border rounded-lg px-3 py-2 text-sm ${race === r.value ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-surface'}`}
+              className={`border rounded-lg px-3 py-2 text-sm ${race === r.value ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-fg-strong hover:bg-ink-50 dark:hover:bg-surface'}`}
             >
               {r.label}
             </button>
@@ -187,7 +187,7 @@ function DobStepImpl({
                 key={value}
                 type="button"
                 onClick={() => setLanguages((prev) => active ? prev.filter((l) => l !== value) : [...prev, value])}
-                className={`border rounded-full px-3 py-1.5 text-xs ${active ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-surface'}`}
+                className={`border rounded-full px-3 py-1.5 text-xs ${active ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-fg-strong hover:bg-ink-50 dark:hover:bg-surface'}`}
               >
                 {label}
               </button>
@@ -207,14 +207,14 @@ function DobStepImpl({
           <button
             type="button"
             onClick={() => setLocationMatters(true)}
-            className={`border rounded-lg px-3 py-2 text-sm ${locationMatters === true ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-surface'}`}
+            className={`border rounded-lg px-3 py-2 text-sm ${locationMatters === true ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-fg-strong hover:bg-ink-50 dark:hover:bg-surface'}`}
           >
             {t('talentOnboard.commuteYes')}
           </button>
           <button
             type="button"
             onClick={() => { setLocationMatters(false); setLocationPostcode('') }}
-            className={`border rounded-lg px-3 py-2 text-sm ${locationMatters === false ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-surface'}`}
+            className={`border rounded-lg px-3 py-2 text-sm ${locationMatters === false ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-fg-strong hover:bg-ink-50 dark:hover:bg-surface'}`}
           >
             {t('talentOnboard.commuteNo')}
           </button>

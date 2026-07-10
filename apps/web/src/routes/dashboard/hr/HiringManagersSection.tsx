@@ -85,7 +85,7 @@ function HiringManagersSectionImpl({
       </Async>
 
       {!isSelfHM && (
-        <div className="mt-3 flex items-center gap-2 text-sm text-ink-600 dark:text-gray-300">
+        <div className="mt-3 flex items-center gap-2 text-sm text-ink-600 dark:text-fg-strong">
           <span>{t('hrDash.alsoHmPrompt')}</span>
           <button
             type="button"

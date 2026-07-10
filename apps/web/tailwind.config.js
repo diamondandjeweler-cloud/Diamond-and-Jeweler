@@ -101,7 +101,7 @@ export default {
         canvas: 'var(--canvas)',
         surface: { DEFAULT: 'var(--surface)', 2: 'var(--surface-2)' },
         border: { DEFAULT: 'var(--border)', strong: 'var(--border-strong)' },
-        fg: { DEFAULT: 'var(--fg)', muted: 'var(--fg-muted)', subtle: 'var(--fg-subtle)' },
+        fg: { DEFAULT: 'var(--fg)', strong: 'var(--fg-strong)', muted: 'var(--fg-muted)', subtle: 'var(--fg-subtle)' },
       },
       fontFamily: {
         // 'Inter Variable' / 'Fraunces Variable' are self-hosted via @fontsource

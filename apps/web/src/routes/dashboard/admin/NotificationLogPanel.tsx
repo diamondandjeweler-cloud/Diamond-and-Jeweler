@@ -54,7 +54,7 @@ export default function NotificationLogPanel() {
   return (
     <div>
       <div className="flex gap-2 mb-4 items-center">
-        <label htmlFor="notif-channel-filter" className="text-sm text-gray-600 dark:text-gray-300">Channel:</label>
+        <label htmlFor="notif-channel-filter" className="text-sm text-gray-600 dark:text-fg-strong">Channel:</label>
         <select
           id="notif-channel-filter"
           value={channel}
@@ -65,7 +65,7 @@ export default function NotificationLogPanel() {
           <option value="email">Email</option>
           <option value="in_app">In-app</option>
         </select>
-        <button onClick={() => void reload()} className="border dark:border-border px-3 py-1 rounded text-sm hover:bg-gray-50 dark:hover:bg-surface dark:text-gray-300">
+        <button onClick={() => void reload()} className="border dark:border-border px-3 py-1 rounded text-sm hover:bg-gray-50 dark:hover:bg-surface dark:text-fg-strong">
           Refresh
         </button>
       </div>

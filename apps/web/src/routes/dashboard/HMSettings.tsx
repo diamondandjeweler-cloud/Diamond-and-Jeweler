@@ -54,9 +54,9 @@ export default function HMSettings() {
       <PageHeader title={t('hmSettings.title', 'Settings')} description={t('hmSettings.description', 'Notification and contact preferences.')} />
       <div className="space-y-6">
         <div className="space-y-4">
-          <h2 className="text-sm font-semibold text-ink-700 dark:text-gray-300 uppercase tracking-wide">{t('hmSettings.whatsappHeading', 'WhatsApp notifications')}</h2>
+          <h2 className="text-sm font-semibold text-ink-700 dark:text-fg-strong uppercase tracking-wide">{t('hmSettings.whatsappHeading', 'WhatsApp notifications')}</h2>
           <div>
-            <label htmlFor="hm-whatsapp-number" className="block text-sm font-medium text-ink-700 dark:text-gray-300 mb-1">{t('hmSettings.whatsappNumberLabel', 'WhatsApp number')}</label>
+            <label htmlFor="hm-whatsapp-number" className="block text-sm font-medium text-ink-700 dark:text-fg-strong mb-1">{t('hmSettings.whatsappNumberLabel', 'WhatsApp number')}</label>
             <input
               id="hm-whatsapp-number"
               type="tel"
@@ -73,7 +73,7 @@ export default function HMSettings() {
               onChange={(e) => setWhatsappOptIn(e.target.checked)}
               className="mt-0.5"
             />
-            <span className="text-sm text-ink-700 dark:text-gray-300">
+            <span className="text-sm text-ink-700 dark:text-fg-strong">
               {t('hmSettings.optInLabel', 'Send me WhatsApp notifications for new candidate matches, interview updates, and important alerts.')}
             </span>
           </label>

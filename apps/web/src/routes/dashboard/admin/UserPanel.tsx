@@ -107,14 +107,14 @@ export default function UserPanel() {
           <option value="banned">Banned only</option>
           <option value="ghosts">Ghosting (score ≥ 3)</option>
         </select>
-        <button onClick={() => void reload()} className="border dark:border-border px-3 py-1.5 rounded text-sm hover:bg-gray-50 dark:hover:bg-surface dark:text-gray-300">
+        <button onClick={() => void reload()} className="border dark:border-border px-3 py-1.5 rounded text-sm hover:bg-gray-50 dark:hover:bg-surface dark:text-fg-strong">
           Refresh
         </button>
       </div>
       {err && <p className="text-sm text-red-600 mb-2">{err}</p>}
       {loading ? <ListSkeleton rows={5} variant="row" /> : (
         rows.length === 0 ? <p className="text-sm text-fg-muted">No users match.</p> : (
-          <table className="w-full text-sm dark:text-gray-300">
+          <table className="w-full text-sm dark:text-fg-strong">
             <thead>
               <tr className="text-left text-fg-muted border-b dark:border-border">
                 <th className="py-2">Name / email</th>
@@ -181,7 +181,7 @@ export default function UserPanel() {
               Onboarding will be reset so the user goes through the correct flow.
             </p>
             <div>
-              <label htmlFor="admin-new-role" className="block text-sm font-medium text-ink-700 dark:text-gray-300 mb-1">New role</label>
+              <label htmlFor="admin-new-role" className="block text-sm font-medium text-ink-700 dark:text-fg-strong mb-1">New role</label>
               <select
                 id="admin-new-role"
                 value={newRole}
@@ -194,7 +194,7 @@ export default function UserPanel() {
               </select>
             </div>
             <div>
-              <label htmlFor="admin-role-reason" className="block text-sm font-medium text-ink-700 dark:text-gray-300 mb-1">Reason (required)</label>
+              <label htmlFor="admin-role-reason" className="block text-sm font-medium text-ink-700 dark:text-fg-strong mb-1">Reason (required)</label>
               <input
                 id="admin-role-reason"
                 type="text"
@@ -209,7 +209,7 @@ export default function UserPanel() {
               <button
                 onClick={() => setChangeRoleModal(null)}
                 disabled={roleChanging}
-                className="px-4 py-2 text-sm rounded-lg border dark:border-border hover:bg-surface-2 dark:text-gray-300"
+                className="px-4 py-2 text-sm rounded-lg border dark:border-border hover:bg-surface-2 dark:text-fg-strong"
               >
                 Cancel
               </button>

@@ -34,11 +34,11 @@ function BasicsStepImpl({
       onSubmit={(e) => { e.preventDefault(); if (fullName.trim() && jobTitle.trim()) onSubmit() }}
       className="space-y-3"
     >
-      <p className="text-sm text-ink-600 dark:text-gray-300">
+      <p className="text-sm text-ink-600 dark:text-fg-strong">
         {t('hmOnboard.basicsIntro')}
       </p>
       <div>
-        <label htmlFor="hm-onboard-full-name" className="block text-sm font-medium text-ink-700 dark:text-gray-300 mb-1">{t('common.fullName')}</label>
+        <label htmlFor="hm-onboard-full-name" className="block text-sm font-medium text-ink-700 dark:text-fg-strong mb-1">{t('common.fullName')}</label>
         <input
           id="hm-onboard-full-name"
           type="text" value={fullName} onChange={(e) => setFullName(e.target.value)}
@@ -50,7 +50,7 @@ function BasicsStepImpl({
         />
       </div>
       <div>
-        <label htmlFor="hm-onboard-job-title" className="block text-sm font-medium text-ink-700 dark:text-gray-300 mb-1">{t('hmOnboard.jobTitleLabel')}</label>
+        <label htmlFor="hm-onboard-job-title" className="block text-sm font-medium text-ink-700 dark:text-fg-strong mb-1">{t('hmOnboard.jobTitleLabel')}</label>
         <input
           id="hm-onboard-job-title"
           type="text" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)}
@@ -66,7 +66,7 @@ function BasicsStepImpl({
           type="button"
           onClick={onSwitchToTalent}
           disabled={switching}
-          className="text-xs text-ink-400 dark:text-fg-muted hover:text-ink-600 dark:hover:text-gray-300 underline"
+          className="text-xs text-ink-400 dark:text-fg-muted hover:text-ink-600 dark:hover:text-fg-strong underline"
         >
           {switching ? t('hmOnboard.switching') : t('hmOnboard.switchToTalent')}
         </button>

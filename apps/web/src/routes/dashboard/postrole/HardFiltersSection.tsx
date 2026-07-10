@@ -58,7 +58,7 @@ function HardFiltersSection({
             onChange={(e) => setter(e.target.checked)}
             className="h-4 w-4 rounded border-ink-300 dark:border-border-strong accent-brand-500"
           />
-          <span className="text-sm text-ink-800 dark:text-gray-300">{label}</span>
+          <span className="text-sm text-ink-800 dark:text-fg-strong">{label}</span>
         </label>
       ))}
     </FormSection>

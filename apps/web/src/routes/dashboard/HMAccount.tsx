@@ -60,7 +60,7 @@ export default function HMAccount() {
         </Button>
 
         <div className="border-t border-border pt-4">
-          <h2 className="text-sm font-semibold text-ink-700 dark:text-gray-300 mb-2">{t('hmAccount.passwordHeading', 'Password')}</h2>
+          <h2 className="text-sm font-semibold text-ink-700 dark:text-fg-strong mb-2">{t('hmAccount.passwordHeading', 'Password')}</h2>
           <p className="text-sm text-fg-muted mb-3">
             {t('hmAccount.passwordHelp', 'Request a password reset link to be sent to your email address.')}
           </p>

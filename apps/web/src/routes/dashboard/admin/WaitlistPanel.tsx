@@ -46,10 +46,10 @@ export default function WaitlistPanel() {
         data={rows ?? undefined}
         isLoading={rows == null}
         loading={<ListSkeleton rows={5} variant="row" />}
-        empty={<p className="text-sm text-gray-600 dark:text-gray-300">Waitlist is empty.</p>}
+        empty={<p className="text-sm text-gray-600 dark:text-fg-strong">Waitlist is empty.</p>}
       >
         {(items) => (
-          <table className="w-full text-sm dark:text-gray-300">
+          <table className="w-full text-sm dark:text-fg-strong">
             <thead>
               <tr className="text-left text-fg-muted border-b dark:border-border">
                 <th className="py-2">Email</th>

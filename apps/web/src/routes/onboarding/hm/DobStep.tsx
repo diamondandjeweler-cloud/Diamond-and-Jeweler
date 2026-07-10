@@ -42,7 +42,7 @@ function DobStepImpl({
 }: DobStepProps) {
   return (
     <div className="space-y-3">
-      <p className="text-sm text-ink-600 dark:text-gray-300">
+      <p className="text-sm text-ink-600 dark:text-fg-strong">
         {t('hmOnboard.dobIntro')}
       </p>
       <input
@@ -51,15 +51,15 @@ function DobStepImpl({
         className="w-full border border-border dark:bg-surface dark:text-fg rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
       />
       <div className="space-y-1">
-        <p className="text-sm text-ink-600 dark:text-gray-300">{t('hmOnboard.genderLabel')}</p>
+        <p className="text-sm text-ink-600 dark:text-fg-strong">{t('hmOnboard.genderLabel')}</p>
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button" onClick={() => { setGender('male'); setDobSkipped(false) }}
-            className={`border rounded-lg px-3 py-2 text-sm ${gender === 'male' ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-surface'}`}
+            className={`border rounded-lg px-3 py-2 text-sm ${gender === 'male' ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-fg-strong hover:bg-ink-50 dark:hover:bg-surface'}`}
           >{t('hmOnboard.genderMale')}</button>
           <button
             type="button" onClick={() => { setGender('female'); setDobSkipped(false) }}
-            className={`border rounded-lg px-3 py-2 text-sm ${gender === 'female' ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-surface'}`}
+            className={`border rounded-lg px-3 py-2 text-sm ${gender === 'female' ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-fg-strong hover:bg-ink-50 dark:hover:bg-surface'}`}
           >{t('hmOnboard.genderFemale')}</button>
         </div>
       </div>
@@ -79,7 +79,7 @@ function DobStepImpl({
         {!dobSkipPrompt ? (
           <button
             type="button" onClick={() => setDobSkipPrompt(true)}
-            className="text-xs text-ink-400 dark:text-fg-muted hover:text-ink-600 dark:hover:text-gray-300 underline"
+            className="text-xs text-ink-400 dark:text-fg-muted hover:text-ink-600 dark:hover:text-fg-strong underline"
           >{t('hmOnboard.preferNotToShare')}</button>
         ) : (
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">

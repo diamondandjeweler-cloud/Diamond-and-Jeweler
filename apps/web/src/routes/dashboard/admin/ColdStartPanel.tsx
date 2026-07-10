@@ -113,7 +113,7 @@ export default function ColdStartPanel() {
 
   return (
     <div>
-      <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+      <p className="text-sm text-gray-600 dark:text-fg-strong mb-4">
         Roles flagged by <code>match-generate</code> because the algorithm found
         fewer than three eligible talents. Manually pair up to 3 talents per role.
       </p>
@@ -169,7 +169,7 @@ export default function ColdStartPanel() {
                               disabled={!selected.has(t.id) && selected.size >= 3}
                               aria-label={`Select talent ${t.id.slice(0, 8)}`}
                             />
-                            <div className="flex-1 text-sm dark:text-gray-300">
+                            <div className="flex-1 text-sm dark:text-fg-strong">
                               <div>Talent #{t.id.slice(0, 8)}</div>
                               <div className="text-xs text-fg-muted">
                                 Expects: RM {t.expected_salary_min ?? '—'} – {t.expected_salary_max ?? '—'} ·{' '}

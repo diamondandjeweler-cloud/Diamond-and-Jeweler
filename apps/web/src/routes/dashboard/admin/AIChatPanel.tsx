@@ -306,7 +306,7 @@ export default function AIChatPanel() {
                           {endpointLabel(c.endpoint)}
                         </span>
                         {c.user_role && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-surface-2 text-ink-700 dark:text-gray-300">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-surface-2 text-ink-700 dark:text-fg-strong">
                             {c.user_role}
                           </span>
                         )}

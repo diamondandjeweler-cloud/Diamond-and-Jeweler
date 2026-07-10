@@ -26,7 +26,7 @@ function AddMeAsHmModalImpl({
         <h2 id="add-me-hm-title" className="text-xl font-semibold text-fg">
           {t('hrDash.addMeModalTitle')}
         </h2>
-        <p className="text-sm text-ink-700 dark:text-gray-300">
+        <p className="text-sm text-ink-700 dark:text-fg-strong">
           {t('hrDash.addMeModalBody')}
         </p>
         <form onSubmit={onSubmit} className="space-y-4">

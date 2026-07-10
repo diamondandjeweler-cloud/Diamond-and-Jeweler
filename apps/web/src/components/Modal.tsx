@@ -149,7 +149,7 @@ export function Modal({
           </h2>
         )}
         {children != null && (
-          <div className="text-sm text-ink-700 dark:text-gray-300 space-y-2">{children}</div>
+          <div className="text-sm text-ink-700 dark:text-fg-strong space-y-2">{children}</div>
         )}
         {footer && <div className="flex gap-2 pt-2">{footer}</div>}
       </div>

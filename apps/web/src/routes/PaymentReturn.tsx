@@ -102,7 +102,7 @@ export default function PaymentReturn() {
           {purchaseId && status === 'pending' && (
             <div className="text-center py-6">
               <Spinner />
-              <p className="mt-3 text-sm text-ink-600 dark:text-gray-300">
+              <p className="mt-3 text-sm text-ink-600 dark:text-fg-strong">
                 Waiting for Billplz to confirm your payment… (attempt {tries}/10)
               </p>
               <p className="mt-1 text-xs text-ink-400 dark:text-fg-muted">

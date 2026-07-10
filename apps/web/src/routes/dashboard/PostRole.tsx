@@ -559,7 +559,7 @@ export default function PostRole() {
                   type="button"
                   onClick={() => void generateDraft()}
                   disabled={drafting || !title.trim()}
-                  className="text-xs px-2.5 py-1 rounded-md border border-border text-ink-700 dark:text-gray-300 hover:border-ink-400 dark:hover:border-gray-500 hover:text-fg disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  className="text-xs px-2.5 py-1 rounded-md border border-border text-ink-700 dark:text-fg-strong hover:border-ink-400 dark:hover:border-gray-500 hover:text-fg disabled:opacity-50 disabled:cursor-not-allowed transition"
                   title={!title.trim() ? 'Type a role title first' : 'Generate a starter draft from the title'}
                 >
                   {drafting ? 'Drafting…' : description ? 'Regenerate draft' : 'Generate draft'}

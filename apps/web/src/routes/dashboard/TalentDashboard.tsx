@@ -295,12 +295,12 @@ export default function TalentDashboard() {
               <div className="text-sm font-semibold text-amber-900 mb-0.5">
                 {t('talentDash.urgentHeading', { cost: URGENT_COST })}
               </div>
-              <p className="text-sm text-ink-600 dark:text-gray-300">
+              <p className="text-sm text-ink-600 dark:text-fg-strong">
                 {t('talentDash.urgentSubtitle')}
               </p>
             </div>
             {pointsBalance != null && (
-              <div className="text-xs text-ink-600 dark:text-gray-300 whitespace-nowrap">
+              <div className="text-xs text-ink-600 dark:text-fg-strong whitespace-nowrap">
                 {t('talentDash.balanceLabel')}{' '}
                 <span className="font-semibold text-fg">
                   {t('talentDash.pointsValue', { n: pointsBalance })}
@@ -331,7 +331,7 @@ export default function TalentDashboard() {
                 )}
               </div>
               {(urgentResult.role.salary_min || urgentResult.role.salary_max) && (
-                <div className="mt-1 text-sm text-ink-700 dark:text-gray-300">
+                <div className="mt-1 text-sm text-ink-700 dark:text-fg-strong">
                   RM {fmt(urgentResult.role.salary_min)} – {fmt(urgentResult.role.salary_max)}{' '}
                   <span className="text-ink-400 dark:text-fg-muted">
                     {t('talentDash.perMonth')}
@@ -339,7 +339,7 @@ export default function TalentDashboard() {
                 </div>
               )}
               {urgentResult.role.description && (
-                <p className="mt-2 text-sm text-ink-600 dark:text-gray-300 line-clamp-3">
+                <p className="mt-2 text-sm text-ink-600 dark:text-fg-strong line-clamp-3">
                   {urgentResult.role.description}
                 </p>
               )}
@@ -359,7 +359,7 @@ export default function TalentDashboard() {
       {(matches?.length ?? 0) >= 3 && extraUsed < 3 && (
         <Card className="mt-8 border-dashed border-accent-500">
           <div className="p-6 text-center">
-            <div className="text-sm font-medium text-ink-700 dark:text-gray-300 mb-1">
+            <div className="text-sm font-medium text-ink-700 dark:text-fg-strong mb-1">
               {t('talentDash.extraLookedAll')}
             </div>
             <p className="text-sm text-fg-muted mb-4">
@@ -376,7 +376,7 @@ export default function TalentDashboard() {
               {pointsBalance != null && pointsBalance < POINTS_PER_EXTRA ? (
                 <Link
                   to="/points"
-                  className="inline-flex items-center rounded-md border border-border bg-surface px-3 py-1.5 text-sm font-medium text-ink-700 dark:text-gray-300 hover:bg-surface-2"
+                  className="inline-flex items-center rounded-md border border-border bg-surface px-3 py-1.5 text-sm font-medium text-ink-700 dark:text-fg-strong hover:bg-surface-2"
                 >
                   {t('talentDash.extraGetPoints', { cost: POINTS_PER_EXTRA })}
                 </Link>
@@ -430,7 +430,7 @@ export default function TalentDashboard() {
             <h2 className="font-display text-2xl text-fg mb-2">
               {t('talentDash.savedTitle')}
             </h2>
-            <p className="text-sm text-ink-600 dark:text-gray-300 leading-relaxed mb-4">
+            <p className="text-sm text-ink-600 dark:text-fg-strong leading-relaxed mb-4">
               {t('talentDash.savedBody')}
             </p>
             <p className="text-xs text-fg-muted mb-5">

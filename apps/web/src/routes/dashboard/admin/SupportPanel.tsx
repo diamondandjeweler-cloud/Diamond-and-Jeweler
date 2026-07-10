@@ -211,7 +211,7 @@ export default function SupportPanel() {
                   {ticket.admin_notes && (
                     <div>
                       <p className="text-xs font-semibold text-fg-muted uppercase tracking-wide mb-1">Admin notes</p>
-                      <p className="text-sm text-ink-700 dark:text-gray-300 bg-surface border border-border rounded-lg px-3 py-2">{ticket.admin_notes}</p>
+                      <p className="text-sm text-ink-700 dark:text-fg-strong bg-surface border border-border rounded-lg px-3 py-2">{ticket.admin_notes}</p>
                     </div>
                   )}
 

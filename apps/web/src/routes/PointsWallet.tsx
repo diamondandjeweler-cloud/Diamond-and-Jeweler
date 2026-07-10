@@ -116,7 +116,7 @@ export default function PointsWallet() {
       <Card className="mb-8">
         <CardBody>
           <h2 className="font-display text-base font-semibold mb-3 dark:text-fg">{t('points.howToEarnTitle')}</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-ink-700 dark:text-gray-300">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-ink-700 dark:text-fg-strong">
             {[
               ['+5', t('points.ruleRejectMatch')],
               ['+5', t('points.ruleAcceptMatch')],
@@ -185,7 +185,7 @@ export default function PointsWallet() {
               <tbody>
                 {ledger.map((row) => (
                   <tr key={row.id} className="border-t border-border">
-                    <td className="p-3 text-ink-800 dark:text-gray-300">
+                    <td className="p-3 text-ink-800 dark:text-fg-strong">
                       {REASON_LABEL[row.reason] ?? row.reason}
                     </td>
                     <td className="p-3 text-right font-semibold">
@@ -208,7 +208,7 @@ export default function PointsWallet() {
         <button
           type="button"
           onClick={() => void refresh()}
-          className="text-xs text-ink-400 dark:text-fg-muted hover:text-ink-600 dark:hover:text-gray-300"
+          className="text-xs text-ink-400 dark:text-fg-muted hover:text-ink-600 dark:hover:text-fg-strong"
         >
           {t('points.refresh')}
         </button>

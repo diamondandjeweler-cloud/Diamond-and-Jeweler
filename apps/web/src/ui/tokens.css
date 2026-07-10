@@ -28,6 +28,7 @@
 
   /* Foreground / text */
   --fg:            #141511; /* primary text        (ink-900) */
+  --fg-strong:     #343630; /* strong body text    (ink-700) — the softer-than-heading body copy that used ink-700 in light / gray-300 in dark */
   --fg-muted:      #5d5f55; /* secondary text      (ink-500) */
   --fg-subtle:     #898c80; /* tertiary / icons    (ink-400) */
 }
@@ -41,6 +42,7 @@
   --border-strong: #52525b;
 
   --fg:            #e4e4e7;
+  --fg-strong:     #d1d5db; /* == gray-300: exact parity for the swept dark:text-gray-300 body copy */
   --fg-muted:      #a1a1aa;
   --fg-subtle:     #71717a;
 }

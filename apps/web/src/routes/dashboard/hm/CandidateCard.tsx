@@ -133,7 +133,7 @@ function CandidateCardImpl({
         {topTags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mb-4">
             {topTags.map(([tag, score]) => (
-              <span key={tag} className="text-xs bg-surface-2 text-ink-700 dark:text-gray-300 px-2 py-1 rounded-md">
+              <span key={tag} className="text-xs bg-surface-2 text-ink-700 dark:text-fg-strong px-2 py-1 rounded-md">
                 <span className="font-medium">{tag.replace(/_/g, ' ')}</span>
                 <span className="text-ink-400 dark:text-fg-muted ml-1">{Math.round(score * 100)}</span>
               </span>
@@ -175,7 +175,7 @@ function CandidateCardImpl({
                 {t('hmDash.withdraw')}
               </Button>
             </div>
-            <ul className="px-3 py-2 text-xs text-ink-700 dark:text-gray-300 space-y-1">
+            <ul className="px-3 py-2 text-xs text-ink-700 dark:text-fg-strong space-y-1">
               {[pendingProposal.slot_1_at, pendingProposal.slot_2_at, pendingProposal.slot_3_at].map((at, i) => (
                 <li key={i}>
                   <span className="text-ink-400 dark:text-fg-muted mr-2">{t('hmDash.slot', { n: i + 1 })}</span>
@@ -189,7 +189,7 @@ function CandidateCardImpl({
         {/* Interview rounds panel */}
         {rounds.length > 0 && (
           <div className="mt-4 border border-border rounded-lg overflow-hidden">
-            <div className="bg-surface-2 px-3 py-2 text-xs font-semibold text-ink-600 dark:text-gray-300 uppercase tracking-wide">
+            <div className="bg-surface-2 px-3 py-2 text-xs font-semibold text-ink-600 dark:text-fg-strong uppercase tracking-wide">
               {t('hmDash.interviewRounds')}
             </div>
             {rounds.map((r) => (
@@ -236,8 +236,8 @@ function CandidateCardImpl({
             ) : (
               <div className="space-y-1 text-sm">
                 <p className="font-medium text-fg">{contact.full_name}</p>
-                <p className="text-ink-700 dark:text-gray-300">{contact.email}</p>
-                {contact.phone && <p className="text-ink-700 dark:text-gray-300">{contact.phone}</p>}
+                <p className="text-ink-700 dark:text-fg-strong">{contact.email}</p>
+                {contact.phone && <p className="text-ink-700 dark:text-fg-strong">{contact.phone}</p>}
               </div>
             )}
           </div>
@@ -353,7 +353,7 @@ function CandidateCardImpl({
           {/* Feedback widget */}
           {['interview_completed', 'offer_made', 'hired', 'declined_by_manager', 'declined_by_talent'].includes(row.status) && (
             <div className="border border-border rounded-lg p-3 space-y-2 bg-surface-2">
-              <p className="text-xs font-semibold text-ink-700 dark:text-gray-300 uppercase tracking-wide">
+              <p className="text-xs font-semibold text-ink-700 dark:text-fg-strong uppercase tracking-wide">
                 {t('hmDash.rateThisMatch')}
               </p>
               <div className="flex items-center gap-1">

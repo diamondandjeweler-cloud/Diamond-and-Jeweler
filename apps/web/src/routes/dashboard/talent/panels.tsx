@@ -25,7 +25,7 @@ function ExpiryBannerImpl({
         <p className="text-xs text-red-600 mb-3">
           {t('talentDash.reactivateBody')}
         </p>
-        <ul className="text-xs text-ink-700 dark:text-gray-300 space-y-1 mb-4 list-disc list-inside">
+        <ul className="text-xs text-ink-700 dark:text-fg-strong space-y-1 mb-4 list-disc list-inside">
           <li>{t('talentDash.checkSalaryRange')}</li>
           <li>{t('talentDash.checkJobTypes')}</li>
           <li>{t('talentDash.checkNoticePeriod')}</li>
@@ -34,7 +34,7 @@ function ExpiryBannerImpl({
         <div className="flex gap-2 flex-wrap">
           <Button onClick={onReviveConfirm} loading={reviving} size="sm">{t('talentDash.confirmRevive')}</Button>
           <Link to="/talent/profile" className="btn-secondary text-xs px-3 py-1.5 rounded-md">{t('talentDash.updateFirst')}</Link>
-          <button onClick={onReviveCancel} className="text-xs text-ink-400 dark:text-fg-muted hover:text-ink-600 dark:hover:text-gray-300 px-2">{t('talentDash.cancel')}</button>
+          <button onClick={onReviveCancel} className="text-xs text-ink-400 dark:text-fg-muted hover:text-ink-600 dark:hover:text-fg-strong px-2">{t('talentDash.cancel')}</button>
         </div>
       </div>
     )
@@ -55,7 +55,7 @@ function ExpiryBannerImpl({
       <p className="text-xs text-amber-600 mb-3">
         {t('talentDash.quickCheckBody')}
       </p>
-      <ul className="text-xs text-ink-700 dark:text-gray-300 space-y-1 mb-4 list-disc list-inside">
+      <ul className="text-xs text-ink-700 dark:text-fg-strong space-y-1 mb-4 list-disc list-inside">
         <li>{t('talentDash.checkSalaryRange')}</li>
         <li>{t('talentDash.checkJobTypes')}</li>
         <li>{t('talentDash.checkNoticePeriod')}</li>
@@ -64,7 +64,7 @@ function ExpiryBannerImpl({
       <div className="flex gap-2 flex-wrap">
         <Button onClick={onReviveConfirm} loading={reviving} size="sm" variant="secondary">{t('talentDash.confirmExtend')}</Button>
         <Link to="/talent/profile" className="btn-secondary text-xs px-3 py-1.5 rounded-md">{t('talentDash.updateFirst')}</Link>
-        <button onClick={onReviveCancel} className="text-xs text-ink-400 dark:text-fg-muted hover:text-ink-600 dark:hover:text-gray-300 px-2">{t('talentDash.cancel')}</button>
+        <button onClick={onReviveCancel} className="text-xs text-ink-400 dark:text-fg-muted hover:text-ink-600 dark:hover:text-fg-strong px-2">{t('talentDash.cancel')}</button>
       </div>
     </div>
   )

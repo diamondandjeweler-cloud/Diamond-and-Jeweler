@@ -45,20 +45,20 @@ function OfferCardImpl({
         </div>
 
         {(m.roles?.salary_min || m.roles?.salary_max) && (
-          <div className="mb-3 text-sm text-ink-700 dark:text-gray-300">
+          <div className="mb-3 text-sm text-ink-700 dark:text-fg-strong">
             <span className="font-medium">RM {fmt(m.roles?.salary_min)} – {fmt(m.roles?.salary_max)}</span>
             <span className="text-ink-400 dark:text-fg-muted"> {t('talentDash.perMonth')}</span>
           </div>
         )}
 
         {m.roles?.description && (
-          <p className="text-sm text-ink-600 dark:text-gray-300 line-clamp-3 mb-4">{m.roles.description}</p>
+          <p className="text-sm text-ink-600 dark:text-fg-strong line-clamp-3 mb-4">{m.roles.description}</p>
         )}
 
         {m.application_summary && (
           <div className="mb-3 border border-brand-100 rounded-lg p-3 bg-brand-50">
             <p className="text-xs font-semibold uppercase tracking-wide text-brand-700 mb-1">{t('talentDash.yourPitch')}</p>
-            <p className="text-sm text-ink-800 dark:text-gray-300 leading-relaxed whitespace-pre-line">{m.application_summary}</p>
+            <p className="text-sm text-ink-800 dark:text-fg-strong leading-relaxed whitespace-pre-line">{m.application_summary}</p>
           </div>
         )}
 
@@ -117,7 +117,7 @@ function OfferCardImpl({
         {/* Interview rounds panel — visible once scheduling begins */}
         {rounds.length > 0 && (
           <div className="mt-4 border border-border rounded-lg overflow-hidden">
-            <div className="bg-ink-50 dark:bg-surface px-3 py-2 text-xs font-semibold text-ink-600 dark:text-gray-300 uppercase tracking-wide">
+            <div className="bg-ink-50 dark:bg-surface px-3 py-2 text-xs font-semibold text-ink-600 dark:text-fg-strong uppercase tracking-wide">
               {t('talentDash.yourInterviews')}
             </div>
             {rounds.map((r) => (
@@ -188,7 +188,7 @@ function OfferCardImpl({
           {/* Feedback widget */}
           {['interview_completed', 'offer_made', 'hired'].includes(m.status) && (
             <div className="border border-border rounded-lg p-3 space-y-2 bg-ink-50 dark:bg-surface">
-              <p className="text-xs font-semibold text-ink-700 dark:text-gray-300 uppercase tracking-wide">{t('talentDash.rateOpportunity')}</p>
+              <p className="text-xs font-semibold text-ink-700 dark:text-fg-strong uppercase tracking-wide">{t('talentDash.rateOpportunity')}</p>
               <div className="flex items-center gap-1">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
@@ -210,7 +210,7 @@ function OfferCardImpl({
               <select
                 value={feedbackEntry.outcome}
                 onChange={(e) => onFeedbackChange({ outcome: e.target.value })}
-                className="w-full border border-border rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 bg-surface dark:text-gray-300"
+                className="w-full border border-border rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 bg-surface dark:text-fg-strong"
               >
                 {TALENT_OUTCOME_KEYS.map((o) => <option key={o.value} value={o.value}>{o.emoji}{t(o.tKey)}</option>)}
               </select>
@@ -219,7 +219,7 @@ function OfferCardImpl({
                 onChange={(e) => onFeedbackChange({ freeText: e.target.value })}
                 placeholder={t('talentDash.feedbackPlaceholder')}
                 rows={2}
-                className="w-full border border-border rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 bg-surface dark:text-gray-300 dark:placeholder-gray-500 resize-none"
+                className="w-full border border-border rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 bg-surface dark:text-fg-strong dark:placeholder-gray-500 resize-none"
               />
               {feedbackEntry.saved ? (
                 <p className="text-xs text-emerald-600 font-medium">

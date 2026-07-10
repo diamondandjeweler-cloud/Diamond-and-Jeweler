@@ -88,7 +88,7 @@ function ScoreBar({ score }: { score: number | null }) {
       <div className="flex-1 h-1.5 bg-surface-2 rounded-full overflow-hidden">
         <div className={`h-full ${color}`} style={{ width: `${score}%` }} />
       </div>
-      <span className="text-xs font-mono text-gray-700 dark:text-gray-300 w-7 text-right">{score}</span>
+      <span className="text-xs font-mono text-gray-700 dark:text-fg-strong w-7 text-right">{score}</span>
     </div>
   )
 }
@@ -209,7 +209,7 @@ export default function ModerationPanel() {
               <span className={`ml-2 inline-flex items-center justify-center rounded-full text-xs px-1.5 min-w-[1.25rem] ${
                 t.tone === 'red' ? 'bg-red-100 text-red-700'
                 : t.tone === 'amber' ? 'bg-amber-100 text-amber-700'
-                : 'bg-surface-2 text-gray-700 dark:text-gray-300'
+                : 'bg-surface-2 text-gray-700 dark:text-fg-strong'
               }`}>
                 {t.count}
               </span>
@@ -217,7 +217,7 @@ export default function ModerationPanel() {
           </button>
         ))}
         <div className="flex-1" />
-        <button onClick={() => { void reload(); void loadCounts() }} className="text-xs border dark:border-border px-2 py-1 rounded hover:bg-gray-50 dark:hover:bg-surface dark:text-gray-300">
+        <button onClick={() => { void reload(); void loadCounts() }} className="text-xs border dark:border-border px-2 py-1 rounded hover:bg-gray-50 dark:hover:bg-surface dark:text-fg-strong">
           Refresh
         </button>
       </div>
@@ -266,7 +266,7 @@ export default function ModerationPanel() {
                       <span>{new Date(r.created_at).toLocaleString()}</span>
                     </div>
                     {r.moderation_reason && (
-                      <p className="text-xs text-gray-700 dark:text-gray-300 mt-2 italic">"{r.moderation_reason}"</p>
+                      <p className="text-xs text-gray-700 dark:text-fg-strong mt-2 italic">"{r.moderation_reason}"</p>
                     )}
                     <div className="mt-2"><ScoreBar score={r.moderation_score} /></div>
                   </div>
@@ -287,7 +287,7 @@ export default function ModerationPanel() {
                     </button>
                     <button
                       onClick={() => toggleExpand(r)}
-                      className="px-3 py-1.5 bg-surface-2 text-gray-600 dark:text-gray-300 border dark:border-border-strong text-xs rounded hover:bg-gray-100 dark:hover:bg-gray-600"
+                      className="px-3 py-1.5 bg-surface-2 text-gray-600 dark:text-fg-strong border dark:border-border-strong text-xs rounded hover:bg-gray-100 dark:hover:bg-gray-600"
                     >
                       {expanded === r.id ? 'Hide' : 'Details'}
                     </button>
@@ -326,7 +326,7 @@ export default function ModerationPanel() {
 
                     {/* Decision note */}
                     <div>
-                      <label htmlFor={`mod-note-${r.id}`} className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                      <label htmlFor={`mod-note-${r.id}`} className="block text-xs font-semibold text-gray-700 dark:text-fg-strong mb-1">
                         Decision note (optional, shown to employer)
                       </label>
                       <textarea
@@ -343,7 +343,7 @@ export default function ModerationPanel() {
                     <button
                       onClick={() => void recheck(r.id)}
                       disabled={processing === r.id}
-                      className="text-xs px-3 py-1 bg-surface border border-gray-300 dark:border-border-strong rounded hover:bg-surface-2 dark:text-gray-300 disabled:opacity-50"
+                      className="text-xs px-3 py-1 bg-surface border border-gray-300 dark:border-border-strong rounded hover:bg-surface-2 dark:text-fg-strong disabled:opacity-50"
                     >
                       Re-run AI classifier
                     </button>
@@ -352,7 +352,7 @@ export default function ModerationPanel() {
                     {events[r.id] && events[r.id].length > 0 && (
                       <div>
                         <p className="text-xs font-semibold text-fg-muted mb-1">History</p>
-                        <ul className="text-xs text-gray-700 dark:text-gray-300 space-y-1">
+                        <ul className="text-xs text-gray-700 dark:text-fg-strong space-y-1">
                           {events[r.id].map((e) => (
                             <li key={e.id} className="border-l-2 border-border pl-2">
                               <strong>{e.event_type}</strong>
@@ -374,7 +374,7 @@ export default function ModerationPanel() {
                       {/* Full-fidelity editor (all ~45 role columns) — same
                           PostRole form MyRoles' Edit uses. The legacy
                           /hm/roles/:id/edit route remains for stale-loop nudges. */}
-                      <Link to={`/hm/post-role/${r.id}`} className="underline hover:text-gray-600 dark:hover:text-gray-300">
+                      <Link to={`/hm/post-role/${r.id}`} className="underline hover:text-gray-600 dark:hover:text-fg-strong">
                         Open role editor →
                       </Link>
                     </div>

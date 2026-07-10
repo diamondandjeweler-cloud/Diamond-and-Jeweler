@@ -560,7 +560,7 @@ export default function HMOnboarding() {
               <button
                 type="button"
                 onClick={() => { setErr(null); setPhase('review') }}
-                className="w-full text-xs text-ink-400 dark:text-fg-muted hover:text-ink-600 dark:hover:text-gray-300 py-1"
+                className="w-full text-xs text-ink-400 dark:text-fg-muted hover:text-ink-600 dark:hover:text-fg-strong py-1"
               >{t('hmOnboard.backToReview')}</button>
             </>
           ) : (

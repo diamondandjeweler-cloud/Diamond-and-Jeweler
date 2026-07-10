@@ -68,7 +68,7 @@ function MustHavesStepImpl({
   ]
   return (
     <div className="space-y-4">
-      <p className="text-sm text-ink-600 dark:text-gray-300 leading-relaxed">
+      <p className="text-sm text-ink-600 dark:text-fg-strong leading-relaxed">
         {t('hmOnboard.mustHavesIntro')}
       </p>
       <div className="space-y-2">
@@ -79,7 +79,7 @@ function MustHavesStepImpl({
               type="checkbox" checked={state} onChange={(e) => setter(e.target.checked)}
               className="h-4 w-4 rounded border-border-strong accent-brand-500"
             />
-            <span className="text-sm text-ink-800 dark:text-gray-300">{label}</span>
+            <span className="text-sm text-ink-800 dark:text-fg-strong">{label}</span>
           </label>
         ))}
       </div>
@@ -109,7 +109,7 @@ function MustHavesStepImpl({
           {mustHaveItems.map((item) => (
             <li key={item} className="flex items-start gap-2 bg-ink-50 dark:bg-surface border border-border rounded-lg px-3 py-2">
               <span className="h-1.5 w-1.5 rounded-full bg-brand-400 shrink-0 mt-1.5" />
-              <span className="flex-1 text-sm text-ink-800 dark:text-gray-300">{item}</span>
+              <span className="flex-1 text-sm text-ink-800 dark:text-fg-strong">{item}</span>
               <button
                 type="button" onClick={() => setMustHaveItems((prev) => prev.filter((i) => i !== item))}
                 className="text-ink-400 dark:text-fg-muted hover:text-red-500 transition-colors shrink-0 text-base leading-none" aria-label={t('hmOnboard.remove')}

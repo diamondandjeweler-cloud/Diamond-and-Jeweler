@@ -103,7 +103,7 @@ export default function AuditLogPanel() {
 
   return (
     <div>
-      <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+      <p className="text-sm text-gray-600 dark:text-fg-strong mb-4">
         Append-only platform audit trail. Captures auth, consent, DSR, admin reads, file ops,
         matching, and compliance events. Retained for 730 days (purge job runs monthly).
       </p>
@@ -148,7 +148,7 @@ export default function AuditLogPanel() {
             {actorSearch && (
               <button
                 onClick={() => { setActorSearch(''); commitSearch('') }}
-                className="text-sm border dark:border-border px-3 py-1 rounded hover:bg-gray-50 dark:hover:bg-surface dark:text-gray-300"
+                className="text-sm border dark:border-border px-3 py-1 rounded hover:bg-gray-50 dark:hover:bg-surface dark:text-fg-strong"
               >
                 Clear
               </button>
@@ -164,7 +164,7 @@ export default function AuditLogPanel() {
         <p className="text-sm text-fg-muted">No events match this view.</p>
       ) : (
         <div className="overflow-x-auto border dark:border-border rounded">
-          <table className="w-full text-xs dark:text-gray-300">
+          <table className="w-full text-xs dark:text-fg-strong">
             <thead className="bg-gray-50 dark:bg-surface text-fg-muted">
               <tr>
                 <th className="text-left px-2 py-1.5">When (MYT)</th>
@@ -211,14 +211,14 @@ export default function AuditLogPanel() {
           <button
             onClick={() => setPage((p) => Math.max(0, p - 1))}
             disabled={page === 0 || loading}
-            className="text-sm border dark:border-border px-3 py-1 rounded hover:bg-gray-50 dark:hover:bg-surface dark:text-gray-300 disabled:opacity-40"
+            className="text-sm border dark:border-border px-3 py-1 rounded hover:bg-gray-50 dark:hover:bg-surface dark:text-fg-strong disabled:opacity-40"
           >
             ← Newer
           </button>
           <button
             onClick={() => setPage((p) => p + 1)}
             disabled={rows.length < PAGE_SIZE || loading}
-            className="text-sm border dark:border-border px-3 py-1 rounded hover:bg-gray-50 dark:hover:bg-surface dark:text-gray-300 disabled:opacity-40"
+            className="text-sm border dark:border-border px-3 py-1 rounded hover:bg-gray-50 dark:hover:bg-surface dark:text-fg-strong disabled:opacity-40"
           >
             Older →
           </button>

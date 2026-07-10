@@ -85,14 +85,14 @@ export default function HMCompanyProfile() {
       <PageHeader title={t('hmCompany.title', 'Company profile')} description={t('hmCompany.description', 'Your professional details and company information.')} />
       <div className="space-y-6">
         <div className="space-y-4">
-          <h2 className="text-sm font-semibold text-ink-700 dark:text-gray-300 uppercase tracking-wide">{t('hmCompany.yourDetailsHeading', 'Your details')}</h2>
+          <h2 className="text-sm font-semibold text-ink-700 dark:text-fg-strong uppercase tracking-wide">{t('hmCompany.yourDetailsHeading', 'Your details')}</h2>
           <Input label={t('hmCompany.fullNameLabel', 'Full name')} value={fullName} onChange={(e) => setFullName(e.target.value)} />
           <Input label={t('hmCompany.jobTitleLabel', 'Job title')} value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} />
         </div>
 
         {company && (
           <div className="rounded-xl border border-border bg-ink-50 dark:bg-surface p-4 space-y-2">
-            <h2 className="text-sm font-semibold text-ink-700 dark:text-gray-300 uppercase tracking-wide mb-3">{t('hmCompany.companyHeading', 'Company')}</h2>
+            <h2 className="text-sm font-semibold text-ink-700 dark:text-fg-strong uppercase tracking-wide mb-3">{t('hmCompany.companyHeading', 'Company')}</h2>
             <InfoRow label={t('hmCompany.nameLabel', 'Name')} value={company.name} />
             {company.industry && <InfoRow label={t('hmCompany.industryLabel', 'Industry')} value={company.industry} />}
             {company.size && <InfoRow label={t('hmCompany.sizeLabel', 'Size')} value={company.size} />}

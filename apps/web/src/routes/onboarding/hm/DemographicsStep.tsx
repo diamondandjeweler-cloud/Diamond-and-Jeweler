@@ -36,11 +36,11 @@ function DemographicsStepImpl({
 }: DemographicsStepProps) {
   return (
     <div className="space-y-4">
-      <p className="text-sm text-ink-600 dark:text-gray-300 leading-relaxed">
+      <p className="text-sm text-ink-600 dark:text-fg-strong leading-relaxed">
         {t('hmOnboard.demographicsIntro')}
       </p>
       <div className="space-y-1">
-        <p className="text-sm text-ink-600 dark:text-gray-300">{t('hmOnboard.raceLabel')}</p>
+        <p className="text-sm text-ink-600 dark:text-fg-strong">{t('hmOnboard.raceLabel')}</p>
         <div className="grid grid-cols-2 gap-2">
           {([
             { value: 'Malay',   label: t('hmOnboard.raceMalay') },
@@ -50,13 +50,13 @@ function DemographicsStepImpl({
           ] as const).map((r) => (
             <button
               key={r.value} type="button" onClick={() => setRace(r.value.toLowerCase())}
-              className={`border rounded-lg px-3 py-2 text-sm ${race === r.value.toLowerCase() ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-surface'}`}
+              className={`border rounded-lg px-3 py-2 text-sm ${race === r.value.toLowerCase() ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-fg-strong hover:bg-ink-50 dark:hover:bg-surface'}`}
             >{r.label}</button>
           ))}
         </div>
       </div>
       <div className="space-y-1">
-        <p className="text-sm text-ink-600 dark:text-gray-300">{t('hmOnboard.religionLabel')}</p>
+        <p className="text-sm text-ink-600 dark:text-fg-strong">{t('hmOnboard.religionLabel')}</p>
         <select
           value={religion} onChange={(e) => setReligion(e.target.value)}
           className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-surface dark:text-fg"
@@ -73,7 +73,7 @@ function DemographicsStepImpl({
         </select>
       </div>
       <div className="space-y-1">
-        <p className="text-sm text-ink-600 dark:text-gray-300">{t('hmOnboard.languagesLabel')}</p>
+        <p className="text-sm text-ink-600 dark:text-fg-strong">{t('hmOnboard.languagesLabel')}</p>
         <div className="flex flex-wrap gap-2">
           {[
             { value: 'english',          label: t('hmOnboard.langEnglish') },
@@ -91,22 +91,22 @@ function DemographicsStepImpl({
               <button
                 key={value} type="button"
                 onClick={() => setLanguages((prev) => active ? prev.filter((l) => l !== value) : [...prev, value])}
-                className={`border rounded-full px-3 py-1.5 text-xs ${active ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-surface'}`}
+                className={`border rounded-full px-3 py-1.5 text-xs ${active ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-fg-strong hover:bg-ink-50 dark:hover:bg-surface'}`}
               >{label}</button>
             )
           })}
         </div>
       </div>
       <div className="space-y-1">
-        <p className="text-sm text-ink-600 dark:text-gray-300">{t('hmOnboard.locationLabel')}</p>
+        <p className="text-sm text-ink-600 dark:text-fg-strong">{t('hmOnboard.locationLabel')}</p>
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button" onClick={() => setLocationMatters(true)}
-            className={`border rounded-lg px-3 py-2 text-sm ${locationMatters === true ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-surface'}`}
+            className={`border rounded-lg px-3 py-2 text-sm ${locationMatters === true ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-fg-strong hover:bg-ink-50 dark:hover:bg-surface'}`}
           >{t('hmOnboard.locationYes')}</button>
           <button
             type="button" onClick={() => { setLocationMatters(false); setLocationPostcode('') }}
-            className={`border rounded-lg px-3 py-2 text-sm ${locationMatters === false ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-gray-300 hover:bg-ink-50 dark:hover:bg-surface'}`}
+            className={`border rounded-lg px-3 py-2 text-sm ${locationMatters === false ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-fg-strong hover:bg-ink-50 dark:hover:bg-surface'}`}
           >{t('hmOnboard.locationNo')}</button>
         </div>
         {locationMatters === true && (

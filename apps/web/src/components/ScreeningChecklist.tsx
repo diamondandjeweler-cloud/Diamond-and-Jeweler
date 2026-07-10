@@ -107,7 +107,7 @@ export default function ScreeningChecklist({ reasoning, salaryMin, salaryMax }: 
         className="flex items-center justify-between w-full px-3 py-2.5 bg-ink-50 dark:bg-surface hover:bg-ink-100 dark:hover:bg-gray-700 text-left transition-colors"
         aria-expanded={open}
       >
-        <span className="flex items-center gap-2 text-xs font-semibold text-ink-700 dark:text-gray-300 uppercase tracking-wide">
+        <span className="flex items-center gap-2 text-xs font-semibold text-ink-700 dark:text-fg-strong uppercase tracking-wide">
           <span>📋</span>
           Pre-screening checklist
           {doneCount > 0 && (
@@ -132,7 +132,7 @@ export default function ScreeningChecklist({ reasoning, salaryMin, salaryMax }: 
                 onChange={() => toggle(i)}
                 className="mt-0.5 rounded border-ink-300 dark:border-border-strong accent-emerald-600 shrink-0"
               />
-              <span className={`text-xs leading-snug ${checked[i] ? 'line-through text-fg-subtle' : 'text-ink-700 dark:text-gray-300'}`}>
+              <span className={`text-xs leading-snug ${checked[i] ? 'line-through text-fg-subtle' : 'text-ink-700 dark:text-fg-strong'}`}>
                 {item}
               </span>
             </label>

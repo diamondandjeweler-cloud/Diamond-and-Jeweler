@@ -50,7 +50,7 @@ export default function VerificationQueue() {
         data={rows ?? undefined}
         isLoading={rows == null}
         loading={<ListSkeleton rows={5} variant="row" />}
-        empty={<p className="text-sm text-gray-600 dark:text-gray-300">All companies verified.</p>}
+        empty={<p className="text-sm text-gray-600 dark:text-fg-strong">All companies verified.</p>}
       >
         {(items) => (
           <div className="space-y-2">
@@ -69,7 +69,7 @@ export default function VerificationQueue() {
                   {c.business_license_path && (
                     <button
                       onClick={() => void viewLicense(c.business_license_path!)}
-                      className="border dark:border-border px-3 py-1 rounded text-sm hover:bg-surface-2 dark:text-gray-300"
+                      className="border dark:border-border px-3 py-1 rounded text-sm hover:bg-surface-2 dark:text-fg-strong"
                     >
                       View license
                     </button>

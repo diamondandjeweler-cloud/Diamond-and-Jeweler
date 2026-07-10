@@ -179,7 +179,7 @@ export default function MyRoles() {
             >
               {t('myRoles.appealTitle')}
             </h3>
-            <p className="text-sm text-ink-600 dark:text-gray-300 mb-3">
+            <p className="text-sm text-ink-600 dark:text-fg-strong mb-3">
               {t('myRoles.appealSubtitle')}
             </p>
             {appeal.role.moderation_reason && (
@@ -251,13 +251,13 @@ export default function MyRoles() {
                       role={r}
                       onAppeal={() => setAppeal({ role: r, text: '', busy: false, err: null })}
                     />
-                    <p className="text-sm text-ink-600 dark:text-gray-300">
+                    <p className="text-sm text-ink-600 dark:text-fg-strong">
                       {[r.department, r.location, r.work_arrangement, r.experience_level]
                         .filter(Boolean)
                         .join(' · ')}
                     </p>
                     {(r.salary_min || r.salary_max) && (
-                      <p className="text-sm text-ink-700 dark:text-gray-300 mt-0.5">
+                      <p className="text-sm text-ink-700 dark:text-fg-strong mt-0.5">
                         RM {fmt(r.salary_min)} – {fmt(r.salary_max)}
                         <span className="text-ink-400 dark:text-fg-muted">
                           {' '}
@@ -270,7 +270,7 @@ export default function MyRoles() {
                         {r.required_traits.map((t) => (
                           <span
                             key={t}
-                            className="text-xs bg-surface-2 text-ink-700 dark:text-gray-300 px-2 py-0.5 rounded-md"
+                            className="text-xs bg-surface-2 text-ink-700 dark:text-fg-strong px-2 py-0.5 rounded-md"
                           >
                             {t.replace(/_/g, ' ')}
                           </span>
@@ -406,7 +406,7 @@ function ModerationNotice({ role, onAppeal }: { role: RoleRow; onAppeal: () => v
           ? 'bg-red-50 border-red-200 text-red-800'
           : role.moderation_status === 'flagged'
             ? 'bg-amber-50 border-amber-200 text-amber-900'
-            : 'bg-ink-50 dark:bg-surface border-border text-ink-700 dark:text-gray-300'
+            : 'bg-ink-50 dark:bg-surface border-border text-ink-700 dark:text-fg-strong'
       }`}
     >
       <div className="flex items-start justify-between gap-2">

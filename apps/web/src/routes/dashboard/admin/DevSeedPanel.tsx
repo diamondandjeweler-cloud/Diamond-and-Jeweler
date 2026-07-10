@@ -211,7 +211,7 @@ export default function DevSeedPanel() {
       {msg && <p className="mb-3 text-sm text-green-700">{msg}</p>}
 
       <div className="overflow-x-auto rounded border dark:border-border bg-surface">
-        <table className="w-full text-sm dark:text-gray-300">
+        <table className="w-full text-sm dark:text-fg-strong">
           <thead className="bg-gray-50 dark:bg-gray-900">
             <tr className="text-left">
               <th className="px-3 py-2 font-medium">Tester</th>
@@ -238,7 +238,7 @@ export default function DevSeedPanel() {
                     type="button"
                     onClick={() => void seedTalent(t)}
                     disabled={busyId === t.talent_id}
-                    className="rounded border dark:border-border px-2 py-1 text-xs hover:bg-gray-50 dark:hover:bg-surface-2 dark:text-gray-300 disabled:opacity-50"
+                    className="rounded border dark:border-border px-2 py-1 text-xs hover:bg-gray-50 dark:hover:bg-surface-2 dark:text-fg-strong disabled:opacity-50"
                   >
                     {busyId === t.talent_id ? 'Working…' : 'Seed'}
                   </button>

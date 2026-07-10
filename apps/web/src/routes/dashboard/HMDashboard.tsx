@@ -345,7 +345,7 @@ export default function HMDashboard() {
             </p>
             {[0, 1, 2].map((i) => (
               <div key={i} className="mb-3">
-                <label htmlFor={`hm-slot-${i + 1}`} className="block text-xs mb-1 text-ink-700 dark:text-gray-300 font-medium">
+                <label htmlFor={`hm-slot-${i + 1}`} className="block text-xs mb-1 text-ink-700 dark:text-fg-strong font-medium">
                   {t('hmDash.slot', { n: i + 1 })}
                 </label>
                 <input
@@ -401,7 +401,7 @@ export default function HMDashboard() {
             </div>
             <div className="p-6">
               <h3 className="text-xl font-bold text-fg">{onboardingDraftRole.title}</h3>
-              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600 dark:text-gray-300">
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600 dark:text-fg-strong">
                 {onboardingDraftRole.industry && <span>{onboardingDraftRole.industry}</span>}
                 {(onboardingDraftRole.salary_min || onboardingDraftRole.salary_max) && (
                   <span>RM {fmt(onboardingDraftRole.salary_min)} – {fmt(onboardingDraftRole.salary_max)}</span>
@@ -417,7 +417,7 @@ export default function HMDashboard() {
                   ))}
                 </div>
               )}
-              <p className="mt-4 text-sm text-gray-600 dark:text-gray-300">
+              <p className="mt-4 text-sm text-gray-600 dark:text-fg-strong">
                 {t('hmDash.draftReviewHint')}
               </p>
               <div className="mt-5">
@@ -479,12 +479,12 @@ export default function HMDashboard() {
                 <div className="text-sm font-semibold text-amber-900 mb-0.5">
                   {t('hmDash.urgentSearchTitle', { cost: URGENT_COST })}
                 </div>
-                <p className="text-sm text-ink-600 dark:text-gray-300">
+                <p className="text-sm text-ink-600 dark:text-fg-strong">
                   {t('hmDash.urgentSearchDesc')}
                 </p>
               </div>
               {pointsBalance != null && (
-                <div className="text-xs text-ink-600 dark:text-gray-300 whitespace-nowrap">
+                <div className="text-xs text-ink-600 dark:text-fg-strong whitespace-nowrap">
                   {t('hmDash.balanceLabel')} <span className="font-semibold text-fg">{t('hmDash.pointsValue', { n: pointsBalance })}</span>
                 </div>
               )}
@@ -538,7 +538,7 @@ export default function HMDashboard() {
                           {insufficientPoints ? (
                             <Link
                               to="/points"
-                              className="inline-flex items-center rounded-md border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink-700 dark:text-gray-300 hover:bg-surface-2"
+                              className="inline-flex items-center rounded-md border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink-700 dark:text-fg-strong hover:bg-surface-2"
                             >
                               {t('hmDash.getPoints', { points: POINTS_PER_EXTRA })}
                             </Link>

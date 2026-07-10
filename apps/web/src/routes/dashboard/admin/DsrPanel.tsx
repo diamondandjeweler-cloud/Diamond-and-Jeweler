@@ -105,7 +105,7 @@ export default function DsrPanel() {
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <p className="text-sm text-gray-600 dark:text-gray-300">
+        <p className="text-sm text-gray-600 dark:text-fg-strong">
           PDPA data subject requests. Deletion enforcement runs 30 days after{' '}
           <code>completed</code> via the <code>data-retention</code> cron. Access
           and portability completions fire <code>dsr-export</code> to email the

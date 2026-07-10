@@ -85,7 +85,7 @@ export default function MarketRatePanel() {
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <p className="text-sm text-gray-600 dark:text-gray-300">
+        <p className="text-sm text-gray-600 dark:text-fg-strong">
           Salary benchmarks used by the market-rate warning during role creation.
           Current dataset is <strong>Klang Valley</strong> (KL + Selangor) only;
           rows for other states still need to be seeded.
@@ -107,7 +107,7 @@ export default function MarketRatePanel() {
           <RateForm draft={draft} onChange={setDraft} />
           <div className="flex gap-2 justify-end mt-3">
             <button onClick={() => { setCreating(false); setDraft(EMPTY) }}
-              className="border dark:border-border px-3 py-1 rounded text-sm hover:bg-gray-50 dark:hover:bg-surface-2 dark:text-gray-300">Cancel</button>
+              className="border dark:border-border px-3 py-1 rounded text-sm hover:bg-gray-50 dark:hover:bg-surface-2 dark:text-fg-strong">Cancel</button>
             <button onClick={() => void createRow()}
               className="bg-brand-600 text-white px-3 py-1 rounded text-sm hover:bg-brand-700">Create</button>
           </div>
@@ -117,7 +117,7 @@ export default function MarketRatePanel() {
       {rows.length === 0 ? (
         <p className="text-sm text-fg-muted">No market rates seeded.</p>
       ) : (
-        <table className="w-full text-sm dark:text-gray-300">
+        <table className="w-full text-sm dark:text-fg-strong">
           <thead>
             <tr className="text-left text-fg-muted border-b dark:border-border">
               <th className="py-2">Job title</th>
@@ -138,7 +138,7 @@ export default function MarketRatePanel() {
                     <RateForm draft={draft} onChange={setDraft} />
                     <div className="flex gap-2 justify-end mt-2">
                       <button onClick={() => setEditing(null)}
-                        className="border dark:border-border px-3 py-1 rounded text-xs hover:bg-gray-50 dark:hover:bg-surface-2 dark:text-gray-300">Cancel</button>
+                        className="border dark:border-border px-3 py-1 rounded text-xs hover:bg-gray-50 dark:hover:bg-surface-2 dark:text-fg-strong">Cancel</button>
                       <button onClick={() => void saveEdit()}
                         className="bg-brand-600 text-white px-3 py-1 rounded text-xs hover:bg-brand-700">Save</button>
                     </div>

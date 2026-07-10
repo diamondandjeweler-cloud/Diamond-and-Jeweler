@@ -323,7 +323,7 @@ export default function Careers() {
         <nav aria-label={t('careers.breadcrumbAria')} className="text-xs text-fg-muted mb-4">
           <Link to="/" className="hover:text-navy-900 dark:hover:text-white">{t('careers.breadcrumbHome')}</Link>
           <span className="mx-2">/</span>
-          <span aria-current="page" className="text-gray-700 dark:text-gray-300">{t('careers.breadcrumbCurrent')}</span>
+          <span aria-current="page" className="text-gray-700 dark:text-fg-strong">{t('careers.breadcrumbCurrent')}</span>
         </nav>
 
         <section>
@@ -429,7 +429,7 @@ export default function Careers() {
                 <p className="text-xs text-fg-muted">
                   {t(`careers.roles.${rk}.type`)} · {t(`careers.roles.${rk}.location`)} · {t(`careers.roles.${rk}.level`)}
                 </p>
-                <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 leading-snug">{t(`careers.roles.${rk}.blurb`)}</p>
+                <p className="text-sm text-gray-700 dark:text-fg-strong mt-2 leading-snug">{t(`careers.roles.${rk}.blurb`)}</p>
                 <div className="mt-3 flex items-center gap-4">
                   {r.slug && (
                     <Link

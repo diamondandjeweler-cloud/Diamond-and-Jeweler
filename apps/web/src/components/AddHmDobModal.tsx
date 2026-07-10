@@ -69,7 +69,7 @@ export default function AddHmDobModal({ hmId, profileId, onSaved, onCancel }: Pr
         <h2 id="hm-add-dob-title" className="text-xl font-semibold text-fg">
           A little more about you
         </h2>
-        <p className="text-sm text-ink-700 dark:text-gray-300">
+        <p className="text-sm text-ink-700 dark:text-fg-strong">
           We&apos;d love to know a little more about you so we can pitch you to the right talent —
           the kind of person who&apos;ll really click with how you work. Just your date of birth and
           gender. Encrypted and never shown to candidates.
@@ -87,12 +87,12 @@ export default function AddHmDobModal({ hmId, profileId, onSaved, onCancel }: Pr
             <button
               type="button"
               onClick={() => setGender('male')}
-              className={`border rounded-lg px-3 py-2 text-sm ${gender === 'male' ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-gray-300 hover:bg-surface-2'}`}
+              className={`border rounded-lg px-3 py-2 text-sm ${gender === 'male' ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-fg-strong hover:bg-surface-2'}`}
             >Male</button>
             <button
               type="button"
               onClick={() => setGender('female')}
-              className={`border rounded-lg px-3 py-2 text-sm ${gender === 'female' ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-gray-300 hover:bg-surface-2'}`}
+              className={`border rounded-lg px-3 py-2 text-sm ${gender === 'female' ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-fg-strong hover:bg-surface-2'}`}
             >Female</button>
           </div>
         </div>

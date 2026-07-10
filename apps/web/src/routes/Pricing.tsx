@@ -78,7 +78,7 @@ export default function Pricing() {
         <nav aria-label={t('pricing.breadcrumbAria')} className="text-xs text-fg-muted mb-4">
           <Link to="/" className="hover:text-navy-900 dark:hover:text-white">{t('pricing.breadcrumbHome')}</Link>
           <span className="mx-2">/</span>
-          <span aria-current="page" className="text-gray-700 dark:text-gray-300">{t('pricing.breadcrumbCurrent')}</span>
+          <span aria-current="page" className="text-gray-700 dark:text-fg-strong">{t('pricing.breadcrumbCurrent')}</span>
         </nav>
 
         {/* Hero */}
@@ -107,7 +107,7 @@ export default function Pricing() {
             </p>
             <ul className="space-y-2.5 flex-1 mb-8">
               {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
-                <li key={n} className="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
+                <li key={n} className="flex items-start gap-2.5 text-sm text-gray-700 dark:text-fg-strong">
                   <span className="text-gold-500 mt-0.5 flex-shrink-0" aria-hidden>✦</span>
                   {t(`pricing.talentFeature${n}`)}
                 </li>
@@ -181,7 +181,7 @@ export default function Pricing() {
                   <span>{t(`pricing.faq${i + 1}q`)}</span>
                   <span className="text-gray-400 group-open:rotate-45 transition-transform">+</span>
                 </summary>
-                <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 leading-relaxed">{t(`pricing.faq${i + 1}a`)}</p>
+                <p className="text-sm text-gray-700 dark:text-fg-strong mt-2 leading-relaxed">{t(`pricing.faq${i + 1}a`)}</p>
               </details>
             ))}
           </div>

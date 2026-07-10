@@ -140,7 +140,7 @@ export default function NotificationBell() {
                 >
                   {n.subject && <div className="font-medium dark:text-fg">{n.subject}</div>}
                   {n.body && (
-                    <div className="text-gray-600 dark:text-gray-300 text-xs mt-1 line-clamp-3 whitespace-pre-line">
+                    <div className="text-gray-600 dark:text-fg-strong text-xs mt-1 line-clamp-3 whitespace-pre-line">
                       {n.body}
                     </div>
                   )}

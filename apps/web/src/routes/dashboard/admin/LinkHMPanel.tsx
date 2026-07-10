@@ -104,7 +104,7 @@ export default function LinkHMPanel() {
           <h2 className="text-sm font-semibold text-fg">
             Unlinked hiring managers{(floaters?.length ?? 0) > 0 ? ` (${floaters!.length})` : ''}
           </h2>
-          <button onClick={() => void load()} className="text-xs border dark:border-border px-2 py-1 rounded hover:bg-gray-50 dark:hover:bg-surface dark:text-gray-300">
+          <button onClick={() => void load()} className="text-xs border dark:border-border px-2 py-1 rounded hover:bg-gray-50 dark:hover:bg-surface dark:text-fg-strong">
             Refresh
           </button>
         </div>

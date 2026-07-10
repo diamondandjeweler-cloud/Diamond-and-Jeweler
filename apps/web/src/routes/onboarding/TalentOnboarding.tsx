@@ -479,7 +479,7 @@ export default function TalentOnboarding() {
       const nextPhase: Phase = chatDone ? (dobFilled ? 'docs' : 'dob') : 'chat'
       return (
         <div className="space-y-3">
-          <p className="text-sm text-ink-700 dark:text-gray-300 font-medium">{t('talentOnboard.resumeProgressIntro')}</p>
+          <p className="text-sm text-ink-700 dark:text-fg-strong font-medium">{t('talentOnboard.resumeProgressIntro')}</p>
           <div className="space-y-1.5">
             <ProgressStep label={t('talentOnboard.stepNameContact')} done={!!fullName} doneLabel={t('talentOnboard.stepDone')} nextLabel={t('talentOnboard.stepNext')} />
             <ProgressStep label={t('talentOnboard.stepChat')} done={chatDone} active={!chatDone} doneLabel={t('talentOnboard.stepDone')} nextLabel={t('talentOnboard.stepNext')} />
@@ -491,7 +491,7 @@ export default function TalentOnboarding() {
           </Button>
           <button
             type="button"
-            className="w-full text-xs text-ink-400 dark:text-fg-muted hover:text-ink-600 dark:hover:text-gray-300 py-1"
+            className="w-full text-xs text-ink-400 dark:text-fg-muted hover:text-ink-600 dark:hover:text-fg-strong py-1"
             onClick={() => {
               if (draftKey) localStorage.removeItem(draftKey)
               setPhase('basics')
@@ -524,7 +524,7 @@ export default function TalentOnboarding() {
             {t('talentOnboard.basicsIntro')}
           </p>
           <div>
-            <label htmlFor="talent-onboard-full-name" className="block text-sm font-medium text-ink-700 dark:text-gray-300 mb-1">{t('common.fullName')}</label>
+            <label htmlFor="talent-onboard-full-name" className="block text-sm font-medium text-ink-700 dark:text-fg-strong mb-1">{t('common.fullName')}</label>
             <input
               id="talent-onboard-full-name"
               type="text"
@@ -538,7 +538,7 @@ export default function TalentOnboarding() {
             />
           </div>
           <div>
-            <label htmlFor="talent-onboard-phone" className="block text-sm font-medium text-ink-700 dark:text-gray-300 mb-1">{t('common.phone')}</label>
+            <label htmlFor="talent-onboard-phone" className="block text-sm font-medium text-ink-700 dark:text-fg-strong mb-1">{t('common.phone')}</label>
             <input
               id="talent-onboard-phone"
               type="tel"
@@ -561,7 +561,7 @@ export default function TalentOnboarding() {
               type="button"
               onClick={() => void handleSwitchToHiring()}
               disabled={switching}
-              className="text-xs text-ink-400 dark:text-fg-muted hover:text-ink-600 dark:hover:text-gray-300 underline"
+              className="text-xs text-ink-400 dark:text-fg-muted hover:text-ink-600 dark:hover:text-fg-strong underline"
             >
               {switching ? t('talentOnboard.switching') : t('talentOnboard.switchToHiring')}
             </button>
@@ -786,7 +786,7 @@ export default function TalentOnboarding() {
               <button
                 type="button"
                 onClick={() => { setErr(null); setPhase('review') }}
-                className="w-full text-xs text-ink-400 dark:text-fg-muted hover:text-ink-600 dark:hover:text-gray-300 py-1"
+                className="w-full text-xs text-ink-400 dark:text-fg-muted hover:text-ink-600 dark:hover:text-fg-strong py-1"
               >{t('talentOnboard.backToReview')}</button>
             </>
           ) : (

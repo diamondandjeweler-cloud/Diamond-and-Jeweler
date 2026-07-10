@@ -189,7 +189,7 @@ export default function SystemConfigPanel() {
   if (loading) return <FormSkeleton fields={8} />
   return (
     <div>
-      <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+      <p className="text-sm text-gray-600 dark:text-fg-strong mb-4">
         Runtime-tunable platform settings. Values are JSON — see{' '}
         <code>supabase/seed.sql</code> for examples.
       </p>

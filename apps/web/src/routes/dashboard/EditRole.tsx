@@ -235,7 +235,7 @@ export default function EditRole() {
             </Trans>
           </p>
         ) : (
-          <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+          <p className="text-sm text-gray-600 dark:text-fg-strong mb-4">
             <Trans i18nKey="editRole.editsApplyNotice" values={{ status: r.status }} defaults="Edits apply immediately to existing matches. Status: <1>{{status}}</1>.">
               Edits apply immediately to existing matches. Status: <strong>{r.status}</strong>.
             </Trans>
@@ -255,7 +255,7 @@ export default function EditRole() {
                 const applied = appliedKinds.has(g.kind)
                 return (
                   <li key={i} className="flex items-start gap-3 text-sm bg-surface border border-blue-100 dark:border-border rounded px-3 py-2">
-                    <span className="flex-1 text-gray-800 dark:text-gray-300">{describeGap(g)}</span>
+                    <span className="flex-1 text-gray-800 dark:text-fg-strong">{describeGap(g)}</span>
                     {canApply(g) && (
                       <button type="button" onClick={() => applyGap(g)} disabled={applied}
                         className={`text-xs px-3 py-1 rounded ${
@@ -342,7 +342,7 @@ export default function EditRole() {
                     className={`text-sm px-3 py-1 rounded border dark:border-border ${
                       on ? 'bg-brand-600 text-white border-brand-600'
                          : atCap ? 'bg-gray-100 dark:bg-surface text-gray-400 dark:text-gray-600'
-                         : 'bg-surface dark:text-gray-300 hover:bg-surface-2'
+                         : 'bg-surface dark:text-fg-strong hover:bg-surface-2'
                     }`}>
                     {t}
                   </button>
@@ -355,7 +355,7 @@ export default function EditRole() {
 
           <div className="flex gap-2 justify-between pt-2">
             <button type="button" onClick={() => navigate('/hm/roles')}
-              className="px-4 py-2 border dark:border-border dark:text-gray-300 rounded hover:bg-surface-2" disabled={busy}>
+              className="px-4 py-2 border dark:border-border dark:text-fg-strong rounded hover:bg-surface-2" disabled={busy}>
               {t('editRole.cancel', 'Cancel')}
             </button>
             <button type="submit" disabled={busy}

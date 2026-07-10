@@ -356,7 +356,7 @@ export default function Referrals() {
         <Card className="mt-6">
           <CardBody>
             <h2 className="font-display text-lg mb-2 dark:text-fg">Redeem points for an extra match</h2>
-            <p className="text-sm text-ink-600 dark:text-gray-300 mb-3">
+            <p className="text-sm text-ink-600 dark:text-fg-strong mb-3">
               Spend {pointsCfg.perExtra} Diamond Points to add 1 extra match slot on a role.
             </p>
             {roles.length === 0 ? (
@@ -405,7 +405,7 @@ export default function Referrals() {
         <Card className="mt-6">
           <CardBody>
             <h2 className="font-display text-lg mb-2 dark:text-fg">Redeem points for an extra match</h2>
-            <p className="text-sm text-ink-600 dark:text-gray-300 mb-3">
+            <p className="text-sm text-ink-600 dark:text-fg-strong mb-3">
               Spend {pointsCfg.perExtra} Diamond Points to unlock 1 extra match opportunity for yourself (capped at 3 paid extras total).
             </p>
             <Button

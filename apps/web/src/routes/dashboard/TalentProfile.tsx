@@ -307,7 +307,7 @@ export default function TalentProfile() {
     return (
       <div className="max-w-lg mx-auto text-center">
         <h1 className="font-display text-2xl text-fg mb-2">Your profile isn't set up yet</h1>
-        <p className="text-gray-600 dark:text-gray-300 mb-4">Finish onboarding so we can start matching you with roles.</p>
+        <p className="text-gray-600 dark:text-fg-strong mb-4">Finish onboarding so we can start matching you with roles.</p>
         <button
           onClick={() => navigate('/onboarding/talent')}
           className="bg-brand-600 text-white px-4 py-2 rounded hover:bg-brand-700"
@@ -322,7 +322,7 @@ export default function TalentProfile() {
     <div className="max-w-2xl mx-auto">
       <div className="bg-surface border dark:border-border rounded-lg p-6">
         <h1 className="text-2xl font-bold mb-2 dark:text-fg">Your profile</h1>
-        <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
+        <p className="text-sm text-gray-600 dark:text-fg-strong mb-6">
           Tune what employers see and what kinds of roles we surface for you.
         </p>
 
@@ -373,13 +373,13 @@ export default function TalentProfile() {
         )}
 
         {retryMsg && (
-          <div className="mb-6 border border-border rounded-lg p-3 bg-ink-50 dark:bg-surface text-sm text-ink-700 dark:text-gray-300">{retryMsg}</div>
+          <div className="mb-6 border border-border rounded-lg p-3 bg-ink-50 dark:bg-surface text-sm text-ink-700 dark:text-fg-strong">{retryMsg}</div>
         )}
 
         {aiSummary ? (
           <div className="mb-6 border border-brand-200 rounded-lg p-4 bg-brand-50">
             <p className="text-xs font-semibold uppercase tracking-wide text-brand-700 mb-1">How the system describes you</p>
-            <p className="text-sm text-ink-800 dark:text-gray-300 leading-relaxed">{aiSummary}</p>
+            <p className="text-sm text-ink-800 dark:text-fg-strong leading-relaxed">{aiSummary}</p>
             <p className="text-xs text-ink-400 dark:text-fg-muted mt-2">This is what hiring managers see about your background and strengths when you appear as a match.</p>
           </div>
         ) : extractionStatus === 'complete' ? (
@@ -393,16 +393,16 @@ export default function TalentProfile() {
           <h2 className="font-semibold mb-2 dark:text-fg">Documents</h2>
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm w-24 text-gray-700 dark:text-gray-300">Photo</span>
+              <span className="text-sm w-24 text-gray-700 dark:text-fg-strong">Photo</span>
               <button
                 type="button"
                 onClick={() => void viewPhoto()}
                 disabled={photoBusy}
-                className="px-3 py-1.5 border dark:border-border rounded text-sm dark:text-gray-300 hover:bg-surface-2 disabled:opacity-50"
+                className="px-3 py-1.5 border dark:border-border rounded text-sm dark:text-fg-strong hover:bg-surface-2 disabled:opacity-50"
               >
                 {photoBusy ? 'Loading…' : 'View photo'}
               </button>
-              <label className="px-3 py-1.5 border dark:border-border rounded text-sm dark:text-gray-300 hover:bg-surface-2 cursor-pointer">
+              <label className="px-3 py-1.5 border dark:border-border rounded text-sm dark:text-fg-strong hover:bg-surface-2 cursor-pointer">
                 Replace photo
                 <input
                   type="file"
@@ -414,16 +414,16 @@ export default function TalentProfile() {
               </label>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm w-24 text-gray-700 dark:text-gray-300">Resume</span>
+              <span className="text-sm w-24 text-gray-700 dark:text-fg-strong">Resume</span>
               <button
                 type="button"
                 onClick={() => void viewResume()}
                 disabled={resumeBusy}
-                className="px-3 py-1.5 border dark:border-border rounded text-sm dark:text-gray-300 hover:bg-surface-2 disabled:opacity-50"
+                className="px-3 py-1.5 border dark:border-border rounded text-sm dark:text-fg-strong hover:bg-surface-2 disabled:opacity-50"
               >
                 {resumeBusy ? 'Loading…' : 'View resume'}
               </button>
-              <label className="px-3 py-1.5 border dark:border-border rounded text-sm dark:text-gray-300 hover:bg-surface-2 cursor-pointer">
+              <label className="px-3 py-1.5 border dark:border-border rounded text-sm dark:text-fg-strong hover:bg-surface-2 cursor-pointer">
                 Replace resume
                 <input
                   type="file"
@@ -434,7 +434,7 @@ export default function TalentProfile() {
                 />
               </label>
             </div>
-            {docMsg && <p className="text-xs text-ink-700 dark:text-gray-300">{docMsg}</p>}
+            {docMsg && <p className="text-xs text-ink-700 dark:text-fg-strong">{docMsg}</p>}
             <p className="text-xs text-fg-muted">Files open in a new tab via a short-lived secure link.</p>
           </div>
         </section>
@@ -442,7 +442,7 @@ export default function TalentProfile() {
         <form onSubmit={save} className="space-y-6">
           <section>
             <h2 className="font-semibold mb-2 dark:text-fg">Availability</h2>
-            <label className="flex items-center gap-2 text-sm dark:text-gray-300">
+            <label className="flex items-center gap-2 text-sm dark:text-fg-strong">
               <input
                 type="checkbox"
                 checked={openToOffers}
@@ -459,7 +459,7 @@ export default function TalentProfile() {
             <h2 className="font-semibold mb-2 dark:text-fg">{t('whatsapp.title')}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2">
               <div>
-                <label htmlFor="talent-wa-number" className="block text-sm mb-1 dark:text-gray-300">{t('whatsapp.numberLabel')}</label>
+                <label htmlFor="talent-wa-number" className="block text-sm mb-1 dark:text-fg-strong">{t('whatsapp.numberLabel')}</label>
                 <input
                   id="talent-wa-number"
                   type="tel"
@@ -470,7 +470,7 @@ export default function TalentProfile() {
                 />
               </div>
               <div className="flex items-end">
-                <label className="flex items-center gap-2 text-sm dark:text-gray-300">
+                <label className="flex items-center gap-2 text-sm dark:text-fg-strong">
                   <input
                     type="checkbox"
                     checked={whatsappOptIn}
@@ -527,7 +527,7 @@ export default function TalentProfile() {
                 <button
                   type="button"
                   onClick={addWhitelistEntry}
-                  className="px-3 py-2 border dark:border-border rounded text-sm dark:text-gray-300 hover:bg-surface-2"
+                  className="px-3 py-2 border dark:border-border rounded text-sm dark:text-fg-strong hover:bg-surface-2"
                 >
                   Add
                 </button>
@@ -547,7 +547,7 @@ export default function TalentProfile() {
             <h2 className="font-semibold mb-2 dark:text-fg">Salary expectation (RM / month)</h2>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="talent-salary-min" className="block text-sm mb-1 dark:text-gray-300">Minimum</label>
+                <label htmlFor="talent-salary-min" className="block text-sm mb-1 dark:text-fg-strong">Minimum</label>
                 <input
                   id="talent-salary-min"
                   type="number" min={0}
@@ -557,7 +557,7 @@ export default function TalentProfile() {
                 />
               </div>
               <div>
-                <label htmlFor="talent-salary-max" className="block text-sm mb-1 dark:text-gray-300">Maximum</label>
+                <label htmlFor="talent-salary-max" className="block text-sm mb-1 dark:text-fg-strong">Maximum</label>
                 <input
                   id="talent-salary-max"
                   type="number" min={0}
@@ -574,7 +574,7 @@ export default function TalentProfile() {
             <div className="grid sm:grid-cols-2 gap-y-2 gap-x-4">
               {PREFERENCE_ASPECTS.map((aspect) => (
                 <div key={aspect} className="flex items-center justify-between gap-2">
-                  <span className="text-sm dark:text-gray-300">{aspect}</span>
+                  <span className="text-sm dark:text-fg-strong">{aspect}</span>
                   <div className="flex gap-0.5">
                     {[1, 2, 3, 4, 5].map((r) => (
                       <button
@@ -584,7 +584,7 @@ export default function TalentProfile() {
                         className={`w-7 h-7 border dark:border-gray-700 text-xs ${
                           ratings[aspect] === r
                             ? 'bg-brand-600 text-white border-brand-600'
-                            : 'bg-white dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                            : 'bg-white dark:bg-gray-800 dark:text-fg-strong hover:bg-gray-50 dark:hover:bg-gray-700'
                         }`}
                       >
                         {r}
@@ -602,7 +602,7 @@ export default function TalentProfile() {
             <button
               type="button"
               onClick={() => navigate('/talent')}
-              className="px-4 py-2 border dark:border-gray-700 rounded dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+              className="px-4 py-2 border dark:border-gray-700 rounded dark:text-fg-strong hover:bg-gray-50 dark:hover:bg-gray-700"
             >
               Back
             </button>

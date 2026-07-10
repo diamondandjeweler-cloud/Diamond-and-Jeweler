@@ -66,8 +66,8 @@ export default function KpiPanel() {
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <p className="text-sm text-gray-600 dark:text-gray-300">Live platform metrics. All counts are exact, computed at load time.</p>
-        <button onClick={() => load()} className="border dark:border-border px-3 py-1 rounded text-sm hover:bg-gray-50 dark:hover:bg-surface dark:text-gray-300">
+        <p className="text-sm text-gray-600 dark:text-fg-strong">Live platform metrics. All counts are exact, computed at load time.</p>
+        <button onClick={() => load()} className="border dark:border-border px-3 py-1 rounded text-sm hover:bg-gray-50 dark:hover:bg-surface dark:text-fg-strong">
           Refresh
         </button>
       </div>
@@ -115,8 +115,8 @@ export default function KpiPanel() {
           <tbody>
             {ADMIN_TRACKED_STATUSES.map((s) => (
               <tr key={s} className="border-b dark:border-border last:border-0">
-                <td className="py-1.5 capitalize text-gray-700 dark:text-gray-300">{s.replace(/_/g, ' ')}</td>
-                <td className="py-1.5 text-right font-mono dark:text-gray-300">{kpis ? kpis.by_status[s] : <Skeleton width={32} height={12} rounded="sm" />}</td>
+                <td className="py-1.5 capitalize text-gray-700 dark:text-fg-strong">{s.replace(/_/g, ' ')}</td>
+                <td className="py-1.5 text-right font-mono dark:text-fg-strong">{kpis ? kpis.by_status[s] : <Skeleton width={32} height={12} rounded="sm" />}</td>
               </tr>
             ))}
           </tbody>

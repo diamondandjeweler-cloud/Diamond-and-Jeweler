@@ -116,7 +116,7 @@ export default function MonthlyBoostPanel() {
             className={`flex-1 border rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
               month === m
                 ? 'bg-brand-500 text-white border-brand-500'
-                : 'border-border text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-surface'
+                : 'border-border text-gray-700 dark:text-fg-strong hover:bg-gray-50 dark:hover:bg-surface'
             }`}
           >
             {formatMonthLabel(m)}
@@ -163,7 +163,7 @@ export default function MonthlyBoostPanel() {
                     ? 'bg-brand-500 text-white border-brand-500 shadow-sm'
                     : disabled
                       ? 'border-gray-100 dark:border-gray-800 text-gray-300 dark:text-gray-600 cursor-not-allowed'
-                      : 'border-border text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-surface'
+                      : 'border-border text-gray-700 dark:text-fg-strong hover:bg-gray-50 dark:hover:bg-surface'
                 }`}
               >
                 {c}

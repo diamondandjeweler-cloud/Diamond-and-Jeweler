@@ -64,7 +64,7 @@ export default function MatchPanel() {
   return (
     <div>
       <div className="flex gap-2 mb-4 items-center">
-        <label htmlFor="match-status-filter" className="text-sm text-gray-600 dark:text-gray-300">Status:</label>
+        <label htmlFor="match-status-filter" className="text-sm text-gray-600 dark:text-fg-strong">Status:</label>
         <select
           id="match-status-filter"
           value={statusFilter}
@@ -82,7 +82,7 @@ export default function MatchPanel() {
           <option value="hired">Hired</option>
           <option value="expired">Expired</option>
         </select>
-        <button onClick={() => void reload()} className="border dark:border-border px-3 py-1 rounded text-sm hover:bg-gray-50 dark:hover:bg-surface dark:text-gray-300">
+        <button onClick={() => void reload()} className="border dark:border-border px-3 py-1 rounded text-sm hover:bg-gray-50 dark:hover:bg-surface dark:text-fg-strong">
           Refresh
         </button>
       </div>
@@ -120,13 +120,13 @@ export default function MatchPanel() {
                   </div>
                 </div>
                 {expanded === m.id && (
-                  <div className="border-t dark:border-border p-3 bg-gray-50 dark:bg-gray-900 dark:text-gray-300">
+                  <div className="border-t dark:border-border p-3 bg-gray-50 dark:bg-gray-900 dark:text-fg-strong">
                     <div className="grid grid-cols-3 gap-3 text-xs mb-2">
                       <div><span className="text-fg-muted">Tag comp:</span> {m.tag_compatibility ?? '—'}</div>
                       <div><span className="text-fg-muted">Team-fit:</span> {m.life_chart_score ?? '—'}</div>
                       <div><span className="text-fg-muted">Expires:</span> {m.expires_at ? new Date(m.expires_at).toLocaleString() : '—'}</div>
                     </div>
-                    <pre className="text-xs bg-surface border dark:border-border rounded p-2 overflow-x-auto dark:text-gray-300">
+                    <pre className="text-xs bg-surface border dark:border-border rounded p-2 overflow-x-auto dark:text-fg-strong">
 {JSON.stringify(m.internal_reasoning, null, 2)}
                     </pre>
                   </div>

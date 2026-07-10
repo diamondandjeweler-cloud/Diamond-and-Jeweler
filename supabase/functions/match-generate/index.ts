@@ -14,7 +14,7 @@ import { enforceRateLimit, RateLimitError } from '../_shared/ratelimit.ts'
 import { matchForRole, MatchError } from '../_shared/match-core.ts'
 import { reportError } from '../_shared/observe.ts'
 
-interface Body { role_id?: string; is_extra_match?: boolean }
+interface Body { role_id?: string; is_extra_match?: boolean; source_purchase_id?: string }
 
 serve(async (req) => {
   const pre = handleOptions(req); if (pre) return pre
@@ -43,6 +43,7 @@ serve(async (req) => {
     const result = await matchForRole({
       roleId:       body.role_id,
       isExtraMatch: body.is_extra_match === true,
+      sourcePurchaseId: body.source_purchase_id,
       isServiceRole: auth.isServiceRole,
       callerUserId:  auth.userId,
     })

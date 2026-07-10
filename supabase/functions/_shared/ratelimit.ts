@@ -43,6 +43,10 @@ export async function enforceRateLimit(
   }
 
   if (data === false) {
-    throw new RateLimitError('rate_limited', windowSeconds)
+    // check_and_increment_rate (0150) uses epoch-aligned buckets
+    // (floor(epoch / window) * window), so the true wait is the remainder of
+    // the current bucket — not the full window. Guard keeps it >= 1s.
+    const remaining = windowSeconds - (Math.floor(Date.now() / 1000) % windowSeconds)
+    throw new RateLimitError('rate_limited', Math.max(1, remaining))
   }
 }

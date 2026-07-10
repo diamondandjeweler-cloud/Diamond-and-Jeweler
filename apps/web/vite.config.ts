@@ -97,7 +97,21 @@ export default defineConfig({
             // @radix-ui/* call React.forwardRef at module-eval time, so they must
             // share React's chunk — otherwise they read forwardRef off an
             // undefined React and the whole app white-screens in the prod build.
-            norm.includes('/@radix-ui/')
+            norm.includes('/@radix-ui/') ||
+            // Radix's TRANSITIVE React-coupled deps (pulled in by DropdownMenu/
+            // Tooltip via the eager ui barrel) read React hooks at module-eval
+            // time too. They are separate npm packages, so the /@radix-ui/
+            // matcher above does NOT catch them — they fell into the plain
+            // `vendor` chunk and crashed with "Cannot read properties of
+            // undefined (reading 'useLayoutEffect')" = full white screen in
+            // prod (2026-07-10 outage at 44be0cc).
+            norm.includes('/react-remove-scroll/') ||
+            norm.includes('/react-remove-scroll-bar/') ||
+            norm.includes('/react-style-singleton/') ||
+            norm.includes('/use-sidecar/') ||
+            norm.includes('/use-callback-ref/') ||
+            norm.includes('/aria-hidden/') ||
+            norm.includes('/@floating-ui/')
           ) return 'vendor-react'
           return 'vendor'
         },

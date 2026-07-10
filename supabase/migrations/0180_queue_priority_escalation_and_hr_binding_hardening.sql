@@ -74,7 +74,7 @@ grant execute on function public.enqueue_roles_for_rematch(uuid[], integer) to s
 
 CREATE OR REPLACE FUNCTION public.auth_hr_company_id()
 RETURNS uuid LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, auth AS $$
-  SELECT CASE WHEN count(*) = 1 THEN min(c.id) END
+  SELECT CASE WHEN count(*) = 1 THEN (array_agg(c.id))[1] END
   FROM public.companies c
   JOIN public.profiles p ON lower(trim(p.email)) = lower(trim(c.primary_hr_email))
   WHERE p.id = auth.uid()

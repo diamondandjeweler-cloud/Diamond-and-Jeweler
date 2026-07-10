@@ -21,10 +21,23 @@ export async function reportError(err: unknown, ctx: Record<string, unknown>): P
     const message = err instanceof Error ? err.message : String(err)
     const stack = err instanceof Error ? err.stack ?? null : null
 
+    // Sentry's store API rejects arbitrary blobs — when the sink is a Sentry
+    // ingest URL (e.g. https://oNNN.ingest.de.sentry.io/api/NNN/store/?sentry_key=…)
+    // send a minimal valid event; any other sink keeps the raw webhook shape.
+    const body = sink.includes('.sentry.io/')
+      ? JSON.stringify({
+          message,
+          level: 'error',
+          platform: 'javascript',
+          tags: { fn: typeof ctx.fn === 'string' ? ctx.fn : 'edge' },
+          extra: { ...ctx, stack },
+        })
+      : JSON.stringify({ message, stack, ctx, ts: new Date().toISOString() })
+
     await fetch(sink, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, stack, ctx, ts: new Date().toISOString() }),
+      body,
     })
   } catch (e) {
     // Telemetry must never crash or alter the calling function.

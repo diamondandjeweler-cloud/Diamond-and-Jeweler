@@ -184,9 +184,9 @@ export default function Login() {
       }
       footer={
         isHRAdmin
-          ? <>{t('auth.newHere')} <Link to="/signup?role=hr_admin" className="font-medium" style={{ color: '#3b82f6' }}>{t('auth.createCompany')}</Link></>
+          ? <>{t('auth.newHere')} <Link to="/signup?role=hr_admin" className="font-medium" style={{ color: '#1d4ed8' }}>{t('auth.createCompany')}</Link></>
           : isHiringManager
-            ? <>{t('auth.newHere')} <Link to="/signup?role=hiring_manager" className="font-medium" style={{ color: '#3b82f6' }}>{t('auth.createHm')}</Link></>
+            ? <>{t('auth.newHere')} <Link to="/signup?role=hiring_manager" className="font-medium" style={{ color: '#1d4ed8' }}>{t('auth.createHm')}</Link></>
             : <>{t('auth.newHere')} <Link to="/signup" className="font-medium text-brand-700 hover:text-brand-800">{t('auth.createTalent')}</Link></>
       }
     >

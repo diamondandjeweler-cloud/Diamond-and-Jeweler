@@ -9,6 +9,9 @@ const VARIANT_CONFIG = {
   talent: {
     tag: 'FOR TALENT',
     accentColor: '#c9a84c',
+    // accentColor is tuned for the dark brand panel; on the white form panel
+    // it is only ~2.1:1. This is the AA-safe equivalent for text on light.
+    accentTextOnLight: '#8a6420',
     bgFrom: '#080810',
     bgTo: '#0e0e22',
     gridColor: '#c9a84c',
@@ -19,6 +22,7 @@ const VARIANT_CONFIG = {
   hiring: {
     tag: 'FOR COMPANIES',
     accentColor: '#3b82f6',
+    accentTextOnLight: '#1d4ed8',
     bgFrom: '#040d1c',
     bgTo: '#071428',
     gridColor: '#3b82f6',
@@ -110,7 +114,7 @@ export default function AuthShell({
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-[0.12em] uppercase mb-5"
             style={{
               backgroundColor: `${cfg.accentColor}18`,
-              color: cfg.accentColor,
+              color: cfg.accentTextOnLight,
               border: `1px solid ${cfg.accentColor}30`,
             }}
           >

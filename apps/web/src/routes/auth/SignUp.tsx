@@ -172,7 +172,7 @@ export default function SignUp() {
           <Link
             to={isHRAdmin ? '/login?role=hr_admin' : role === 'hiring_manager' ? '/login?role=hiring_manager' : '/login'}
             className="font-medium hover:opacity-80 transition-opacity"
-            style={{ color: isHiring ? '#3b82f6' : '#c9a84c' }}>
+            style={{ color: isHiring ? '#1d4ed8' : '#8a6420' }}>
             {t('common.signIn')}
           </Link>
         </>
@@ -185,7 +185,7 @@ export default function SignUp() {
             style={{
               backgroundColor: isHiring ? 'rgba(59,130,246,0.08)' : 'rgba(201,168,76,0.08)',
               border: `1px solid ${isHiring ? 'rgba(59,130,246,0.25)' : 'rgba(201,168,76,0.25)'}`,
-              color: isHiring ? '#3b82f6' : '#b8860b',
+              color: isHiring ? '#1d4ed8' : '#8a6420',
             }}
           >
             {t('signup.referredByCode')}{' '}

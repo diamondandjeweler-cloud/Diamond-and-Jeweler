@@ -49,7 +49,7 @@ function VideoSectionImpl() {
   return (
     <section className="py-14 px-6 bg-white dark:bg-midnight-800" aria-labelledby="video-heading">
       <div className="max-w-4xl mx-auto text-center">
-        <p className="text-gold-500 tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">{t('landing.videoEyebrow')}</p>
+        <p className="text-gold-700 dark:text-gold-500 tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">{t('landing.videoEyebrow')}</p>
         <h2 id="video-heading" className="text-2xl md:text-3xl font-bold tracking-tight text-navy-900 dark:text-white mb-2">
           {t('landing.videoTitle')}
         </h2>
@@ -114,7 +114,7 @@ function HowItWorksSectionImpl() {
     <section className="py-16 px-6 bg-white dark:bg-midnight-800" aria-labelledby="how-it-works-heading">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-10">
-          <p className="text-gold-500 tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">{t('landing.howEyebrow')}</p>
+          <p className="text-gold-700 dark:text-gold-500 tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">{t('landing.howEyebrow')}</p>
           <h2 id="how-it-works-heading" className="text-2xl md:text-3xl font-bold tracking-tight text-navy-900 dark:text-white">
             {t('landing.howTitle')}
           </h2>
@@ -170,7 +170,7 @@ function HowItWorksSectionImpl() {
           >
             {t('landing.howStartProfile')} <Arrow />
           </Link>
-          <p className="text-xs text-gray-400 mt-2">{t('landing.howFreeNote')}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{t('landing.howFreeNote')}</p>
         </div>
       </div>
     </section>
@@ -380,7 +380,7 @@ function WhatsAppCTAImpl() {
   return (
     <section className="py-14 px-6 bg-[#fafbff] dark:bg-midnight-800 border-t border-gray-100 dark:border-gray-800" aria-labelledby="contact-heading">
       <div className="max-w-4xl mx-auto text-center">
-        <p className="text-gold-500 tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">{t('landing.contactEyebrow')}</p>
+        <p className="text-gold-700 dark:text-gold-500 tracking-[0.3em] text-[11px] font-semibold mb-2 uppercase">{t('landing.contactEyebrow')}</p>
         <h2 id="contact-heading" className="text-xl font-bold text-navy-900 dark:text-white mb-2">
           {t('landing.contactTitle')}
         </h2>
@@ -394,7 +394,7 @@ function WhatsAppCTAImpl() {
           href={WHATSAPP_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-3 px-6 py-3 rounded-xl font-semibold text-sm text-white transition-colors"
+          className="inline-flex items-center gap-3 px-6 py-3 rounded-xl font-semibold text-sm text-brand-navy transition-colors"
           style={{ background: '#25D366' }}
           aria-label={t('landing.whatsappAria')}
         >
@@ -404,7 +404,7 @@ function WhatsAppCTAImpl() {
           </svg>
           {t('landing.whatsappButton')}
         </a>
-        <p className="text-xs text-gray-400 mt-3">{t('landing.whatsappHours')}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">{t('landing.whatsappHours')}</p>
       </div>
     </section>
   )

@@ -1,5 +1,9 @@
 # DNJ / BoLe — STATUS (single source of truth)
 
+> **Staleness note:** the claims below reflect state as of **2026-07-05**. The repo has
+> since advanced — HEAD is now `da49842` (2026-07-11), roughly 100 commits later. For
+> anything more recent, check `git log` and `docs/ARCHITECTURE.md`.
+
 > This file supersedes the audit/roadmap doc sprawl (~281 KB across 12 docs). If any
 > other doc disagrees with this one, **this one wins.** Keep it SHORT — one screen.
 

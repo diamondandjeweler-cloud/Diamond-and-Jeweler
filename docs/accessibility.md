@@ -23,7 +23,6 @@ Target: **WCAG 2.1 AA**. Full third-party audit pending before public launch.
 - [ ] Radio-button groups in the onboarding (talent interview, leadership questions) are `<button>` elements instead of semantic `<input type="radio" role="radio">` with a `<fieldset>`. Works with keyboard but arrow-key navigation is missing.
 - [ ] File-upload fields don't announce the selected filename to screen readers.
 - [ ] Match cards don't announce updates when a realtime notification arrives.
-- [ ] Dark-mode not offered (low contrast for some users; defer until Phase 2).
 
 ## Testing checklist (pre-launch)
 

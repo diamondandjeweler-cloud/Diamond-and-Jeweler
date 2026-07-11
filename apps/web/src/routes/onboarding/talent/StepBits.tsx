@@ -5,6 +5,7 @@
  * TalentOnboarding.tsx — markup, props and behavior are unchanged.
  */
 import { useId, useState } from 'react'
+import { Button } from '../../../components/ui'
 
 // ── ProgressStep ─────────────────────────────────────────────────────────────
 
@@ -84,7 +85,7 @@ export function FileRow({
             {sizeErr ?? (file ? file.name : (hint ?? noFileLabel))}
           </div>
         </div>
-        <span className="btn-secondary btn-sm pointer-events-none shrink-0">{chooseLabel}</span>
+        <Button asChild variant="secondary" size="sm" className="pointer-events-none shrink-0"><span>{chooseLabel}</span></Button>
       </div>
       <input
         id={inputId}

@@ -369,7 +369,7 @@ function CandidateCardImpl({
                     key={star}
                     type="button"
                     onClick={() => onFeedbackChange({ rating: star })}
-                    className={`text-xl leading-none transition-colors ${feedbackEntry.rating >= star ? 'text-amber-400' : 'text-ink-200 dark:text-gray-600 hover:text-amber-300'}`}
+                    className={`text-xl leading-none transition-colors ${feedbackEntry.rating >= star ? 'text-amber-400' : 'text-ink-200 dark:text-fg-subtle hover:text-amber-300'}`}
                     aria-label={t('hmDash.starAria', { count: star })}
                   >
                     ★

@@ -22,7 +22,7 @@ export function ProgressStep({ label, done, active, doneLabel, nextLabel }: { la
             <path d="M1 4l3 3 5-6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         ) : (
-          <div className={`h-2 w-2 rounded-full ${active ? 'bg-white' : 'bg-ink-400 dark:bg-gray-400'}`} />
+          <div className={`h-2 w-2 rounded-full ${active ? 'bg-white' : 'bg-ink-400 dark:bg-fg-muted'}`} />
         )}
       </div>
       <span className={`text-sm flex-1 ${done ? 'text-emerald-700' : active ? 'text-brand-700 font-medium' : 'text-fg-muted'}`}>

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Alert, Badge, Button, Card, CardBody, EmptyState, Input, Select, Spinner } from '../../components/ui'
 import { Tooltip } from '../../ui'
 import { useRestaurant } from '../../lib/restaurant/context'
+import { useToast } from '../../components/Toast'
 import { usePolling } from '../../lib/usePolling'
 import {
   listTables, updateTableStatus, listReservations, createReservation, updateReservation,
@@ -206,15 +207,16 @@ function FloorAreaEditor({ tables, onChanged }: { tables: RestaurantTable[]; onC
 }
 
 function TableDetailModal({ table, allTables, onClose, onChanged }: { table: RestaurantTable; allTables: RestaurantTable[]; onClose: () => void; onChanged: () => Promise<void> }) {
+  const toast = useToast()
   const setStatus = async (s: TableStatus) => { await updateTableStatus(table.id, s); await onChanged() }
   const transferTo = async () => {
     const others = allTables.filter((t) => t.id !== table.id && t.status === 'free')
-    if (others.length === 0) { window.alert('No free tables'); return }
+    if (others.length === 0) { toast.info('No free tables'); return }
     const opts = others.map((t) => `${t.table_number} (${t.capacity}p ${t.area})`).join(', ')
     const pick = window.prompt(`Transfer active order to which table number?\nFree: ${opts}`)
     if (!pick) return
     const dest = others.find((t) => t.table_number.toLowerCase() === pick.trim().toLowerCase())
-    if (!dest) { window.alert('Not found'); return }
+    if (!dest) { toast.info('Not found'); return }
     const { transferActiveOrder } = await import('../../lib/restaurant/store')
     await transferActiveOrder(table.id, dest.id)
     await onChanged()
@@ -226,7 +228,7 @@ function TableDetailModal({ table, allTables, onClose, onChanged }: { table: Res
     const pick = window.prompt(`Merge with which table? Active orders are combined onto this one.\nAvailable: ${opts}`)
     if (!pick) return
     const dest = others.find((t) => t.table_number.toLowerCase() === pick.trim().toLowerCase())
-    if (!dest) { window.alert('Not found'); return }
+    if (!dest) { toast.info('Not found'); return }
     const { mergeTables } = await import('../../lib/restaurant/store')
     await mergeTables(dest.id, table.id) // dest receives orders, source becomes free
     await onChanged()

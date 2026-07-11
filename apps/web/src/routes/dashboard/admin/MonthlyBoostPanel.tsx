@@ -162,7 +162,7 @@ export default function MonthlyBoostPanel() {
                   active
                     ? 'bg-brand-500 text-white border-brand-500 shadow-sm'
                     : disabled
-                      ? 'border-gray-100 dark:border-gray-800 text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                      ? 'border-gray-100 dark:border-border text-gray-300 dark:text-fg-subtle cursor-not-allowed'
                       : 'border-border text-gray-700 dark:text-fg-strong hover:bg-gray-50 dark:hover:bg-surface'
                 }`}
               >

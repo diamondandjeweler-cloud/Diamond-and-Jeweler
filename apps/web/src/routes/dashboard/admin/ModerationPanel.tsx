@@ -200,7 +200,7 @@ export default function ModerationPanel() {
             onClick={() => setTab(t.key)}
             className={`px-4 py-2 text-sm border-b-2 -mb-px transition ${
               tab === t.key
-                ? 'border-gray-900 dark:border-white text-fg font-medium'
+                ? 'border-gray-900 dark:border-fg text-fg font-medium'
                 : 'border-transparent text-fg-muted hover:text-fg'
             }`}
           >

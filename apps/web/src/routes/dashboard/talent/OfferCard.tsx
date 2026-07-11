@@ -195,7 +195,7 @@ function OfferCardImpl({
                     key={star}
                     type="button"
                     onClick={() => onFeedbackChange({ rating: star })}
-                    className={`text-xl leading-none transition-colors ${feedbackEntry.rating >= star ? 'text-amber-400' : 'text-ink-200 dark:text-gray-600 hover:text-amber-300'}`}
+                    className={`text-xl leading-none transition-colors ${feedbackEntry.rating >= star ? 'text-amber-400' : 'text-ink-200 dark:text-fg-subtle hover:text-amber-300'}`}
                     aria-label={t('talentDash.starAria', { n: star })}
                   >
                     ★
@@ -268,7 +268,7 @@ function CompatibilityRing({ pct }: { pct: number }) {
   return (
     <div className="relative shrink-0" aria-label={t('talentDash.compatibilityAria', { pct })}>
       <svg width="52" height="52" viewBox="0 0 52 52">
-        <circle cx="26" cy="26" r={radius} stroke="currentColor" className="text-ink-100 dark:text-gray-700" strokeWidth="4" fill="none" />
+        <circle cx="26" cy="26" r={radius} stroke="currentColor" className="text-ink-100 dark:text-border-strong" strokeWidth="4" fill="none" />
         <circle
           cx="26" cy="26" r={radius}
           stroke="currentColor"

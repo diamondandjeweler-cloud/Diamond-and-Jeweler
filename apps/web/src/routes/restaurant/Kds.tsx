@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Alert, Badge, Button, Card, CardBody, EmptyState, Spinner } from '../../components/ui'
 import { Tooltip } from '../../ui'
+import { useToast } from '../../components/Toast'
 import { useRestaurant } from '../../lib/restaurant/context'
 import { usePolling } from '../../lib/usePolling'
 import {
@@ -22,6 +23,7 @@ export function BarKds() {
 
 function StationBoard({ title, stations }: { title: string; stations: string[] }) {
   const { branchId, employee } = useRestaurant()
+  const toast = useToast()
   const [loading, setLoading] = useState(true)
   const [tickets, setTickets] = useState<KitchenTicket[]>([])
   const [items, setItems]     = useState<MenuItem[]>([])
@@ -180,7 +182,7 @@ function StationBoard({ title, stations }: { title: string; stations: string[] }
                               if (!what) return
                               const { requestIngredient } = await import('../../lib/restaurant/store')
                               await requestIngredient(branchId!, what, t.id, employee?.id ?? null)
-                              window.alert('Storekeeper notified')
+                              toast.success('Storekeeper notified')
                             }}
                           />
                         </li>

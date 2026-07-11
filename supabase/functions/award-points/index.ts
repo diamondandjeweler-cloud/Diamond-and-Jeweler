@@ -121,7 +121,20 @@ async function handler(req: Request): Promise<Response> {
   // idempotency_key on each call (point farming). The caller-supplied key is only
   // honored on the no-match path (e.g. review-submission UUIDs); validation above
   // guarantees idempotency_key is present whenever match_id is absent.
-  const key = match_id ? `${event_type}:${match_id}` : (idempotency_key as string)
+  //
+  // accept_interview and reject_with_reason are the two MUTUALLY-EXCLUSIVE
+  // outcomes of the talent's decision on a proposed match — a match is accepted
+  // OR rejected, never both. They therefore share ONE idempotency namespace per
+  // match ('match_decision:<id>'), so a client cannot claim BOTH accept and
+  // reject points for the same match by exploiting the per-event-type key.
+  // interviewer_rejects / end_review are later, independent lifecycle stages and
+  // keep their own per-event namespaces.
+  const MUTUALLY_EXCLUSIVE: Partial<Record<EventType, string>> = {
+    accept_interview:   'match_decision',
+    reject_with_reason: 'match_decision',
+  }
+  const keyNamespace = MUTUALLY_EXCLUSIVE[event_type] ?? event_type
+  const key = match_id ? `${keyNamespace}:${match_id}` : (idempotency_key as string)
 
   const { data: awarded, error } = await db.rpc('award_points', {
     p_user_id: recipient,

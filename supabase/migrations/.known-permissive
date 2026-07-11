@@ -1,0 +1,32 @@
+# Migration files that legitimately contain a permissive RLS pattern
+# (USING(true) / WITH CHECK(true) / GRANT ... TO anon), grandfathered by the
+# 'No NEW permissive RLS policy' CI gate. A NEW migration matching those
+# patterns fails CI unless its filename is added here in the same PR (with a
+# one-line justification in the PR). Do not add without review — permissive
+# policies are how the org_consultations P0 leak happened.
+
+0003_rls.sql
+0020_restaurant_rls.sql
+0021_phase2_full_features.sql
+0026_restaurant_phase3c.sql
+0028_restaurant_track_grant.sql
+0043_guest_menu_rls.sql
+0063_audit_log.sql
+0070_state_machine_audit_fixes.sql
+0096_auth_events.sql
+0112_role_structured_requirements.sql
+0120_login_rate_limit.sql
+0129_org_chart_consultations.sql
+0143_fix_function_grants.sql
+0146_redeem_points_rpc.sql
+0148_industry_synonyms_rls.sql
+0151_schedule_match_queue_and_cron_heartbeat.sql
+0161_pipeline_health_rpc.sql
+0163_pipeline_health_failure_ratio.sql
+0169_revoke_anon_execute_sensitive_fns.sql
+0173_org_consultations_rls_lockdown.sql
+0178_pipeline_health_per_job.sql
+0183_restaurant_anon_orders_lockdown.sql
+0186_lock_points_and_company_verify.sql
+0187_lock_points_columns_properly.sql
+0189_fix_restaurant_anon_child_insert_binding.sql

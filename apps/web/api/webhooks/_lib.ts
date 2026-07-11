@@ -41,6 +41,21 @@ async function hmacHex(algorithm: 'SHA-256' | 'SHA-512', secret: string, data: s
 export const hmacSha256 = (secret: string, data: string) => hmacHex('SHA-256', secret, data)
 export const hmacSha512 = (secret: string, data: string) => hmacHex('SHA-512', secret, data)
 
+/**
+ * Constant-time comparison of two strings (edge-compatible, no Node crypto).
+ * Used for webhook signature checks so a plain `!==` can't leak, byte by byte,
+ * how much of a forged signature is correct via response-timing side channels.
+ */
+export function timingSafeEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder()
+  const ab = enc.encode(a)
+  const bb = enc.encode(b)
+  if (ab.length !== bb.length) return false
+  let diff = 0
+  for (let i = 0; i < ab.length; i++) diff |= ab[i] ^ bb[i]
+  return diff === 0
+}
+
 /* ── Canonical order shape that all platform parsers produce ── */
 
 export interface DeliveryOrder {

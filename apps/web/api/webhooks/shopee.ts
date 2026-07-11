@@ -14,7 +14,7 @@
 
 export const config = { runtime: 'edge' }
 
-import { hmacSha512, insertDeliveryOrder } from './_lib'
+import { hmacSha256, hmacSha512, timingSafeEqual, insertDeliveryOrder } from './_lib'
 
 export default async function handler(request: Request): Promise<Response> {
   if (request.method !== 'POST') {
@@ -33,10 +33,10 @@ export default async function handler(request: Request): Promise<Response> {
   }
   const authHeader = request.headers.get('Authorization') ?? ''
   const expected   = `sha512=${await hmacSha512(secret, body)}`
-  if (authHeader !== expected) {
+  if (!timingSafeEqual(authHeader, expected)) {
     // Some Shopee Food API versions use SHA-256 — try that too
-    const alt = `sha256=${await hmacSha512(secret, body)}`  // fallback comparison
-    if (authHeader !== alt) {
+    const alt = `sha256=${await hmacSha256(secret, body)}`  // fallback comparison
+    if (!timingSafeEqual(authHeader, alt)) {
       console.error('[shopee-webhook] Invalid signature')
       return new Response('Unauthorized', { status: 401 })
     }

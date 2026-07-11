@@ -16,7 +16,17 @@ A frontend bug-hunt (6 adversarial lenses → adversarial verify) surfaced 16 ca
 | Xero export dropped decimals (`-Number(x).toFixed(2)` precedence) | Reports.tsx | c362b15 |
 | Totals breakdown omitted delivery_fee (didn't reconcile to Total) | OrderTotalsSummary.tsx | c362b15 |
 
-## ⛔ Owner-gated — NOT auto-fixed (need your review + staging)
+## ✅ Now fixed (commit `eacadab`) — the 3 formerly-owner-gated bugs
+
+All three below were fixed after re-analysis showed each mirrors an existing canonical pattern in the codebase. **One residual manual check remains (no staging env exists):** exercise a real **void → pay** flow once with a test order to confirm the recomputed balance end-to-end. Note the void recompute intentionally excludes tip/delivery_fee to match the add-item/reorder pattern (those are re-applied at the cashier stage) — confirm that matches your intended flow if a tip was applied before a void.
+
+1. **Voided items** — `voidItem` now recomputes `subtotal/tax/total` via a pure, unit-tested `recomputeOrderTotals` helper (excludes voided items; `tax = taxOn(subtotal − discount)`; mirrors `addItemToOrder`). 4 new unit tests.
+2. **Talent realtime** — INSERT now triggers a full `load()` (joined projection) instead of prepending the bare row, mirroring `useHmDashboardData`.
+3. **Pacing alert** — a batched `heldMap` (via `listOrderItemsForOrders`) now drives the alert for all orders, so it fires on collapsed orders too (no N+1).
+
+---
+
+## ⛔ (Original triage — kept for the record; all 3 resolved above)
 
 ### 1. HIGH — Voided items still charged
 `voidItem` (`apps/web/src/lib/restaurant/data/orders.ts:343`) flips `order_item.status` to `'voided'` and closes its kitchen ticket, but **never recomputes the order's subtotal/tax/total**. In Cashier, `remaining = Number(order.total) − paid` and `OrderTotalsSummary` read the unchanged `order.total`, so after a manager-approved void the line renders struck-through yet the customer is still asked to pay for it — balance stays inflated by the voided item's price.

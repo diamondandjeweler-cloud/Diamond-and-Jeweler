@@ -76,6 +76,7 @@ export default function AddHmDobModal({ hmId, profileId, onSaved, onCancel }: Pr
         </p>
         <input
           type="date"
+          aria-label="Date of birth"
           value={dob}
           onChange={(e) => setDob(e.target.value)}
           max={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 18); return d.toISOString().slice(0, 10) })()}

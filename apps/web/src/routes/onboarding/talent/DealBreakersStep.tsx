@@ -62,6 +62,13 @@ function DealBreakersStepImpl({
     setDealBreakerItems((prev) => [...prev, t2])
     setDealBreakerInput('')
   }
+  // Guard against a typed-but-unadded deal-breaker being silently dropped: if the
+  // user leaves text in the input and clicks Continue without pressing Enter/Add,
+  // flush it into dealBreakerItems first so it isn't lost from the matcher constraints.
+  const handleContinueClick = () => {
+    if (dealBreakerInput.trim()) addItem()
+    onContinue()
+  }
   const hasAnyDealBreaker = noWeekendWork || noDrivingLicense || minSalaryHard != null || dealBreakerItems.length > 0 || noTravel || noNightShifts || noOwnCar || remoteOnly || noRelocation || noOvertime || noCommissionOnly
 
   return (
@@ -184,7 +191,7 @@ function DealBreakersStepImpl({
       )}
 
       <Button
-        onClick={onContinue}
+        onClick={handleContinueClick}
         className="w-full"
         size="lg"
       >

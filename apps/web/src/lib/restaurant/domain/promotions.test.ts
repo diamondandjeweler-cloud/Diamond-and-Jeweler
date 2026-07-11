@@ -73,4 +73,12 @@ describe('restaurant domain — evaluatePromotion (discount amount)', () => {
     expect(evaluatePromotion(promo({ rule_json: {} }), 100)).toBe(0)
     expect(evaluatePromotion(promo({ rule_json: { min_spend: 10 } }), 100)).toBe(0)
   })
+
+  it('discount_pct over 100 is capped at the subtotal', () => {
+    expect(evaluatePromotion(promo({ rule_json: { discount_pct: 120 } }), 100)).toBe(100)
+  })
+
+  it('negative discount_pct yields 0', () => {
+    expect(evaluatePromotion(promo({ rule_json: { discount_pct: -20 } }), 100)).toBe(0)
+  })
 })

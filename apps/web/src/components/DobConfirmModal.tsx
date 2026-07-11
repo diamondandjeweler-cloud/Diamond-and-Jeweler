@@ -71,7 +71,7 @@ export default function DobConfirmModal({ dob, onConfirm, onCancel }: Props) {
             placeholder="YYYY"
           />
           {showError && (
-            <p className="mt-1 text-sm text-red-600">
+            <p role="alert" aria-live="assertive" className="mt-1 text-sm text-red-600">
               That doesn&apos;t match. The year you entered above was <strong>{expectedYear}</strong>.
               Type it exactly to confirm — or click &ldquo;Edit&rdquo; to change your DOB.
             </p>

@@ -29,6 +29,7 @@ export default function Track() {
   const [order, setOrder] = useState<PublicOrder | null>(null)
   const [lines, setLines] = useState<PublicLine[]>([])
   const [err, setErr] = useState<string | null>(null)
+  const [loaded, setLoaded] = useState(false)
 
   const refresh = async (isActive: () => boolean) => {
     if (!orderId) return
@@ -44,6 +45,8 @@ export default function Track() {
     } catch (e) {
       if (!isActive()) return
       setErr((e as Error).message)
+    } finally {
+      if (isActive()) setLoaded(true)
     }
   }
   usePolling(refresh, 5000, { deps: [orderId] })
@@ -59,7 +62,11 @@ export default function Track() {
       <main className="max-w-md mx-auto px-4 py-8">
         {err && <div className="rounded-lg bg-red-50 border border-red-200 text-red-800 p-3 text-sm mb-4">{err}</div>}
         {!order ? (
-          <div className="text-center text-ink-500">Loading…</div>
+          loaded ? (
+            <div className="text-center text-ink-500">Order not found.</div>
+          ) : (
+            <div className="text-center text-ink-500">Loading…</div>
+          )
         ) : (
           <>
             <div className="card-elevated p-5 mb-4">

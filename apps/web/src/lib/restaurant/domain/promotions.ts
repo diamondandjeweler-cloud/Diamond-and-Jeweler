@@ -14,7 +14,7 @@ import type { Promotion } from '../types'
  *   inactive / not-yet-started / expired  ⇒ 0
  *   time_based outside its HH:MM window    ⇒ 0
  *   subtotal below `min_spend`             ⇒ 0
- *   `discount_pct`  ⇒ Math.round(subtotal * pct / 100 * 100) / 100
+ *   `discount_pct`  ⇒ Math.round(subtotal * pct / 100 * 100) / 100, clamped to [0, subtotal]
  *   `discount_amount` ⇒ Math.min(subtotal, amount)
  *   otherwise                              ⇒ 0
  *
@@ -35,7 +35,8 @@ export function evaluatePromotion(p: Promotion, subtotal: number, at: Date = new
   const minSpend = Number(rule.min_spend ?? 0)
   if (subtotal < minSpend) return 0
   if (typeof rule.discount_pct === 'number') {
-    return Math.round(subtotal * (rule.discount_pct as number) / 100 * 100) / 100
+    const d = Math.round(subtotal * (rule.discount_pct as number) / 100 * 100) / 100
+    return Math.min(subtotal, Math.max(0, d))
   }
   if (typeof rule.discount_amount === 'number') {
     return Math.min(subtotal, rule.discount_amount as number)

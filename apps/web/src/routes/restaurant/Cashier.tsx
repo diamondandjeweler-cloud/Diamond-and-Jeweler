@@ -207,6 +207,7 @@ function OrderPay({
   }
 
   const splitEqually = async () => {
+    if (!shiftActive && method === 'cash') { setErr('Open a cashier shift before accepting cash'); return }
     const share = Math.round((remaining / splitCount) * 100) / 100
     if (share <= 0) return
     if (busy) return
@@ -315,6 +316,7 @@ function OrderPay({
                 menuItems={menuItems}
                 onCancel={() => setSplitItemsOpen(false)}
                 onPay={async (selected, amt) => {
+                  if (!shiftActive && method === 'cash') { setErr('Open a cashier shift before accepting cash'); return }
                   await createPayment({
                     order_id: order.id, amount: amt, method,
                     status: 'completed',
@@ -753,7 +755,7 @@ function AddItemPicker({
         <h4 className="font-display">Add item to this order</h4>
         <Button variant="ghost" size="sm" onClick={onCancel}>Cancel</Button>
       </div>
-      <input className="w-full mb-3" placeholder="Search menu…" value={q} onChange={(e) => setQ(e.target.value)} />
+      <input className="w-full mb-3" placeholder="Search menu…" aria-label="Search menu" value={q} onChange={(e) => setQ(e.target.value)} />
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-64 overflow-y-auto">
         {list.map((m) => (
           <button key={m.id} type="button" onClick={() => setPicked(m)}
@@ -766,7 +768,7 @@ function AddItemPicker({
       {picked && (
         <div className="mt-3 flex items-center gap-2">
           <span className="text-sm">Qty</span>
-          <input type="number" min={1} max={20} value={qty} onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 1))} className="w-20 text-sm" />
+          <input type="number" min={1} max={20} value={qty} onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 1))} className="w-20 text-sm" aria-label="Quantity" />
           <Button onClick={() => void onPick(picked, qty)}>Add {picked.name} × {qty}</Button>
         </div>
       )}

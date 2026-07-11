@@ -132,6 +132,7 @@ function RosterTab({ employees, branchId, onChanged }: { employees: Employee[]; 
   const [err, setErr] = useState<string | null>(null)
   const save = async () => {
     if (!form.name) { setErr('Name required'); return }
+    if (!/^\d{4,6}$/.test(form.pin)) { setErr('PIN must be 4-6 digits'); return }
     try { await createEmployee({ ...form, branch_id: branchId }); setForm({ name: '', role: 'waiter', hourly_rate: 18, pin: '' }); setCreating(false); setErr(null); await onChanged() }
     catch (e) { setErr((e as Error).message) }
   }

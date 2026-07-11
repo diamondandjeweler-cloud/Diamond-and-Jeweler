@@ -10,6 +10,25 @@ import type {
 } from '../types'
 
 /**
+ * Pure recompute of order money fields from its current line items + discount.
+ * Mirrors the addItemToOrder/reorderToOpenOrder formula exactly. Voided items
+ * are excluded from the subtotal. tip/delivery_fee are intentionally NOT
+ * applied here — those are applied later at the cashier stage, consistent
+ * with the add-item/reorder totals.
+ */
+export function recomputeOrderTotals(
+  items: { quantity: number; unit_price: number | string; modifiers_total: number | string; status: string }[],
+  discount: number,
+): { subtotal: number; tax: number; total: number } {
+  const subtotal = items
+    .filter((it) => it.status !== 'voided')
+    .reduce((s, it) => s + Number(it.quantity) * (Number(it.unit_price) + Number(it.modifiers_total)), 0)
+  const tax = taxOn(subtotal - discount)
+  const total = subtotal - discount + tax
+  return { subtotal, tax, total }
+}
+
+/**
  * Add a single menu item to an existing open order. Inserts an order_item row,
  * creates a kitchen ticket, and bumps the order totals.
  */
@@ -348,4 +367,12 @@ export async function voidItem(itemId: string, reason: string, employeeId: strin
     voided_at: new Date().toISOString(),
   }).eq('id', itemId)
   await db.from('kitchen_ticket').update({ status: 'completed' }).eq('order_item_id', itemId)
+
+  // Recompute order totals so the voided line stops inflating the balance.
+  const { data: it } = await db.from('order_item').select('order_id').eq('id', itemId).single()
+  if (!it?.order_id) return
+  const { data: order } = await db.from('orders').select('discount').eq('id', it.order_id).single()
+  const items = await listOrderItems(it.order_id)
+  const { subtotal, tax, total } = recomputeOrderTotals(items, Number(order?.discount ?? 0))
+  await db.from('orders').update({ subtotal, tax, total }).eq('id', it.order_id)
 }

@@ -244,10 +244,17 @@ export function useTalentDashboardData() {
           const next = payload.new as MatchRow & { talent_id?: string } | null
           const prev = payload.old as MatchRow & { talent_id?: string } | null
           if (next?.talent_id !== talentId && prev?.talent_id !== talentId) return
+          if (payload.eventType === 'INSERT') {
+            // A postgres_changes payload carries none of the joined columns
+            // (roles(...) etc) — prepending the raw row would render a blank
+            // card until reload. Do a full reload instead, mirroring the HM
+            // dashboard's useHmDashboardData.tsx handling of the same case.
+            void load()
+            return
+          }
           setMatches((xs) => {
             const cur = xs ?? []
             if (payload.eventType === 'DELETE') return cur.filter((m) => m.id !== prev?.id)
-            if (payload.eventType === 'INSERT' && next) return [next, ...cur]
             if (payload.eventType === 'UPDATE' && next) return cur.map((m) => (m.id === next.id ? { ...m, ...next } : m))
             return cur
           })

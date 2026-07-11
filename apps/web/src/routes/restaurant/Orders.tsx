@@ -4,7 +4,7 @@ import ManagerPin from './ManagerPin'
 import { useRestaurant } from '../../lib/restaurant/context'
 import {
   listOrders, listOrderItems, listMenuItems, listTables, listPaymentsForOrder,
-  updateOrderStatus, voidItem, fireCourse,
+  updateOrderStatus, voidItem, fireCourse, listOrderItemsForOrders,
 } from '../../lib/restaurant/store'
 import type { MenuItem, Order, OrderItem, Payment, RestaurantTable } from '../../lib/restaurant/types'
 import { MYR, minutesAgo, shortTime } from '../../lib/restaurant/format'
@@ -20,6 +20,7 @@ export default function Orders() {
   const [expanded, setExpanded] = useState<string | null>(null)
   const [lines, setLines] = useState<Record<string, OrderItem[]>>({})
   const [pays, setPays]   = useState<Record<string, Payment[]>>({})
+  const [heldMap, setHeldMap] = useState<Record<string, boolean>>({})
   const [error, setError] = useState<string | null>(null)
   const [voidPending, setVoidPending] = useState<{ itemId: string; orderId: string; branchId: string } | null>(null)
 
@@ -33,6 +34,10 @@ export default function Orders() {
         listTables(branchId),
       ])
       setOrders(o); setItems(m); setTables(t)
+      const its = await listOrderItemsForOrders(o.map((x) => x.id))
+      const hm: Record<string, boolean> = {}
+      its.forEach((it) => { if (it.status === 'held') hm[it.order_id] = true })
+      setHeldMap(hm)
     } catch (e) {
       setError((e as Error).message)
     } finally {
@@ -89,8 +94,7 @@ export default function Orders() {
             const tbl = tables.find((t) => t.id === o.table_id)
             return (
               <Card key={o.id} className={(() => {
-                const lis = lines[o.id] ?? []
-                const heldOver15 = lis.some((li) => li.status === 'held' && minutesAgo(o.created_at) > 15)
+                const heldOver15 = (heldMap[o.id] ?? false) && minutesAgo(o.created_at) > 15
                 return heldOver15 ? 'border-amber-400 ring-1 ring-amber-200' : ''
               })()}>
                 <CardBody className="p-4">
@@ -99,8 +103,7 @@ export default function Orders() {
                       <div className="font-display text-lg flex items-center gap-2">
                         #{o.id.slice(0, 8)}
                         {(() => {
-                          const lis = lines[o.id] ?? []
-                          const heldOver15 = lis.some((li) => li.status === 'held' && minutesAgo(o.created_at) > 15)
+                          const heldOver15 = (heldMap[o.id] ?? false) && minutesAgo(o.created_at) > 15
                           return heldOver15 ? <Badge tone="amber">Pacing alert</Badge> : null
                         })()}
                       </div>

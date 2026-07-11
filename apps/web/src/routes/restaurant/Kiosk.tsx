@@ -157,16 +157,16 @@ export default function Kiosk() {
 
   const applyCoupon = () => {
     const p = promos.find((x) => x.code === couponCode.trim().toUpperCase() && x.is_active)
-    if (!p) { setError('Coupon code invalid or expired'); setAppliedCoupon(null); return }
+    if (!p) { setError(t('restaurant.kiosk.couponInvalid')); setAppliedCoupon(null); return }
     setError(null); setAppliedCoupon(p)
   }
 
   const submit = async () => {
     if (!branchId) return
-    if (cart.length === 0) { setError('Cart is empty'); return }
-    if (orderType === 'dinein' && !tableId) { setError('Select a table for dine-in'); return }
-    if (orderType === 'takeaway' && !customerName) { setError('Customer name required for takeaway'); return }
-    if (orderType === 'delivery' && (!customerName || !deliveryAddress)) { setError('Name and address required for delivery'); return }
+    if (cart.length === 0) { setError(t('restaurant.kiosk.emptyCart')); return }
+    if (orderType === 'dinein' && !tableId) { setError(t('restaurant.kiosk.selectTableError')); return }
+    if (orderType === 'takeaway' && !customerName) { setError(t('restaurant.kiosk.nameRequiredTakeaway')); return }
+    if (orderType === 'delivery' && (!customerName || !deliveryAddress)) { setError(t('restaurant.kiosk.nameAddressRequiredDelivery')); return }
     setError(null); setSubmitting(true)
     try {
       // Membership (optional)
@@ -195,7 +195,7 @@ export default function Kiosk() {
       // client-side award here ran at order-placement (before payment) at 1pt/RM1,
       // double-awarding a paid order at ~11x the intended rate (an exploitable,
       // redeemable credit). Removed — the payment trigger is the single source.
-      setSuccess(`Order #${order.id.slice(0, 8)} sent to kitchen. Total ${MYR(total)}.`)
+      setSuccess(t('restaurant.kiosk.orderSent', { id: order.id.slice(0, 8), total: MYR(total) }))
       setLastOrderId(order.id)
       setCart([]); setAppliedCoupon(null); setCouponCode('')
       setCustomerName(''); setCustomerPhone(''); setPickupTime(''); setDeliveryAddress('')
@@ -207,8 +207,8 @@ export default function Kiosk() {
     }
   }
 
-  if (!branchId) return <EmptyState title="Pick a branch first" />
-  if (loading)   return <div className="py-10 text-center text-ink-500"><Spinner /> Loading menu…</div>
+  if (!branchId) return <EmptyState title={t('restaurant.kiosk.pickBranch')} />
+  if (loading)   return <div className="py-10 text-center text-ink-500"><Spinner /> {t('restaurant.kiosk.loadingMenu')}</div>
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -229,7 +229,7 @@ export default function Kiosk() {
         </div>
 
         {filteredItems.length === 0 ? (
-          <EmptyState title="No items in this category" />
+          <EmptyState title={t('restaurant.kiosk.noItemsInCategory')} />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             {filteredItems.map((m) => {
@@ -241,13 +241,13 @@ export default function Kiosk() {
                       <h3 className="font-display text-lg">{m.name}</h3>
                       <div className="flex flex-col items-end gap-1">
                         <Badge tone="brand">{m.course_type}</Badge>
-                        {!inStock && <Badge tone="red">Out</Badge>}
+                        {!inStock && <Badge tone="red">{t('restaurant.kiosk.outOfStock')}</Badge>}
                       </div>
                     </div>
                     {m.description && <p className="text-sm text-ink-500 line-clamp-2">{m.description}</p>}
                     <div className="flex items-center justify-between mt-auto pt-2">
                       <span className="font-display text-xl text-ink-900">{MYR(Number(m.price))}</span>
-                      <Button size="sm" disabled={!inStock} onClick={() => inStock && setConfiguring(m)}>{inStock ? 'Add' : 'Unavailable'}</Button>
+                      <Button size="sm" disabled={!inStock} onClick={() => inStock && setConfiguring(m)}>{inStock ? t('restaurant.kiosk.add') : t('restaurant.kiosk.unavailable')}</Button>
                     </div>
                   </CardBody>
                 </Card>
@@ -261,17 +261,17 @@ export default function Kiosk() {
       <div>
         <Card>
           <CardBody>
-            <h2 className="font-display text-lg mb-4">Order</h2>
+            <h2 className="font-display text-lg mb-4">{t('restaurant.kiosk.order')}</h2>
 
-            <Select label="Order type" value={orderType} onChange={(e) => setOrderType(e.target.value as OrderType)}>
-              <option value="dinein">Dine in</option>
-              <option value="takeaway">Takeaway</option>
-              <option value="delivery">Delivery</option>
+            <Select label={t('restaurant.kiosk.orderType')} value={orderType} onChange={(e) => setOrderType(e.target.value as OrderType)}>
+              <option value="dinein">{t('restaurant.kiosk.dinein')}</option>
+              <option value="takeaway">{t('restaurant.kiosk.takeaway')}</option>
+              <option value="delivery">{t('restaurant.kiosk.delivery')}</option>
             </Select>
 
             {orderType === 'dinein' && (
-              <Select label="Table" value={tableId ?? ''} onChange={(e) => setTableId(e.target.value || null)}>
-                <option value="">Pick a table…</option>
+              <Select label={t('restaurant.kiosk.table')} value={tableId ?? ''} onChange={(e) => setTableId(e.target.value || null)}>
+                <option value="">{t('restaurant.kiosk.pickTable')}</option>
                 {tables.filter((t) => t.status === 'free' || t.id === tableId).map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.table_number} · {t.area} · {t.capacity}p
@@ -282,25 +282,25 @@ export default function Kiosk() {
 
             {(orderType === 'takeaway' || orderType === 'delivery') && (
               <>
-                <Input label="Customer name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} required />
-                <Input label="Phone" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="Optional — for loyalty points" />
+                <Input label={t('restaurant.kiosk.customerName')} value={customerName} onChange={(e) => setCustomerName(e.target.value)} required />
+                <Input label={t('restaurant.kiosk.phoneLabel')} value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder={t('restaurant.kiosk.phoneLoyaltyHint')} />
               </>
             )}
             {orderType === 'takeaway' && (
-              <Input label="Pickup time" type="datetime-local" value={pickupTime} onChange={(e) => setPickupTime(e.target.value)} />
+              <Input label={t('restaurant.kiosk.pickupTime')} type="datetime-local" value={pickupTime} onChange={(e) => setPickupTime(e.target.value)} />
             )}
             {orderType === 'delivery' && (
-              <Input label="Delivery address" value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} required />
+              <Input label={t('restaurant.kiosk.deliveryAddress')} value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} required />
             )}
 
             {orderType === 'dinein' && (
-              <Input label="Phone (loyalty)" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="Optional — for loyalty points" />
+              <Input label={t('restaurant.kiosk.phoneLoyaltyLabel')} value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder={t('restaurant.kiosk.phoneLoyaltyHint')} />
             )}
 
             <hr className="my-4" />
 
             {cart.length === 0 ? (
-              <p className="text-sm text-ink-500 text-center py-6">Cart is empty</p>
+              <p className="text-sm text-ink-500 text-center py-6">{t('restaurant.kiosk.emptyCart')}</p>
             ) : (
               <ul className="space-y-3 mb-4 max-h-64 overflow-y-auto">
                 {cart.map((l) => {
@@ -314,7 +314,7 @@ export default function Kiosk() {
                             <div className="text-xs text-ink-500">{l.modifiers.map((m) => m.name).join(', ')}</div>
                           )}
                           {l.specialInstruction && (
-                            <div className="text-xs text-amber-700 italic">Note: {l.specialInstruction}</div>
+                            <div className="text-xs text-amber-700 italic">{t('restaurant.kiosk.note')}: {l.specialInstruction}</div>
                           )}
                         </div>
                         <div className="text-right">
@@ -336,21 +336,21 @@ export default function Kiosk() {
             <div className="flex gap-2 mb-3">
               <input
                 className="flex-1 text-sm"
-                placeholder="Coupon code"
+                placeholder={t('restaurant.kiosk.couponLabel')}
                 value={couponCode}
                 onChange={(e) => setCouponCode(e.target.value)}
               />
-              <Button variant="ghost" size="sm" onClick={applyCoupon} type="button">Apply</Button>
+              <Button variant="ghost" size="sm" onClick={applyCoupon} type="button">{t('restaurant.kiosk.couponApply')}</Button>
             </div>
             {appliedCoupon && (
-              <div className="text-xs text-emerald-700 mb-2">Coupon {appliedCoupon.code} applied.</div>
+              <div className="text-xs text-emerald-700 mb-2">{t('restaurant.kiosk.couponApplied', { code: appliedCoupon.code })}</div>
             )}
 
             <dl className="text-sm space-y-1">
               <div className="flex justify-between"><dt className="text-ink-500">{t('restaurant.kiosk.subtotal')}</dt><dd>{MYR(subtotal)}</dd></div>
               {autoDiscount > 0 && <div className="flex justify-between text-emerald-700"><dt>{t('restaurant.kiosk.happyHour')}</dt><dd>−{MYR(autoDiscount)}</dd></div>}
               {couponDiscount > 0 && <div className="flex justify-between text-emerald-700"><dt>{t('restaurant.kiosk.coupon')}</dt><dd>−{MYR(couponDiscount)}</dd></div>}
-              {serverPromoDiscount > 0 && <div className="flex justify-between text-emerald-700"><dt>{serverPromoLabel ?? 'Promo'}</dt><dd>−{MYR(serverPromoDiscount)}</dd></div>}
+              {serverPromoDiscount > 0 && <div className="flex justify-between text-emerald-700"><dt>{serverPromoLabel ?? t('restaurant.kiosk.promo')}</dt><dd>−{MYR(serverPromoDiscount)}</dd></div>}
               <div className="flex justify-between"><dt className="text-ink-500">{t('restaurant.kiosk.tax')} ({(TAX_RATE * 100).toFixed(0)}%)</dt><dd>{MYR(tax)}</dd></div>
               <div className="flex justify-between font-display text-lg pt-2 border-t"><dt>{t('restaurant.kiosk.total')}</dt><dd>{MYR(total)}</dd></div>
             </dl>
@@ -383,7 +383,7 @@ export default function Kiosk() {
               loading={submitting}
               disabled={cart.length === 0 || submitting}
             >
-              Place order · {MYR(total)}
+              {t('restaurant.kiosk.placeOrder')} · {MYR(total)}
             </Button>
           </CardBody>
         </Card>
@@ -409,6 +409,7 @@ function ConfigureModal({
   onClose: () => void
   onAdd: (mods: Modifier[], note: string) => void
 }) {
+  const { t } = useTranslation()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [note, setNote] = useState('')
   const toggle = (id: string) => setSelected((prev) => {
@@ -431,7 +432,7 @@ function ConfigureModal({
 
           {modifiers.length > 0 ? (
             <div className="space-y-2 mb-4">
-              <div className="text-sm font-medium">Modifiers</div>
+              <div className="text-sm font-medium">{t('restaurant.kiosk.modifiers')}</div>
               {modifiers.map((m) => (
                 <label key={m.id} className="flex items-center justify-between gap-2 text-sm">
                   <span className="flex items-center gap-2">
@@ -444,11 +445,11 @@ function ConfigureModal({
             </div>
           ) : null}
 
-          <Input label="Special instruction" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. no onions" />
+          <Input label={t('restaurant.kiosk.specialInstruction')} value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('restaurant.kiosk.specialInstructionPlaceholder')} />
 
           <div className="flex items-center justify-between mt-4 pt-4 border-t">
             <span className="font-display text-lg">{MYR(Number(item.price) + priceDelta)}</span>
-            <Button onClick={() => onAdd(selectedMods, note)}>Add to order</Button>
+            <Button onClick={() => onAdd(selectedMods, note)}>{t('restaurant.kiosk.addToOrder')}</Button>
           </div>
         </div>
       </div>

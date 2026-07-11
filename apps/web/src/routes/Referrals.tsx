@@ -97,18 +97,18 @@ export default function Referrals() {
   }, [profile?.referral_code])
 
   const shareMessage = useMemo(() => {
-    return `Join me on DNJ — Malaysia's AI-powered career matching platform. We both earn Diamond Points when you sign up. ${shareUrl}`
-  }, [shareUrl])
+    return t('referrals.shareMessage', { url: shareUrl })
+  }, [t, shareUrl])
 
   const create = async () => {
-    if (!email.trim() || !email.includes('@')) { setErr('Enter a valid email'); return }
+    if (!email.trim() || !email.includes('@')) { setErr(t('referrals.errInvalidEmail')); return }
     if (!session) return
     setBusy(true); setErr(null)
     try {
       // Supabase builders are PromiseLike but not full Promise, so .then(r=>r) promotes
       // them to genuine Promises that TypeScript accepts in Promise.race.
       const timedOut = () => new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Request timed out. Please try again.')), 10000)
+        setTimeout(() => reject(new Error(t('referrals.errTimedOut'))), 10000)
       )
       const { data: code } = await Promise.race([generateReferralCode().then(r => r), timedOut()])
       const { data, error } = await Promise.race([
@@ -156,7 +156,7 @@ export default function Referrals() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Join me on DNJ',
+          title: t('referrals.shareTitle'),
           text: shareMessage,
           url: shareUrl,
         })
@@ -164,7 +164,7 @@ export default function Referrals() {
       } catch { /* user cancelled */ }
     }
     await navigator.clipboard.writeText(shareUrl)
-    flashCopy('Native share unavailable — link copied instead')
+    flashCopy(t('referrals.nativeShareUnavailable'))
   }
 
   const shareViaWhatsApp = () => {
@@ -187,7 +187,7 @@ export default function Referrals() {
   }
 
   const redeemForRole = async () => {
-    if (!pickedRoleId) { void noticeDialog({ title: 'Pick a role first', message: 'Select a role before redeeming.' }); return }
+    if (!pickedRoleId) { void noticeDialog({ title: t('referrals.pickRoleTitle'), message: t('referrals.pickRoleMessage') }); return }
     setRedeeming(true)
     try {
       const j = await callFunction<{ cost?: number }>('redeem-points', { target_type: 'role', role_id: pickedRoleId })
@@ -196,9 +196,9 @@ export default function Referrals() {
       setRoles((prev) => prev.map((row) => row.id === pickedRoleId
         ? { ...row, extra_matches_used: row.extra_matches_used + 1 }
         : row))
-      flashCopy(`Redeemed ${j.cost ?? pointsCfg.perExtra} Diamond Points — extra match generating shortly.`)
+      flashCopy(t('referrals.redeemedRole', { cost: j.cost ?? pointsCfg.perExtra }))
     } catch (e) {
-      void noticeDialog({ title: 'Redeem failed', message: (e as Error).message, tone: 'danger' })
+      void noticeDialog({ title: t('referrals.redeemFailed'), message: (e as Error).message, tone: 'danger' })
     } finally {
       setRedeeming(false)
     }
@@ -209,9 +209,9 @@ export default function Referrals() {
     try {
       const j = await callFunction<{ cost?: number }>('redeem-points', { target_type: 'talent' })
       await refresh()
-      flashCopy(`Redeemed ${j.cost ?? pointsCfg.perExtra} Diamond Points — your next match is being generated.`)
+      flashCopy(t('referrals.redeemedTalent', { cost: j.cost ?? pointsCfg.perExtra }))
     } catch (e) {
-      void noticeDialog({ title: 'Redeem failed', message: (e as Error).message, tone: 'danger' })
+      void noticeDialog({ title: t('referrals.redeemFailed'), message: (e as Error).message, tone: 'danger' })
     } finally {
       setRedeeming(false)
     }
@@ -236,7 +236,7 @@ export default function Referrals() {
       {alreadySignedInNotice && (
         <div className="mb-4">
           <Alert tone="amber">
-            You're already signed in — referral links are for new users signing up. Share your own link below to earn points when friends join.
+            {t('referrals.alreadySignedIn')}
           </Alert>
         </div>
       )}
@@ -248,22 +248,22 @@ export default function Referrals() {
             <div className="flex items-start justify-between gap-4 mb-3">
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 mb-0.5">
-                  <div className="text-xs text-brand-700 font-medium">Your referral link</div>
-                  <Badge tone="green">Unlimited</Badge>
+                  <div className="text-xs text-brand-700 font-medium">{t('referrals.yourReferralLink')}</div>
+                  <Badge tone="green">{t('referrals.unlimited')}</Badge>
                 </div>
                 <div className="font-mono text-sm text-ink-900 break-all">{shareUrl}</div>
                 <div className="text-xs text-ink-500 mt-1">
-                  Friend earns +{pointsCfg.perWelcome} Diamond Points · You earn +{pointsCfg.perReferral} Diamond Points when they finish onboarding · Share with anyone — every signup counts
+                  {t('referrals.linkRewardHint', { welcome: pointsCfg.perWelcome, referral: pointsCfg.perReferral })}
                 </div>
               </div>
             </div>
 
             <div className="flex flex-wrap gap-2 mb-3">
               <Button onClick={handleNativeShare} variant="brand" size="sm">
-                <ShareIcon /> Share
+                <ShareIcon /> {t('common.share')}
               </Button>
               <Button onClick={() => copyLink(profile.referral_code!)} variant="ghost" size="sm">
-                Copy link
+                {t('referrals.copyLink')}
               </Button>
               <button onClick={shareViaWhatsApp} type="button"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors">
@@ -275,18 +275,18 @@ export default function Referrals() {
               </button>
               <button onClick={shareViaEmail} type="button"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-ink-200 bg-white text-ink-700 hover:bg-ink-50 transition-colors">
-                <EmailIcon /> Email
+                <EmailIcon /> {t('common.email')}
               </button>
               <button onClick={() => setShowQr((v) => !v)} type="button"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-ink-200 bg-white text-ink-700 hover:bg-ink-50 transition-colors">
-                <QrIcon /> {showQr ? 'Hide QR' : 'Show QR'}
+                <QrIcon /> {showQr ? t('referrals.hideQr') : t('common.showQr')}
               </button>
             </div>
 
             {showQr && qrSrc && (
               <div className="mt-3 pt-3 border-t border-brand-200 flex flex-col items-center gap-2">
-                <img src={qrSrc} alt="Referral QR code" width={200} height={200} loading="lazy" decoding="async" className="rounded bg-white p-2 border border-ink-100" />
-                <div className="text-xs text-ink-500">Point a phone camera at the QR to open your referral link</div>
+                <img src={qrSrc} alt={t('referrals.qrAlt')} width={200} height={200} loading="lazy" decoding="async" className="rounded bg-white p-2 border border-ink-100" />
+                <div className="text-xs text-ink-500">{t('referrals.qrHint')}</div>
               </div>
             )}
 
@@ -297,24 +297,24 @@ export default function Referrals() {
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
         <Stat label={t('points.balance')} value={points} tone="brand" hint={`${profile?.points_earned_total ?? 0} earned all time`} />
-        <Stat label="Successful referrals" value={rewarded.length} hint={`${rewarded.length * pointsCfg.perReferral} Diamond Points earned`} />
-        <Stat label="Pending referrals" value={list.length - rewarded.length} />
+        <Stat label={t('referrals.successfulReferrals')} value={rewarded.length} hint={t('referrals.pointsEarnedHint', { points: rewarded.length * pointsCfg.perReferral })} />
+        <Stat label={t('referrals.pendingReferrals')} value={list.length - rewarded.length} />
       </div>
 
       <Card className="mb-6">
         <CardBody>
           <div className="flex items-center gap-1.5 mb-1">
-            <h2 className="font-display text-lg dark:text-fg">Send a personalised invite</h2>
-            <Badge tone="amber">Single-use</Badge>
+            <h2 className="font-display text-lg dark:text-fg">{t('referrals.sendInvite')}</h2>
+            <Badge tone="amber">{t('referrals.singleUse')}</Badge>
           </div>
           <p className="text-xs text-fg-muted mb-3">
-            We tie this code to your friend's email — single use, one person only. (For unlimited sharing, use the link above instead.)
+            {t('referrals.singleUseHint')}
           </p>
           <div className="flex gap-2 items-end">
             <div className="flex-1">
-              <Input label="Friend's email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="friend@example.com" />
+              <Input label={t('referrals.friendEmail')} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="friend@example.com" />
             </div>
-            <Button onClick={create} loading={busy}>Generate code</Button>
+            <Button onClick={create} loading={busy}>{t('referrals.generateCode')}</Button>
           </div>
           {err && <Alert tone="red">{err}</Alert>}
         </CardBody>
@@ -323,11 +323,11 @@ export default function Referrals() {
       <Card>
         <CardBody className="p-0">
           {list.length === 0 ? (
-            <EmptyState title="No referrals yet" description="Generate your first invite above, or share the link at the top." />
+            <EmptyState title={t('referrals.noReferrals')} description={t('referrals.noReferralsDesc')} />
           ) : (
             <table className="w-full text-sm">
               <thead className="text-left text-xs text-fg-muted bg-ink-50 dark:bg-surface">
-                <tr><th className="p-3">Email</th><th className="p-3">{t('referral.yourCode')}</th><th className="p-3">Status</th><th className="p-3">Created</th><th className="p-3"></th></tr>
+                <tr><th className="p-3">{t('common.email')}</th><th className="p-3">{t('referral.yourCode')}</th><th className="p-3">{t('referrals.status')}</th><th className="p-3">{t('referrals.created')}</th><th className="p-3"></th></tr>
               </thead>
               <tbody>
                 {list.map((r) => (
@@ -336,12 +336,12 @@ export default function Referrals() {
                     <td className="p-3 font-mono text-xs">{r.code}</td>
                     <td className="p-3">
                       <Badge tone={r.status === 'rewarded' ? 'green' : r.status === 'cancelled' || r.status === 'expired' ? 'red' : 'amber'}>
-                        {r.status}
+                        {t(`referrals.status_${r.status}`, { defaultValue: r.status })}
                       </Badge>
                     </td>
                     <td className="p-3 text-fg-muted">{new Date(r.created_at).toLocaleDateString()}</td>
                     <td className="p-3 text-right">
-                      <Button variant="ghost" size="sm" onClick={() => copyLink(r.code)}>Copy link</Button>
+                      <Button variant="ghost" size="sm" onClick={() => copyLink(r.code)}>{t('referrals.copyLink')}</Button>
                     </td>
                   </tr>
                 ))}
@@ -355,27 +355,27 @@ export default function Referrals() {
       {isHM && (
         <Card className="mt-6">
           <CardBody>
-            <h2 className="font-display text-lg mb-2 dark:text-fg">Redeem points for an extra match</h2>
+            <h2 className="font-display text-lg mb-2 dark:text-fg">{t('referrals.redeemTitle')}</h2>
             <p className="text-sm text-ink-600 dark:text-fg-strong mb-3">
-              Spend {pointsCfg.perExtra} Diamond Points to add 1 extra match slot on a role.
+              {t('referrals.redeemRoleDesc', { cost: pointsCfg.perExtra })}
             </p>
             {roles.length === 0 ? (
-              <Alert tone="amber">You haven't posted any roles yet. Create one to redeem.</Alert>
+              <Alert tone="amber">{t('referrals.noRolesToRedeem')}</Alert>
             ) : (
               <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-end">
                 <div className="flex-1 min-w-0">
                   <Select
-                    label="Role"
+                    label={t('referrals.role')}
                     value={pickedRoleId}
                     onChange={(e) => setPickedRoleId(e.target.value)}
                   >
-                    <option value="">— pick a role —</option>
+                    <option value="">{t('referrals.pickRole')}</option>
                     {roles.map((r) => {
                       const full = (r.extra_matches_used ?? 0) >= 3
                       const dim  = r.status !== 'active' || full
                       return (
                         <option key={r.id} value={r.id} disabled={dim}>
-                          {r.title} {r.status !== 'active' ? `(${r.status})` : ''}{full ? ' — extra-match cap reached' : ''}
+                          {r.title} {r.status !== 'active' ? `(${r.status})` : ''}{full ? t('referrals.capReachedSuffix') : ''}
                         </option>
                       )
                     })}
@@ -387,13 +387,13 @@ export default function Referrals() {
                   loading={redeeming}
                   onClick={() => void redeemForRole()}
                 >
-                  Redeem {pointsCfg.perExtra} Diamond Points
+                  {t('referrals.redeemButton', { cost: pointsCfg.perExtra })}
                 </Button>
               </div>
             )}
             {!canRedeem && (
               <p className="text-xs text-fg-muted mt-2">
-                You need {pointsCfg.perExtra - points} more Diamond Points. Earn them by referring friends or sharing match feedback.
+                {t('referrals.needMorePoints', { n: pointsCfg.perExtra - points })}
               </p>
             )}
           </CardBody>
@@ -404,9 +404,9 @@ export default function Referrals() {
       {isTalent && (
         <Card className="mt-6">
           <CardBody>
-            <h2 className="font-display text-lg mb-2 dark:text-fg">Redeem points for an extra match</h2>
+            <h2 className="font-display text-lg mb-2 dark:text-fg">{t('referrals.redeemTitle')}</h2>
             <p className="text-sm text-ink-600 dark:text-fg-strong mb-3">
-              Spend {pointsCfg.perExtra} Diamond Points to unlock 1 extra match opportunity for yourself (capped at 3 paid extras total).
+              {t('referrals.redeemTalentDesc', { cost: pointsCfg.perExtra })}
             </p>
             <Button
               variant="brand"
@@ -414,11 +414,11 @@ export default function Referrals() {
               loading={redeeming}
               onClick={() => void redeemForTalent()}
             >
-              Redeem {pointsCfg.perExtra} Diamond Points → 1 extra match
+              {t('referrals.redeemTalentButton', { cost: pointsCfg.perExtra })}
             </Button>
             {!canRedeem && (
               <p className="text-xs text-fg-muted mt-2">
-                You need {pointsCfg.perExtra - points} more Diamond Points. Earn them by referring friends or sharing match feedback.
+                {t('referrals.needMorePoints', { n: pointsCfg.perExtra - points })}
               </p>
             )}
           </CardBody>

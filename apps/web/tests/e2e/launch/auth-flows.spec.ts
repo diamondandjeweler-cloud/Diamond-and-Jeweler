@@ -36,6 +36,13 @@ test('login rejects wrong password', async ({ page }) => {
 test('password reset shows success on submit', async ({ page }) => {
   test.skip(isProd, 'real captcha gates server-side automation on prod')
 
+  // No-backend harness: stub the Supabase recover endpoint so the form can
+  // reach its success state (localhost:54321 has nothing listening otherwise,
+  // and the network error would surface as a hard error).
+  await page.route(/\/auth\/v1\/recover/, (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }),
+  )
+
   await page.goto('/password-reset')
   await page.getByRole('textbox', { name: /email/i }).fill('does-not-exist@dnj-test.my')
   // Captcha if present

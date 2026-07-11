@@ -6,7 +6,8 @@ test.use({ locale: 'en-US' })
 test.describe('landing + waitlist + signup smoke', () => {
   test('landing renders the hero', async ({ page }) => {
     await page.goto('/')
-    await expect(page).toHaveTitle(/we connect brilliance with opportunity/i)
+    // <title> carries the SEO string; the hero promise lives in the H1.
+    await expect(page).toHaveTitle(/AI-Curated Recruitment Platform Malaysia/i)
     await expect(
       page.getByRole('heading', { name: /we connect.*brilliance.*with opportunity/i }),
     ).toBeVisible()

@@ -74,8 +74,10 @@ test.describe('login form', () => {
     const signInBtn = page.getByRole('button', { name: /sign in|verifying/i })
     await signInBtn.click()
 
-    // The verifying-human state should appear (translated).
-    await expect(page.getByText(/verifying you'?re human/i)).toBeVisible({ timeout: 4000 })
+    // The verifying-human state should appear (translated). Scope to the alert:
+    // the submit Button also surfaces this string as its accessible name while
+    // loading, so an unscoped getByText is a strict-mode violation (2 matches).
+    await expect(page.getByRole('alert').getByText(/verifying you'?re human/i)).toBeVisible({ timeout: 4000 })
 
     // Once Turnstile finishes, the queued submit should fire.
     await expect.poll(() => authCalled, { timeout: 12000 }).toBe(true)

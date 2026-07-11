@@ -11,11 +11,11 @@ test.use({ locale: 'en-US' })
 // Routes that MUST require auth. Public routes are explicitly excluded:
 //   /payment/return — Billplz callback; needs to work session-less when the
 //                     gateway redirects users back after a payment.
+// One route per role dashboard. The admin surface is a single /admin route
+// (AdminGate); users/dsr/audit are in-page tabs, NOT routes — visiting them as
+// paths hits the SPA 404, never the auth redirect, so they don't belong here.
 const PROTECTED_ROUTES = [
   '/admin',
-  '/admin/users',
-  '/admin/dsr',
-  '/admin/audit',
   '/home',
   '/talent/profile',
   '/hm/post-role',

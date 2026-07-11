@@ -177,9 +177,9 @@ export default function PointsWallet() {
             <table className="w-full text-sm">
               <thead className="text-left text-xs text-fg-muted bg-ink-50 dark:bg-surface">
                 <tr>
-                  <th className="p-3">{t('common.submit')}</th>
+                  <th className="p-3">{t('data.colAction')}</th>
                   <th className="p-3 text-right">{t('points.balance')}</th>
-                  <th className="p-3 text-right hidden sm:table-cell">{t('common.loading').replace(/…$/, '')}</th>
+                  <th className="p-3 text-right hidden sm:table-cell">{t('data.colDateTime')}</th>
                 </tr>
               </thead>
               <tbody>

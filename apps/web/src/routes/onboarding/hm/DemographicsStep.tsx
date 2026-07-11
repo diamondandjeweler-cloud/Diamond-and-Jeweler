@@ -50,6 +50,7 @@ function DemographicsStepImpl({
           ] as const).map((r) => (
             <button
               key={r.value} type="button" onClick={() => setRace(r.value.toLowerCase())}
+              aria-pressed={race === r.value.toLowerCase()}
               className={`border rounded-lg px-3 py-2 text-sm ${race === r.value.toLowerCase() ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-fg-strong hover:bg-ink-50 dark:hover:bg-surface'}`}
             >{r.label}</button>
           ))}
@@ -91,6 +92,7 @@ function DemographicsStepImpl({
               <button
                 key={value} type="button"
                 onClick={() => setLanguages((prev) => active ? prev.filter((l) => l !== value) : [...prev, value])}
+                aria-pressed={active}
                 className={`border rounded-full px-3 py-1.5 text-xs ${active ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-fg-strong hover:bg-ink-50 dark:hover:bg-surface'}`}
               >{label}</button>
             )
@@ -102,10 +104,12 @@ function DemographicsStepImpl({
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button" onClick={() => setLocationMatters(true)}
+            aria-pressed={locationMatters === true}
             className={`border rounded-lg px-3 py-2 text-sm ${locationMatters === true ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-fg-strong hover:bg-ink-50 dark:hover:bg-surface'}`}
           >{t('hmOnboard.locationYes')}</button>
           <button
             type="button" onClick={() => { setLocationMatters(false); setLocationPostcode('') }}
+            aria-pressed={locationMatters === false}
             className={`border rounded-lg px-3 py-2 text-sm ${locationMatters === false ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-fg-strong hover:bg-ink-50 dark:hover:bg-surface'}`}
           >{t('hmOnboard.locationNo')}</button>
         </div>

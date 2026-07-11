@@ -132,7 +132,7 @@ function SalesByServer({ orders, employees }: { orders: Order[]; employees: Empl
     const prev = by.get(key) ?? { count: 0, revenue: 0 }
     prev.count += 1; prev.revenue += Number(o.total); by.set(key, prev)
   })
-  const rows = Array.from(by.entries()).map(([id, v]) => ({ name: employees.find((e) => e.id === id)?.name ?? 'Unassigned', ...v })).sort((a, b) => b.revenue - a.revenue)
+  const rows = Array.from(by.entries()).map(([id, v]) => ({ id, name: employees.find((e) => e.id === id)?.name ?? 'Unassigned', ...v })).sort((a, b) => b.revenue - a.revenue)
   return (
     <div>
       <h3 className="font-display text-lg mb-3">Sales by server</h3>
@@ -140,7 +140,7 @@ function SalesByServer({ orders, employees }: { orders: Order[]; employees: Empl
         <thead className="text-left text-xs text-ink-500"><tr><th className="pb-2">Server</th><th className="pb-2 text-right">Orders</th><th className="pb-2 text-right">Revenue</th><th className="pb-2 text-right">Avg ticket</th></tr></thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={r.name} className="border-t border-ink-100">
+            <tr key={r.id} className="border-t border-ink-100">
               <td className="py-2">{r.name}</td>
               <td className="py-2 text-right">{r.count}</td>
               <td className="py-2 text-right">{MYR(r.revenue)}</td>
@@ -161,14 +161,14 @@ function TopItems({ items, menu }: { items: OrderItem[]; menu: MenuItem[] }) {
     prev.rev += li.quantity * (Number(li.unit_price) + Number(li.modifiers_total))
     by.set(li.menu_item_id, prev)
   })
-  const rows = Array.from(by.entries()).map(([id, v]) => ({ name: menu.find((m) => m.id === id)?.name ?? '—', ...v })).sort((a, b) => b.qty - a.qty).slice(0, 20)
+  const rows = Array.from(by.entries()).map(([id, v]) => ({ id, name: menu.find((m) => m.id === id)?.name ?? '—', ...v })).sort((a, b) => b.qty - a.qty).slice(0, 20)
   return (
     <div>
       <h3 className="font-display text-lg mb-3">Top items</h3>
       <table className="w-full text-sm">
         <thead className="text-left text-xs text-ink-500"><tr><th className="pb-2">Item</th><th className="pb-2 text-right">Qty</th><th className="pb-2 text-right">Revenue</th></tr></thead>
         <tbody>
-          {rows.map((r) => <tr key={r.name} className="border-t border-ink-100"><td className="py-2">{r.name}</td><td className="py-2 text-right">{r.qty}</td><td className="py-2 text-right">{MYR(r.rev)}</td></tr>)}
+          {rows.map((r) => <tr key={r.id} className="border-t border-ink-100"><td className="py-2">{r.name}</td><td className="py-2 text-right">{r.qty}</td><td className="py-2 text-right">{MYR(r.rev)}</td></tr>)}
         </tbody>
       </table>
     </div>
@@ -223,10 +223,10 @@ function LabourCost({ timesheets, employees }: { timesheets: Timesheet[]; employ
 }
 
 function WasteReport({ waste }: { waste: WasteLog[]; ingredients: Ingredient[] }) {
-  const byReason = new Map<string, { qty: number; value: number }>()
+  const byReason = new Map<string, { count: number; value: number }>()
   waste.forEach((w) => {
-    const prev = byReason.get(w.reason) ?? { qty: 0, value: 0 }
-    prev.qty += Number(w.quantity)
+    const prev = byReason.get(w.reason) ?? { count: 0, value: 0 }
+    prev.count += 1
     prev.value += Number(w.value_cost ?? 0)
     byReason.set(w.reason, prev)
   })
@@ -237,7 +237,7 @@ function WasteReport({ waste }: { waste: WasteLog[]; ingredients: Ingredient[] }
       <table className="w-full text-sm">
         <thead className="text-left text-xs text-ink-500"><tr><th className="pb-2">Reason</th><th className="pb-2 text-right">Count</th><th className="pb-2 text-right">Value</th></tr></thead>
         <tbody>
-          {rows.map((r) => <tr key={r.reason} className="border-t border-ink-100"><td className="py-2">{r.reason}</td><td className="py-2 text-right">{r.qty.toFixed(2)}</td><td className="py-2 text-right">{MYR(r.value)}</td></tr>)}
+          {rows.map((r) => <tr key={r.reason} className="border-t border-ink-100"><td className="py-2">{r.reason}</td><td className="py-2 text-right">{r.count}</td><td className="py-2 text-right">{MYR(r.value)}</td></tr>)}
         </tbody>
       </table>
     </div>

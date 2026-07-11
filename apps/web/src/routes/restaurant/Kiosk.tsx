@@ -323,7 +323,7 @@ export default function Kiosk() {
                             <button onClick={() => updateQty(l.tempKey, -1)} className="w-6 h-6 rounded border">−</button>
                             <span className="w-6 text-center">{l.quantity}</span>
                             <button onClick={() => updateQty(l.tempKey,  1)} className="w-6 h-6 rounded border">+</button>
-                            <button onClick={() => removeLine(l.tempKey)} className="ml-1 text-red-500 text-xs">✕</button>
+                            <button onClick={() => removeLine(l.tempKey)} className="ml-1 text-red-500 text-xs" type="button" aria-label={`Remove ${l.menuItem.name}`}><span aria-hidden="true">✕</span></button>
                           </div>
                         </div>
                       </div>
@@ -426,7 +426,7 @@ function ConfigureModal({
               <h3 className="font-display text-xl">{item.name}</h3>
               {item.description && <p className="text-sm text-ink-500">{item.description}</p>}
             </div>
-            <button onClick={onClose} className="text-2xl leading-none text-ink-400 hover:text-ink-700">×</button>
+            <button onClick={onClose} className="text-2xl leading-none text-ink-400 hover:text-ink-700" type="button" aria-label="Close"><span aria-hidden="true">×</span></button>
           </div>
 
           {modifiers.length > 0 ? (

@@ -531,7 +531,7 @@ export default function TalentProfile() {
                 {whitelistCompanies.map((co) => (
                   <span key={co} className="flex items-center gap-1 bg-brand-50 border border-brand-200 text-brand-800 text-xs px-2 py-0.5 rounded-full">
                     {co}
-                    <button type="button" onClick={() => setWhitelistCompanies((c) => c.filter((x) => x !== co))} className="text-brand-400 hover:text-brand-700 leading-none">×</button>
+                    <button type="button" onClick={() => setWhitelistCompanies((c) => c.filter((x) => x !== co))} aria-label={`Remove ${co}`} className="text-brand-400 hover:text-brand-700 leading-none"><span aria-hidden="true">×</span></button>
                   </span>
                 ))}
               </div>

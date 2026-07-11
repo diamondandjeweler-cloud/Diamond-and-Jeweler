@@ -422,7 +422,7 @@ function ItemModal({
                 <p className="text-sm text-ink-500 mt-0.5">{item.description}</p>
               )}
             </div>
-            <button onClick={onClose} className="text-2xl text-ink-400 leading-none flex-shrink-0">×</button>
+            <button onClick={onClose} aria-label="Close" className="text-2xl text-ink-400 leading-none flex-shrink-0"><span aria-hidden="true">×</span></button>
           </div>
 
           {modifiers.length > 0 && (

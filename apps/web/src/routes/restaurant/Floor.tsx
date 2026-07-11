@@ -282,11 +282,14 @@ function ReservationsTab({ reservations, tables, onChanged }: { reservations: Re
   const { branchId } = useRestaurant()
   const [form, setForm] = useState({ customer_name: '', phone: '', party_size: 2, reservation_time: '', table_id: '' })
   const [err, setErr] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
   const tableById = useMemo(() => new Map(tables.map((t): [string, RestaurantTable] => [t.id, t])), [tables])
 
   const submit = async () => {
     if (!branchId) return
     if (!form.customer_name || !form.reservation_time) { setErr('Name and time required'); return }
+    if (busy) return
+    setBusy(true)
     try {
       await createReservation({
         branch_id: branchId,
@@ -299,7 +302,7 @@ function ReservationsTab({ reservations, tables, onChanged }: { reservations: Re
       await onChanged()
       setForm({ customer_name: '', phone: '', party_size: 2, reservation_time: '', table_id: '' })
       setErr(null)
-    } catch (e) { setErr((e as Error).message) }
+    } catch (e) { setErr((e as Error).message) } finally { setBusy(false) }
   }
 
   const suggest = (partySize: number) => tables.filter((t) => t.capacity >= partySize).sort((a, b) => a.capacity - b.capacity)[0]
@@ -321,7 +324,7 @@ function ReservationsTab({ reservations, tables, onChanged }: { reservations: Re
             <div className="text-xs text-ink-500 -mt-2 mb-2">Suggested: {suggest(form.party_size).table_number} ({suggest(form.party_size).capacity}p)</div>
           )}
           {err && <Alert tone="red">{err}</Alert>}
-          <Button onClick={submit}>Save reservation</Button>
+          <Button onClick={submit} disabled={busy} loading={busy}>Save reservation</Button>
         </CardBody>
       </Card>
       <Card>
@@ -366,10 +369,13 @@ function WaitlistTab({ waitlist, onChanged }: { waitlist: WaitlistEntry[]; onCha
   const { branchId } = useRestaurant()
   const [form, setForm] = useState({ customer_name: '', phone: '', party_size: 2, estimated_wait_minutes: 20 })
   const [err, setErr] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
 
   const submit = async () => {
     if (!branchId) return
     if (!form.customer_name) { setErr('Name required'); return }
+    if (busy) return
+    setBusy(true)
     try {
       await addToWaitlist({
         branch_id: branchId,
@@ -381,7 +387,7 @@ function WaitlistTab({ waitlist, onChanged }: { waitlist: WaitlistEntry[]; onCha
       await onChanged()
       setForm({ customer_name: '', phone: '', party_size: 2, estimated_wait_minutes: 20 })
       setErr(null)
-    } catch (e) { setErr((e as Error).message) }
+    } catch (e) { setErr((e as Error).message) } finally { setBusy(false) }
   }
 
   return (
@@ -394,7 +400,7 @@ function WaitlistTab({ waitlist, onChanged }: { waitlist: WaitlistEntry[]; onCha
           <Input label="Party size" type="number" min={1} value={String(form.party_size)} onChange={(e) => setForm({ ...form, party_size: parseInt(e.target.value) || 1 })} />
           <Input label="Est. wait (min)" type="number" min={0} value={String(form.estimated_wait_minutes)} onChange={(e) => setForm({ ...form, estimated_wait_minutes: parseInt(e.target.value) || 0 })} />
           {err && <Alert tone="red">{err}</Alert>}
-          <Button onClick={submit}>Add to waitlist</Button>
+          <Button onClick={submit} disabled={busy} loading={busy}>Add to waitlist</Button>
         </CardBody>
       </Card>
       <Card>

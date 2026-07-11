@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { callFunction } from '../../../lib/functions'
 import { countRolesByModerationStatus, listRolesForModeration } from '../../../data/repositories/roles'
@@ -105,6 +105,7 @@ export default function ModerationPanel() {
   const [counts, setCounts] = useState<{ flagged: number; rejected: number; pending: number }>({
     flagged: 0, rejected: 0, pending: 0,
   })
+  const reqIdRef = useRef(0)
 
   async function loadCounts() {
     const buckets: Array<'flagged' | 'rejected' | 'pending'> = ['flagged', 'rejected', 'pending']
@@ -117,16 +118,19 @@ export default function ModerationPanel() {
   }
 
   async function reload() {
+    const myId = ++reqIdRef.current
     setLoading(true)
     setErr(null)
     try {
       const { data, error } = await listRolesForModeration(tab, AbortSignal.timeout(20_000))
+      if (reqIdRef.current !== myId) return
       if (error) setErr(error.message)
       else setRows((data ?? []) as unknown as FlaggedRole[])
     } catch (e) {
+      if (reqIdRef.current !== myId) return
       setErr(e instanceof Error ? e.message : 'Failed to load moderation queue')
     } finally {
-      setLoading(false)
+      if (reqIdRef.current === myId) setLoading(false)
     }
   }
 

@@ -209,21 +209,27 @@ function OrderPay({
   const splitEqually = async () => {
     const share = Math.round((remaining / splitCount) * 100) / 100
     if (share <= 0) return
-    for (let i = 0; i < splitCount; i++) {
-      await createPayment({
-        order_id: order.id,
-        amount: i === splitCount - 1 ? remaining - share * (splitCount - 1) : share,
-        method,
-        status: 'completed',
-        receipt_no: `R-${Date.now().toString(36).toUpperCase()}-${i + 1}`,
-        processed_by: employee?.id ?? null,
-      })
+    if (busy) return
+    setBusy(true)
+    try {
+      for (let i = 0; i < splitCount; i++) {
+        await createPayment({
+          order_id: order.id,
+          amount: i === splitCount - 1 ? remaining - share * (splitCount - 1) : share,
+          method,
+          status: 'completed',
+          receipt_no: `R-${Date.now().toString(36).toUpperCase()}-${i + 1}`,
+          processed_by: employee?.id ?? null,
+        })
+      }
+      await updateOrderStatus(order.id, 'paid')
+      if (order.table_id && table?.status === 'occupied') {
+        await updateTableStatus(order.table_id, 'cleaning')
+      }
+      await onRefresh()
+    } finally {
+      setBusy(false)
     }
-    await updateOrderStatus(order.id, 'paid')
-    if (order.table_id && table?.status === 'occupied') {
-      await updateTableStatus(order.table_id, 'cleaning')
-    }
-    await onRefresh()
   }
 
   return (
@@ -298,7 +304,7 @@ function OrderPay({
 
             <div className="flex items-end gap-2 mb-3 flex-wrap">
               <Input label="Split by" type="number" min={1} max={10} value={String(splitCount)} onChange={(e) => setSplitCount(parseInt(e.target.value) || 1)} />
-              <Button variant="secondary" onClick={splitEqually}>Split equally</Button>
+              <Button variant="secondary" onClick={splitEqually} loading={busy} disabled={busy}>Split equally</Button>
               <Button variant="secondary" onClick={() => setSplitItemsOpen(true)} disabled={items.filter((i) => i.status !== 'voided').length === 0}>Split by items</Button>
               <Button variant="ghost" onClick={() => setDiscountOpen(true)}>Apply discount</Button>
             </div>

@@ -134,6 +134,38 @@ jobs:
           fi
           echo "✓ no new duplicate migration prefixes (legacy duplicates allow-listed)"
 
+      - name: No NEW permissive RLS policy (USING(true) / GRANT anon)
+        run: |
+          set -euo pipefail
+          cd supabase/migrations
+          # A permissive RLS policy — USING(true) / WITH CHECK(true) — or a broad
+          # GRANT ... TO anon is how the org_consultations P0 cross-tenant PII leak
+          # (0129) shipped. Fail any NEW migration matching those patterns; existing
+          # files are grandfathered in .known-permissive (same pattern as the dup
+          # guard above). To intentionally add one, append its filename there in the
+          # same PR with justification.
+          allow=.known-permissive
+          offenders=$(grep -lEi \
+            'using[[:space:]]*\([[:space:]]*true[[:space:]]*\)|with[[:space:]]+check[[:space:]]*\([[:space:]]*true[[:space:]]*\)|grant[^;]*\bto\b[^;]*\banon\b' \
+            *.sql 2>/dev/null | sort || true)
+          if [ -f "$allow" ]; then
+            allowed=$(grep -vE '^\s*(#|$)' "$allow" | sort)
+          else
+            allowed=""
+          fi
+          new_offenders=$(comm -23 <(printf '%s\n' "$offenders") <(printf '%s\n' "$allowed"))
+          if [ -n "$new_offenders" ]; then
+            echo "✗ NEW migration(s) with a permissive RLS policy / anon grant:"
+            echo "$new_offenders" | sed 's/^/    /'
+            echo ""
+            echo "Scope the policy to the owner/tenant (owner_id = auth.uid(), a tenant"
+            echo "join, or is_admin()) instead of USING(true), and grant only the columns"
+            echo "actually needed. If this is genuinely required, add the filename to"
+            echo "supabase/migrations/.known-permissive in the same PR with a justification."
+            exit 1
+          fi
+          echo "✓ no new permissive RLS policies / anon grants (legacy allow-listed)"
+
   db-apply:
     name: Migrations — apply to ephemeral Postgres
     runs-on: ubuntu-latest

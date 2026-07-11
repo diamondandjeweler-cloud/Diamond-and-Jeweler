@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { profileConsentsById, updateProfile } from '../data/repositories/profiles'
 import { updateHmById } from '../data/repositories/hiringManagers'
 import { encryptDob } from '../lib/api'
@@ -25,6 +25,14 @@ export default function AddHmDobModal({ hmId, profileId, onSaved, onCancel }: Pr
   const [dobConsent, setDobConsent] = useState(false)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const firstFieldRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    firstFieldRef.current?.focus()
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onCancel])
 
   async function save() {
     if (!dob || !gender || !dobConsent) return
@@ -75,6 +83,7 @@ export default function AddHmDobModal({ hmId, profileId, onSaved, onCancel }: Pr
           gender. Encrypted and never shown to candidates.
         </p>
         <input
+          ref={firstFieldRef}
           type="date"
           aria-label="Date of birth"
           value={dob}

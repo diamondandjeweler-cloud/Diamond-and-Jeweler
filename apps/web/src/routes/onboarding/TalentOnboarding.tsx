@@ -562,11 +562,21 @@ export default function TalentOnboarding() {
 
     if (phase === 'dealbreakers') {
       const handleContinue = async () => {
+        // Flush any pending free-text input that wasn't committed via Enter/Add
+        // so it isn't silently dropped from the matcher constraints.
+        const pending = dealBreakerInput.trim()
+        const effectiveItems = pending && !dealBreakerItems.includes(pending)
+          ? [...dealBreakerItems, pending]
+          : dealBreakerItems
+        if (pending && !dealBreakerItems.includes(pending)) {
+          setDealBreakerItems(effectiveItems)
+          setDealBreakerInput('')
+        }
         // Best-effort: classify free-text items into structured flags via AI
-        if (dealBreakerItems.length > 0) {
+        if (effectiveItems.length > 0) {
           try {
             const result = await callFunction<{ deal_breakers: Record<string, boolean> }>('extract-deal-breakers', {
-              items: dealBreakerItems, party: 'talent',
+              items: effectiveItems, party: 'talent',
             })
             // Skip state updates if the user has already navigated away from this phase.
             if (phase !== 'dealbreakers') return

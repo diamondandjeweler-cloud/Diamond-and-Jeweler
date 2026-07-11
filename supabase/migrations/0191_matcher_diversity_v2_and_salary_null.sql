@@ -193,7 +193,6 @@ AS $function$
   SELECT talent_id FROM survivors
   ORDER BY _fs DESC NULLS LAST
   LIMIT p_limit;
-$function$
-
+$function$;
 
 commit;

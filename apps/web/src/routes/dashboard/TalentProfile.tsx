@@ -576,10 +576,10 @@ export default function TalentProfile() {
                         key={r}
                         type="button"
                         onClick={() => setRatings((x) => ({ ...x, [aspect]: r }))}
-                        className={`w-7 h-7 border dark:border-gray-700 text-xs ${
+                        className={`w-7 h-7 border dark:border-border text-xs ${
                           ratings[aspect] === r
                             ? 'bg-brand-600 text-white border-brand-600'
-                            : 'bg-white dark:bg-gray-800 dark:text-fg-strong hover:bg-gray-50 dark:hover:bg-gray-700'
+                            : 'bg-white dark:bg-surface dark:text-fg-strong hover:bg-gray-50 dark:hover:bg-surface-2'
                         }`}
                       >
                         {r}
@@ -597,7 +597,7 @@ export default function TalentProfile() {
             <button
               type="button"
               onClick={() => navigate('/talent')}
-              className="px-4 py-2 border dark:border-gray-700 rounded dark:text-fg-strong hover:bg-gray-50 dark:hover:bg-gray-700"
+              className="px-4 py-2 border dark:border-border rounded dark:text-fg-strong hover:bg-gray-50 dark:hover:bg-surface-2"
             >
               Back
             </button>

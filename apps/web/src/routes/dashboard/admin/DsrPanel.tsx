@@ -148,7 +148,7 @@ export default function DsrPanel() {
                       <summary className="text-xs text-brand-600 cursor-pointer hover:underline">
                         {r.correction_proposal.items.length} proposed correction{r.correction_proposal.items.length === 1 ? '' : 's'}
                       </summary>
-                      <ul className="mt-2 text-xs bg-gray-50 dark:bg-gray-900 rounded p-2 space-y-1">
+                      <ul className="mt-2 text-xs bg-gray-50 dark:bg-canvas rounded p-2 space-y-1">
                         {r.correction_proposal.items.map((it, i) => (
                           <li key={i} className="font-mono">
                             <span className="text-fg-muted">{it.field}</span>

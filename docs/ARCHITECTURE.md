@@ -80,7 +80,7 @@ supabase/
     _shared/                   #   match-core.ts (scorer), auth.ts, supabase.ts,
                                #   cors.ts, audit.ts, match-reasoning.ts
     match-generate/  process-match-queue/  match-expire/  payment-webhook/  …
-  migrations/                  # 186 SQL files (0001 → 0162)
+  migrations/                  # 217 SQL files (0001 → 0193)
   tests/                       # rls_deny.sql, column_isolation.sql (CI gates)
   config.toml                  # per-function verify_jwt pins
 
@@ -199,7 +199,7 @@ Money path (parallel): purchase → Billplz/ToyyibPay → `payment-webhook` (sig
 **Scales cleanly:** static SPA on CDN (hashed assets + SW), set-based + LIMIT-capped candidate filtering (won't degrade with talent-pool growth — the key marketplace property), RLS plan-cached (`(select auth.uid())`), idempotent money paths, queue-drained generation (horizontally scalable by adding workers).
 
 **Bounded constraints (tracked in the audit/roadmap):**
-- **Operational SPOF (current P0):** the async backbone depends on a Vault `service_role_key`; a key rotation left it stale → pipeline dead 27 days. Fixed forward with `/api/health` (external-monitorable) — see [OWNER_ACTIONS.md](./OWNER_ACTIONS.md).
+- **Operational SPOF (resolved 2026-07-04):** the async backbone depends on a Vault `service_role_key`; a key rotation left it stale → pipeline dead 27 days. Fixed forward with `/api/health` (external-monitorable) — see [OWNER_ACTIONS.md](./OWNER_ACTIONS.md).
 - **Single-region** Supabase + Vercel (correct for a Malaysia-first pilot; pin + document before scaling).
 - **Edge rate-limiter is per-isolate** in-memory (best-effort, not a hard global quota).
 - **Deploy is split-brained** (frontend auto-deploys; migrations + edge fns by hand) → `schema_migrations` drift (detector shipped).

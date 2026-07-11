@@ -8,6 +8,7 @@ import {
   useCallback, useEffect, useMemo, useRef, useState, type ReactNode,
 } from 'react'
 import { Input, Select } from '../ui'
+import { Tooltip } from '../../ui'
 import { callFunction } from '../../lib/functions'
 import { listSkillTaxonomy } from '../../data/repositories/skillTaxonomy'
 
@@ -583,15 +584,19 @@ export function NonNegotiablesInput({
         <div className="field-label">
           {side === 'hm' ? 'Non-negotiables (deal-breakers for this role)' : 'Your non-negotiables'}
         </div>
-        <button
-          type="button"
-          onClick={() => void preview()}
-          disabled={busy || !text.trim()}
-          className="text-xs px-2.5 py-1 rounded-md border border-ink-200 text-ink-700 hover:border-ink-400 hover:text-ink-900 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          title={!text.trim() ? 'Type something first' : 'Parse into structured atoms'}
-        >
-          {busy ? 'Parsing…' : atoms.length > 0 ? 'Re-parse' : 'Parse with AI'}
-        </button>
+        <Tooltip content={!text.trim() ? 'Type something first' : 'Parse into structured atoms'}>
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- conditional disabled-trigger tooltip proxy; see BasicsSection */}
+          <span tabIndex={busy || !text.trim() ? 0 : undefined} className="inline-block">
+            <button
+              type="button"
+              onClick={() => void preview()}
+              disabled={busy || !text.trim()}
+              className="text-xs px-2.5 py-1 rounded-md border border-ink-200 text-ink-700 hover:border-ink-400 hover:text-ink-900 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              {busy ? 'Parsing…' : atoms.length > 0 ? 'Re-parse' : 'Parse with AI'}
+            </button>
+          </span>
+        </Tooltip>
       </div>
 
       <textarea

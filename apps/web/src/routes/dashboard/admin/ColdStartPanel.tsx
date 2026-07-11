@@ -3,6 +3,7 @@ import { matchedTalentIdsForRole, insertMatches, insertMatchHistory } from '../.
 import { activeTalentCount, coldStartTalentPool } from '../../../data/repositories/talents'
 import { pendingColdStartQueue, markColdStartApplied } from '../../../data/repositories/coldStart'
 import ListSkeleton from '../../../components/ListSkeleton'
+import { Tooltip } from '../../../ui'
 
 interface ColdStartRole {
   queue_id: string
@@ -140,14 +141,18 @@ export default function ColdStartPanel() {
                     {new Date(r.created_at).toLocaleDateString()}
                   </div>
                 </div>
-                <button
-                  onClick={() => (openRoleId === r.role_id ? setOpenRoleId(null) : void loadTalents(r.role_id))}
-                  className="text-sm text-brand-600 hover:underline disabled:text-gray-400 disabled:no-underline"
-                  disabled={autoSwitchReached}
-                  title={autoSwitchReached ? 'Cold-start disabled: talent pool is past the auto-switch threshold' : undefined}
-                >
-                  {openRoleId === r.role_id ? 'Close' : 'Pick candidates'}
-                </button>
+                <Tooltip content={autoSwitchReached ? 'Cold-start disabled: talent pool is past the auto-switch threshold' : undefined}>
+                  {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- conditional disabled-trigger tooltip proxy; see BasicsSection */}
+                  <span tabIndex={autoSwitchReached ? 0 : undefined} className="inline-block">
+                    <button
+                      onClick={() => (openRoleId === r.role_id ? setOpenRoleId(null) : void loadTalents(r.role_id))}
+                      className="text-sm text-brand-600 hover:underline disabled:text-gray-400 disabled:no-underline"
+                      disabled={autoSwitchReached}
+                    >
+                      {openRoleId === r.role_id ? 'Close' : 'Pick candidates'}
+                    </button>
+                  </span>
+                </Tooltip>
               </div>
 
               {openRoleId === r.role_id && (

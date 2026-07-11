@@ -378,7 +378,7 @@ export default function MatchApprovalPanel() {
 
                 {/* Expanded detail */}
                 {expanded === m.id && (
-                  <div className="border-t dark:border-border bg-gray-50 dark:bg-gray-900 p-4 space-y-3 dark:text-fg-strong">
+                  <div className="border-t dark:border-border bg-gray-50 dark:bg-canvas p-4 space-y-3 dark:text-fg-strong">
                     {/* DOB comparison */}
                     <div className="grid grid-cols-2 gap-4 text-xs">
                       <div className="bg-surface border dark:border-border rounded p-3">

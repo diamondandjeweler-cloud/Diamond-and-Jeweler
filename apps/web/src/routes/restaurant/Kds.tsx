@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Alert, Badge, Button, Card, CardBody, EmptyState, Spinner } from '../../components/ui'
+import { Tooltip } from '../../ui'
 import { useRestaurant } from '../../lib/restaurant/context'
 import { usePolling } from '../../lib/usePolling'
 import {
@@ -220,7 +221,9 @@ function TicketButtons({ ticket, onStatus, onReject, onRemake, onRequestIngredie
       )}
       {s !== 'completed' && s !== 'rejected' && (
         <>
-          <Button size="sm" variant="ghost" onClick={onRequestIngredient} title="Notify storekeeper">Need ingr.</Button>
+          <Tooltip content="Notify storekeeper">
+            <Button size="sm" variant="ghost" onClick={onRequestIngredient}>Need ingr.</Button>
+          </Tooltip>
           <Button size="sm" variant="ghost" onClick={onRemake}>Remake</Button>
           <Button size="sm" variant="danger" onClick={onReject}>Reject</Button>
         </>

@@ -295,7 +295,7 @@ export default function ModerationPanel() {
                 </div>
 
                 {expanded === r.id && (
-                  <div className="border-t dark:border-border bg-gray-50 dark:bg-gray-900 p-4 space-y-3">
+                  <div className="border-t dark:border-border bg-gray-50 dark:bg-canvas p-4 space-y-3">
                     {/* Posting body */}
                     <div className="bg-surface border dark:border-border rounded p-3 text-sm">
                       <div className="grid grid-cols-2 gap-2 text-xs text-fg-muted mb-2">

@@ -1,10 +1,12 @@
 # Owner Actions — things only you can safely do
 
-_These are blocked on secrets, external services, or product decisions — I won't handle master credentials even under full autonomy. Ordered by impact. Last updated 2026-06-27._
+_These are blocked on secrets, external services, or product decisions — I won't handle master credentials even under full autonomy. Ordered by impact. Last updated 2026-06-27; P0 resolved 2026-07-04._
 
 ---
 
-## 🔴 P0 — Revive the match pipeline (5 minutes)
+## ✅ DONE — Revive the match pipeline (resolved 2026-07-04)
+
+**Resolved:** the Vault `service_role_key` was rotated and the pipeline was verified live 2026-07-04 — `GET /api/health` → 200 with a fresh heartbeat (see [docs/STATUS.md](./STATUS.md)). The steps below are kept as historical reference for how it was fixed.
 
 **Your entire async backbone has been dead since ~2026-05-30** (no new matches in 27 days). The service-role key was rotated but the Vault copy wasn't updated, so every cron→edge call returns 403. See [docs/ROAD_TO_A_PLUS.md](./ROAD_TO_A_PLUS.md).
 
@@ -47,7 +49,7 @@ So the next outage pages you instead of going unnoticed for a month. `/api/healt
 
 ## 🟢 P3 — Deploy hygiene (when you next touch the pipeline)
 
-**Migration tracking has drifted:** prod records migrations up to **0121** (105 of them), but the repo is at **0162**. A new drift-detector reports **57 repo migrations not recorded as applied in prod** (run `node scripts/check-migration-drift.mjs` with `SUPABASE_ACCESS_TOKEN` set). The schema itself is fine — migrations have been applied out-of-band (Management API / dashboard) without updating `supabase_migrations.schema_migrations` — but it means **`supabase db push` would mis-fire** (try to re-apply the 57).
+**Migration tracking has drifted:** as of 2026-06-27, prod records migrations up to **0121** (105 of them), but the repo is now at **0193**. A new drift-detector reports (as of 2026-06-27) **57 repo migrations not recorded as applied in prod** (run `node scripts/check-migration-drift.mjs` with `SUPABASE_ACCESS_TOKEN` set). The schema itself is fine — migrations have been applied out-of-band (Management API / dashboard) without updating `supabase_migrations.schema_migrations` — but it means **`supabase db push` would mis-fire** (try to re-apply the 57).
 
 - This is harmless today (you don't use `db push`), so no rush.
 - Before ever using `db push` against prod: reconcile by recording the genuinely-applied versions in `supabase_migrations.schema_migrations`. I left this as a deliberate step rather than auto-recording all 57 — recording a version that *isn't* actually applied would make a future push silently skip it.

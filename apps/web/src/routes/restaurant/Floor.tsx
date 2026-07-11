@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Alert, Badge, Button, Card, CardBody, EmptyState, Input, Select, Spinner } from '../../components/ui'
+import { Tooltip } from '../../ui'
 import { useRestaurant } from '../../lib/restaurant/context'
 import { usePolling } from '../../lib/usePolling'
 import {
@@ -119,21 +120,22 @@ function FloorTab({ tables, onClick, onChanged }: { tables: RestaurantTable[]; o
             ) : (
               <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
                 {tables.filter((t) => (t.area ?? 'indoor') === area).map((t) => (
-                  <button key={t.id}
-                    onClick={() => onClick(t)}
-                    className={`aspect-square border-2 rounded-xl flex flex-col items-center justify-center text-sm font-semibold hover:scale-105 transition-transform ${
-                      t.status === 'free' ? 'border-emerald-400 bg-emerald-50 text-emerald-900'
-                      : t.status === 'occupied' ? 'border-red-400 bg-red-50 text-red-900'
-                      : t.status === 'reserved' ? 'border-amber-400 bg-amber-50 text-amber-900'
-                      : t.status === 'cleaning' ? 'border-yellow-400 bg-yellow-50 text-yellow-900'
-                      : 'border-ink-300 bg-ink-100 text-ink-500'
-                    }`}
-                    title={t.status}
-                  >
-                    <span>{t.table_number}</span>
-                    <span className="text-[10px] opacity-70">{t.capacity}p · {t.shape}</span>
-                    {t.last_status_change && <span className="text-[10px] opacity-70">{minutesAgo(t.last_status_change)}m</span>}
-                  </button>
+                  <Tooltip key={t.id} content={t.status}>
+                    <button
+                      onClick={() => onClick(t)}
+                      className={`aspect-square border-2 rounded-xl flex flex-col items-center justify-center text-sm font-semibold hover:scale-105 transition-transform ${
+                        t.status === 'free' ? 'border-emerald-400 bg-emerald-50 text-emerald-900'
+                        : t.status === 'occupied' ? 'border-red-400 bg-red-50 text-red-900'
+                        : t.status === 'reserved' ? 'border-amber-400 bg-amber-50 text-amber-900'
+                        : t.status === 'cleaning' ? 'border-yellow-400 bg-yellow-50 text-yellow-900'
+                        : 'border-ink-300 bg-ink-100 text-ink-500'
+                      }`}
+                    >
+                      <span>{t.table_number}</span>
+                      <span className="text-[10px] opacity-70">{t.capacity}p · {t.shape}</span>
+                      {t.last_status_change && <span className="text-[10px] opacity-70">{minutesAgo(t.last_status_change)}m</span>}
+                    </button>
+                  </Tooltip>
                 ))}
               </div>
             )}

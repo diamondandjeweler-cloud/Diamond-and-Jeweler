@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { insertTag, listTags, setTagActive } from '../../../data/repositories/tagDictionary'
 import ListSkeleton from '../../../components/ListSkeleton'
+import { Tooltip } from '../../../ui'
 
 interface TagRow {
   id: string
@@ -74,19 +75,19 @@ export default function TagPanel() {
       </div>
       <div className="flex flex-wrap gap-2">
         {rows.map((r) => (
-          <button
-            key={r.id}
-            onClick={() => void toggleActive(r)}
-            className={`text-xs px-2 py-1 rounded border dark:border-border ${
-              r.is_active
-                ? 'bg-surface-2 text-gray-800 dark:text-fg'
-                : 'bg-surface text-fg-subtle line-through'
-            }`}
-            title={`Click to ${r.is_active ? 'deactivate' : 'reactivate'}`}
-          >
-            {r.tag_name}
-            <span className="text-fg-subtle ml-1">({r.category})</span>
-          </button>
+          <Tooltip key={r.id} content={`Click to ${r.is_active ? 'deactivate' : 'reactivate'}`}>
+            <button
+              onClick={() => void toggleActive(r)}
+              className={`text-xs px-2 py-1 rounded border dark:border-border ${
+                r.is_active
+                  ? 'bg-surface-2 text-gray-800 dark:text-fg'
+                  : 'bg-surface text-fg-subtle line-through'
+              }`}
+            >
+              {r.tag_name}
+              <span className="text-fg-subtle ml-1">({r.category})</span>
+            </button>
+          </Tooltip>
         ))}
       </div>
     </div>

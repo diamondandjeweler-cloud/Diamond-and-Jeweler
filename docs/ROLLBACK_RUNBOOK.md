@@ -23,24 +23,25 @@
 
 ## 1. Vercel rollback (frontend)
 
-DNJ does **not** have Vercel git integration — every prod deploy is `vercel deploy --prod`.
+DNJ's frontend auto-deploys via Vercel git integration — every push to `main` triggers a prod deploy (see `docs/ARCHITECTURE.md` §8). That means a bad commit goes live automatically, so the fastest rollback is not a new deploy but reverting to the last known-good deployment.
 
-### Option A — promote previous deployment (fastest, ~1 min)
+### Option A — Vercel dashboard Instant Rollback (fastest, ~1 min)
+Vercel Dashboard → Project → Deployments → select the last known-good deployment → **Instant Rollback** (or "Promote to Production"). This is how the 2026-07-10 white-screen outage was rolled back — no CLI, no new build, takes effect immediately.
+
+### Option B — `vercel promote` (CLI alternate to Option A)
 ```bash
 cd apps/web
 vercel ls --prod                  # list recent prod deployments
 vercel promote <deployment-url>   # promote a prior good deployment to prod
 ```
 
-### Option B — git revert + redeploy (when bad commit is identified)
+### Option C — git revert + redeploy (when bad commit is identified)
 ```bash
 git revert <bad-sha>
-git push origin main
-cd apps/web
-vercel deploy --prod              # full redeploy
+git push origin main              # auto-deploys via Vercel git integration
 ```
 
-### Option C — stash hotfix
+### Option D — stash hotfix
 If commit graph is messy:
 ```bash
 git checkout -b hotfix/rollback <last-known-good-sha>

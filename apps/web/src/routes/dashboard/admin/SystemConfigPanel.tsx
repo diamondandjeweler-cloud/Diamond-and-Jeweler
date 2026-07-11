@@ -237,7 +237,7 @@ export default function SystemConfigPanel() {
                 )}
               </div>
               {secret ? (
-                <p className="mt-2 text-xs text-fg-muted bg-ink-50 dark:bg-gray-900 border border-border rounded px-3 py-2">
+                <p className="mt-2 text-xs text-fg-muted bg-ink-50 dark:bg-canvas border border-border rounded px-3 py-2">
                   This value holds a credential. To prevent admin-to-admin secret reads it is not editable here —
                   set it via the Vercel / Supabase env or directly in SQL with the service role.
                 </p>

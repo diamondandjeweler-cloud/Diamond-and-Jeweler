@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { RestaurantProvider, useRestaurant } from '../../lib/restaurant/context'
 import { Alert, Badge, Button, PageHeader, Spinner } from '../../components/ui'
+import { Tooltip } from '../../ui'
 import { useSession } from '../../state/useSession'
 import { useShallow } from 'zustand/react/shallow'
 import OrgSetup from './OrgSetup'
@@ -115,16 +116,17 @@ function Inner() {
                 </svg>
               </div>
               {employee ? (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setEmployeeId(null)}
-                  title="Sign out of employee session"
-                >
-                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                  {employee.name} · {employee.role}
-                </Button>
+                <Tooltip content="Sign out of employee session">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setEmployeeId(null)}
+                  >
+                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                    {employee.name} · {employee.role}
+                  </Button>
+                </Tooltip>
               ) : (
                 <span className="text-xs text-ink-500 px-3 py-2 rounded-md bg-white/60 border border-ink-200">No staff PIN</span>
               )}

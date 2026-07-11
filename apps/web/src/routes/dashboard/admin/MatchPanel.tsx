@@ -120,7 +120,7 @@ export default function MatchPanel() {
                   </div>
                 </div>
                 {expanded === m.id && (
-                  <div className="border-t dark:border-border p-3 bg-gray-50 dark:bg-gray-900 dark:text-fg-strong">
+                  <div className="border-t dark:border-border p-3 bg-gray-50 dark:bg-canvas dark:text-fg-strong">
                     <div className="grid grid-cols-3 gap-3 text-xs mb-2">
                       <div><span className="text-fg-muted">Tag comp:</span> {m.tag_compatibility ?? '—'}</div>
                       <div><span className="text-fg-muted">Team-fit:</span> {m.life_chart_score ?? '—'}</div>

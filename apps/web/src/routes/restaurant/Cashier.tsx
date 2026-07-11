@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Alert, Badge, Button, Card, CardBody, EmptyState, Input, Select, Spinner } from '../../components/ui'
 import ManagerPin from './ManagerPin'
 import { useRestaurant } from '../../lib/restaurant/context'
+import { useToast } from '../../components/Toast'
 import {
   listActiveOrders, listOrderItems, listTables, listMenuItems,
   listPaymentsForOrder, createPayment, refundPayment,
@@ -142,6 +143,7 @@ function OrderPay({
   shiftActive: boolean
 }) {
   const { employee } = useRestaurant()
+  const toast = useToast()
   const [method, setMethod] = useState<PaymentMethod>('cash')
   const [amount, setAmount] = useState('')
   const [tip, setTip]       = useState('')
@@ -242,7 +244,7 @@ function OrderPay({
               const { reorderToOpenOrder } = await import('../../lib/restaurant/store')
               const n = await reorderToOpenOrder(order.id, employee?.id ?? null)
               await onRefresh()
-              if (n === 0) window.alert('Nothing to reorder')
+              if (n === 0) toast.info('Nothing to reorder')
             }}>Reorder same</Button>
           </div>
         )}

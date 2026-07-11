@@ -88,9 +88,13 @@ serve(async (req) => {
   const referrerPts = typeof cfgRef.data?.value === 'number' ? cfgRef.data.value : 19
   const refereePts  = typeof cfgWelcome.data?.value === 'number' ? cfgWelcome.data.value : 5
 
-  // Idempotency keys: at most one reward per (referee, role) pair, ever.
+  // Idempotency keys — BOTH keyed on the referee so each account can trigger at
+  // most ONE referrer bonus and ONE welcome bonus, ever. Keying the welcome bonus
+  // on the referrer (old behaviour) let a single account farm +5 for every
+  // distinct public code it redeemed; keying on the referee makes it single-use
+  // per referee. Same-code replay stays idempotent (identical key → no-op).
   const referrerKey = `referral_onboarded:${refereeId}`
-  const refereeKey  = `referee_welcome:${referrerId}`
+  const refereeKey  = `referee_welcome:${refereeId}`
 
   await db.rpc('award_points', {
     p_user_id: referrerId,

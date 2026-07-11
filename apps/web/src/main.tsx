@@ -22,6 +22,12 @@ void getCurrentLegalVersion()
 // window.onerror; Sentry just won't report them — acceptable trade-off for
 // cold-load performance.
 if (import.meta.env.VITE_SENTRY_DSN) {
+  // Conservative PII/secret scrub: redact emails and phone-like digit runs from
+  // any string that would otherwise leave the browser inside an error event.
+  const scrubPii = (s: string): string =>
+    s
+      .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[redacted-email]')
+      .replace(/\+?\d[\d\s()-]{7,}\d/g, '[redacted-phone]')
   const initSentry = () => {
     void import('@sentry/react').then((Sentry) => {
       Sentry.init({
@@ -29,7 +35,31 @@ if (import.meta.env.VITE_SENTRY_DSN) {
         environment: import.meta.env.MODE,
         integrations: [Sentry.browserTracingIntegration()],
         tracesSampleRate: 0.1,
-        replaysOnErrorSampleRate: 1.0,
+        // Strip likely PII/secrets before any event is sent to Sentry. There is
+        // no replayIntegration() configured, so replaysOnErrorSampleRate was dead
+        // config and has been removed.
+        beforeSend(event) {
+          if (event.request) {
+            // Cookies + auth headers can carry the Supabase session token.
+            delete event.request.cookies
+            const headers = event.request.headers
+            if (headers) {
+              for (const key of Object.keys(headers)) {
+                if (/^(authorization|cookie|.*(token|api[-_]?key))/i.test(key)) delete headers[key]
+              }
+            }
+            if (event.request.url) event.request.url = scrubPii(event.request.url)
+            if (typeof event.request.query_string === 'string') {
+              event.request.query_string = scrubPii(event.request.query_string)
+            }
+          }
+          if (event.breadcrumbs) {
+            for (const crumb of event.breadcrumbs) {
+              if (typeof crumb.message === 'string') crumb.message = scrubPii(crumb.message)
+            }
+          }
+          return event
+        },
       })
     })
   }

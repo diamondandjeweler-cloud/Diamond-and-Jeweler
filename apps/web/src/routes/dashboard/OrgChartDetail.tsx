@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import DOMPurify from 'dompurify'
 import { Link, useParams } from 'react-router-dom'
 import { useSession } from '../../state/useSession'
 import { useShallow } from 'zustand/react/shallow'
@@ -447,7 +448,7 @@ export default function OrgChartDetail() {
               <h3 className="text-lg font-semibold">Client-facing Report Preview</h3>
               <Button variant="secondary" size="sm" onClick={() => setShowReport(false)}>Close</Button>
             </div>
-            <div className="max-h-[70vh] overflow-auto" dangerouslySetInnerHTML={{ __html: row.report_html }} />
+            <div className="max-h-[70vh] overflow-auto" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(row.report_html) }} />
           </div>
         </div>
       )}

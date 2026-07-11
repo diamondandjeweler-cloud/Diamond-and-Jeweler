@@ -156,15 +156,35 @@ async function handlePaymentWebhook(req: Request): Promise<Response> {
   const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
 
-  // Fire match-generate for HM-side extra matches.
+  // Deliver the paid HM-side extra match — AWAIT it so the charge is coupled to
+  // fulfilment. This runs SYNCHRONOUSLY (is_extra_match path) and returns
+  // matches_added; on failure or 0 delivered we persist a durable
+  // match_undelivered marker (0190) + report, because Billplz is not idempotent
+  // (no auto-retry) and the buyer has already been charged + quota incremented.
+  // The money CAS already committed above, so a Billplz retry short-circuits at
+  // the already-paid guard — awaiting here does not risk a double grant.
   if (purchase.match_type === 'hm_extra' && purchase.role_id) {
-    fetch(`${supabaseUrl}/functions/v1/match-generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${svcKey}` },
-      // Pass the purchase id so the delivered match is linked back to it
-      // (matches.source_purchase_id), letting admin-refund expire it on refund.
-      body: JSON.stringify({ role_id: purchase.role_id, is_extra_match: true, source_purchase_id: purchase.id }),
-    }).catch(() => { /* best effort */ })
+    try {
+      const mgRes = await fetch(`${supabaseUrl}/functions/v1/match-generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${svcKey}` },
+        // Pass the purchase id so the delivered match is linked back to it
+        // (matches.source_purchase_id), letting admin-refund expire it on refund.
+        body: JSON.stringify({ role_id: purchase.role_id, is_extra_match: true, source_purchase_id: purchase.id }),
+      })
+      const mgBody = (await mgRes.json().catch(() => ({}))) as { matches_added?: number }
+      if (!mgRes.ok || (mgBody.matches_added ?? 0) < 1) {
+        await db.from('extra_match_purchases').update({ match_undelivered: true }).eq('id', purchase.id)
+        await reportError(
+          new Error(`paid extra-match undelivered: status=${mgRes.status} matches_added=${mgBody.matches_added ?? 0}`),
+          { fn: 'payment-webhook', purchase_id: purchase.id, role_id: purchase.role_id },
+        )
+      }
+    } catch (e) {
+      await db.from('extra_match_purchases').update({ match_undelivered: true }).eq('id', purchase.id)
+        .then(() => {}, () => { /* marker best-effort */ })
+      await reportError(e, { fn: 'payment-webhook', purchase_id: purchase.id, role_id: purchase.role_id, phase: 'match-generate' })
+    }
   }
 
   // Notify buyer.

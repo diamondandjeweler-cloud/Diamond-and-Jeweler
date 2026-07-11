@@ -57,6 +57,14 @@ serve(async (req) => {
   // redeem-points / unlock-extra-match / payment-webhook await this response
   // and read matches_added to couple the charge to the fulfilment.
   if (body.is_extra_match === true) {
+    // is_extra_match runs the PAID path that bypasses the 3-active-match cap and
+    // refresh limit in match-core. The ONLY legitimate callers are the
+    // service-role edge fns (redeem-points / unlock-extra-match →
+    // payment-webhook); no authenticated client passes it. Reject a user-JWT
+    // caller (incl. a role-owning HM) so it cannot mint free paid matches.
+    if (!auth.isServiceRole) {
+      return json({ error: 'is_extra_match is reserved for internal service-role callers' }, 403)
+    }
     try {
       const result = await matchForRole({
         roleId:       body.role_id,

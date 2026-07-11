@@ -14,7 +14,7 @@
 
 export const config = { runtime: 'edge' }
 
-import { hmacSha256, insertDeliveryOrder } from './_lib'
+import { hmacSha256, timingSafeEqual, insertDeliveryOrder } from './_lib'
 
 export default async function handler(request: Request): Promise<Response> {
   if (request.method !== 'POST') {
@@ -34,7 +34,7 @@ export default async function handler(request: Request): Promise<Response> {
   }
   const sig      = request.headers.get('X-GrabFood-Signature') ?? ''
   const expected = await hmacSha256(secret, body)
-  if (sig !== expected) {
+  if (!timingSafeEqual(sig, expected)) {
     console.error('[grab-webhook] Invalid signature')
     return new Response('Unauthorized', { status: 401 })
   }

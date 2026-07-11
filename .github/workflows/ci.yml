@@ -183,7 +183,26 @@ jobs:
         with:
           version: latest
       - name: Start local Supabase stack
-        run: supabase start
+        # `supabase start` boots the full Docker stack, whose image pulls from
+        # the registry are the flakiest part of this job — a transient pull
+        # timeout kills the whole run before a single migration or gate executes
+        # (observed twice: the boot step fails at "Pulling fs layer" while every
+        # downstream step reports 0s). Retry the boot up to 3× so a transient
+        # registry hiccup no longer red-marks main; a genuine stack/image failure
+        # still fails after the last attempt.
+        run: |
+          for attempt in 1 2 3; do
+            echo "── supabase start (attempt $attempt/3) ──"
+            if supabase start; then
+              echo "✓ local stack up on attempt $attempt"
+              exit 0
+            fi
+            echo "attempt $attempt failed; tearing down partial stack before retry"
+            supabase stop --no-backup || true
+            sleep 15
+          done
+          echo "✗ supabase start failed after 3 attempts (Docker image pull / stack boot)"
+          exit 1
       - name: Apply all migrations (reset re-runs every migration)
         run: supabase db reset
       - name: Column-isolation gate (BLOCKING)

@@ -6,6 +6,7 @@
  */
 import { supabase } from '../supabase'
 import { restaurantDb as db } from './client'
+import { mytDay } from './domain/time'
 
 export type Environment = 'sandbox' | 'production'
 
@@ -166,7 +167,7 @@ export async function triggerSelfBilled(purchaseOrderId: string): Promise<{ ok: 
 
 export async function triggerEodConsolidated(date?: string): Promise<{ ok: boolean }> {
   const { data, error } = await supabase.functions.invoke('myinvois-submit', {
-    body: { mode: 'eod_consolidated', date: date ?? new Date().toISOString().slice(0, 10) },
+    body: { mode: 'eod_consolidated', date: date ?? mytDay(new Date()) },
   })
   if (error) throw error
   return (data as { ok: boolean }) ?? { ok: false }

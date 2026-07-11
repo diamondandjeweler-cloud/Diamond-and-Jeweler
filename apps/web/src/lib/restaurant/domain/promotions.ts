@@ -6,6 +6,7 @@
 // verbatim so the discount math lives in the domain layer with a golden test.
 // (The server-side, RPC-backed `evaluateServerPromotions` stays in the DAL.)
 import type { Promotion } from '../types'
+import { mytDay, mytHhmm } from './time'
 
 /**
  * Returns the discount amount in RM for a given `subtotal` at a given moment.
@@ -23,14 +24,18 @@ import type { Promotion } from '../types'
  */
 export function evaluatePromotion(p: Promotion, subtotal: number, at: Date = new Date()): number {
   if (!p.is_active) return 0
-  if (p.start_date && new Date(p.start_date) > at) return 0
-  if (p.end_date && new Date(p.end_date) < at) return 0
+  const today = mytDay(at)
+  if (p.start_date && today < mytDay(p.start_date)) return 0
+  if (p.end_date && today > mytDay(p.end_date)) return 0
   const rule = (p.rule_json ?? {}) as Record<string, unknown>
   if (p.type === 'time_based') {
     const from = String(rule.start_time ?? '')
     const to = String(rule.end_time ?? '')
-    const hhmm = `${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`
-    if (from && to && !(hhmm >= from && hhmm < to)) return 0
+    const hhmm = mytHhmm(at)
+    if (from && to) {
+      const inWindow = from <= to ? (hhmm >= from && hhmm < to) : (hhmm >= from || hhmm < to)
+      if (!inWindow) return 0
+    }
   }
   const minSpend = Number(rule.min_spend ?? 0)
   if (subtotal < minSpend) return 0

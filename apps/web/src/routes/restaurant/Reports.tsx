@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Alert, Badge, Button, Card, CardBody, EmptyState, Spinner } from '../../components/ui'
 import { useRestaurant } from '../../lib/restaurant/context'
+import { mytDay } from '../../lib/restaurant/domain/time'
 import {
   listOrders, listOrderItemsForOrders, listMenuItems, listTables, listEmployees, listTimesheets,
   listIngredients, listWaste, listPromotions, listBranches,
@@ -333,7 +334,7 @@ function TaxReport({ orders }: { orders: Order[] }) {
   const paid = orders.filter((o) => o.status === 'paid' || o.status === 'closed')
   const byDay = new Map<string, { gross: number; tax: number; orders: number }>()
   paid.forEach((o) => {
-    const d = new Date(o.created_at).toISOString().slice(0, 10)
+    const d = mytDay(o.created_at)
     const prev = byDay.get(d) ?? { gross: 0, tax: 0, orders: 0 }
     prev.gross += Number(o.subtotal); prev.tax += Number(o.tax); prev.orders += 1
     byDay.set(d, prev)

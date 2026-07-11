@@ -60,24 +60,28 @@ Surfaced 21 candidates → 12 verified real.
 | Not-found order now shows "Order not found" instead of an infinite spinner | `routes/restaurant/Track.tsx` |
 | a11y: date-input label, DOB-mismatch `role="alert"`, cashier search + qty `aria-label` | AddHmDobModal, DobConfirmModal, Cashier |
 
-### ⛔ Still need you
+### ✅ Also fixed after re-analysis (Malaysia = single fixed tz, so no decision was actually needed)
 
-**A. Timezone cluster — needs a business-timezone decision (is it always MYT/UTC+8, or per-branch?).** All stem from treating date-only values as UTC midnight. Recommended fix: one shared `businessDay(date)` / MYT helper used by all four. I did **not** auto-fix these because a wrong day-boundary mis-charges customers or mis-files tax, and it needs your tz model first.
-- **HIGH** `promotions.ts:27` — promo `start`/`end` stored as `new Date('YYYY-MM-DD').toISOString()` = UTC midnight, compared against local now → in MYT a promo valid "through the last day" dies at **08:00** that day (and starts 8h late). Directly changes `discount` → `total` at checkout.
-- **MED** `Reports.tsx:336` — tax/SST daily report buckets by `toISOString().slice(0,10)` (UTC day); orders 00:00–08:00 MYT land on the **previous day's** tax figures + CSV export.
-- **LOW** `promotions.ts:32` — `time_based` happy-hour window uses a lexical `HH:MM` compare, so an overnight window (e.g. 22:00–02:00) **never** matches → discount silently 0 all night.
-- **LOW** `einvoice.ts:169` — EOD MyInvois consolidation defaults to the UTC day; triggered after local midnight it files against the wrong business date.
+**Timezone cluster — fixed in `eac1464`** via a pure, unit-tested `mytDay`/`mytHhmm` helper (`lib/restaurant/domain/time.ts`, UTC+8, no DST):
+- **HIGH** promo `start`/`end` now compared **day-inclusive in MYT** — a promo "valid until 2026-07-11" stays valid through 23:59 MYT that day (was dying at 08:00). Test pins the exact case.
+- **MED** tax/SST daily report + CSV now bucket by **MYT business day** (`Reports.tsx`).
+- **LOW** `time_based` window now supports **overnight wrap** (22:00–02:00) and evaluates against MYT wall-clock.
+- **LOW** EOD MyInvois consolidation defaults to the **MYT** day (`einvoice.ts`).
 
-**B. i18n gaps — need real Malay/Chinese translations + locale-JSON keys (I don't guess translations, and locale files are change-controlled).**
+**Smaller items — fixed in `8f186a7`:**
+- Deal-breaker flush now lives in the **parent** (`TalentOnboarding.handleContinue`), building a local `effectiveItems` array that includes any typed-but-unadded text and passing THAT to classification — so it can't be lost to a setState race.
+- Staff PIN **uniqueness** guard added (`employees.some(e => e.pin === form.pin)`) on top of the format check.
+- `AddHmDobModal` now autofocuses its first field and closes on **Escape** (listener cleaned up on unmount).
+
+### ⛔ Still genuinely need you
+
+**i18n gaps — need real Malay/Chinese translations + locale-JSON keys (I don't machine-guess user-facing localized copy, and locale files are change-controlled).**
 - **MED** `Kiosk.tsx` — customer-facing kiosk is wired with `useTranslation` but core order-flow strings are hardcoded English → shows English for ms/zh users.
 - **MED** `Referrals.tsx` — most user-facing strings bypass `t()`.
-- **MED** points-spend confirm dialogs (`useHmDashboardData.tsx` + `useTalentDashboardData.tsx`) call `t()` with keys absent from every locale, so a passed English default renders for **all** languages ("Confirm", "Redeem points?").
+- **MED** points-spend confirm dialogs (`useHmDashboardData.tsx` + `useTalentDashboardData.tsx`) call `t()` with keys absent from every locale, so a passed English default renders for **all** languages ("Confirm", "Redeem points?"). Fix = add the keys with real ms/zh translations.
 
-**C. Smaller items deferred**
-- `DealBreakersStep.tsx` — a typed-but-unadded deal-breaker is dropped on Continue. My same-component flush was reverted: `addItem()` schedules a parent `setState` that the immediately-following `onContinue()` closure doesn't see. Correct fix must live in the parent (`TalentOnboarding`), flushing before classification.
-- `InterviewFeedback.tsx:151` — the stated points rate ("+1 point · 5 points = 1 free extra match") looks wrong, but I couldn't verify the true `+N`/redemption cost in code — **confirm the real rate** before correcting the copy.
-- `Staff.tsx` — PIN **format** is now validated, but **uniqueness** isn't; two identical PINs make `employeeByPin().maybeSingle()` throw and break clock-in for that PIN. Needs a DB uniqueness check.
-- `AddHmDobModal.tsx` — hand-rolled modal has no focus management / keyboard trap (a11y).
+**One correctness check needing your knowledge:**
+- `InterviewFeedback.tsx:151` — the stated points rate ("+1 point · 5 points = 1 free extra match") looks wrong, but I couldn't find the true `+N`/redemption cost in code — **tell me the real rate** and I'll correct the copy.
 
 ---
-*Generated by an autonomous bug-hunt loop (find → adversarial verify → gated fix → live deploy). Money-logic requiring a business decision (timezone), translations, and parent-level state coordination deliberately left for human review.*
+*Generated by an autonomous bug-hunt loop (find → adversarial verify → gated fix → live deploy). What's left needs human-authored translations or a product fact I can't read from code.*

@@ -21,6 +21,9 @@ import {
   type ExtractionMessage,
   type ExtractedProfile,
 } from '../_shared/talent-extraction.ts'
+import { createLogger } from '../_shared/logger.ts'
+
+const log = createLogger('retry-stuck-extractions')
 
 const STUCK_AGE_MINUTES = 10
 const MAX_ATTEMPTS = 3
@@ -53,9 +56,12 @@ serve(async (req) => {
   if (claimErr) return respond({ error: `Claim failed: ${claimErr.message}` }, 500)
 
   const rows = stuck ?? []
-  if (rows.length === 0) return respond({ processed: 0, message: 'No stuck rows' })
+  if (rows.length === 0) {
+    await heartbeat(db)
+    return respond({ processed: 0, message: 'No stuck rows' })
+  }
 
-  console.log(`[retry-stuck-extractions] picked up ${rows.length} stuck rows`)
+  log.info(`[retry-stuck-extractions] picked up ${rows.length} stuck rows`)
 
   let succeeded = 0, failed = 0
   for (const row of rows as { id: string; extraction_attempts: number; interview_answers: { transcript?: ExtractionMessage[] } | null }[]) {
@@ -89,7 +95,7 @@ serve(async (req) => {
         extraction_error: null,
         is_open_to_offers: true,
       }).eq('id', row.id)
-      console.log(`[retry-stuck-extractions] talent=${row.id} attempt=${attempt} ok`)
+      log.info(`[retry-stuck-extractions] talent=${row.id} attempt=${attempt} ok`)
       // Re-queue the most-recent active roles instead of a SERIAL inline fan-out
       // of matchForRole (the old loop ran up to 50 heavy scoring passes off-queue
       // per completed talent — a Performance N+1 on the nano instance). The
@@ -97,12 +103,12 @@ serve(async (req) => {
       // bounded concurrency, calling the SAME matchForRole — so the same roles
       // still get rematched and refresh_limit_per_role is still enforced.
       await enqueueActiveRolesForRematch(row.id).catch((err) => {
-        console.warn(`[retry-stuck-extractions] rematch enqueue error: ${err}`)
+        log.warn(`[retry-stuck-extractions] rematch enqueue error: ${err}`)
       })
       succeeded++
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      console.error(`[retry-stuck-extractions] talent=${row.id} attempt=${attempt} FAILED: ${msg}`)
+      log.error(`[retry-stuck-extractions] talent=${row.id} attempt=${attempt} FAILED: ${msg}`)
       await db.from('talents').update({
         extraction_status: attempt >= MAX_ATTEMPTS ? 'failed' : 'pending',
         extraction_error: msg.slice(0, 1000),
@@ -111,8 +117,19 @@ serve(async (req) => {
     }
   }
 
+  await heartbeat(db)
   return respond({ processed: rows.length, succeeded, failed })
 })
+
+// Best-effort cron heartbeat; never let it break the job.
+async function heartbeat(db: ReturnType<typeof adminClient>): Promise<void> {
+  try {
+    await db.from('cron_heartbeat').upsert(
+      { job_name: 'retry-stuck-extractions', last_run_at: new Date().toISOString() },
+      { onConflict: 'job_name' },
+    )
+  } catch { /* non-fatal */ }
+}
 
 async function enqueueActiveRolesForRematch(talentId: string): Promise<void> {
   const db = adminClient()
@@ -129,7 +146,7 @@ async function enqueueActiveRolesForRematch(talentId: string): Promise<void> {
     .order('updated_at', { ascending: false, nullsFirst: false })
     .limit(50)
   if (error) {
-    console.warn(`[retry-stuck-extractions] rematch fetch failed: ${error.message}`)
+    log.warn(`[retry-stuck-extractions] rematch fetch failed: ${error.message}`)
     return
   }
   const roleIds = (roles ?? []).map((r) => (r as { id: string }).id)
@@ -140,10 +157,10 @@ async function enqueueActiveRolesForRematch(talentId: string): Promise<void> {
     p_priority: 5,
   })
   if (enqErr) {
-    console.warn(`[retry-stuck-extractions] enqueue_roles_for_rematch failed: ${enqErr.message}`)
+    log.warn(`[retry-stuck-extractions] enqueue_roles_for_rematch failed: ${enqErr.message}`)
     return
   }
-  console.log(`[retry-stuck-extractions] rematch enqueued talent=${talentId} roles=${roleIds.length} newly_queued=${typeof enqueued === 'number' ? enqueued : '?'}`)
+  log.info(`[retry-stuck-extractions] rematch enqueued talent=${talentId} roles=${roleIds.length} newly_queued=${typeof enqueued === 'number' ? enqueued : '?'}`)
 }
 
 function buildTalentPatch(extracted: ExtractedProfile): Record<string, unknown> {

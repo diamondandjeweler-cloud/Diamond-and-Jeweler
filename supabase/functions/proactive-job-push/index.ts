@@ -134,6 +134,14 @@ serve(async (req) => {
     }
   })
 
+  // Best-effort cron heartbeat; never let it break the job.
+  try {
+    await db.from('cron_heartbeat').upsert(
+      { job_name: 'proactive-job-push', last_run_at: new Date().toISOString() },
+      { onConflict: 'job_name' },
+    )
+  } catch { /* non-fatal */ }
+
   return new Response(JSON.stringify({
     ok: true,
     scanned,

@@ -8,6 +8,7 @@ import type { Database } from '../../types/db.generated'
 import { hmIdByProfileId } from '../../data/repositories/hiringManagers'
 import { getMarketRate } from '../../data/repositories/marketRates'
 import { callFunction } from '../../lib/functions'
+import { useDraftForm } from '../../lib/useDraftForm'
 import { FormSkeleton } from '../../components/ListSkeleton'
 import { Card, Alert, Select, PageHeader } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
@@ -110,7 +111,6 @@ export default function PostRole() {
   const [dbDraftSaving, setDbDraftSaving] = useState(false)
   const [cloudSaved, setCloudSaved] = useState(false)
   const [dbDraftOffer, setDbDraftOffer] = useState<{ data: Record<string, unknown>; updatedAt: string } | null>(null)
-  const didMount = useRef(false)
   const submittingRef = useRef(false)
 
   function collectDraft() {
@@ -298,46 +298,33 @@ export default function PostRole() {
     return () => { cancelled = true }
   }, [title, location, experience, salaryMin, salaryMax])
 
-  // Draft restore — run once on mount. Skipped in edit mode (role is the source).
-  useEffect(() => {
-    if (isEdit) return
-    try {
-      const raw = localStorage.getItem(DRAFT_KEY)
-      if (!raw) return
-      const d = JSON.parse(raw) as Record<string, unknown>
-      applyDraftData(d)
-      setHasDraft(true)
-    } catch {
-      localStorage.removeItem(DRAFT_KEY)
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Draft autosave — debounced 600 ms, skips first mount. Disabled in edit mode.
-  useEffect(() => {
-    if (isEdit) return
-    if (!didMount.current) { didMount.current = true; return }
-    const timer = setTimeout(() => {
-      // Serialize inside the debounced callback so the full-draft stringify only
-      // runs after typing settles (not on every keystroke). The surviving effect
-      // run holds the latest state in its closure, so this produces the same
-      // payload the pre-debounce stringify would have.
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(collectDraft()))
-      setDraftSaved(true)
-      setTimeout(() => setDraftSaved(false), 2000)
-    }, 600)
-    return () => clearTimeout(timer)
-  }, [ // eslint-disable-line react-hooks/exhaustive-deps
-    title, description, department, location, locationPostcode, industry,
-    acceptNoExperience, workArr, experience, salaryMin, salaryMax,
-    requiredTraits, employmentType, hourlyRate, durationDays, startDate,
-    requiresWeekend, requiresDrivingLicense, requiresTravel, hasNightShifts,
-    requiresOwnCar, requiresRelocation, requiresOvertime, isCommissionBased,
-    weightPreset, schedule, minEducationLevel, minEducationClass,
-    requiredSkills, preferredSkills, languagesRequired, environmentFlags,
-    openTo, headcount, reportsToTitle, directTeamSize, probationMonths,
-    interviewProcess, startUrgency, eligibilityWorkAuth, nnText, nnAtoms,
-    teamSize, teamMembers,
-  ])
+  // Draft restore-on-mount + debounced 600 ms autosave (skips first mount).
+  // Both are disabled in edit mode (the role row is the source of truth).
+  // Behaviour matches the prior inline effects exactly — see useDraftForm.
+  // (The stringify still runs inside the debounced write, so the full-draft
+  // serialization only happens after typing settles, not on every keystroke.)
+  useDraftForm({
+    key: DRAFT_KEY,
+    enabled: !isEdit,
+    collect: collectDraft,
+    debounceMs: 600,
+    skipFirstMount: true,
+    onSaved: () => { setDraftSaved(true); setTimeout(() => setDraftSaved(false), 2000) },
+    restore: (d) => { applyDraftData(d); setHasDraft(true) },
+    onRestoreError: () => localStorage.removeItem(DRAFT_KEY),
+    deps: [
+      title, description, department, location, locationPostcode, industry,
+      acceptNoExperience, workArr, experience, salaryMin, salaryMax,
+      requiredTraits, employmentType, hourlyRate, durationDays, startDate,
+      requiresWeekend, requiresDrivingLicense, requiresTravel, hasNightShifts,
+      requiresOwnCar, requiresRelocation, requiresOvertime, isCommissionBased,
+      weightPreset, schedule, minEducationLevel, minEducationClass,
+      requiredSkills, preferredSkills, languagesRequired, environmentFlags,
+      openTo, headcount, reportsToTitle, directTeamSize, probationMonths,
+      interviewProcess, startUrgency, eligibilityWorkAuth, nnText, nnAtoms,
+      teamSize, teamMembers,
+    ],
+  })
 
   // DB draft check — only when no localStorage draft was found after hmId loads
   useEffect(() => {

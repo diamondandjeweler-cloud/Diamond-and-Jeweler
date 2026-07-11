@@ -13,6 +13,9 @@ import { corsHeaders, handleOptions } from '../_shared/cors.ts'
 import { authenticate } from '../_shared/auth.ts'
 import { adminClient } from '../_shared/supabase.ts'
 import { enforceRateLimit, RateLimitError } from '../_shared/ratelimit.ts'
+import { createLogger } from '../_shared/logger.ts'
+
+const log = createLogger('extract-hm-profile')
 
 interface Message { role: 'user' | 'assistant'; content: string }
 interface Body { messages?: Message[] }
@@ -185,7 +188,7 @@ function parseJSON(raw: string): Record<string, unknown> | Response {
   try {
     return JSON.parse(cleaned)
   } catch {
-    console.error('JSON parse failed:', cleaned)
+    log.error('JSON parse failed:', cleaned)
     return new Response(JSON.stringify({ error: 'Extraction returned invalid JSON', raw: cleaned }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

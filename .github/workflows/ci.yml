@@ -196,25 +196,20 @@ jobs:
         run: |
           DB_URL=$(supabase status -o env | grep '^DB_URL=' | cut -d= -f2- | tr -d '"')
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/column_isolation.sql
-      - name: RLS deny/allow invariant suite
+      - name: RLS deny/allow invariant suite (BLOCKING)
         # Pins the highest-value authz invariants (a user cannot read another's
         # ic_path / talents / consults; decrypt_dob is not executable by the
         # authenticated role; no RLS recursion). Self-contained + ROLLBACKs, so it
         # leaves the reset DB untouched. ON_ERROR_STOP makes a failing assertion
         # exit non-zero. See supabase/tests/rls_deny.sql (AUDIT D5).
         #
-        # ADVISORY (continue-on-error) for now: this suite had never executed in
-        # CI before being wired here, so its first runs surface failures without
-        # blocking merges.
-        #
-        # OWNER ACTION (road95, task#2-b3): left ADVISORY deliberately. The file
-        # header documents it as self-contained + re-runnable, but column_isolation
-        # .sql's header and this comment both state it "stays advisory until a green
-        # reset run is observed" — that green fresh-reset run has NOT yet been
-        # confirmed, so we do NOT flip it to blocking in this change. Once one CI
-        # run shows this step green against the reset DB, change the line below to
-        # `continue-on-error: false` to make it a hard gate.
-        continue-on-error: true
+        # NOW BLOCKING: this suite was wired ADVISORY (continue-on-error) on the
+        # premise it had never executed against the reset DB. It has since stayed
+        # green for 20+ commits, confirming the green fresh-reset run the header
+        # waited on. It is self-contained + re-runnable (ROLLBACKs), so promoting
+        # it to a hard gate is safe — a failed authz invariant now turns CI RED
+        # instead of merging silently (road95, task#2-b3).
+        continue-on-error: false
         run: |
           DB_URL=$(supabase status -o env | grep '^DB_URL=' | cut -d= -f2- | tr -d '"')
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/rls_deny.sql
@@ -228,12 +223,23 @@ jobs:
         # defers to a harness (see its header) — the Deno suite only covers the
         # signature algorithm. Self-contained (seeds its own fixtures) + ROLLBACKs,
         # and asserts pure exactly-once LOGIC against the freshly-reset DB, so it is
-        # safe to BLOCK on (unlike the fixtured rls_deny.sql suite, which stays
-        # advisory until a green reset run is observed). See
-        # supabase/tests/payment_idempotency.sql.
+        # safe to BLOCK on. See supabase/tests/payment_idempotency.sql.
         run: |
           DB_URL=$(supabase status -o env | grep '^DB_URL=' | cut -d= -f2- | tr -d '"')
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/payment_idempotency.sql
+      - name: Post-deploy index existence gate (BLOCKING)
+        # Proves the talent pre-filter indexes (idx_talents_open /
+        # idx_talents_salary_min / idx_talents_emp_type) from
+        # supabase/post_deploy/0001_concurrently_indexes.sql still compile against
+        # the migrated schema and are present + VALID. Those indexes were authored
+        # as CREATE INDEX CONCURRENTLY inside migration 0074, so `db reset` never
+        # creates them (CONCURRENTLY errors inside the per-migration transaction);
+        # the test re-creates them plain (empty CI table → instant) and asserts
+        # the catalog state. Catches a column rename/drop breaking the post-deploy
+        # script BEFORE it fails a prod deploy. See supabase/tests/postdeploy_indexes.sql.
+        run: |
+          DB_URL=$(supabase status -o env | grep '^DB_URL=' | cut -d= -f2- | tr -d '"')
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/postdeploy_indexes.sql
       - name: Lint migrated schema
         run: supabase db lint --level warning
       - name: Stop local stack

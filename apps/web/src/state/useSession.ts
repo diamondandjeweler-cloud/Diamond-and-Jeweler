@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { fetchProfile } from '../lib/api'
 import { clearAdminVerified } from '../lib/adminReauth'
 import { clearAllDashCaches } from '../lib/dashboardCache'
+import { createLogger } from '../lib/logger'
 import type { Profile } from '../types/db'
 
 // ===========================================================================
@@ -25,6 +26,8 @@ import type { Profile } from '../types/db'
 // imports the bootstrap module except for the leaf-safe `bootstrapSession`
 // re-export at the bottom.
 // ===========================================================================
+
+const log = createLogger('session')
 
 interface SessionState {
   session: Session | null
@@ -106,13 +109,13 @@ export async function fetchIsHM(userId: string): Promise<boolean> {
     const url = `${base}/rest/v1/hiring_managers?select=id&profile_id=eq.${encodeURIComponent(userId)}&limit=1`
     const r = await fetch(url, { headers: { apikey, Authorization: `Bearer ${token}` } })
     if (!r.ok) {
-      console.error('[session] fetchIsHM failed', r.status)
+      log.error('[session] fetchIsHM failed', r.status)
       return false
     }
     const rows = (await r.json()) as unknown[]
     return Array.isArray(rows) && rows.length > 0
   } catch (e) {
-    console.error('[session] fetchIsHM threw', e)
+    log.error('[session] fetchIsHM threw', e)
     return false
   }
 }
@@ -145,7 +148,7 @@ export const useSession = create<SessionState>((set) => ({
       const validCache = cached && cached.id === data.session.user.id
       const [profile, isHM] = await Promise.all([
         fetchProfile(data.session.user.id).catch((e) => {
-          console.error('[session] fetchProfile failed', e)
+          log.error('[session] fetchProfile failed', e)
           // Same cache-preservation guard as the bootstrap path — never let a
           // transient fetch error overwrite a valid cached profile with null.
           return validCache ? cached : null
@@ -160,7 +163,7 @@ export const useSession = create<SessionState>((set) => ({
       // F-cache regression — don't blow away the session/profile on a
       // network-level failure of getSession(). The user might still have
       // a valid local session that just couldn't be re-verified this round.
-      console.error('[session] refresh failed', e)
+      log.error('[session] refresh failed', e)
       set({ loading: false })
     }
   },
@@ -176,7 +179,7 @@ export const useSession = create<SessionState>((set) => ({
         ),
       ])
     } catch (e) {
-      console.error('[session] signOut failed or timed out', e)
+      log.error('[session] signOut failed or timed out', e)
     }
     clearProfileRetries()
     clearAdminVerified()

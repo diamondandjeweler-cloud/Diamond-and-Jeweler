@@ -23,6 +23,9 @@ import {
   computeLanguageMatch,
   computeCultureFit,
 } from './match-scoring.ts'
+import { createLogger } from './logger.ts'
+
+const log = createLogger('match-core')
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -438,7 +441,7 @@ export async function matchForRole(params: MatchParams): Promise<MatchResult> {
   if (candidateErr) throw new MatchError(`Candidate filter failed: ${candidateErr.message}`, 500)
 
   const candidateIds = ((candidateRows ?? []) as { talent_id: string }[]).map((r) => r.talent_id)
-  console.log(`[match] role=${roleId} candidates after all SQL filters: ${candidateIds.length}`)
+  log.info(`[match] role=${roleId} candidates after all SQL filters: ${candidateIds.length}`)
 
   if (candidateIds.length === 0) {
     const { data: talentCount } = await db.rpc('active_talent_count')

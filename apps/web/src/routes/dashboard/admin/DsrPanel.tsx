@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
 import { adminDataRequestsBase, updateDataRequest } from '../../../data/repositories/dataRequests'
 import type { Database } from '../../../types/db.generated'
-
-type DataRequestUpdate = Database['public']['Tables']['data_requests']['Update']
 import { callFunction } from '../../../lib/functions'
 import ListSkeleton from '../../../components/ListSkeleton'
+import { createLogger } from '../../../lib/logger'
+
+type DataRequestUpdate = Database['public']['Tables']['data_requests']['Update']
+
+const log = createLogger('DsrPanel')
 
 interface CorrectionItem { field: string; new_value: unknown }
 
@@ -33,7 +36,7 @@ export default function DsrPanel() {
     if (filter === 'pending') q = q.in('status', ['pending', 'in_review'])
     const { data, error } = await q.limit(100)
     if (error) {
-      console.error('[DsrPanel] reload failed:', error)
+      log.error('[DsrPanel] reload failed:', error)
       setErr('Could not load data requests. Check the browser console for details.')
     } else {
       setRows((data ?? []) as unknown as DsrRow[])
@@ -53,7 +56,7 @@ export default function DsrPanel() {
     }
     const { error } = await updateDataRequest(r.id, patch)
     if (error) {
-      console.error('[DsrPanel] setStatus failed:', error)
+      log.error('[DsrPanel] setStatus failed:', error)
       setErr('Could not update this request. Check the browser console for details.')
       setWorking(null); return
     }

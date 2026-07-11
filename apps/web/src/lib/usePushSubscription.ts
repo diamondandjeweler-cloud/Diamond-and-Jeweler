@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import { useSession } from '../state/useSession'
 import { useShallow } from 'zustand/react/shallow'
 import { upsertPushSubscription, type PushSubscriptionJson } from '../data/repositories/pushSubscriptions'
+import { createLogger } from './logger'
+
+const log = createLogger('push')
 
 const SUBSCRIBED_KEY = 'dnj-push-subscribed'
 const ASK_DELAY_MS   = 60_000  // wait 60 s after login before nudging
@@ -60,7 +63,7 @@ export function usePushSubscription() {
       alreadyAsked.current = true
       setState('subscribed')
     } catch (err) {
-      console.warn('[push] subscribe failed', err)
+      log.warn('[push] subscribe failed', err)
     } finally {
       setSubscribing(false)
     }

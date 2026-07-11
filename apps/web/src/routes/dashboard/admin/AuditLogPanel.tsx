@@ -4,6 +4,9 @@ import ListSkeleton from '../../../components/ListSkeleton'
 import { formatError } from '../../../lib/errors'
 import { useQuery } from '../../../lib/useQuery'
 import { DataList, type DataListColumn } from '../../../ui'
+import { createLogger } from '../../../lib/logger'
+
+const log = createLogger('AuditLogPanel')
 
 // F14 — switched from a direct PostgREST select on `audit_log` to a
 // SECURITY DEFINER RPC `get_admin_audit_log`. The audit_log RLS policies
@@ -145,7 +148,7 @@ export default function AuditLogPanel() {
     ['admin-audit-log', actionFilter, committedSearch, page],
     () => fetchAuditLog(actionFilter, committedSearch, page),
   )
-  if (rawErr) console.error('[AuditLogPanel] reload failed:', rawErr)
+  if (rawErr) log.error('[AuditLogPanel] reload failed:', rawErr)
   const rows = data ?? []
   const err = rawErr ? formatError(rawErr) : null
   // Preserve the original UX exactly: the old reload() flipped `loading` true

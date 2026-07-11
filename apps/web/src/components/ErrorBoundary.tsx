@@ -1,6 +1,9 @@
 import { Component, type ReactNode } from 'react'
 import * as Sentry from '@sentry/react'
 import { Button } from './ui'
+import { createLogger } from '../lib/logger'
+
+const log = createLogger('error-boundary')
 
 interface Props { children: ReactNode }
 interface State { err: Error | null; reloading: boolean }
@@ -77,7 +80,7 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(err: Error, info: unknown) {
-    console.error('ErrorBoundary caught:', err, info)
+    log.error('ErrorBoundary caught:', err, info)
     Sentry.captureException(err, { extra: { componentStack: info } })
     // If the page is in a sandboxed iframe or navigation is blocked,
     // window.location.reload() is silently swallowed and the blank screen persists.

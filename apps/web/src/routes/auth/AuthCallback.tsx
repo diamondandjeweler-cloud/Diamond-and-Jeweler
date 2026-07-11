@@ -6,6 +6,9 @@ import { useSession } from '../../state/useSession'
 import { useShallow } from 'zustand/react/shallow'
 import { markAdminVerified } from '../../lib/adminReauth'
 import { callFunction } from '../../lib/functions'
+import { createLogger } from '../../lib/logger'
+
+const log = createLogger('auth')
 
 /**
  * Handles three scenarios:
@@ -108,7 +111,7 @@ export default function AuthCallback() {
           return
         }
       } catch { /* fall through to error */ }
-      console.error('[auth] PKCE exchange did not produce a session within 10s — likely stale code_verifier or expired code')
+      log.error('[auth] PKCE exchange did not produce a session within 10s — likely stale code_verifier or expired code')
       // Clear stale PKCE state so the next attempt starts clean.
       try {
         Object.keys(localStorage).forEach((k) => {
@@ -346,7 +349,7 @@ async function applyStoredRole(userId: string) {
       return
     }
     // Leave the flag in place so the next login retries; never strand the user.
-    console.error('[auth] applyStoredRole failed', e)
+    log.error('[auth] applyStoredRole failed', e)
   }
 }
 

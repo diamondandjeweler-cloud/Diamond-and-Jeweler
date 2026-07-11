@@ -25,3 +25,11 @@ export function generateReferralCode() {
 export function createReferral(row: { referrer_id: string; referred_email: string; code: string }) {
   return supabase.from('referrals').insert(row).select().single()
 }
+
+/**
+ * Create a referral invite (bare builder variant — caller adds .select().single()
+ * to read back the inserted row).
+ */
+export function insertReferral(row: { referrer_id: string; referred_email: string; code: string }) {
+  return supabase.from('referrals').insert(row)
+}

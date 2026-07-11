@@ -15,6 +15,9 @@ import { adminClient } from '../_shared/supabase.ts'
 import { timingSafeEqual } from '../_shared/auth.ts'
 
 import { webhookCorsHeaders as corsHeaders } from '../_shared/cors.ts'
+import { createLogger } from '../_shared/logger.ts'
+
+const log = createLogger('resend-webhook')
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -23,7 +26,7 @@ serve(async (req) => {
   // Verify Svix signature — fail closed if secret is not configured.
   const webhookSecret = Deno.env.get('RESEND_WEBHOOK_SECRET')
   if (!webhookSecret) {
-    console.error('RESEND_WEBHOOK_SECRET is not set — rejecting webhook to prevent fake bounce attacks')
+    log.error('RESEND_WEBHOOK_SECRET is not set — rejecting webhook to prevent fake bounce attacks')
     return new Response('Service misconfigured', { status: 500 })
   }
 
@@ -56,7 +59,7 @@ serve(async (req) => {
   try {
     event = JSON.parse(rawBody) as ResendEvent
   } catch {
-    console.error('resend-webhook: invalid JSON body — rejecting with 400 to stop Resend retries')
+    log.error('resend-webhook: invalid JSON body — rejecting with 400 to stop Resend retries')
     return new Response('Invalid JSON', { status: 400 })
   }
   return await handleEvent(event)
@@ -87,8 +90,8 @@ async function handleEvent(event: ResendEvent): Promise<Response> {
     const { error } = await db.from('profiles')
       .update({ email_bounced: true })
       .eq('email', email)
-    if (error) console.error(`bounce mark failed for ${email}:`, error.message)
-    else console.log(`Marked email_bounced=true for ${email} (event: ${event.type})`)
+    if (error) log.error(`bounce mark failed for ${email}:`, error.message)
+    else log.info(`Marked email_bounced=true for ${email} (event: ${event.type})`)
   }
 
   return new Response('ok', { status: 200 })

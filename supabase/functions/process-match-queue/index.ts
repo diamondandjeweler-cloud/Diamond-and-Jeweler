@@ -15,6 +15,9 @@ import { adminClient } from '../_shared/supabase.ts'
 import { matchForRole, MatchError } from '../_shared/match-core.ts'
 import { requireServiceRole } from '../_shared/auth.ts'
 import { reportError } from '../_shared/observe.ts'
+import { createLogger } from '../_shared/logger.ts'
+
+const log = createLogger('process-match-queue')
 
 const BATCH_SIZE  = 20  // items claimed per invocation
 const CONCURRENCY = 5   // max parallel matchForRole calls
@@ -47,7 +50,7 @@ serve(async (req) => {
     return respond({ processed: 0, succeeded: 0, failed: 0, message: 'Queue empty' })
   }
 
-  console.log(`[process-match-queue] claimed ${items.length} items`)
+  log.info(`[process-match-queue] claimed ${items.length} items`)
 
   // Process in parallel chunks of CONCURRENCY
   let succeeded = 0, failed = 0
@@ -59,13 +62,13 @@ serve(async (req) => {
       try {
         const result = await matchForRole({ roleId: item.role_id, isServiceRole: true })
         const elapsed = Date.now() - t0
-        console.log(`[process-match-queue] role=${item.role_id} ok added=${result.matches_added} ${elapsed}ms`)
+        log.info(`[process-match-queue] role=${item.role_id} ok added=${result.matches_added} ${elapsed}ms`)
         await db.rpc('complete_match_queue_item', { p_id: item.id })
         succeeded++
       } catch (err) {
         const msg = err instanceof MatchError ? err.message
           : err instanceof Error ? err.message : String(err)
-        console.error(`[process-match-queue] role=${item.role_id} FAILED: ${msg}`)
+        log.error(`[process-match-queue] role=${item.role_id} FAILED: ${msg}`)
         await reportError(err, { fn: 'process-match-queue', role_id: item.role_id, retry_count: item.retry_count })
         await db.rpc('fail_match_queue_item', {
           p_id: item.id, p_error: msg.slice(0, 1000), p_retry_count: item.retry_count,
@@ -75,7 +78,7 @@ serve(async (req) => {
     }))
   }
 
-  console.log(`[process-match-queue] done succeeded=${succeeded} failed=${failed}`)
+  log.info(`[process-match-queue] done succeeded=${succeeded} failed=${failed}`)
   await heartbeat(db)
   return respond({ processed: items.length, succeeded, failed })
 })

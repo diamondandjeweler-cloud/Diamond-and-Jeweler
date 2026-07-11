@@ -8,6 +8,12 @@ export type CompanyUpdate = Database['public']['Tables']['companies']['Update']
 // tables. Mirrors systemConfig.ts / points.ts — every function returns the
 // query BUILDER, so callers keep their own terminal operator (.then / await)
 // and each .select projection is passed through verbatim from the call site.
+//
+// Note: some functions bake in their terminal operator (.maybeSingle /
+// .select('id').single()) because their call sites await them directly; the
+// bare-builder variants (companyIdByPrimaryHrEmail, companyIdByCreatedBy,
+// companyVerifyRowById, unverifiedCompanies) leave the terminal operator to
+// the caller.
 
 /** Company row shape accepted by insertCompany (CompanyRegister). */
 export interface NewCompany {
@@ -26,6 +32,13 @@ export function companyIdByHrEmail(email: string) {
   return supabase.from('companies').select('id').eq('primary_hr_email', email).maybeSingle()
 }
 
+/**
+ * Company id by primary HR email (bare builder variant — caller adds .maybeSingle()).
+ */
+export function companyIdByPrimaryHrEmail(email: string) {
+  return supabase.from('companies').select('id').eq('primary_hr_email', email)
+}
+
 /** Company existence check by id → { data: { id } | null } (HR dashboard add-me refresh). */
 export function companyIdById(id: string) {
   return supabase.from('companies').select('id').eq('id', id).maybeSingle()
@@ -34,6 +47,11 @@ export function companyIdById(id: string) {
 /** Company id by creator profile id → { data: { id } | null } (HMOnboarding self-heal). */
 export function companyIdByCreator(userId: string) {
   return supabase.from('companies').select('id').eq('created_by', userId).maybeSingle()
+}
+
+/** Company id by creator profile (bare builder variant — caller adds .maybeSingle()). */
+export function companyIdByCreatedBy(profileId: string) {
+  return supabase.from('companies').select('id').eq('created_by', profileId)
 }
 
 /** Company verified flag by id → { data: { verified } | null } (HM dashboard company-context branch). */
@@ -50,6 +68,14 @@ export function companyForVerifyById(id: string) {
     .maybeSingle()
 }
 
+/** Company verification fields by id (bare builder variant — caller adds .maybeSingle().then()). */
+export function companyVerifyRowById(companyId: string) {
+  return supabase
+    .from('companies')
+    .select('id, name, registration_number, verified')
+    .eq('id', companyId)
+}
+
 /** Unverified companies, oldest first, capped at 100 (admin VerificationQueue). Caller keeps its .then tail. */
 export function listUnverifiedCompanies() {
   return supabase
@@ -58,6 +84,11 @@ export function listUnverifiedCompanies() {
     .eq('verified', false)
     .order('created_at', { ascending: true })
     .limit(100)
+}
+
+/** Unverified companies awaiting admin review (alias of listUnverifiedCompanies — caller adds .then()). */
+export function unverifiedCompanies() {
+  return listUnverifiedCompanies()
 }
 
 /** Mark a company verified now → { error } (admin VerificationQueue). */

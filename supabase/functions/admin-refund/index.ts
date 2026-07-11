@@ -19,6 +19,9 @@ import { authenticate, json } from '../_shared/auth.ts'
 import { adminClient } from '../_shared/supabase.ts'
 import { logAudit, extractIp } from '../_shared/audit.ts'
 import { reportError } from '../_shared/observe.ts'
+import { createLogger } from '../_shared/logger.ts'
+
+const log = createLogger('admin-refund')
 
 interface Body {
   purchase_type: 'extra_match' | 'points'
@@ -174,7 +177,10 @@ serve(async (req) => {
       // SECOND money refund). Instead surface a hard warning so finance reverses
       // the points manually: the `refund:{id}` idempotency key + the
       // already-refunded short-circuit block any automatic retry of the clawback.
-      console.error('points_refund: award_points clawback failed', purchase.id, clawErr)
+      // Also ship telemetry to on-call so the ledger drift is observed, not just
+      // returned in the response.
+      log.error('points_refund: award_points clawback failed', purchase.id, clawErr)
+      await reportError(clawErr, { fn: 'admin-refund', stage: 'points-clawback', purchase_id: body.purchase_id })
       pointsWarning = `CLAWBACK FAILED: money refunded but the ${creditedPoints} credited points were NOT revoked (${clawErr.message}). Reverse them manually — automatic retry is blocked by the refund idempotency key.`
     }
   }

@@ -7,6 +7,9 @@ import { activeConsentVersions, recordConsent } from '../../data/repositories/co
 import { Alert, Button, Card, CardBody, Spinner } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
 import { clearLegalVersionCache, consentSatisfiesVersion, getCurrentLegalVersion, normaliseLegalVersion } from '../../lib/legalVersion'
+import { createLogger } from '../../lib/logger'
+
+const log = createLogger('Consent')
 
 interface ConsentVersion {
   id: string
@@ -122,7 +125,7 @@ export default function Consent() {
         lastErr = e
       }
     }
-    console.error('[Consent] save failed after retries:', lastErr)
+    log.error('[Consent] save failed after retries:', lastErr)
     setError((lastErr as Error)?.message ?? t('consent.networkTimeout'))
     setBusy(false)
   }

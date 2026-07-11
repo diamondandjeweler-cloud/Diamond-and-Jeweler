@@ -28,6 +28,9 @@ import {
   type ExtractedProfile,
 } from '../_shared/talent-extraction.ts'
 import { enforceRateLimit, RateLimitError } from '../_shared/ratelimit.ts'
+import { createLogger } from '../_shared/logger.ts'
+
+const log = createLogger('enqueue-talent-extraction')
 
 interface Body {
   talent_id?: string
@@ -107,7 +110,7 @@ serve(async (req) => {
     EdgeRuntime.waitUntil(work)
   } else {
     // Local dev fallback: just don't await it. Errors are still logged inside.
-    work.catch((err) => console.error('[enqueue-talent-extraction] background error:', err))
+    work.catch((err) => log.error('[enqueue-talent-extraction] background error:', err))
   }
 
   return json({ status: 'accepted', talent_id: talentId }, 202)
@@ -133,7 +136,7 @@ async function processExtraction(
       })
       .eq('id', talentId)
     if (error) throw error
-    console.log(`[enqueue-talent-extraction] talent=${talentId} complete`)
+    log.info(`[enqueue-talent-extraction] talent=${talentId} complete`)
 
     // Now that the talent is matchable, enqueue active roles for rematch.
     // process-match-queue (pg_cron every 1m) drains the queue, so the new
@@ -141,7 +144,7 @@ async function processExtraction(
     await triggerRematch(talentId)
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    console.error(`[enqueue-talent-extraction] talent=${talentId} FAILED: ${msg}`)
+    log.error(`[enqueue-talent-extraction] talent=${talentId} FAILED: ${msg}`)
     await db
       .from('talents')
       .update({
@@ -150,7 +153,7 @@ async function processExtraction(
       })
       .eq('id', talentId)
       .then(({ error }) => {
-        if (error) console.error('[enqueue-talent-extraction] failed-mark error:', error)
+        if (error) log.error('[enqueue-talent-extraction] failed-mark error:', error)
       })
   }
 }
@@ -168,11 +171,11 @@ async function triggerRematch(talentId: string): Promise<void> {
       .order('updated_at', { ascending: false, nullsFirst: false })
       .limit(50)
     if (error) {
-      console.warn(`[enqueue-talent-extraction] rematch fetch failed: ${error.message}`)
+      log.warn(`[enqueue-talent-extraction] rematch fetch failed: ${error.message}`)
       return
     }
     const ids = (roles ?? []).map((r) => (r as { id: string }).id)
-    console.log(`[enqueue-talent-extraction] talent=${talentId} enqueueing ${ids.length} active roles for rematch`)
+    log.info(`[enqueue-talent-extraction] talent=${talentId} enqueueing ${ids.length} active roles for rematch`)
     if (ids.length === 0) return
 
     // Enqueue into match_queue instead of a SERIAL fan-out of synchronous
@@ -187,13 +190,13 @@ async function triggerRematch(talentId: string): Promise<void> {
       p_priority: 5,
     })
     if (enqErr) {
-      console.warn(`[enqueue-talent-extraction] enqueue_roles_for_rematch failed: ${enqErr.message}`)
+      log.warn(`[enqueue-talent-extraction] enqueue_roles_for_rematch failed: ${enqErr.message}`)
       return
     }
     const enqueued = typeof n === 'number' ? n : 0
-    console.log(`[enqueue-talent-extraction] rematch done talent=${talentId} enqueued=${enqueued}`)
+    log.info(`[enqueue-talent-extraction] rematch done talent=${talentId} enqueued=${enqueued}`)
   } catch (err) {
-    console.warn(`[enqueue-talent-extraction] rematch trigger error: ${err}`)
+    log.warn(`[enqueue-talent-extraction] rematch trigger error: ${err}`)
   }
 }
 

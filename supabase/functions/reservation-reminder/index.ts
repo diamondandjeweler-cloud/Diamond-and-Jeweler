@@ -58,6 +58,14 @@ serve(async (req) => {
     await rest.from('reservation').update({ reminder_at: new Date().toISOString() }).eq('id', res.id)
   }
 
+  // Best-effort cron heartbeat; never let it break the job.
+  try {
+    await r.from('cron_heartbeat').upsert(
+      { job_name: 'reservation-reminder', last_run_at: new Date().toISOString() },
+      { onConflict: 'job_name' },
+    )
+  } catch { /* non-fatal */ }
+
   return new Response(JSON.stringify({ ok: true, due: (due ?? []).length, sent }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })

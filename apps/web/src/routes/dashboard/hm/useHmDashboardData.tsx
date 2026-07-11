@@ -29,6 +29,9 @@ import type {
   HMCacheSnapshot, CandidateRow, ProfilePreview, ContactInfo, WaitingInfo, RoleExtraInfo,
   HmReputation, FeedbackEntry,
 } from './types'
+import { createLogger } from '../../../lib/logger'
+
+const log = createLogger('hm-dashboard')
 
 /**
  * Owns the HM dashboard's data-loading + derived-state orchestration:
@@ -162,7 +165,7 @@ export function useHmDashboardData(userId: string | undefined) {
       loadingRef.current = true
       watchdog = setTimeout(() => {
         if (cancelled) return
-        console.error('[hm-dashboard] load watchdog tripped — a Supabase query stalled')
+        log.error('[hm-dashboard] load watchdog tripped — a Supabase query stalled')
         setErr(t('hmDash.loadingTimedOut'))
         // Settle the data slots so the skeleton doesn't shimmer forever; the
         // error banner above will tell the user what happened.
@@ -377,6 +380,10 @@ export function useHmDashboardData(userId: string | undefined) {
         .channel(`hm-matches-${userId ?? 'anon'}`)
         .on('postgres_changes', {
           event: '*', schema: 'public', table: 'matches',
+          // TODO(realtime-scope): switch to a single stable equality filter
+          // `hm_id=eq.<hmId>` once the denormalised column lands (migration
+          // 0172_matches_hm_id_for_realtime.sql). That removes the grow-with-roles
+          // comma-list and the unknown-role reload/resubscribe dance below.
           filter: `role_id=in.(${hmRoleIds.join(',')})`,
         }, handleMatchChange)
         .subscribe()
@@ -491,7 +498,7 @@ export function useHmDashboardData(userId: string | undefined) {
       if (res?.paymentUrl) window.location.href = res.paymentUrl
       else setUnlockMsg({ roleId, tone: 'red', text: t('hmDash.paymentNoUrl') })
     } catch (e) {
-      console.error('[unlock-extra-match] failed', e)
+      log.error('[unlock-extra-match] failed', e)
       setUnlockMsg({ roleId, tone: 'red', text: e instanceof Error ? e.message : t('hmDash.paymentStartFailed') })
     } finally { setUnlockingRoleId(null) }
   }
@@ -524,7 +531,7 @@ export function useHmDashboardData(userId: string | undefined) {
       // Refresh the dashboard so the new match appears once match-generate finishes.
       reloadTimerRef.current = setTimeout(() => { window.location.reload() }, 1500)
     } catch (e) {
-      console.error('[redeem-points] failed', e)
+      log.error('[redeem-points] failed', e)
       setUnlockMsg({ roleId, tone: 'red', text: e instanceof Error ? e.message : t('hmDash.redeemFailed') })
     } finally { setRedeemingRoleId(null) }
   }

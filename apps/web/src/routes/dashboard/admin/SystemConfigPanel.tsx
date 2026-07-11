@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import { listConfig, updateConfigValue } from '../../../data/repositories/systemConfig'
 import { FormSkeleton } from '../../../components/ListSkeleton'
 import { confirmDialog } from '../../../components/Modal'
+import { createLogger } from '../../../lib/logger'
+
+const log = createLogger('SystemConfigPanel')
 
 interface ConfigRow {
   key: string
@@ -179,7 +182,7 @@ export default function SystemConfigPanel() {
     const { error } = await updateConfigValue(key, parsed)
     setSavingKey(null)
     if (error) {
-      console.error('[SystemConfigPanel] save failed:', error)
+      log.error('[SystemConfigPanel] save failed:', error)
       setErrors((x) => ({ ...x, [key]: 'Save failed — check the browser console for details.' }))
       return
     }

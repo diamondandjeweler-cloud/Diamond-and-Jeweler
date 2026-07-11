@@ -12,6 +12,9 @@ import { handleOptions } from '../_shared/cors.ts'
 import { authenticate, json } from '../_shared/auth.ts'
 import { adminClient } from '../_shared/supabase.ts'
 import { reportError } from '../_shared/observe.ts'
+import { createLogger } from '../_shared/logger.ts'
+
+const log = createLogger('match-expire')
 
 const EXPIRABLE = [
   'generated','viewed','accepted_by_talent','invited_by_manager','hr_scheduling',
@@ -246,7 +249,7 @@ async function handler(req: Request): Promise<Response> {
       p_talent_ids: uniqueTalentIds,
       p_role_ids: uniqueRoleIds,
     })
-    if (ghostErr) console.error('bump_ghost_scores_for_expired failed', ghostErr.message)
+    if (ghostErr) log.error('bump_ghost_scores_for_expired failed', ghostErr.message)
   }
 
   // Re-queue the affected roles instead of a SERIAL fan-out of synchronous
@@ -264,7 +267,7 @@ async function handler(req: Request): Promise<Response> {
       p_role_ids: roleIds,
       p_priority: 5,
     })
-    if (enqErr) console.error('enqueue_roles_for_rematch failed', enqErr.message)
+    if (enqErr) log.error('enqueue_roles_for_rematch failed', enqErr.message)
     else if (typeof n === 'number') enqueued = n
   }
 

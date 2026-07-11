@@ -23,6 +23,9 @@ import {
   type TalentFeedbackEntry,
 } from './types'
 import { isTalentOpen, isInterviewStage } from '../../../shared/domain/match/lifecycle'
+import { createLogger } from '../../../lib/logger'
+
+const log = createLogger('talent-dashboard')
 
 /**
  * Data-loading + derived-state orchestration for TalentDashboard.
@@ -369,7 +372,7 @@ export function useTalentDashboardData() {
       if (res?.paymentUrl) window.location.href = res.paymentUrl
       else setUnlockMsg({ tone: 'red', text: t('talentDash.errPaymentNoUrl') })
     } catch (e) {
-      console.error('[unlock-extra-match] failed', e)
+      log.error('[unlock-extra-match] failed', e)
       setUnlockMsg({ tone: 'red', text: e instanceof Error ? e.message : t('talentDash.errPaymentStart') })
     } finally { setUnlocking(false) }
   }
@@ -397,7 +400,7 @@ export function useTalentDashboardData() {
       setExtraUsed((u) => u + 1)
       reloadTimerRef.current = setTimeout(() => { window.location.reload() }, 1500)
     } catch (e) {
-      console.error('[redeem-points] failed', e)
+      log.error('[redeem-points] failed', e)
       if (!mountedRef.current) return
       setUnlockMsg({ tone: 'red', text: e instanceof Error ? e.message : t('talentDash.errRedeemPoints') })
     } finally { if (mountedRef.current) setRedeemingExtra(false) }

@@ -313,9 +313,14 @@ export default async function middleware(req: Request) {
   // /api/* — rate limit only.
   if (!pathname.startsWith('/api/')) return
 
+  // x-real-ip is set by Vercel's edge and is not client-spoofable. The LEFTMOST
+  // x-forwarded-for entry is client-controlled — an attacker rotates it to evade
+  // the rate limit — so only fall back to the RIGHTMOST XFF hop (the last, trusted
+  // proxy that Vercel appended), never the leftmost.
+  const xff = req.headers.get('x-forwarded-for')
   const ip =
-    req.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
-    req.headers.get('x-real-ip') ??
+    req.headers.get('x-real-ip')?.trim() ||
+    (xff ? xff.split(',').pop()!.trim() : '') ||
     'unknown'
 
   maybeEvict()

@@ -186,7 +186,15 @@ export const useSession = create<SessionState>((set) => ({
     try { sessionStorage.removeItem('dnj.admin_aal_state') } catch { /* tolerate */ }
     try {
       Object.keys(localStorage).forEach((k) => {
-        if (k.startsWith('sb-') || k === 'supabase.auth.token') localStorage.removeItem(k)
+        // Supabase auth tokens + onboarding drafts (PII: names/DOBs/phones) — all
+        // must be purged on logout so nothing survives into the next session.
+        if (
+          k.startsWith('sb-') ||
+          k === 'supabase.auth.token' ||
+          k.startsWith('dnj.onboard.') ||
+          k.startsWith('dnj.hm-onboard.') ||
+          k === 'hm_role_draft'
+        ) localStorage.removeItem(k)
       })
     } catch { /* tolerate */ }
     clearAuthHintCookie()
@@ -257,7 +265,15 @@ export function enforceBan(): void {
   clearAuthHintCookie()
   try {
     Object.keys(localStorage).forEach((k) => {
-      if (k.startsWith('sb-') || k === 'supabase.auth.token') localStorage.removeItem(k)
+      // Supabase auth tokens + onboarding drafts (PII: names/DOBs/phones) — all
+      // must be purged on ban-enforcement so nothing survives into the next session.
+      if (
+        k.startsWith('sb-') ||
+        k === 'supabase.auth.token' ||
+        k.startsWith('dnj.onboard.') ||
+        k.startsWith('dnj.hm-onboard.') ||
+        k === 'hm_role_draft'
+      ) localStorage.removeItem(k)
     })
   } catch { /* tolerate */ }
   useSession.setState({ session: null, profile: null, isHM: false, loading: false })

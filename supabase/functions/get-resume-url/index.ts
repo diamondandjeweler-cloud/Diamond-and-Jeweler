@@ -77,16 +77,19 @@ serve(async (req) => {
     const isMatchedHm = hm.profile_id === auth.userId
     let isHrOfCompany = false
     if (!isMatchedHm) {
-      // HR admins of the same company can also pull résumés (e.g. they're
-      // arranging interviews on behalf of the HM).
-      const { data: hrRow } = await db
-        .from('profiles')
-        .select('role, company_id')
-        .eq('id', auth.userId)
+      // HR admins of the HM's company can also pull résumés (e.g. they're
+      // arranging interviews on behalf of the HM). Authorize via the
+      // AUTHORITATIVE HR↔company link — companies.primary_hr_email must equal
+      // the caller's email — NOT profiles.company_id, which is self-settable
+      // (any user could point it at a stranger's company to read résumés).
+      // Same link used by invite-hm/link-hm and the auth_hr_company_id() RLS helper.
+      const { data: hrCompany } = await db
+        .from('companies')
+        .select('id')
+        .eq('id', company.id)
+        .eq('primary_hr_email', auth.email)
         .maybeSingle()
-      if (hrRow && hrRow.role === 'hr_admin' && hrRow.company_id === company.id) {
-        isHrOfCompany = true
-      }
+      if (hrCompany) isHrOfCompany = true
     }
     if (!isMatchedHm && !isHrOfCompany) {
       return json({ error: 'Not authorized for this match' }, 403)

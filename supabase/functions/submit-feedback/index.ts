@@ -22,6 +22,7 @@ import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { corsHeaders, handleOptions } from '../_shared/cors.ts'
 import { authenticate, json } from '../_shared/auth.ts'
 import { adminClient } from '../_shared/supabase.ts'
+import { enforceRateLimit, RateLimitError } from '../_shared/ratelimit.ts'
 
 interface Body {
   match_id: string
@@ -38,6 +39,19 @@ const STAGE_WEIGHT: Record<string, number> = {
 }
 const POINTS: Record<string, number> = {
   interview: 5, offer: 5, day_30: 10, probation: 20, '6_month': 30, '1_year': 50,
+}
+// Match-lifecycle ordering (matches.status CHECK, migration 0073). Higher = later
+// in the funnel. Used to verify a feedback stage's match actually reached that
+// point before awarding Diamond Points (anti-farming — see award gate below).
+const MATCH_STATUS_ORDER: Record<string, number> = {
+  pending_approval: 0, generated: 1, viewed: 2, accepted_by_talent: 3,
+  invited_by_manager: 4, hr_scheduling: 5, interview_scheduled: 6,
+  interview_completed: 7, offer_made: 8, hired: 9,
+}
+// Minimum match status each feedback stage requires before points are awarded.
+const STAGE_MIN_STATUS: Record<string, string> = {
+  interview: 'interview_scheduled', offer: 'offer_made',
+  day_30: 'hired', probation: 'hired', '6_month': 'hired', '1_year': 'hired',
 }
 // Outcomes that should be logged as match_outcomes for PHS calibration
 const OUTCOME_LOG_MAP: Record<string, string> = {
@@ -63,9 +77,17 @@ serve(async (req) => {
 
   const db = adminClient()
 
+  // Per-user rate limit (20/hour) — bounds automated points-farming attempts.
+  try {
+    await enforceRateLimit(db, 'submit-feedback:' + auth.userId, 20, 3600)
+  } catch (e) {
+    if (e instanceof RateLimitError) return json({ error: 'rate_limited' }, 429, { 'Retry-After': String(e.retryAfterSeconds ?? 3600) })
+    throw e
+  }
+
   // Resolve the match + verify caller has the right to submit this feedback direction
   const { data: match } = await db.from('matches')
-    .select('id, talent_id, role_id, roles!inner(hiring_manager_id, hiring_managers!inner(id, profile_id))')
+    .select('id, status, talent_id, role_id, roles!inner(hiring_manager_id, hiring_managers!inner(id, profile_id))')
     .eq('id', body.match_id).maybeSingle()
   if (!match) return json({ error: 'Match not found' }, 404)
 
@@ -106,7 +128,15 @@ serve(async (req) => {
     .maybeSingle()
 
   const isNew = !existing
-  const pointsAwarded = isNew ? (POINTS[body.stage] ?? 5) : 0
+  // Gate the Diamond Points award on the match having actually reached this
+  // lifecycle stage. Without this, a caller could farm points by submitting
+  // late-stage feedback (e.g. '1_year' = 50 pts) on a match still at 'generated'.
+  // Feedback is still recorded either way; only the point award is withheld.
+  const minStatus = STAGE_MIN_STATUS[body.stage]
+  const matchStatus = (match as { status: string }).status
+  const stageReached = minStatus != null
+    && (MATCH_STATUS_ORDER[matchStatus] ?? -1) >= (MATCH_STATUS_ORDER[minStatus] ?? Number.MAX_SAFE_INTEGER)
+  const pointsAwarded = (isNew && stageReached) ? (POINTS[body.stage] ?? 5) : 0
 
   const { error: upsertErr } = await db.from('match_feedback_events').upsert({
     match_id: body.match_id,

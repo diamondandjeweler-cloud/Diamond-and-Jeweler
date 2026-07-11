@@ -25,8 +25,31 @@ serve(async (req) => {
 
   const db = adminClient()
   const { data: itv } = await db.from('interviews')
-    .select('id, scheduled_at, meeting_url').eq('id', body.interview_id).maybeSingle()
+    .select('id, match_id, scheduled_at, meeting_url').eq('id', body.interview_id).maybeSingle()
   if (!itv) return json({ error: 'Interview not found' }, 404)
+
+  // ── Ownership check (before returning ANY room info, incl. an existing URL) ──
+  // The role gate above only proves the caller is *an* HM/HR — not that they own
+  // this interview. Without this, any HM could pass an arbitrary interview_id and
+  // mint/join another company's video room. Allow: the match's HM, HR of that
+  // HM's company (authoritative companies.primary_hr_email link), or admin/service.
+  if (!auth.isServiceRole && auth.role !== 'admin') {
+    const { data: match } = await db.from('matches')
+      .select('id, roles!inner( hiring_managers!inner( profile_id, company_id ) )')
+      .eq('id', itv.match_id).maybeSingle()
+    if (!match) return json({ error: 'Match not found' }, 404)
+    const hm = (match as unknown as {
+      roles: { hiring_managers: { profile_id: string; company_id: string | null } }
+    }).roles.hiring_managers
+    let allowed = hm.profile_id === auth.userId
+    if (!allowed && hm.company_id) {
+      const { data: hrCompany } = await db.from('companies')
+        .select('id').eq('id', hm.company_id).eq('primary_hr_email', auth.email).maybeSingle()
+      if (hrCompany) allowed = true
+    }
+    if (!allowed) return json({ error: 'Not authorized for this interview' }, 403)
+  }
+
   if (itv.meeting_url) return json({ message: 'Already has meeting', meeting_url: itv.meeting_url })
 
   const dailyKey = Deno.env.get('DAILY_API_KEY')

@@ -34,10 +34,14 @@ export async function reportError(err: unknown, ctx: Record<string, unknown>): P
         })
       : JSON.stringify({ message, stack, ctx, ts: new Date().toISOString() })
 
+    // Bounded: a hanging telemetry sink must never stall the calling
+    // function's response (e.g. admin-refund's clawback-failure warning).
+    // The abort throw is swallowed by the catch below — still never throws.
     await fetch(sink, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body,
+      signal: AbortSignal.timeout(3000),
     })
   } catch (e) {
     // Telemetry must never crash or alter the calling function.

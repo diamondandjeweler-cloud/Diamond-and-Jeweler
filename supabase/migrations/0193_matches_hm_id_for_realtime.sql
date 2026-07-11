@@ -9,9 +9,9 @@
 -- stable per user.
 --
 -- This migration is ADDITIVE and non-breaking: the column is nullable,
--- backfilled, and kept populated by a BEFORE INSERT trigger. NOTHING reads
--- hm_id yet — the dashboard subscription switch to `hm_id=eq.<id>` is a
--- separate, behaviour-changing follow-up (see TODO in
+-- backfilled, and kept populated by a BEFORE INSERT OR UPDATE trigger.
+-- NOTHING reads hm_id yet — the dashboard subscription switch to
+-- `hm_id=eq.<id>` is a separate, behaviour-changing follow-up (see TODO in
 -- apps/web/src/routes/dashboard/hm/useHmDashboardData.tsx).
 
 -- 1) Column: nullable, FK mirrors roles.hiring_manager_id semantics.
@@ -28,8 +28,12 @@ update public.matches m
   where m.role_id = r.id
     and m.hm_id is distinct from r.hiring_manager_id;
 
--- 4) Keep hm_id populated on every insert path (matcher, admin-force-match,
---    manual) by deriving it from the row's role_id when not supplied.
+-- 4) Keep hm_id correct on every write path (matcher, admin-force-match,
+--    manual, PostgREST) by ALWAYS deriving it from the row's role_id — a
+--    caller-supplied value is ignored, so a client cannot spoof or null the
+--    owning HM (the standing table-wide UPDATE grant + row policies would
+--    otherwise let a talent/HM rewrite hm_id on their own match rows).
+--    Fires on UPDATE OF role_id (re-derive) and hm_id (revert tampering).
 --    SECURITY DEFINER so the lookup is unaffected by the caller's RLS on roles.
 create or replace function public.tg_matches_set_hm_id()
 returns trigger
@@ -38,11 +42,9 @@ security definer
 set search_path = public
 as $$
 begin
-  if new.hm_id is null then
-    select r.hiring_manager_id into new.hm_id
-      from public.roles r
-      where r.id = new.role_id;
-  end if;
+  select r.hiring_manager_id into new.hm_id
+    from public.roles r
+    where r.id = new.role_id;
   return new;
 end;
 $$;
@@ -51,5 +53,5 @@ revoke execute on function public.tg_matches_set_hm_id() from public;
 
 drop trigger if exists tg_matches_set_hm_id on public.matches;
 create trigger tg_matches_set_hm_id
-  before insert on public.matches
+  before insert or update of role_id, hm_id on public.matches
   for each row execute function public.tg_matches_set_hm_id();

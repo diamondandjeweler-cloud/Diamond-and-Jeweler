@@ -382,7 +382,7 @@ export function useHmDashboardData(userId: string | undefined) {
           event: '*', schema: 'public', table: 'matches',
           // TODO(realtime-scope): switch to a single stable equality filter
           // `hm_id=eq.<hmId>` once the denormalised column lands (migration
-          // 0172_matches_hm_id_for_realtime.sql). That removes the grow-with-roles
+          // 0193_matches_hm_id_for_realtime.sql). That removes the grow-with-roles
           // comma-list and the unknown-role reload/resubscribe dance below.
           filter: `role_id=in.(${hmRoleIds.join(',')})`,
         }, handleMatchChange)

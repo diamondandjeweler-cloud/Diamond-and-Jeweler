@@ -13,7 +13,12 @@
 import {
   assertEquals,
 } from 'https://deno.land/std@0.208.0/assert/mod.ts'
-import { checkBillplzAmount, readField, toNumberOrNull } from './billplz.ts'
+import {
+  checkBillplzAmount,
+  readField,
+  summarizeBillplzAmount,
+  toNumberOrNull,
+} from './billplz.ts'
 
 // ---------------------------------------------------------------------------
 // checkBillplzAmount — match
@@ -80,6 +85,59 @@ Deno.test('unknown: non-numeric paid amount', () => {
 
 Deno.test('unknown: null expected', () => {
   assertEquals(checkBillplzAmount('990', null), 'unknown')
+})
+
+// ---------------------------------------------------------------------------
+// summarizeBillplzAmount — the verdict PLUS the sen pair the B9 mismatch alert
+// (BILLPLZ_AMOUNT_MISMATCH) reports as expected_sen / got_sen. checkBillplzAmount
+// delegates to this, so these also pin that the verdict never drifts from the
+// numbers on-call sees.
+// ---------------------------------------------------------------------------
+Deno.test('summarize: match returns the aligned sen pair', () => {
+  assertEquals(summarizeBillplzAmount('990', 9.90), { check: 'match', gotSen: 990, expectedSen: 990 })
+})
+
+Deno.test('summarize: mismatch exposes what was charged vs expected (underpayment)', () => {
+  // 100 sen paid for a RM 9.90 item → the finance alert must carry got=100, expected=990.
+  assertEquals(summarizeBillplzAmount('100', 9.90), { check: 'mismatch', gotSen: 100, expectedSen: 990 })
+})
+
+Deno.test('summarize: mismatch exposes overpayment / wrong bill amount', () => {
+  assertEquals(summarizeBillplzAmount('99999', 9.90), { check: 'mismatch', gotSen: 99999, expectedSen: 990 })
+})
+
+Deno.test('summarize: float-drift price 19.90 normalises to 1990 sen (no spurious mismatch)', () => {
+  assertEquals(summarizeBillplzAmount('1990', 19.90), { check: 'match', gotSen: 1990, expectedSen: 1990 })
+})
+
+Deno.test('summarize: numeric JSON-body sen and DB numeric round-trip', () => {
+  const row = { price_rm: 149.9 }
+  assertEquals(
+    summarizeBillplzAmount(14990, readField(row, 'price_rm')),
+    { check: 'match', gotSen: 14990, expectedSen: 14990 },
+  )
+})
+
+Deno.test('summarize: unknown when paid amount is missing (null sen, do not block)', () => {
+  assertEquals(summarizeBillplzAmount(undefined, 9.90), { check: 'unknown', gotSen: null, expectedSen: 990 })
+})
+
+Deno.test('summarize: unknown when expected price is absent (row lacks column)', () => {
+  assertEquals(
+    summarizeBillplzAmount('990', readField({}, 'amount_rm')),
+    { check: 'unknown', gotSen: 990, expectedSen: null },
+  )
+})
+
+Deno.test('summarize.check stays identical to checkBillplzAmount (no drift)', () => {
+  const cases: Array<[unknown, unknown]> = [
+    ['990', 9.90], ['100', 9.90], ['99999', 9.90], ['989', 9.90],
+    ['5000', 50], ['1990', 19.90], ['990', 990],
+    [undefined, 9.90], ['', 9.90], ['not-a-number', 9.90], ['990', null], ['990', readField({}, 'amount_rm')],
+  ]
+  for (const [paid, expected] of cases) {
+    assertEquals(summarizeBillplzAmount(paid, expected).check, checkBillplzAmount(paid, expected))
+  }
 })
 
 // ---------------------------------------------------------------------------

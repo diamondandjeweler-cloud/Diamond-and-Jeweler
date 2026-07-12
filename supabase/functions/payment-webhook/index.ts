@@ -23,7 +23,7 @@ import { adminClient } from '../_shared/supabase.ts'
 import { timingSafeEqual } from '../_shared/auth.ts'
 import { reportError } from '../_shared/observe.ts'
 import { createLogger } from '../_shared/logger.ts'
-import { checkBillplzAmount, readField } from '../_shared/billplz.ts'
+import { summarizeBillplzAmount, readField } from '../_shared/billplz.ts'
 
 const log = createLogger('payment-webhook')
 
@@ -148,15 +148,21 @@ async function handleMoneyPath(params: Record<string, string>): Promise<Response
   // B9 money-path guard: the Billplz-signed `amount` (sen) must equal the
   // purchase's stored price before we grant anything. A mismatch means the bill
   // was created for a different amount than the purchase record — refuse the
-  // credit (fail-safe) and alert; the signature is valid but the amount is not
-  // what this purchase costs. 'unknown' (amount/price absent) falls through to
-  // the existing behavior so nothing breaks.
-  if (checkBillplzAmount(amountSen, readField(purchase, 'amount_rm')) === 'mismatch') {
-    log.error('extra-match amount mismatch — refusing paid flip', { bill: billId, ref: purchaseRef, amount: amountSen })
+  // credit (fail-safe), FLAG the row for finance, and ALERT; the signature is
+  // valid but the amount is not what this purchase costs. We keep the HTTP 200 so
+  // Billplz stops retrying, but replace the silent 'pending' with a recoverable,
+  // alertable trail (a charged-but-not-credited buyer is otherwise invisible).
+  // 'unknown' (amount/price absent) falls through to the existing behavior.
+  const emAmount = summarizeBillplzAmount(amountSen, readField(purchase, 'amount_rm'))
+  if (emAmount.check === 'mismatch') {
+    log.error('extra-match amount mismatch — flagging for finance, not crediting', { bill: billId, ref: purchaseRef, expected_sen: emAmount.expectedSen, got_sen: emAmount.gotSen })
+    await flagAmountMismatch(db, 'extra_match_purchases', purchase.id)
     await reportError(new Error('billplz amount mismatch (extra_match)'), {
-      fn: 'payment-webhook', bill_id: billId, reference_1: purchaseRef, amount_sen: amountSen,
+      fn: 'payment-webhook', code: 'BILLPLZ_AMOUNT_MISMATCH', table: 'extra_match_purchases',
+      bill_id: billId, reference_1: purchaseRef, purchase_id: purchase.id,
+      expected_sen: emAmount.expectedSen, got_sen: emAmount.gotSen,
     })
-    return new Response('OK (amount mismatch — not credited)', { status: 200, headers: corsHeaders })
+    return new Response('OK (amount mismatch — flagged for review, not credited)', { status: 200, headers: corsHeaders })
   }
 
   // SUCCESS path — flip to paid. Guard on payment_status='pending' prevents double-grant.
@@ -235,6 +241,31 @@ async function handleMoneyPath(params: Record<string, string>): Promise<Response
 }
 
 /**
+ * Flag a charged-but-not-credited row for finance review (B9).
+ *
+ * On a signature-VALID paid callback whose signed amount != the purchase's stored
+ * price we do NOT credit (fail-safe) — but the buyer may have really been charged,
+ * and Billplz does not retry, so a silent 'pending' row is invisible. This stamps
+ * a durable `amount_mismatch = true` marker (mirrors the 0190 `match_undelivered`
+ * pattern) so finance can query the flagged rows and reconcile/refund.
+ *
+ * BEST-EFFORT + backward-compatible: the marker column ships in migration 0199. If
+ * this edge fn is deployed before 0199 is applied the column is absent and the
+ * update errors — we swallow it (same idiom as the 0190 marker). The reportError
+ * BILLPLZ_AMOUNT_MISMATCH alert at each call site is the GUARANTEED recovery
+ * signal and never depends on the column existing. Setting the marker is
+ * idempotent (true → true), so a duplicate mismatch callback is safe.
+ */
+async function flagAmountMismatch(
+  db: ReturnType<typeof adminClient>,
+  table: 'extra_match_purchases' | 'point_purchases' | 'consult_bookings',
+  id: string,
+): Promise<void> {
+  await db.from(table).update({ amount_mismatch: true }).eq('id', id)
+    .then(() => {}, () => { /* marker best-effort (pre-0199 column absent) */ })
+}
+
+/**
  * Verify Billplz X-Signature.
  * Algorithm: sort all params (excluding x_signature) alphabetically,
  * concatenate as "key1|value1|key2|value2|...", then HMAC-SHA256 with the API key.
@@ -308,11 +339,17 @@ async function tryPointPurchase(args: {
   }
 
   // B9: the signed paid amount (sen) must equal the package's amount_rm before
-  // we credit points. Mismatch → refuse the credit (handled, not credited).
-  if (checkBillplzAmount(amountSen, readField(purchase, 'amount_rm')) === 'mismatch') {
-    log.error('points amount mismatch — refusing paid flip', purchaseRef || billId)
+  // we credit points. Mismatch → refuse the credit, FLAG the row for finance, and
+  // ALERT (handled, not credited). The marker + alert make a charged-but-not-
+  // credited buyer recoverable instead of a silent 'pending'.
+  const ppAmount = summarizeBillplzAmount(amountSen, readField(purchase, 'amount_rm'))
+  if (ppAmount.check === 'mismatch') {
+    log.error('points amount mismatch — flagging for finance, not crediting', purchaseRef || billId)
+    await flagAmountMismatch(db, 'point_purchases', purchase.id)
     await reportError(new Error('billplz amount mismatch (points)'), {
-      fn: 'payment-webhook', bill_id: billId, reference_1: purchaseRef, amount_sen: amountSen,
+      fn: 'payment-webhook', code: 'BILLPLZ_AMOUNT_MISMATCH', table: 'point_purchases',
+      bill_id: billId, reference_1: purchaseRef, purchase_id: purchase.id,
+      expected_sen: ppAmount.expectedSen, got_sen: ppAmount.gotSen,
     })
     return true
   }
@@ -389,11 +426,16 @@ async function tryConsultBooking(args: {
   // B9: assert the Billplz-signed amount (sen) equals the booking price before
   // any paid flip. This complements the ToyyibPay server-side re-confirm below
   // (which covers the ToyyibPay path); this one covers the Billplz path. A
-  // mismatch → refuse the credit (handled, not credited).
-  if (checkBillplzAmount(amountSen, readField(booking, 'price_rm')) === 'mismatch') {
-    log.error('consult amount mismatch — refusing paid flip', purchaseRef || billId)
+  // mismatch → refuse the credit, FLAG the booking for finance, and ALERT
+  // (handled, not credited) rather than leaving a silent 'pending' booking.
+  const cbAmount = summarizeBillplzAmount(amountSen, readField(booking, 'price_rm'))
+  if (cbAmount.check === 'mismatch') {
+    log.error('consult amount mismatch — flagging for finance, not crediting', purchaseRef || billId)
+    await flagAmountMismatch(db, 'consult_bookings', booking.id)
     await reportError(new Error('billplz amount mismatch (consult)'), {
-      fn: 'payment-webhook', bill_id: billId, reference_1: purchaseRef, amount_sen: amountSen,
+      fn: 'payment-webhook', code: 'BILLPLZ_AMOUNT_MISMATCH', table: 'consult_bookings',
+      bill_id: billId, reference_1: purchaseRef, booking_id: booking.id,
+      expected_sen: cbAmount.expectedSen, got_sen: cbAmount.gotSen,
     })
     return true
   }

@@ -40,6 +40,7 @@ import {
   assertFalse,
 } from 'https://deno.land/std@0.208.0/assert/mod.ts'
 import { timingSafeEqual } from '../_shared/auth.ts'
+import { summarizeBillplzAmount } from '../_shared/billplz.ts'
 
 // ---------------------------------------------------------------------------
 // Local reference implementation of the Billplz X-Signature algorithm.
@@ -218,6 +219,118 @@ Deno.test('non-ascii / pipe-injection values do not throw and stay tied to their
     await verifyBillplzSignature(shifted, sig, API_KEY),
     'delimiter ambiguity must not let a re-grouped body reuse a signature',
   )
+})
+
+// ===========================================================================
+// (4) B9 amount-mismatch branch — a signature-valid PAID callback whose signed
+//     amount != the purchase's stored price must be FLAGGED + ALERTED, never
+//     credited, and still answered HTTP 200 (so Billplz stops retrying).
+//
+// index.ts calls `serve()` at module load and reaches Supabase over the network,
+// so we mirror the branch WIRING (kept byte-faithful to the three identical B9
+// blocks in handleMoneyPath / tryPointPurchase / tryConsultBooking) over the REAL
+// pure decision `summarizeBillplzAmount` imported from ../_shared/billplz.ts, with
+// fakes for the marker write and the alert. This asserts the decision→action
+// mapping: mismatch ⇒ {flag, alert(code+sen pair), no credit, 200}. The DB-side
+// persistence of the marker needs the integration harness (see file header).
+// ===========================================================================
+
+interface MirrorEffects {
+  markerFlagged: Array<{ table: string; id: string }>
+  alerts: Array<{ message: string; ctx: Record<string, unknown> }>
+  credited: boolean
+}
+
+function newEffects(): MirrorEffects {
+  return { markerFlagged: [], alerts: [], credited: false }
+}
+
+/**
+ * Mirror of the B9 amount branch shared by all three money paths in index.ts.
+ * MUST stay in sync with the `summarizeBillplzAmount(...).check === 'mismatch'`
+ * blocks there: on mismatch → flagAmountMismatch + reportError(BILLPLZ_AMOUNT_
+ * MISMATCH incl. expected_sen/got_sen) + return HTTP 200 without crediting; on
+ * match/unknown → fall through to the credit path (returns null here).
+ */
+function runB9AmountBranch(
+  amountSen: unknown,
+  expectedRm: unknown,
+  table: 'extra_match_purchases' | 'point_purchases' | 'consult_bookings',
+  rowId: string,
+  eff: MirrorEffects,
+): { status: number } | null {
+  const amount = summarizeBillplzAmount(amountSen, expectedRm)
+  if (amount.check === 'mismatch') {
+    eff.markerFlagged.push({ table, id: rowId })          // flagAmountMismatch (best-effort marker)
+    eff.alerts.push({
+      message: `billplz amount mismatch (${table})`,
+      ctx: {
+        fn: 'payment-webhook', code: 'BILLPLZ_AMOUNT_MISMATCH', table,
+        expected_sen: amount.expectedSen, got_sen: amount.gotSen,
+      },
+    })
+    return { status: 200 }                                // 200 so Billplz stops retrying
+  }
+  eff.credited = true                                     // match/unknown → proceed to paid flip
+  return null
+}
+
+Deno.test('B9: mismatch flags the row, alerts with the sen pair, does NOT credit, returns 200', () => {
+  const eff = newEffects()
+  // Underpayment: 100 sen paid for a RM 9.90 extra match.
+  const res = runB9AmountBranch('100', 9.90, 'extra_match_purchases', 'emp_1', eff)
+  assertEquals(res, { status: 200 }, 'mismatch must still answer 200 (Billplz stops retrying)')
+  assertFalse(eff.credited, 'a mismatched amount must NEVER credit')
+  assertEquals(eff.markerFlagged, [{ table: 'extra_match_purchases', id: 'emp_1' }], 'row must be flagged for finance')
+  assertEquals(eff.alerts.length, 1, 'exactly one alert per mismatch')
+  assertEquals(eff.alerts[0].ctx.code, 'BILLPLZ_AMOUNT_MISMATCH')
+  assertEquals(eff.alerts[0].ctx.expected_sen, 990, 'alert carries the expected price in sen')
+  assertEquals(eff.alerts[0].ctx.got_sen, 100, 'alert carries what was actually charged in sen')
+})
+
+Deno.test('B9: a correctly-priced paid callback takes the CREDIT path (no flag, no alert)', () => {
+  const eff = newEffects()
+  const res = runB9AmountBranch('990', 9.90, 'extra_match_purchases', 'emp_1', eff)
+  assertEquals(res, null, 'a matching amount must fall through to the credit path')
+  assert(eff.credited, 'a matching amount proceeds to the paid flip')
+  assertEquals(eff.markerFlagged.length, 0, 'no finance flag on a good payment')
+  assertEquals(eff.alerts.length, 0, 'no mismatch alert on a good payment')
+})
+
+Deno.test('B9: unknown (amount/price absent) does NOT block — falls through, no flag/alert', () => {
+  const eff = newEffects()
+  const res = runB9AmountBranch(undefined, 9.90, 'point_purchases', 'pp_1', eff)
+  assertEquals(res, null, "'unknown' must not block the existing behavior")
+  assert(eff.credited)
+  assertEquals(eff.markerFlagged.length, 0)
+  assertEquals(eff.alerts.length, 0)
+})
+
+Deno.test('B9: duplicate mismatch callback is idempotent-safe — re-flags, never credits', () => {
+  const eff = newEffects()
+  // Billplz is not idempotent, but a replay/duplicate must never corrupt state.
+  const first = runB9AmountBranch('100', 9.90, 'consult_bookings', 'cb_1', eff)
+  const second = runB9AmountBranch('100', 9.90, 'consult_bookings', 'cb_1', eff)
+  assertEquals(first, { status: 200 })
+  assertEquals(second, { status: 200 })
+  assertFalse(eff.credited, 'no delivery of a duplicate mismatch may ever credit')
+  // Marker is idempotent (true → true); re-flagging the same row is harmless.
+  assertEquals(eff.markerFlagged, [
+    { table: 'consult_bookings', id: 'cb_1' },
+    { table: 'consult_bookings', id: 'cb_1' },
+  ])
+})
+
+Deno.test('B9: the same branch shape applies across all three money paths', () => {
+  for (const table of ['extra_match_purchases', 'point_purchases', 'consult_bookings'] as const) {
+    const eff = newEffects()
+    const res = runB9AmountBranch('99999', 9.90, table, `${table}_x`, eff)
+    assertEquals(res, { status: 200 })
+    assertFalse(eff.credited)
+    assertEquals(eff.alerts[0].ctx.table, table)
+    assertEquals(eff.alerts[0].ctx.got_sen, 99999)
+    assertEquals(eff.alerts[0].ctx.expected_sen, 990)
+  }
 })
 
 // ===========================================================================

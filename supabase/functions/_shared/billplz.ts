@@ -38,6 +38,39 @@ export function readField(row: unknown, key: string): unknown {
 }
 
 /**
+ * Full result of an amount comparison: the verdict plus the two normalised sen
+ * values that produced it. The sen pair is what the webhook attaches to its
+ * BILLPLZ_AMOUNT_MISMATCH finance alert so on-call can see, at a glance, what was
+ * charged vs. what the purchase should have cost. Kept as a pure function so both
+ * the verdict AND the alert payload are unit-testable off the same source of
+ * truth (no drift between "what we decided" and "what we reported").
+ *
+ *   gotSen      — the Billplz-signed paid amount, rounded to sen, or null.
+ *   expectedSen — the purchase's stored price (RM→sen, rounded), or null.
+ *   check       — 'match' | 'mismatch' | 'unknown' (see checkBillplzAmount).
+ *
+ * The RM→sen conversion rounds to avoid binary-float drift (e.g. 9.90 * 100).
+ */
+export interface BillplzAmountResult {
+  check: AmountCheck
+  gotSen: number | null
+  expectedSen: number | null
+}
+
+export function summarizeBillplzAmount(paidAmountSen: unknown, expectedRm: unknown): BillplzAmountResult {
+  const paid = toNumberOrNull(paidAmountSen)
+  const expected = toNumberOrNull(expectedRm)
+  const gotSen = paid === null ? null : Math.round(paid)
+  const expectedSen = expected === null ? null : Math.round(expected * 100)
+  const check: AmountCheck = gotSen === null || expectedSen === null
+    ? 'unknown'
+    : gotSen === expectedSen
+      ? 'match'
+      : 'mismatch'
+  return { check, gotSen, expectedSen }
+}
+
+/**
  * Compare a Billplz-signed paid amount (sen) against an expected price (RM).
  *
  *   'match'    — amounts are equal to the sen.
@@ -46,12 +79,8 @@ export function readField(row: unknown, key: string): unknown {
  *                existing behavior (do NOT block; Billplz always sends `amount`,
  *                so 'unknown' only arises in degenerate/misconfigured inputs).
  *
- * The RM→sen conversion rounds to avoid binary-float drift (e.g. 9.90 * 100).
+ * Thin verdict-only wrapper over summarizeBillplzAmount (single source of truth).
  */
 export function checkBillplzAmount(paidAmountSen: unknown, expectedRm: unknown): AmountCheck {
-  const paid = toNumberOrNull(paidAmountSen)
-  const expected = toNumberOrNull(expectedRm)
-  if (paid === null || expected === null) return 'unknown'
-  const expectedSen = Math.round(expected * 100)
-  return Math.round(paid) === expectedSen ? 'match' : 'mismatch'
+  return summarizeBillplzAmount(paidAmountSen, expectedRm).check
 }

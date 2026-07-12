@@ -10,7 +10,8 @@ migrations/edge-fns are applied. So the branch (and its Vercel preview) is safe
 to merge before the owner applies anything below. Applying each item is a pure,
 additive improvement.
 
-Migration numbers are the next-free block after `0193`: **0194–0198**.
+Migration numbers are the next-free block after `0193`: **0194–0198**, plus
+**0199** (B9, added later in this batch).
 
 ---
 
@@ -216,6 +217,70 @@ public.platform_stats;` — `/api/stats` auto-falls-back to the live count.
 
 ---
 
+## Item B9 — Billplz amount-mismatch: flag + finance alert (money path, §6)
+
+**Problem (review finding, `payment-webhook/index.ts`):** the webhook verifies the
+Billplz X-Signature (authenticating every field, INCLUDING `amount`), then asserts
+the signed paid amount (sen) equals the purchase's stored price before crediting.
+On a **mismatch** it correctly refuses the credit (fail-safe) and returns HTTP 200
+so Billplz stops retrying — but the old branch left the row a **silent `pending`**
+with no recovery state and no alert. Only tampered/divergent bills reach this today
+(no legit flow mismatches — verified), but a genuinely charged-but-not-credited
+buyer would be **invisible** to finance. Billplz does not auto-retry, so there is no
+second chance to notice.
+
+**Change (already committed on this branch, backward-compatible):** on the mismatch
+branch — across all three money paths (`extra_match_purchases`, `point_purchases`,
+`consult_bookings`) — the webhook now:
+
+1. **Flags the row** with a durable `amount_mismatch = true` marker (new column,
+   migration 0199) so finance can query the charged-but-not-credited rows. Still
+   does NOT credit points / deliver a match / flip to paid.
+2. **Emits a finance alert** via `reportError` with `code: 'BILLPLZ_AMOUNT_MISMATCH'`,
+   the `table`, the `bill_id` / `reference_1` / row id, and the **`expected_sen` +
+   `got_sen`** pair (so on-call sees what was charged vs. what it should have cost).
+3. Still returns **HTTP 200** (Billplz stops retrying). Idempotent: the marker is
+   `true → true`, so a duplicate/replayed mismatch callback re-flags harmlessly and
+   never credits.
+
+The marker write is **best-effort**: if `payment-webhook` is deployed BEFORE 0199
+is applied, the column is absent and the update errors — the fn swallows it (same
+idiom as the 0190 `match_undelivered` marker), and the `reportError` alert is the
+guaranteed recovery signal regardless. So the fn is correct either side of 0199.
+
+### Steps
+
+1. Apply migration `0199_payment_amount_mismatch_marker.sql` (idempotent — `ADD
+   COLUMN IF NOT EXISTS amount_mismatch boolean not null default false` on the
+   three tables + partial `create index if not exists ... where amount_mismatch =
+   true`). Purely additive; no backfill; inert until the fn sets it.
+2. Deploy edge fn:
+   - `supabase functions deploy payment-webhook` (mismatch branch now flags +
+     alerts). Safe to deploy before OR after 0199 (best-effort marker); prefer
+     applying 0199 first so the very first post-deploy mismatch persists its flag.
+3. Secrets/Vault: none new. The alert routes through the existing `reportError`
+   sink (`SENTRY_DSN_EDGE` / `EDGE_ERROR_WEBHOOK`) — if neither is set, alerts are a
+   no-op (same as every other edge fn), but the DB marker still records the row.
+4. Verify:
+   - `select id, payment_status, amount_mismatch from public.extra_match_purchases
+     where amount_mismatch = true;` — flagged rows are queryable (repeat for
+     `point_purchases` and `consult_bookings`).
+   - Confirm a flagged row was **never** credited: its `payment_status` stayed
+     `pending` (booking `status` stayed `pending`), no `award_points` row, no extra
+     match delivered.
+   - Confirm the `BILLPLZ_AMOUNT_MISMATCH` alert reached the error sink with
+     `expected_sen` / `got_sen`.
+5. Post-deploy client cleanup: **none** (optional: regenerate
+   `apps/web/src/types/db.generated.ts` for the new `amount_mismatch` columns — no
+   app code reads them, cosmetic).
+
+Rollback: drop the three partial indexes + `amount_mismatch` columns (see the
+migration header) and re-deploy the previous `payment-webhook`. The branch already
+returned 200 on mismatch before this change, so removing the marker only reverts to
+the alert-less silent-pending behavior.
+
+---
+
 ## Summary table
 
 | Item | Migration(s) | Edge fn deploy | Vault/secret | Post-deploy client cleanup |
@@ -225,3 +290,4 @@ public.platform_stats;` — `/api/stats` auto-falls-back to the live count.
 | B8 | 0196 | — | none | none (`api/stats.ts` already fallback-safe) |
 | B6 | 0197 | — | `deadman_alert_webhook_url` (optional) | none |
 | B1 | 0198 | — | none (reuses `bole_dob_passphrase`) | drop client `life_chart_character` send + delete `lifeChartCharacter.ts` |
+| B9 | 0199 (`amount_mismatch` marker on 3 payment tables) | `payment-webhook` (mod — flag + finance alert on mismatch) | none (uses existing `reportError` sink) | none (optional `db.generated.ts` regen) |

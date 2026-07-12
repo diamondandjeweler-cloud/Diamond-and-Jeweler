@@ -139,32 +139,64 @@ async function handler(req: Request): Promise<Response> {
 
   let emailStatus: 'sent' | 'skipped' | 'error' = 'skipped'
   const resend = getResend()
-  // Durable outbox (migration 0085): on a FRESH call, enqueue a pending row
-  // before the email attempt so a transient Resend failure is picked up and
-  // retried by the notification-retry cron. On a RETRY re-fire, reuse the
-  // outbox_id passed in. Every outbox write is best-effort — a bookkeeping
-  // failure must never change notify's response or break the actual send.
+  // Durable outbox (migration 0085, hardened in 0194): on a FRESH call, enqueue
+  // a pending row before the email attempt so a transient Resend failure is
+  // picked up and retried by the notification-retry cron. On a RETRY re-fire,
+  // reuse the outbox_id passed in — the retry cron has already CLAIMED the row
+  // ('sending' + attempt++), so physical sends are capped at max_attempts and a
+  // lost bookkeeping write cannot cause an unbounded re-send. Every outbox write
+  // is best-effort — a bookkeeping failure must never change notify's response
+  // or break the actual send.
   let outboxId: string | null = isRetry ? (payload.outbox_id ?? null) : null
   if (target.email && resend && !target.email_bounced && !outboxId) {
     outboxId = await enqueueEmailOutbox(db, payload.user_id, payload.type, payload.data ?? {})
   }
+
+  // De-dupe guard (at-most-once-observable): on a retry re-fire, if this outbox
+  // row already carries a provider_message_id — or is already terminal-sent —
+  // the email physically went out on a prior attempt whose bookkeeping write was
+  // lost. Re-sending would duplicate it, so we skip the send and just normalise
+  // the row to 'sent'. (Fresh calls own a brand-new row and never match here.)
+  let alreadySent = false
+  if (isRetry && outboxId) {
+    const { data: ob } = await db.from('notification_outbox')
+      .select('status, provider_message_id')
+      .eq('id', outboxId).maybeSingle()
+    if (ob && (ob.provider_message_id ||
+        ['sent', 'sent_unconfirmed', 'skipped'].includes(ob.status as string))) {
+      alreadySent = true
+    }
+  }
+
   if (target.email && resend && !target.email_bounced) {
-    try {
-      await resend.emails.send({ from: FROM, to: target.email, subject, text: body, html: htmlWithUnsub })
+    if (alreadySent) {
+      // Already delivered on a previous attempt — record success idempotently,
+      // do NOT hit Resend again.
       emailStatus = 'sent'
       if (outboxId) await recordOutboxAttempt(db, outboxId, true)
-      if (!isRetry) {
-        await db.from('notifications').insert({
-          user_id: payload.user_id,
-          type: payload.type,
-          channel: 'email',
-          subject, body, data: payload.data ?? {},
-        })
+    } else {
+      try {
+        const resp = await resend.emails.send({ from: FROM, to: target.email, subject, text: body, html: htmlWithUnsub })
+        emailStatus = 'sent'
+        // Stamp the provider id BEFORE recording the attempt: if the record RPC
+        // then fails, the next re-fire still sees the send already happened (via
+        // the de-dupe guard above) rather than sending a duplicate.
+        const providerId = extractProviderId(resp)
+        if (outboxId && providerId) await setOutboxProviderId(db, outboxId, providerId)
+        if (outboxId) await recordOutboxAttempt(db, outboxId, true)
+        if (!isRetry) {
+          await db.from('notifications').insert({
+            user_id: payload.user_id,
+            type: payload.type,
+            channel: 'email',
+            subject, body, data: payload.data ?? {},
+          })
+        }
+      } catch (e) {
+        log.error('Resend error', e)
+        emailStatus = 'error'
+        if (outboxId) await recordOutboxAttempt(db, outboxId, false, e instanceof Error ? e.message : String(e))
       }
-    } catch (e) {
-      log.error('Resend error', e)
-      emailStatus = 'error'
-      if (outboxId) await recordOutboxAttempt(db, outboxId, false, e instanceof Error ? e.message : String(e))
     }
   }
 
@@ -212,11 +244,12 @@ async function handler(req: Request): Promise<Response> {
 }
 
 // ---------------------------------------------------------------------------
-// Durable notification outbox (migration 0085) — best-effort wiring.
-// enqueueEmailOutbox creates a 'pending' row for a fresh email send;
-// recordOutboxAttempt flips it to 'sent' or schedules the next retry. Both
-// swallow their own errors so notify's primary job (send + respond) is never
-// affected by outbox bookkeeping.
+// Durable notification outbox (migration 0085, hardened in 0194) — best-effort
+// wiring. enqueueEmailOutbox creates a 'pending' row for a fresh email send;
+// setOutboxProviderId stamps the accepted send's provider id; recordOutboxAttempt
+// flips the row to 'sent' (idempotently) or schedules the next capped retry.
+// All three swallow their own errors so notify's primary job (send + respond)
+// is never affected by outbox bookkeeping.
 // ---------------------------------------------------------------------------
 async function enqueueEmailOutbox(
   db: ReturnType<typeof adminClient>,
@@ -254,6 +287,35 @@ async function recordOutboxAttempt(
     if (error) log.error('record_notification_attempt failed', error)
   } catch (e) {
     log.error('record_notification_attempt threw', e)
+  }
+}
+
+// Extract the Resend message id from a send() response. Resend v3 resolves to
+// { data: { id } | null, error } (it does NOT throw on API errors), so `data.id`
+// is only present on an accepted send.
+function extractProviderId(resp: unknown): string | null {
+  if (resp && typeof resp === 'object') {
+    const data = (resp as { data?: { id?: unknown } | null }).data
+    if (data && typeof data.id === 'string' && data.id.length > 0) return data.id
+  }
+  return null
+}
+
+// Best-effort stamp of the provider message id onto the outbox row. Written
+// BEFORE record_notification_attempt so the de-dupe guard survives a lost
+// record write. Swallows its own errors like the other outbox helpers.
+async function setOutboxProviderId(
+  db: ReturnType<typeof adminClient>,
+  outboxId: string,
+  providerId: string,
+): Promise<void> {
+  try {
+    const { error } = await db.from('notification_outbox')
+      .update({ provider_message_id: providerId })
+      .eq('id', outboxId)
+    if (error) log.error('set provider_message_id failed', error)
+  } catch (e) {
+    log.error('set provider_message_id threw', e)
   }
 }
 

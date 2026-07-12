@@ -9,10 +9,16 @@
  * rows until this function existed.
  *
  * Each run:
- *   1. claim_notification_retry_batch(N) atomically flips a batch of due
- *      'failed' rows to 'pending' (FOR UPDATE SKIP LOCKED) and returns them.
+ *   1. claim_notification_retry_batch(N) atomically CLAIMS a batch of due rows —
+ *      failed rows past their backoff plus stranded in-flight rows — flipping
+ *      each to 'sending' and SPENDING one attempt (FOR UPDATE SKIP LOCKED), then
+ *      returns them. Spending the attempt at claim time (before the re-fire)
+ *      hard-caps physical sends per row at max_attempts, so a lost bookkeeping
+ *      write can never cause an unbounded re-send. Exhausted in-flight rows are
+ *      retired to the terminal 'sent_unconfirmed' state (0194).
  *   2. For each claimed row, re-invoke `notify` with the SAME user_id/type/data
- *      plus the outbox_id — notify re-attempts the EMAIL ONLY and records the
+ *      plus the outbox_id — notify re-attempts the EMAIL ONLY (skipping the send
+ *      entirely if the row shows the mail already went out) and records the
  *      outcome via record_notification_attempt (sent, or failed + next backoff).
  *
  * Authorization: service-role only (cron / admin scripts). Scheduled every
@@ -85,10 +91,12 @@ serve(async (req) => {
       })
       refired++
     } catch (e) {
-      // The claim already flipped the row to 'pending'. If the re-fire itself
-      // throws (network), notify never recorded an attempt, so the row would be
-      // stuck 'pending'. record a failed attempt so the backoff advances and it
-      // is eventually retried or exhausted rather than stranded.
+      // The claim already flipped the row to 'sending' (attempt spent). If the
+      // re-fire itself throws (network) notify never recorded an attempt, so the
+      // row would sit in 'sending'. Record a failed attempt so the backoff
+      // advances (record does NOT double-count a 'sending' row) and it is
+      // eventually retried or exhausted rather than stranded. A no-op if notify
+      // already recorded before the throw (record is idempotent once terminal).
       log.error(`re-fire notify failed for outbox ${row.id}`, e)
       await recordFailure(db, row.id, e instanceof Error ? e.message : String(e))
     }

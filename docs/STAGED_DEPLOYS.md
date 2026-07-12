@@ -27,29 +27,78 @@ Migration numbers are the next-free block after `0193`: **0194–0198**.
 
 ## Item B4 — Wire notification_outbox retry loop (closes failure-mode F3)
 
-**Deploy order matters:** edge fns FIRST, then the migration (the cron in 0194
-calls the `notification-retry` fn — deploy it before scheduling).
+**Deploy order matters:** apply the migration FIRST this time (it hardens the
+two outbox RPCs the edge fns depend on), then deploy the edge fns, and note the
+migration also *schedules* the cron that calls `notification-retry` — so deploy
+`notification-retry` before/at the same time as applying 0194.
 
-1. Deploy edge fns:
-   - `supabase functions deploy notify`  (modified — enqueue→send→record_attempt;
-     retries are email-only via the new `outbox_id` field)
-   - `supabase functions deploy notification-retry`  (NEW — claims the due batch
-     and re-fires `notify`)
+### Hardened semantics (at-most-once-observable)
+
+`0194` no longer only schedules the cron — it also rebuilds the outbox state
+machine so a `record_notification_attempt` failure that lands AFTER a successful
+Resend send can never cause a duplicate email (review finding on
+`notify/index.ts`). What changed vs. the original 0085 wiring:
+
+- **Two new columns** on `notification_outbox`: `claimed_at` (drives stale
+  in-flight recovery) and `provider_message_id` (the Resend id — its presence is
+  the de-dupe signal). Status CHECK widened with `'sending'` (claimed, in-flight)
+  and `'sent_unconfirmed'` (attempts exhausted mid-flight — probably delivered,
+  deliberately NOT resent).
+- **`claim_notification_retry_batch` (CREATE OR REPLACE, same signature)** now
+  flips a claimed row to `'sending'` **and spends one attempt** (`attempt_count+1`,
+  `claimed_at=now()`) BEFORE `notify` re-hits Resend. Two cron ticks can't both
+  send the same row (FOR UPDATE SKIP LOCKED + the flip), and physical sends per
+  row are hard-capped at `max_attempts`. It also recovers *stranded in-flight*
+  rows (a `'sending'` row whose sender crashed >2 min ago, or a fresh `'pending'`
+  row whose bookkeeping never landed >5 min ago) and retires exhausted in-flight
+  rows to terminal `'sent_unconfirmed'`.
+- **`record_notification_attempt` (CREATE OR REPLACE, same signature)** is now
+  idempotent (a no-op once the row is terminal), does NOT double-count an attempt
+  already spent by the claim, and caps at `max_attempts` → terminal `'failed'`
+  (`next_retry_at=NULL`).
+- **`notify`** stamps `provider_message_id` (best-effort) immediately after an
+  accepted send and BEFORE recording the attempt; on a retry re-fire it first
+  reads the row and, if `provider_message_id` is set (or status is already
+  terminal-sent), it SKIPS the resend and just normalises the row to `'sent'`.
+  → true de-dupe for the common "send OK, bookkeeping write lost" case; the
+  residual worst case (BOTH the id-stamp AND the record write fail) is bounded to
+  ≤ `max_attempts` sends, then `'sent_unconfirmed'` — never an unbounded loop.
+
+The `notify` in_app + WhatsApp inserts and the marketing-consent suppression are
+unchanged (still gated by `!isRetry` / consent-before-enqueue).
+
+### Steps
+
+1. Apply migration `0194_notification_retry_cron.sql` (idempotent — `ADD COLUMN
+   IF NOT EXISTS`, DROP/ADD the status CHECK, `CREATE OR REPLACE` both RPCs,
+   `CREATE INDEX IF NOT EXISTS`, then schedules `bole-notification-retry-every-1m`).
+2. Deploy edge fns:
+   - `supabase functions deploy notify`  (modified — enqueue→[dedupe-check]→send
+     →stamp-provider-id→record_attempt; retries are email-only via `outbox_id`)
+   - `supabase functions deploy notification-retry`  (claims the due batch and
+     re-fires `notify`)
    - `config.toml` already sets `[functions.notification-retry] verify_jwt = false`.
-2. Apply migration `0194_notification_retry_cron.sql`
-   (schedules `bole-notification-retry-every-1m`).
 3. Secrets/Vault: none new. Uses `supabase_url` + `service_role_key` (existing).
 4. Verify:
    - `select * from cron.job where jobname = 'bole-notification-retry-every-1m';`
    - Force a transient email failure (or inspect `notification_outbox`): a failed
-     send should land `status='failed'` with `next_retry_at` set, then flip to
-     `status='sent'` within a couple of minutes.
+     send lands `status='failed'` + `next_retry_at`, then flips to `status='sent'`
+     within a couple of minutes.
+   - **Duplicate-safety check:** pick a row that reached `status='sent'`, note its
+     `attempt_count` and `provider_message_id`, and confirm the recipient got the
+     email exactly once. `attempt_count` must never exceed `max_attempts` (3).
+   - `select status, count(*) from notification_outbox group by 1;` — no row should
+     sit in `'sending'`/`'pending'` older than ~5 min (recovery/sweep drains them).
    - `select job_name, last_run_at from cron_heartbeat where job_name='notification-retry';`
-5. Post-deploy client cleanup: **none.**
+5. Post-deploy client cleanup: **none.** (Optional: regenerate
+   `apps/web/src/types/db.generated.ts` so it reflects the two new columns — no
+   app code reads them, so this is cosmetic and can be batched with any later
+   `supabase gen types` run.)
 
 Rollback: `select cron.unschedule('bole-notification-retry-every-1m');` and
-re-deploy the previous `notify`. The outbox table/RPCs (0085) stay; they are inert
-without callers.
+re-deploy the previous `notify`. The new columns / widened CHECK are additive and
+inert without callers; the RPCs `CREATE OR REPLACE` back to their 0085 bodies if
+you re-apply 0085 (or leave the hardened bodies — they are strictly safer).
 
 ---
 
@@ -171,7 +220,7 @@ public.platform_stats;` — `/api/stats` auto-falls-back to the live count.
 
 | Item | Migration(s) | Edge fn deploy | Vault/secret | Post-deploy client cleanup |
 |------|--------------|----------------|--------------|-----------------------------|
-| B4 | 0194 | `notify` (mod), `notification-retry` (new) | none | none |
+| B4 | 0194 (outbox schema + RPC hardening **and** cron) | `notify` (mod), `notification-retry` (new) | none | none (optional `db.generated.ts` regen) |
 | B5 | 0195 | — | none | swap `useHrDashboardData` to PREFER RPC + fallback |
 | B8 | 0196 | — | none | none (`api/stats.ts` already fallback-safe) |
 | B6 | 0197 | — | `deadman_alert_webhook_url` (optional) | none |

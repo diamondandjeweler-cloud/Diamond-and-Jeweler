@@ -621,6 +621,222 @@ end;
 $$;
 
 -- ============================================================================
+-- INVARIANT 11 — Restaurant tenant isolation: the unfiltered blanket policy
+--   rst_all_authenticated must be GONE from stock_take / stock_take_line /
+--   waiter_section / promotion_redemption / notification, and each must carry
+--   its org-scoped replacement. Regression target: 0204 (finding auth-rls-2).
+--   0047 left these five governed by an unfiltered
+--   USING((select auth.role())='authenticated') → cross-tenant CRUD (competitor
+--   inventory read/corruption + redemption/PII leak). Pure catalog assertion
+--   (pg_policies) — no fixtures / impersonation.
+-- ============================================================================
+do $$
+declare
+  leftover text := '';
+  missing  text := '';
+  r        record;
+begin
+  -- 11a: no surviving blanket policy on any of the five tables.
+  for r in
+    select tablename from pg_policies
+    where schemaname = 'restaurant'
+      and policyname = 'rst_all_authenticated'
+      and tablename in ('stock_take','stock_take_line','waiter_section',
+                        'promotion_redemption','notification')
+  loop
+    leftover := leftover || ' ' || r.tablename;
+  end loop;
+  if leftover <> '' then
+    raise exception
+      'INVARIANT 11 FAILED: unfiltered rst_all_authenticated still present on restaurant:%', leftover;
+  end if;
+
+  -- 11b: the org-scoped replacement policy exists on each table.
+  for r in
+    select * from (values
+      ('stock_take',           'rst_org_stock_take_all'),
+      ('stock_take_line',      'rst_org_stock_take_line_all'),
+      ('waiter_section',       'rst_org_waiter_section_all'),
+      ('promotion_redemption', 'rst_org_promotion_redemption_all'),
+      ('notification',         'rst_org_notification_all')
+    ) as t(tbl, pol)
+  loop
+    if not exists (
+      select 1 from pg_policies
+      where schemaname = 'restaurant'
+        and tablename = r.tbl
+        and policyname = r.pol
+    ) then
+      missing := missing || ' ' || r.tbl || '/' || r.pol;
+    end if;
+  end loop;
+  if missing <> '' then
+    raise exception
+      'INVARIANT 11 FAILED: org-scoped restaurant policy missing:%', missing;
+  end if;
+
+  raise notice 'PASS 11: restaurant stock/section/redemption/notification are tenant-scoped (blanket policy removed)';
+end;
+$$;
+
+-- ============================================================================
+-- INVARIANT 12 — Points-mutating RPCs are service_role-only. Regression targets:
+--   0201 (award_points, BOTH overloads — finding money-1) and 0202
+--   (redeem_points_for — finding money-3). A left-over default PUBLIC EXECUTE let
+--   any anon/authenticated caller mint (award_points) or drain (redeem_points_for)
+--   Diamond Points over /rest/v1/rpc/*. Pure catalog assertion
+--   (has_function_privilege) — no fixtures.
+-- ============================================================================
+do $$
+declare
+  bad text := '';
+begin
+  -- deny side: neither anon nor authenticated may EXECUTE the money RPCs.
+  if has_function_privilege('authenticated','public.award_points(uuid, integer, text, jsonb, text)','EXECUTE') then bad := bad || ' award_points/5arg/authenticated'; end if;
+  if has_function_privilege('anon','public.award_points(uuid, integer, text, jsonb, text)','EXECUTE')          then bad := bad || ' award_points/5arg/anon'; end if;
+  if has_function_privilege('authenticated','public.award_points(uuid, integer, text, jsonb)','EXECUTE')        then bad := bad || ' award_points/4arg/authenticated'; end if;
+  if has_function_privilege('anon','public.award_points(uuid, integer, text, jsonb)','EXECUTE')                 then bad := bad || ' award_points/4arg/anon'; end if;
+  if has_function_privilege('authenticated','public.redeem_points_for(uuid, integer, text, text)','EXECUTE')    then bad := bad || ' redeem_points_for/authenticated'; end if;
+  if has_function_privilege('anon','public.redeem_points_for(uuid, integer, text, text)','EXECUTE')             then bad := bad || ' redeem_points_for/anon'; end if;
+
+  if bad <> '' then
+    raise exception 'INVARIANT 12 FAILED: points-mutating RPC EXECUTE-able by anon/authenticated (mint/drain):%', bad;
+  end if;
+
+  -- allow side: service_role must retain EXECUTE (the legitimate caller path).
+  if not has_function_privilege('service_role','public.award_points(uuid, integer, text, jsonb, text)','EXECUTE') then
+    raise exception 'INVARIANT 12 FAILED: service_role lost EXECUTE on award_points(5-arg) — legit money path broken';
+  end if;
+  if not has_function_privilege('service_role','public.redeem_points_for(uuid, integer, text, text)','EXECUTE') then
+    raise exception 'INVARIANT 12 FAILED: service_role lost EXECUTE on redeem_points_for — legit redeem path broken';
+  end if;
+
+  raise notice 'PASS 12: award_points (both overloads) + redeem_points_for are service_role-only';
+end;
+$$;
+
+-- ============================================================================
+-- INVARIANT 13 — A talent (bob) CANNOT self-manipulate ghost_score to a
+--   negative/arbitrary value nor self-approve waitlist_approved. Regression
+--   target: 0205 (finding auth-rls-3). ghost_score is a matcher penalty; the
+--   ONLY self-write permitted is a reset-to-zero (the at-will Revive clear).
+-- ============================================================================
+do $$
+declare
+  gs int;
+  wl boolean;
+begin
+  -- Seed bob with a non-zero ghost_score as service_role (bypasses 0205 trigger).
+  set local "request.jwt.claims" to '{"role":"service_role"}';
+  update public.profiles
+     set ghost_score = 5, waitlist_approved = false
+   where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+
+  -- Impersonate bob and attempt the manipulations.
+  set local role authenticated;
+  set local "request.jwt.claim.sub" to 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+  set local "request.jwt.claims" to
+    '{"sub":"bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb","role":"authenticated"}';
+
+  update public.profiles set ghost_score = -10
+   where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+  update public.profiles set ghost_score = 2
+   where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+  update public.profiles set waitlist_approved = true
+   where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+
+  reset role;
+
+  select ghost_score, waitlist_approved into gs, wl
+  from public.profiles where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+
+  if gs <> 5 then
+    raise exception 'INVARIANT 13 FAILED: talent self-changed ghost_score to % (expected reverted 5)', gs;
+  end if;
+  if wl is not false then
+    raise exception 'INVARIANT 13 FAILED: talent self-approved waitlist_approved (=%)', wl;
+  end if;
+  raise notice 'PASS 13: talent cannot self-lower/negate ghost_score or self-approve waitlist';
+end;
+$$;
+
+-- ============================================================================
+-- INVARIANT 13b (allow side) — the Revive reset-to-zero is preserved: bob CAN
+--   set his own ghost_score to 0 (proves 13's deny is targeted, not a blanket
+--   freeze that would break the self-service Revive flow).
+-- ============================================================================
+do $$
+declare
+  gs int;
+begin
+  set local role authenticated;
+  set local "request.jwt.claim.sub" to 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+  set local "request.jwt.claims" to
+    '{"sub":"bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb","role":"authenticated"}';
+
+  update public.profiles set ghost_score = 0
+   where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+
+  reset role;
+
+  select ghost_score into gs from public.profiles
+  where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+  if gs <> 0 then
+    raise exception 'INVARIANT 13b FAILED: Revive reset-to-zero was blocked (ghost_score=%, expected 0)', gs;
+  end if;
+  raise notice 'PASS 13b: talent can still reset ghost_score to 0 (Revive preserved)';
+end;
+$$;
+
+-- ============================================================================
+-- INVARIANT 14 — A BANNED user (bob) CANNOT self-unban via a direct profiles
+--   UPDATE. Regression target: 0203 (finding auth-rls-1). profiles_update_self
+--   WITH CHECK permits is_banned=false, column UPDATE(is_banned) is granted to
+--   authenticated, and (pre-0203) no trigger guarded it — so the only self-write
+--   a banned user was allowed to make was the one that cleared their own ban.
+-- ============================================================================
+do $$
+declare
+  banned boolean;
+begin
+  -- Ban bob as service_role (bypasses the 0203 trigger).
+  set local "request.jwt.claims" to '{"role":"service_role"}';
+  update public.profiles set is_banned = true
+   where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+
+  -- Impersonate the banned bob and attempt to self-unban.
+  set local role authenticated;
+  set local "request.jwt.claim.sub" to 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+  set local "request.jwt.claims" to
+    '{"sub":"bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb","role":"authenticated"}';
+
+  begin
+    update public.profiles set is_banned = false
+     where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+    -- The 0203 trigger reverts is_banned to true; profiles_update_self WITH CHECK
+    -- (requires is_banned=false) then rejects the row → insufficient_privilege.
+    -- Either outcome must leave bob banned.
+  exception
+    when insufficient_privilege then null;
+  end;
+
+  reset role;
+
+  select is_banned into banned from public.profiles
+  where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+  if banned is not true then
+    raise exception 'INVARIANT 14 FAILED: banned user self-unbanned (is_banned=%)', banned;
+  end if;
+  raise notice 'PASS 14: banned user cannot self-unban via profiles UPDATE';
+
+  -- Restore (defence in depth; the whole suite ROLLBACKs anyway).
+  set local "request.jwt.claims" to '{"role":"service_role"}';
+  update public.profiles set is_banned = false
+   where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+end;
+$$;
+
+-- ============================================================================
 -- All assertions passed if we reach here. ROLLBACK so the suite is a pure
 -- read-only smoke against the reset DB and re-runnable without cleanup.
 -- ============================================================================

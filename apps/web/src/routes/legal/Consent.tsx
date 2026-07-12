@@ -8,6 +8,7 @@ import { Alert, Button, Card, CardBody, Spinner } from '../../components/ui'
 import { useSeo } from '../../lib/useSeo'
 import { clearLegalVersionCache, consentSatisfiesVersion, getCurrentLegalVersion, normaliseLegalVersion } from '../../lib/legalVersion'
 import { createLogger } from '../../lib/logger'
+import DOMPurify from 'dompurify'
 
 const log = createLogger('Consent')
 
@@ -161,7 +162,8 @@ export default function Consent() {
               this box to read the full text. */}
           <div
             className="prose prose-sm max-w-none mb-4 max-h-[38vh] sm:max-h-[50vh] overflow-y-auto border border-ink-200 rounded-lg p-4 bg-ink-50 mt-4"
-            dangerouslySetInnerHTML={{ __html: simpleMarkdown(v.body_md) }}
+            // eslint-disable-next-line no-restricted-syntax -- markdown output is DOMPurify-sanitized on this line
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(simpleMarkdown(v.body_md)) }}
           />
 
           {/* Action area — sticky to bottom of viewport on mobile so the

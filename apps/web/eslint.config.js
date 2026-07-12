@@ -138,6 +138,15 @@ export default [
           message:
             'Direct supabase.schema().from()/.rpc() outside src/data/repositories — route it through a repository function (data-access seam).',
         },
+        {
+          // XSS seam: dangerouslySetInnerHTML is how the org_consultations
+          // report_html stored-XSS was possible. Any __html MUST be wrapped in
+          // DOMPurify.sanitize(); the two existing sanitized sites carry an
+          // eslint-disable-next-line with a justification.
+          selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']",
+          message:
+            'dangerouslySetInnerHTML is an XSS vector — wrap the __html value in DOMPurify.sanitize(). If already sanitized, add an eslint-disable-next-line no-restricted-syntax with a justification.',
+        },
       ],
     },
   },

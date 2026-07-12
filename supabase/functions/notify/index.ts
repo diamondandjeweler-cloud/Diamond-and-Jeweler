@@ -139,7 +139,7 @@ async function handler(req: Request): Promise<Response> {
 
   let emailStatus: 'sent' | 'skipped' | 'error' = 'skipped'
   const resend = getResend()
-  // Durable outbox (migration 0085, hardened in 0194): on a FRESH call, enqueue
+  // Durable outbox (migration 0085, hardened in 0200): on a FRESH call, enqueue
   // a pending row before the email attempt so a transient Resend failure is
   // picked up and retried by the notification-retry cron. On a RETRY re-fire,
   // reuse the outbox_id passed in — the retry cron has already CLAIMED the row
@@ -244,7 +244,7 @@ async function handler(req: Request): Promise<Response> {
 }
 
 // ---------------------------------------------------------------------------
-// Durable notification outbox (migration 0085, hardened in 0194) — best-effort
+// Durable notification outbox (migration 0085, hardened in 0200) — best-effort
 // wiring. enqueueEmailOutbox creates a 'pending' row for a fresh email send;
 // setOutboxProviderId stamps the accepted send's provider id; recordOutboxAttempt
 // flips the row to 'sent' (idempotently) or schedules the next capped retry.

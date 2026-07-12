@@ -15,7 +15,7 @@
  *      returns them. Spending the attempt at claim time (before the re-fire)
  *      hard-caps physical sends per row at max_attempts, so a lost bookkeeping
  *      write can never cause an unbounded re-send. Exhausted in-flight rows are
- *      retired to the terminal 'sent_unconfirmed' state (0194).
+ *      retired to the terminal 'sent_unconfirmed' state (migration 0200).
  *   2. For each claimed row, re-invoke `notify` with the SAME user_id/type/data
  *      plus the outbox_id — notify re-attempts the EMAIL ONLY (skipping the send
  *      entirely if the row shows the mail already went out) and records the

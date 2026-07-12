@@ -11,7 +11,12 @@ to merge before the owner applies anything below. Applying each item is a pure,
 additive improvement.
 
 Migration numbers are the next-free block after `0193`: **0194–0198**, plus
-**0199** (B9, added later in this batch).
+**0199** (B9) and **0200** (B4 outbox state-machine hardening), both added later
+in this batch. **0194 ships unchanged as cron-only** — the B4 hardening it
+originally carried was moved OUT into fresh migration **0200** so that editing an
+already-shipped migration file in place can never let a runner skip the hardening
+(it tracks 0194 by checksum and would not re-run it if 0194 had already applied in
+its cron-only form).
 
 ---
 
@@ -28,17 +33,25 @@ Migration numbers are the next-free block after `0193`: **0194–0198**, plus
 
 ## Item B4 — Wire notification_outbox retry loop (closes failure-mode F3)
 
-**Deploy order matters:** apply the migration FIRST this time (it hardens the
-two outbox RPCs the edge fns depend on), then deploy the edge fns, and note the
-migration also *schedules* the cron that calls `notification-retry` — so deploy
-`notification-retry` before/at the same time as applying 0194.
+**Migrations:** `0194_notification_retry_cron.sql` (schedules the every-1m cron —
+unchanged from its originally-shipped cron-only form) **and**
+`0200_notification_outbox_state_machine_hardening.sql` (the outbox state-machine
+rebuild — columns, widened status CHECK, both hardened RPCs). The hardening lives
+in its OWN migration (not appended into the shipped 0194) so a runner that already
+applied 0194 in cron-only form still picks the hardening up.
+
+**Deploy order matters:** apply BOTH migrations FIRST this time (0200 hardens the
+two outbox RPCs the edge fns depend on; they apply in numeric order 0194→0200 in
+the same push), then deploy the edge fns. The cron in 0194 *schedules*
+`notification-retry`, so deploy `notification-retry` before/at the same time as
+applying these migrations.
 
 ### Hardened semantics (at-most-once-observable)
 
-`0194` no longer only schedules the cron — it also rebuilds the outbox state
-machine so a `record_notification_attempt` failure that lands AFTER a successful
-Resend send can never cause a duplicate email (review finding on
-`notify/index.ts`). What changed vs. the original 0085 wiring:
+`0200` rebuilds the outbox state machine so a `record_notification_attempt`
+failure that lands AFTER a successful Resend send can never cause a duplicate
+email (review finding on `notify/index.ts`); `0194` remains the cron scheduler
+only. What changed vs. the original 0085 wiring:
 
 - **Two new columns** on `notification_outbox`: `claimed_at` (drives stale
   in-flight recovery) and `provider_message_id` (the Resend id — its presence is
@@ -70,9 +83,12 @@ unchanged (still gated by `!isRetry` / consent-before-enqueue).
 
 ### Steps
 
-1. Apply migration `0194_notification_retry_cron.sql` (idempotent — `ADD COLUMN
-   IF NOT EXISTS`, DROP/ADD the status CHECK, `CREATE OR REPLACE` both RPCs,
-   `CREATE INDEX IF NOT EXISTS`, then schedules `bole-notification-retry-every-1m`).
+1. Apply BOTH migrations (idempotent; numeric order 0194→0200 in one push):
+   - `0200_notification_outbox_state_machine_hardening.sql` — `ADD COLUMN IF NOT
+     EXISTS` (`claimed_at`, `provider_message_id`), DROP/ADD the status CHECK,
+     `CREATE OR REPLACE` both RPCs, `CREATE INDEX IF NOT EXISTS`.
+   - `0194_notification_retry_cron.sql` — schedules `bole-notification-retry-every-1m`
+     (cron only; unchanged from its originally-shipped form).
 2. Deploy edge fns:
    - `supabase functions deploy notify`  (modified — enqueue→[dedupe-check]→send
      →stamp-provider-id→record_attempt; retries are email-only via `outbox_id`)
@@ -285,7 +301,7 @@ the alert-less silent-pending behavior.
 
 | Item | Migration(s) | Edge fn deploy | Vault/secret | Post-deploy client cleanup |
 |------|--------------|----------------|--------------|-----------------------------|
-| B4 | 0194 (outbox schema + RPC hardening **and** cron) | `notify` (mod), `notification-retry` (new) | none | none (optional `db.generated.ts` regen) |
+| B4 | 0200 (outbox schema + RPC hardening) + 0194 (cron only) | `notify` (mod), `notification-retry` (new) | none | none (optional `db.generated.ts` regen) |
 | B5 | 0195 | — | none | swap `useHrDashboardData` to PREFER RPC + fallback |
 | B8 | 0196 | — | none | none (`api/stats.ts` already fallback-safe) |
 | B6 | 0197 | — | `deadman_alert_webhook_url` (optional) | none |

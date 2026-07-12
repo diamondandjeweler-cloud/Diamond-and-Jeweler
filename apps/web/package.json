@@ -18,6 +18,7 @@
     "test:run": "vitest run",
     "test:ui": "vitest --ui",
     "test:e2e": "playwright test",
+    "test:e2e:seeded": "playwright test --config playwright.seeded.config.ts",
     "test:e2e:ui": "playwright test --ui",
     "types:gen:local": "supabase gen types typescript --local > src/types/db.generated.ts",
     "types:gen:remote": "supabase gen types typescript --project-id \"$SUPABASE_PROJECT_ID\" > src/types/db.generated.ts",

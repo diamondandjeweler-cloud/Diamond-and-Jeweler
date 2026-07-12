@@ -69,6 +69,10 @@ export default function PointsWallet() {
 
   async function buyPackage(pkg: Package) {
     if (!session) return
+    // Guard against a second purchase while one is already in flight — clicking a
+    // different package before the Billplz redirect fires would create a second
+    // orphaned bill/purchase row.
+    if (buyingId) return
     setBuyErr(null)
     setBuyingId(pkg.id)
     try {
@@ -153,6 +157,7 @@ export default function PointsWallet() {
               <Button
                 onClick={() => void buyPackage(pkg)}
                 loading={buyingId === pkg.id}
+                disabled={buyingId !== null}
                 className="w-full"
                 variant="brand"
               >

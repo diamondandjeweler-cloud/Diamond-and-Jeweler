@@ -1,95 +1,102 @@
 # DNJ / BoLe — STATUS (single source of truth)
 
-> **Staleness note:** the claims below reflect state as of **2026-07-05**. The repo has
-> since advanced — HEAD is now `da49842` (2026-07-11), roughly 100 commits later. For
-> anything more recent, check `git log` and `docs/ARCHITECTURE.md`.
+> **State as of 2026-07-12**, live tip `c9c5fef` (branch `feat/path-to-100`). For anything
+> newer, check `git log` and `docs/ARCHITECTURE.md`. The owner-only path-to-100 list now lives
+> in **`docs/OWNER_ONEPAGER_PATH_TO_100.md`** — this file is the engineering-state snapshot.
 
 > This file supersedes the audit/roadmap doc sprawl (~281 KB across 12 docs). If any
 > other doc disagrees with this one, **this one wins.** Keep it SHORT — one screen.
 
 ## The only two numbers that matter right now
 
-- **Pipeline alive?** ✅ **YES** — verified live 2026-07-04: `GET /api/health` → 200,
-  `{"pipeline":{"healthy":true,"last_heartbeat_age_seconds":38,"recent_done":0}}`. The Vault
-  `service_role_key` was rotated and the ~27-day outage older docs describe is **resolved**.
-  It's healthy but **idle** — `recent_done:0` simply because there are no roles to match yet.
-- **Real users:** **0** — verified `GET /api/stats` → `{"talents":0,"companies":0}`. Pre-launch.
+- **Pipeline alive?** ✅ **YES** — the Vault `service_role_key` was rotated and `GET /api/health`
+  returned 200 with a fresh heartbeat (last verified live 2026-07-04). The ~27-day outage the older
+  docs describe is **resolved**. Healthy but **idle** — no roles to match yet. *(Re-confirm via the
+  external uptime monitor once it's wired — see blockers.)*
+- **Real users:** **0** — pre-launch (`GET /api/stats` → `{"talents":0,"companies":0}` at last check).
 
 **Operating rule:** the blocker is no longer code or ops — the pipeline runs and is monitorable.
-The blocker is **getting the first real users** + closing the legal/product gates below.
-Do not merge refactors / UI polish while users = 0; put that energy into launch.
+The blocker is **getting the first real users** + closing the legal/product gates below. The
+"no refactors while users = 0" rule was overridden by the 07-10 UI-stabilization work; whether to
+reinstate it is an open decision (`docs/decisions/`, and the one-pager).
 
-## Owner blockers — what actually still gates the pilot
+## Owner blockers — what actually gates the pilot (2026-07-12)
 
-1. ✅ **DONE — Vault `service_role_key` rotated / pipeline revived.** Verified live: heartbeat is
-   fresh (age 38s), so the crons (incl. migration `0151`) are applied and running in prod. The
-   older docs' "pipeline dead / prod stuck at 0121" is **stale** — prod has advanced past it.
-2. 🟠 **Confirm an external monitor is pointed at `/api/health`** (UptimeRobot, 5 min). The endpoint
-   works and returns 503 on failure, but the in-DB dead-man check goes unseen when everyone's
-   logged out — an external monitor is the only off-platform alarm. *(Unverifiable from here — confirm.)*
-3. 🟠 **Reconcile prod `schema_migrations` + verify the `CONCURRENTLY` pre-filter indexes** exist in
-   prod `pg_indexes` (run `supabase/post_deploy/0001`; if `0074`'s in-txn indexes never applied, the
-   matcher seq-scans at scale). Then flip the CI drift gate to blocking. Exact prod version is
-   unverified from here — but `db push` stays unsafe until reconciled.
-4. 🔴 **Lawyer packet** (one email): (a) the DOB/race/religion matching signal — PDPA sensitive-data
-   + hiring-discrimination exposure; (b) the hiring consent PDPA-waiver (Contracts Act §24);
-   (c) the ToS user-content licence gap. (`PRELAUNCH_BLOCKED_ITEMS.md`) **This is now the top gate.**
-5. 🟠 **Pick ONE monetization model for the pilot.** `/pricing` sells "free for talent +
-   enterprise contact-us," but the code ships a full Diamond Points economy (8+ paid surfaces).
-   Park points behind a flag, or commit to it — don't launch both.
-6. 🟢 **Get the first 10–50 real users.** The pipeline runs and is idle-healthy; the only thing it's
-   missing is roles and talent. This — not more code — is the real work now.
+Full owner list with point values in **`docs/OWNER_ONEPAGER_PATH_TO_100.md`**. The gating subset:
+
+1. 🔴 **Lawyer packet** (the #1 gate, ~15 pts): email `docs/legal/LAWYER_PACKET.md` to Malaysian
+   counsel (cover email drafted at `docs/legal/LAWYER_EMAIL_DRAFT.md`). Need back: yes/no + redlines
+   on (a) DOB/race/religion as a matching signal, (b) the PDPA-waiver clause, (c) the ToS
+   content-licence gap. (`docs/PRELAUNCH_BLOCKED_ITEMS.md`)
+2. 🔴 **Pick ONE monetization model** (~12 pts): `/pricing` sells free + "contact us" while the code
+   ships a full Diamond Points economy. Park one behind a flag or align the copy. Decision brief:
+   `docs/decisions/0002-monetization-model.md`.
+3. 🟠 **Enable Vercel Required Checks** (`web`, `db-apply`, `security`, `e2e`). This is *exactly* how
+   the 2026-07-10 white-screen reached prod (see `docs/postmortems/2026-07-10-vendor-chunk-white-screen.md`).
+   Pairs with the Wave-A chunk-integrity guard — the guard is toothless until this toggle makes it block.
+4. 🟠 **Point an uptime monitor at `/api/health`** (UptimeRobot / cron-job.org, 5 min, alert on HTTP
+   503). `/api/health` already 503s on a dead pipeline; nothing off-platform watches it — the 07-10
+   outage was caught by hand.
+5. 🟠 **Set `SENTRY_DSN_EDGE`** on project `sfnrpbsdscikpmbhrzub` + redeploy edge fns — 44 edge-fn
+   error sites are wired to it and are silently inert until set.
+6. 🟠 **Set the Billplz webhook signature secret** — `payment-webhook` is fail-closed (safe) but can't
+   verify live callbacks without it.
+7. 🟠 **Reconcile prod `schema_migrations`** — repo is now at **0193**; prod's ledger is ~40 behind
+   (migrations applied out-of-band via Management API/dashboard). `supabase db push` would mis-fire
+   until reconciled; then flip the CI drift gate to blocking. Also verify the `CONCURRENTLY`
+   pre-filter indexes exist in prod (`supabase/post_deploy/0001`).
+8. 🟢 **Get the first 10–50 real users.** The pipeline is idle-healthy; it's missing roles and talent,
+   not code.
 
 ## Source of truth for the system
 
-- **Architecture:** `docs/ARCHITECTURE.md` (accurate as of 2026-06-27).
+- **Architecture (current):** `docs/ARCHITECTURE.md` (accurate as of 2026-06-27).
+- **Architecture (target/strangler realized + gaps):** `docs/ARCHITECTURE_TARGET.md`.
 - **Historical only:** `AUDIT*`, `ROAD_TO_A_PLUS`, `ROAD_TO_95`, `SCALE_TO_MILLIONS`,
-  `PARTITIONING_RUNBOOK`, `SCALABILITY` are dated snapshots the code has **moved past**
-  (god-components decomposed, matcher N+1 collapsed, 5/6 money bugs fixed, repository seam done,
-  secrecy leaks closed). Do **not** treat them as current or re-audit against them.
+  `PARTITIONING_RUNBOOK`, `SCALABILITY` are dated snapshots the code has **moved past** (god-components
+  decomposed, matcher N+1 collapsed, money bugs fixed, repository seam done, secrecy leaks closed). Do
+  **not** treat them as current or re-audit against them.
 
 ## Open engineering items (NOT owner-gated) — do AFTER the pilot, not before
 
 - Flip `rls_deny.sql` to blocking in CI (needs one observed-green `supabase db reset` run first).
 - Wire `cron_deadman_check` to off-platform escalation (notify/Resend), not just an in-DB row.
-- ToyyibPay consult callback is dead (401'd before it runs) — wire a real `toyyibpay-webhook`
-  or delete it; consults are a parking candidate anyway.
-- **`createClient<Database>` is NOT a quick win** (attempted 2026-07-04, reverted): the generic
-  breaks all `src/routes/restaurant/*` because the restaurant tables aren't in `db.generated.ts`,
-  and it slows `tsc` past a 2-min timeout. Needs restaurant tables in the generated types (or the
-  restaurant extraction) first, then per-call cleanup — a real refactor, not a one-liner.
-- **The secret vocabulary ships in the client bundle** (`lib/orgChartSanitiser.ts` regex map
-  `[/bazi/gi, 'temperament pattern']` → visible in `dist/assets/OrgChartDetail-*.js`). Because of
-  this, `qa/scripts/01-bazi-secrecy.mjs` cannot be a blocking CI gate (it correctly flags the
-  sanitiser's own protective regex). The real fix is moving sanitisation server-side (moat
-  decision #4) so the vocabulary never reaches the browser.
+- Storybook-axe as a blocking CI gate + a chunk-integrity build guard (both in the Wave-A CI-Guards batch).
+- ToyyibPay consult callback is dead (401'd before it runs) — wire a real `toyyibpay-webhook` or delete it.
+- **`createClient<Database>` is NOT a quick win** (attempted 2026-07-04, reverted): the generic breaks
+  all `src/routes/restaurant/*` (restaurant tables aren't in `db.generated.ts`) and slows `tsc` past a
+  2-min timeout. Needs the restaurant tables generated (or the restaurant extraction) first.
+- **The secret vocabulary ships in the client bundle** (`lib/orgChartSanitiser.ts` regex map is visible
+  in `dist/assets/OrgChartDetail-*.js`), so `qa/scripts/01-bazi-secrecy.mjs` can't be a blocking gate.
+  Real fix is moving sanitisation server-side (moat decision #4 / the staged H5 life-chart fix).
 
-## Launch-QA snapshot — run against prod 2026-07-05
+## Launch-QA snapshot — last run against prod 2026-07-05
 
-Ran the `qa/` launch harness against production (read-only + authz-verification subset;
-skipped active write-probes `03`/`14` and the LLM checks). Result: **10/14 clean, authz
-boundary verified holding in prod.**
+Ran the `qa/` launch harness (read-only + authz subset; skipped active write-probes `03`/`14` + LLM
+checks). Result: **10/14 clean, authz boundary verified holding in prod.**
 
-- ✅ **Authz holds in prod:** RLS on 16 tables + anon blocked (`02`), 4/4 forged JWTs rejected
-  (`04`), 33 testers invisible to anon (`11`). DOB encryption holds — no plaintext DOB in bundle
-  or API (`13`). TLS/headers, SSL/DNS (80d to expiry), SEO, backups (7 retained, 22h old), and
-  108 email templates all clean.
-- ✅ **Fixed + shipped:** dependency vulns (`09`) — `react-router` open-redirect, `form-data`
-  CRLF, `ws`, `js-yaml`, `@babel/core` (commit `5a24c8c`, verified green).
-- ⚠️ **`12-dsr-tenant-isolation` gives a false FAIL** — the probe sends `apikey`+`Authorization`
-  together, which Supabase's current gateway rejects ("Conflicting API keys"). This is a **stale
-  QA harness** (`qa/lib/http.mjs`), NOT a DSR vuln — `dsr-export` correctly 401'd a malformed
-  request. Needs a harness auth update to the new `sb_` key model before it can test isolation again.
+- ✅ **Authz holds:** RLS on 16 tables + anon blocked (`02`), 4/4 forged JWTs rejected (`04`), 33 testers
+  invisible to anon (`11`), no plaintext DOB in bundle or API (`13`). TLS/headers, SSL/DNS, SEO, backups
+  (7 retained), and 108 email templates all clean.
+- ⚠️ **`12-dsr-tenant-isolation` false FAIL** — the probe sends `apikey`+`Authorization` together, which
+  the current Supabase gateway rejects. Stale QA harness (`qa/lib/http.mjs`), not a DSR vuln.
 - ⚠️ **`01-bazi-secrecy` FAILs on the client-bundle sanitiser** (see open items) — not a leak.
-
-Deferred (need a decision/owner): dev-only vuln chain (`vite@8`/`vitest@4` major bump);
-active write-probes `03`/`14`; the DSR-harness key fix.
 
 ## Recent changes
 
-**2026-07-05:** `fix(deps)` runtime dependency vulns patched — `5a24c8c`. Launch-QA snapshot above.
+**2026-07-12:** `fix(security)` PR#36 — sanitize consent markdown + an eslint guard banning raw
+`dangerouslySetInnerHTML` — `66e73c3` (merge `c9c5fef`).
 
-**2026-07-04:** `ci(secrecy)` locale JSON scanned — `37ff57b`; `refactor(types)` dropped orphaned
-`Database` type — `a3d987c`; `docs(legal)` LAWYER_PACKET.md — `9cc2a27`; STATUS findings — `b19bbbe`.
+**2026-07-11:** matcher diversity v2 + salary-null handling (`0191`); faithful points-counter reconcile
++ realtime `hm_id` spoof guard (`0192`/`0193`, `c008790`); **MYT timezone cluster** — day-inclusive promo
+boundaries, overnight window, tax/e-invoice MYT day-bucketing (`eac1464`) + PIN uniqueness / a11y
+(`8f186a7`); **i18n parity** — Kiosk/Referrals localized, ms/zh at key parity (`beb0979`);
+`fix(security,money)` H1 extra-match gate + delivery HMAC + loyalty split-pay (`28984c9`).
 
-_Last updated: 2026-07-05._
+**2026-07-10:** 🔴 prod white-screen outage + hotfix — Radix transitive deps routed into the wrong vendor
+chunk (`b91bea7`, PR#31). Postmortem: `docs/postmortems/2026-07-10-vendor-chunk-white-screen.md`.
+
+**2026-06-30:** `feat(observability)` structured logger modules (web + edge) — `apps/web/src/lib/logger.ts`
++ `supabase/functions/_shared/logger.ts` — `fb480e9`.
+
+_Last updated: 2026-07-12._

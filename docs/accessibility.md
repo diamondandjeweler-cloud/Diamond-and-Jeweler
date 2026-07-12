@@ -2,6 +2,8 @@
 
 Target: **WCAG 2.1 AA**. Full third-party audit pending before public launch.
 
+_Last updated: 2026-07-12._
+
 ## What's in place
 
 - **Skip-link** to main content in [Layout.tsx](../apps/web/src/components/Layout.tsx) — first tab stop on every authenticated page.
@@ -12,11 +14,13 @@ Target: **WCAG 2.1 AA**. Full third-party audit pending before public launch.
 - **Form labels** — every input has an explicit `<label>` associated with it. Required consents have visible `*` markers.
 - **Semantic buttons vs. links** — buttons trigger actions, links navigate. No `<div onClick>` traps.
 - **Color contrast** — Tailwind `text-gray-600` on white meets 4.5:1; brand blue 600 on white meets 4.5:1.
+- **Dark mode (token sweep shipped)** — neutral surfaces/borders/text now flow through semantic CSS-variable tokens (`src/ui/tokens.css`) that flip once under the `.dark` class set pre-paint, so both themes are contrast-correct with zero per-component `dark:` guessing. Contrast rule: accent-gold text on light must be `700`+; every text/bg pair clears 4.5:1 (3:1 for ≥18px / bold). See [UI_SYSTEM.md](./UI_SYSTEM.md) §2–§5.
 
 ## Automated coverage
 
 - **ESLint** runs `eslint-plugin-jsx-a11y` on every `src/**/*.{ts,tsx}` file via `npm run lint` and in CI.
 - **Playwright + axe-core** scans every public route (`/`, `/login`, `/signup`, `/password-reset`, `/privacy`, `/terms`, `/does-not-exist`) against WCAG 2.1 AA in [tests/e2e/a11y.spec.ts](../apps/web/tests/e2e/a11y.spec.ts). The e2e CI job fails on any `critical` or `serious` violation.
+- **Storybook + axe (per story)** — `@storybook/addon-a11y` runs axe against every primitive story in the Storybook UI. **CI wiring in progress:** a blocking Storybook-axe step (via the Storybook test-runner) is being added by the Wave-A CI-Guards batch so per-component a11y regressions fail CI, not just the public-route Playwright scan. Until it lands, per-story axe is advisory (visible in Storybook, not gated in `ci.yml`).
 
 ## Known gaps (to fix before launch)
 - [ ] No screen-reader testing performed on onboarding flows.

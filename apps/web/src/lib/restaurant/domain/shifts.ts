@@ -28,3 +28,42 @@ export function computeShiftVariance(
   const variance = actualCash - expected
   return { expected, variance }
 }
+
+export interface CashierTally {
+  /** Sum of this cashier's completed CASH payments — the drawer's expected cash. */
+  cashSales: number
+  /** Completed total per payment method (all methods), for the X/Z breakdown. */
+  byMethod: Record<string, number>
+  /** Number of completed payments counted. */
+  count: number
+  /** Sum of all completed payments (every method). */
+  amount: number
+}
+
+/**
+ * Reconcile a single cashier's X/Z report from a payment list.
+ *
+ * A branch can run CONCURRENT cashier shifts (getOpenShift keys on
+ * branch+employee, no single-open-shift constraint), and the payment table has
+ * no shift_id, so a branch-wide payment list would double-count a *peer*
+ * cashier's takings into the closing cashier's drawer — producing false cash
+ * variances and bogus manager-approval gates. Count ONLY the completed payments
+ * this cashier processed (`processed_by === employeeId`); cash-method rows feed
+ * the drawer variance, every method feeds the by-method breakdown.
+ */
+export function tallyCashierPayments(
+  payments: { status: string; method: string; amount: number | string; processed_by?: string | null }[],
+  employeeId: string,
+): CashierTally {
+  const tally: CashierTally = { cashSales: 0, byMethod: {}, count: 0, amount: 0 }
+  for (const p of payments) {
+    if (p.status !== 'completed') continue
+    if (p.processed_by !== employeeId) continue
+    const amt = Number(p.amount)
+    tally.count += 1
+    tally.amount += amt
+    tally.byMethod[p.method] = (tally.byMethod[p.method] ?? 0) + amt
+    if (p.method === 'cash') tally.cashSales += amt
+  }
+  return tally
+}

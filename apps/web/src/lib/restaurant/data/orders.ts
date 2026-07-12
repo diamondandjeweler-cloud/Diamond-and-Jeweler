@@ -12,19 +12,26 @@ import type {
 /**
  * Pure recompute of order money fields from its current line items + discount.
  * Mirrors the addItemToOrder/reorderToOpenOrder formula exactly. Voided items
- * are excluded from the subtotal. tip/delivery_fee are intentionally NOT
- * applied here — those are applied later at the cashier stage, consistent
- * with the add-item/reorder totals.
+ * are excluded from the subtotal.
+ *
+ * `tip` and `deliveryFee` are ADDITIVE pass-throughs to the total (they are not
+ * taxed and not part of the subtotal). They must be threaded through, or a
+ * recompute triggered by add-item/reorder/void would silently drop them from
+ * the persisted total — undercharging delivery orders their delivery fee and
+ * wiping any tip already applied. Both default to 0 for callers that pass
+ * neither (an order with no tip/fee is unaffected).
  */
 export function recomputeOrderTotals(
   items: { quantity: number; unit_price: number | string; modifiers_total: number | string; status: string }[],
   discount: number,
+  tip = 0,
+  deliveryFee = 0,
 ): { subtotal: number; tax: number; total: number } {
   const subtotal = items
     .filter((it) => it.status !== 'voided')
     .reduce((s, it) => s + Number(it.quantity) * (Number(it.unit_price) + Number(it.modifiers_total)), 0)
-  const tax = taxOn(subtotal - discount)
-  const total = subtotal - discount + tax
+  const tax = taxOn(Math.max(0, subtotal - discount))
+  const total = subtotal - discount + tax + tip + deliveryFee
   return { subtotal, tax, total }
 }
 
@@ -40,7 +47,7 @@ export async function addItemToOrder(
   station: string,
   courseType: string,
 ): Promise<void> {
-  const { data: order } = await db.from('orders').select('id, branch_id, subtotal, discount, tax, total').eq('id', orderId).single()
+  const { data: order } = await db.from('orders').select('id, branch_id, subtotal, discount, tax, total, tip, delivery_fee').eq('id', orderId).single()
   if (!order) throw new Error('Order not found')
   const { data: oi, error: oiErr } = await db.from('order_item').insert({
     order_id: orderId, menu_item_id: menuItemId, quantity,
@@ -52,11 +59,11 @@ export async function addItemToOrder(
     branch_id: order.branch_id, order_id: orderId,
     order_item_id: oi.id, station, status: 'pending',
   })
-  // Bump totals
+  // Bump totals — carry tip + delivery_fee so neither is dropped from the total.
   const lineSubtotal = unitPrice * quantity
   const newSubtotal = Number(order.subtotal) + lineSubtotal
-  const newTax = taxOn(newSubtotal - Number(order.discount))
-  const newTotal = newSubtotal - Number(order.discount) + newTax
+  const newTax = taxOn(Math.max(0, newSubtotal - Number(order.discount)))
+  const newTotal = newSubtotal - Number(order.discount) + newTax + Number(order.tip ?? 0) + Number(order.delivery_fee ?? 0)
   await db.from('orders').update({
     subtotal: newSubtotal, tax: newTax, total: newTotal, status: 'sent',
   }).eq('id', orderId)
@@ -67,7 +74,7 @@ export async function addItemToOrder(
  * fresh order_items + tickets, bump totals. Returns the count cloned.
  */
 export async function reorderToOpenOrder(orderId: string, _employeeId: string | null): Promise<number> {
-  const { data: order } = await db.from('orders').select('id, branch_id, subtotal, discount, tax, total').eq('id', orderId).single()
+  const { data: order } = await db.from('orders').select('id, branch_id, subtotal, discount, tax, total, tip, delivery_fee').eq('id', orderId).single()
   if (!order) return 0
   const { data: existing } = await db.from('order_item')
     .select('menu_item_id, quantity, unit_price, modifier_ids, modifiers_total, course_type, special_instruction, status')
@@ -95,8 +102,8 @@ export async function reorderToOpenOrder(orderId: string, _employeeId: string | 
     lineSubtotal += Number(l.unit_price) * Number(l.quantity) + Number(l.modifiers_total)
   }
   const newSubtotal = Number(order.subtotal) + lineSubtotal
-  const newTax = taxOn(newSubtotal - Number(order.discount))
-  const newTotal = newSubtotal - Number(order.discount) + newTax
+  const newTax = taxOn(Math.max(0, newSubtotal - Number(order.discount)))
+  const newTotal = newSubtotal - Number(order.discount) + newTax + Number(order.tip ?? 0) + Number(order.delivery_fee ?? 0)
   await db.from('orders').update({ subtotal: newSubtotal, tax: newTax, total: newTotal, status: 'sent' }).eq('id', orderId)
   return lines.length
 }
@@ -371,8 +378,13 @@ export async function voidItem(itemId: string, reason: string, employeeId: strin
   // Recompute order totals so the voided line stops inflating the balance.
   const { data: it } = await db.from('order_item').select('order_id').eq('id', itemId).single()
   if (!it?.order_id) return
-  const { data: order } = await db.from('orders').select('discount').eq('id', it.order_id).single()
+  const { data: order } = await db.from('orders').select('discount, tip, delivery_fee').eq('id', it.order_id).single()
   const items = await listOrderItems(it.order_id)
-  const { subtotal, tax, total } = recomputeOrderTotals(items, Number(order?.discount ?? 0))
+  const { subtotal, tax, total } = recomputeOrderTotals(
+    items,
+    Number(order?.discount ?? 0),
+    Number(order?.tip ?? 0),
+    Number(order?.delivery_fee ?? 0),
+  )
   await db.from('orders').update({ subtotal, tax, total }).eq('id', it.order_id)
 }

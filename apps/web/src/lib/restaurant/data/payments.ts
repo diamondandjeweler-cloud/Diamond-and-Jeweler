@@ -12,10 +12,15 @@ export async function createPayment(patch: Partial<Payment>): Promise<Payment> {
   return data as Payment
 }
 
-export async function listPayments(branchId: string, fromISO?: string): Promise<Payment[]> {
-  const q = db.from('payment').select('*, orders!inner(branch_id)')
+export async function listPayments(branchId: string, fromISO?: string, processedBy?: string): Promise<Payment[]> {
+  let q = db.from('payment').select('*, orders!inner(branch_id)')
     .eq('orders.branch_id', branchId)
-  const { data, error } = fromISO ? await q.gte('created_at', fromISO) : await q
+  if (fromISO) q = q.gte('created_at', fromISO)
+  // Scope to a single cashier's takings when requested — a branch can run
+  // concurrent shifts, so an X/Z drawer reconciliation must not sweep in peer
+  // cashiers' payments.
+  if (processedBy) q = q.eq('processed_by', processedBy)
+  const { data, error } = await q
   if (error) throw error
   return (data ?? []) as Payment[]
 }
@@ -27,12 +32,19 @@ export async function listPaymentsForOrder(orderId: string): Promise<Payment[]> 
 }
 
 export async function refundPayment(paymentId: string, employeeId: string | null, reason: string): Promise<void> {
-  await db.from('payment').update({
+  // Only refund a still-`completed` row: this blocks double-refund AND, together
+  // with the row-count assertion below, surfaces the failure instead of
+  // reporting a phantom success. A swallowed error/no-op previously left the
+  // payment 'completed' (still counted as paid, loyalty points never clawed
+  // back) while the audit log claimed a refund that never happened.
+  const { data, error } = await db.from('payment').update({
     status: 'refunded',
     refunded_by: employeeId,
     refunded_at: new Date().toISOString(),
     refund_reason: reason,
-  }).eq('id', paymentId)
+  }).eq('id', paymentId).eq('status', 'completed').select()
+  if (error) throw error
+  if (!data || data.length === 0) throw new Error('Refund did not apply (already refunded or not found)')
 }
 
 export async function openShift(branchId: string, employeeId: string, openingFloat: number): Promise<CashierShift> {

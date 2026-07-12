@@ -13,6 +13,8 @@ import {
 import type {
   MenuItem, Order, OrderItem, Payment, PaymentMethod, RestaurantTable, CashierShift,
 } from '../../lib/restaurant/types'
+import { tallyCashierPayments } from '../../lib/restaurant/domain/shifts'
+import { splitItemShare, clampDiscountAdd } from '../../lib/restaurant/domain/checkout'
 import { MYR } from '../../lib/restaurant/format'
 import {
   getSubmissionByOrder, triggerSubmit, getOrderBuyerFields, updateOrderBuyerFields,
@@ -149,6 +151,9 @@ function OrderPay({
   const [tip, setTip]       = useState('')
   const [refundOpenFor, setRefundOpenFor] = useState<Payment | null>(null)
   const [discountOpen, setDiscountOpen] = useState(false)
+  // The validated, clamped NEW TOTAL discount, collected BEFORE the manager PIN
+  // so an approval is never logged for a discount that is cancelled/zero/invalid.
+  const [pendingDiscount, setPendingDiscount] = useState<number | null>(null)
   const [splitItemsOpen, setSplitItemsOpen] = useState(false)
   const [addItemOpen, setAddItemOpen] = useState(false)
   const [splitCount, setSplitCount] = useState(1)
@@ -307,16 +312,33 @@ function OrderPay({
               <Input label="Split by" type="number" min={1} max={10} value={String(splitCount)} onChange={(e) => setSplitCount(parseInt(e.target.value) || 1)} />
               <Button variant="secondary" onClick={splitEqually} loading={busy} disabled={busy}>Split equally</Button>
               <Button variant="secondary" onClick={() => setSplitItemsOpen(true)} disabled={items.filter((i) => i.status !== 'voided').length === 0}>Split by items</Button>
-              <Button variant="ghost" onClick={() => setDiscountOpen(true)}>Apply discount</Button>
+              <Button variant="ghost" onClick={() => {
+                // Collect + validate + clamp the amount BEFORE the manager PIN,
+                // so a cancelled/zero/over-limit entry never writes an approval
+                // row and a discount can never exceed the order subtotal.
+                const v = window.prompt('Discount amount (RM):', '0')
+                if (v == null) return
+                const newDiscount = clampDiscountAdd(parseFloat(v), Number(order.subtotal), Number(order.discount))
+                if (newDiscount == null) { setErr('Enter a discount between 0 and the remaining order amount'); return }
+                setErr(null)
+                setPendingDiscount(newDiscount)
+                setDiscountOpen(true)
+              }}>Apply discount</Button>
             </div>
 
             {splitItemsOpen && (
               <SplitByItems
                 items={items.filter((i) => i.status !== 'voided')}
                 menuItems={menuItems}
+                orderSubtotal={Number(order.subtotal)}
+                orderTotal={Number(order.total)}
                 onCancel={() => setSplitItemsOpen(false)}
-                onPay={async (selected, amt) => {
+                onPay={async (selected, shareAmt) => {
                   if (!shiftActive && method === 'cash') { setErr('Open a cashier shift before accepting cash'); return }
+                  // A split that clears the outstanding balance takes the exact
+                  // remaining amount so the sum of all splits reconciles to
+                  // order.total (no orphaned tax-sized residual from rounding).
+                  const amt = shareAmt >= remaining - 0.009 ? remaining : shareAmt
                   await createPayment({
                     order_id: order.id, amount: amt, method,
                     status: 'completed',
@@ -329,6 +351,19 @@ function OrderPay({
                     action: 'split_pay', entity_type: 'orders', entity_id: order.id,
                     new_value: { items: selected, amount: amt },
                   })
+                  // Mark the order paid + free the table once the balance clears,
+                  // matching submitPayment/splitEqually.
+                  if (paid + amt >= Number(order.total) - 0.009) {
+                    await updateOrderStatus(order.id, 'paid')
+                    if (order.table_id && table?.status === 'occupied') {
+                      await updateTableStatus(order.table_id, 'cleaning')
+                    }
+                    await logAudit({
+                      branch_id: order.branch_id, employee_id: employee?.id ?? null,
+                      action: 'order_paid', entity_type: 'orders', entity_id: order.id,
+                      new_value: { total: order.total, method },
+                    })
+                  }
                   setSplitItemsOpen(false)
                   await onRefresh()
                 }}
@@ -372,21 +407,22 @@ function OrderPay({
           entityType="orders"
           entityId={order.id}
           onApprove={async () => {
-            const v = window.prompt('Discount amount (RM):', '0')
-            const amt = parseFloat(v ?? '0')
-            if (!Number.isFinite(amt) || amt <= 0) { setDiscountOpen(false); return }
-            const newDiscount = Number(order.discount) + amt
+            // Amount already collected + validated + clamped before this modal
+            // opened (pendingDiscount is the new TOTAL discount, <= subtotal).
+            if (pendingDiscount == null) { setDiscountOpen(false); return }
+            const newDiscount = pendingDiscount
             const newTotal = Number(order.subtotal) - newDiscount + Number(order.tax) + Number(order.tip ?? 0) + Number(order.delivery_fee ?? 0)
             await updateOrder(order.id, { discount: newDiscount, total: Math.max(0, newTotal) })
             await logAudit({
               branch_id: order.branch_id, employee_id: employee?.id ?? null,
               action: 'discount_override', entity_type: 'orders', entity_id: order.id,
-              reason: 'Cashier discount override', new_value: { discount_added: amt },
+              reason: 'Cashier discount override', new_value: { discount_total: newDiscount },
             })
+            setPendingDiscount(null)
             setDiscountOpen(false)
             await onRefresh()
           }}
-          onCancel={() => setDiscountOpen(false)}
+          onCancel={() => { setPendingDiscount(null); setDiscountOpen(false) }}
         />
       </CardBody>
     </Card>
@@ -588,35 +624,28 @@ function ShiftCard({ shift, onChanged, branchId }: { shift: CashierShift | null;
   }
 
   const doXReport = async () => {
-    // live tally: count payments since shift opened
+    // live tally: count THIS cashier's payments since shift opened (a branch can
+    // run concurrent shifts, so scope to processed_by to avoid counting peers').
     const since = shift?.opened_at ?? new Date().toISOString()
-    const pays = await listPayments(branchId, since)
-    const tally = pays.reduce((acc, p) => {
-      if (p.status !== 'completed') return acc
-      acc.totals.count += 1
-      acc.totals.amount += Number(p.amount)
-      acc.by_method[p.method] = (acc.by_method[p.method] ?? 0) + Number(p.amount)
-      return acc
-    }, { totals: { count: 0, amount: 0 }, by_method: {} as Record<string, number> })
+    const pays = await listPayments(branchId, since, employee.id)
+    const tally = tallyCashierPayments(pays, employee.id)
     // TODO(road95): migrate this read-only X-report dump to a <Modal> rendering
     // the per-method breakdown as structured JSX. Left as alert() for now — it's
     // a financial *report* (not a money/points/destructive action) and the
     // multi-line string needs reshaping into markup, which is out of this task's
     // behavior-preserving scope.
-    alert(`X-report\nSince: ${new Date(since).toLocaleTimeString()}\nTxn: ${tally.totals.count}\nRevenue: ${MYR(tally.totals.amount)}\n` + Object.entries(tally.by_method).map(([m,v]) => `${m}: ${MYR(v)}`).join('\n'))
+    alert(`X-report\nSince: ${new Date(since).toLocaleTimeString()}\nTxn: ${tally.count}\nRevenue: ${MYR(tally.amount)}\n` + Object.entries(tally.byMethod).map(([m,v]) => `${m}: ${MYR(v)}`).join('\n'))
   }
 
   const doZ = async () => {
     if (!shift) return
     setBusy(true); setMsg(null)
     try {
-      const pays = await listPayments(branchId, shift.opened_at)
-      const by: Record<string, number> = {}
-      let cashSales = 0
-      pays.filter((p) => p.status === 'completed').forEach((p) => {
-        by[p.method] = (by[p.method] ?? 0) + Number(p.amount)
-        if (p.method === 'cash') cashSales += Number(p.amount)
-      })
+      // Reconcile ONLY the closing cashier's own takings — scope both the query
+      // and the tally by processed_by so a concurrent peer cashier's payments on
+      // the same branch don't inflate expected cash and trip a false variance.
+      const pays = await listPayments(branchId, shift.opened_at, shift.employee_id)
+      const { cashSales, byMethod: by } = tallyCashierPayments(pays, shift.employee_id)
       const actual = parseFloat(closingCash) || 0
       const expected = Number(shift.opening_float) + cashSales
       const variance = actual - expected
@@ -690,22 +719,28 @@ function ShiftCard({ shift, onChanged, branchId }: { shift: CashierShift | null;
 }
 
 function SplitByItems({
-  items, menuItems, onCancel, onPay,
+  items, menuItems, orderSubtotal, orderTotal, onCancel, onPay,
 }: {
   items: OrderItem[]
   menuItems: MenuItem[]
+  orderSubtotal: number
+  orderTotal: number
   onCancel: () => void
   onPay: (selectedIds: string[], amount: number) => Promise<void>
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const menuById = useMemo(() => new Map(menuItems.map((m) => [m.id, m])), [menuItems])
-  const total = items.filter((i) => selected.has(i.id))
+  // Pre-tax sum of the selected lines, then its tax-inclusive share of the order
+  // total (menu prices are tax-exclusive; charging the bare pre-tax sum would
+  // undercharge each guest their SST/discount/fee share).
+  const selectedPreTax = items.filter((i) => selected.has(i.id))
     .reduce((s, li) => s + li.quantity * (Number(li.unit_price) + Number(li.modifiers_total)), 0)
+  const share = splitItemShare(selectedPreTax, orderSubtotal, orderTotal)
   return (
     <div className="card-elevated p-4 mb-3">
       <div className="flex items-center justify-between mb-2">
         <h4 className="font-display">Pick items for this payment</h4>
-        <span className="font-display text-lg">{MYR(total)}</span>
+        <span className="font-display text-lg">{MYR(share)}</span>
       </div>
       <ul className="divide-y divide-ink-100 mb-3">
         {items.map((li) => {
@@ -728,8 +763,8 @@ function SplitByItems({
       </ul>
       <div className="flex gap-2 justify-end">
         <Button variant="ghost" onClick={onCancel}>Cancel</Button>
-        <Button variant="brand" disabled={total <= 0} onClick={() => onPay(Array.from(selected), total)}>
-          Charge {MYR(total)}
+        <Button variant="brand" disabled={share <= 0} onClick={() => onPay(Array.from(selected), share)}>
+          Charge {MYR(share)}
         </Button>
       </div>
     </div>

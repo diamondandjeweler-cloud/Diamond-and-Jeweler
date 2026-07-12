@@ -15,10 +15,15 @@
 -- `UPDATE profiles` vector already closed by 0186/0187 (that was column grants;
 -- award_points writes the columns owner-privileged regardless of column grants).
 --
--- FIX: award_points must be service_role-only. Every legitimate caller already
--- invokes it through the service-role adminClient (payment-webhook, award-points,
--- admin-refund) or internally as the function owner (redeem_points_for 0146,
--- 0076/0077) — none of which are affected by a role-level EXECUTE revoke.
+-- FIX: award_points must be service_role-only. Every legitimate caller invokes it
+-- through the service-role adminClient — the edge fns payment-webhook,
+-- award-points, admin-refund and submit-feedback — or internally as the function
+-- owner (redeem_points_for 0146, 0076/0077); none are affected by a role-level
+-- EXECUTE revoke. NOTE: one FRONTEND caller previously hit this RPC directly with
+-- the authenticated client — apps/web/src/routes/InterviewFeedback.tsx — and was
+-- migrated in the SAME reaudit batch to award its +5 feedback points via the
+-- submit-feedback edge fn (service-role) instead, so the revoke does not silently
+-- drop that award. Do NOT re-introduce a direct authenticated award_points call.
 --
 -- BOTH overloads are locked:
 --   * 5-arg (uuid,int,text,jsonb,text) returns int   — current def, 0056/0147

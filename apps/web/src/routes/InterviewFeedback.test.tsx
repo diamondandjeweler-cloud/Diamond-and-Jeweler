@@ -11,7 +11,7 @@
  * data layer + session + router are mocked to reach the rating step.
  */
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { render, screen, cleanup, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 
@@ -65,13 +65,19 @@ vi.mock('../data/repositories/talents', () => ({
 vi.mock('../data/repositories/hiringManagers', () => ({
   hmProfileLinkById: () => Promise.resolve({ data: null }),
 }))
-vi.mock('../data/repositories/points', () => ({
-  awardPoints: vi.fn(() => Promise.resolve({})),
+// The points award now flows through the submit-feedback EDGE FUNCTION (service-
+// role adminClient), NOT the direct authenticated award_points RPC — migration
+// 0201 revokes EXECUTE on award_points from `authenticated`, so a direct call
+// would 42501 and silently drop the +5 feedback points. Mock callFunction so the
+// submit regression can assert the edge-fn is what gets invoked.
+const { callFunctionMock } = vi.hoisted(() => ({
+  callFunctionMock: vi.fn(() => Promise.resolve({ success: true, points_awarded: 5 })),
 }))
+vi.mock('../lib/functions', () => ({ callFunction: callFunctionMock }))
 
 import InterviewFeedback from './InterviewFeedback'
 
-afterEach(cleanup)
+afterEach(() => { cleanup(); callFunctionMock.mockClear() })
 
 function renderFeedback() {
   return render(
@@ -127,5 +133,49 @@ describe('<InterviewFeedback /> rating — RadioGroup(segmented) adoption', () =
     expect(tile.className).toMatch(/data-\[state=unchecked\]:border-gray-200/)
     // Visible content is still the digit (aria-label supplies the spoken name).
     expect(tile).toHaveTextContent('1')
+  })
+})
+
+// Regression (reaudit money-1 / security-sql): after 0201 revokes EXECUTE on
+// award_points from `authenticated`, this route MUST award the +5 feedback points
+// through the submit-feedback edge function (service-role adminClient), NOT the
+// direct authenticated award_points RPC — otherwise the RPC 42501s, the error is
+// swallowed by the best-effort try/catch, and the user is silently shorted a paid
+// currency while the UI claims points were awarded.
+describe('<InterviewFeedback /> submit — awards points via the edge function (not a direct RPC)', () => {
+  it('routes the feedback award through submit-feedback and shows the points note', async () => {
+    renderFeedback()
+    const four = await screen.findByRole('radio', { name: 'feedback.rateAria:4' })
+    await userEvent.click(four)
+    await userEvent.click(screen.getByRole('button', { name: 'feedback.submit' }))
+
+    // The award is the submit-feedback edge fn — server-side, service-role.
+    await waitFor(() => {
+      expect(callFunctionMock).toHaveBeenCalledWith(
+        'submit-feedback',
+        expect.objectContaining({
+          match_id: 'm1',
+          stage: 'interview',
+          from_party: 'talent',
+          rating: 4,
+        }),
+      )
+    })
+
+    // Thank-you view renders, and the "points awarded" note appears BECAUSE the
+    // edge fn reported points_awarded > 0 (no longer an unconditional claim).
+    expect(await screen.findByText('feedback.thankYou')).toBeInTheDocument()
+    expect(screen.getByText('feedback.pointsNote')).toBeInTheDocument()
+  })
+
+  it('suppresses the points note when the edge fn awards nothing (stage not reached)', async () => {
+    callFunctionMock.mockResolvedValueOnce({ success: true, points_awarded: 0 })
+    renderFeedback()
+    const four = await screen.findByRole('radio', { name: 'feedback.rateAria:4' })
+    await userEvent.click(four)
+    await userEvent.click(screen.getByRole('button', { name: 'feedback.submit' }))
+
+    expect(await screen.findByText('feedback.thankYou')).toBeInTheDocument()
+    expect(screen.queryByText('feedback.pointsNote')).not.toBeInTheDocument()
   })
 })

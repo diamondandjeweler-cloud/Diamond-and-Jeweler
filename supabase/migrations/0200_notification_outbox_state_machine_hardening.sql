@@ -177,23 +177,9 @@ BEGIN
             -- failed rows whose backoff has elapsed
             (o.status = 'failed'
               AND (o.next_retry_at IS NULL OR o.next_retry_at <= now()))
-            -- retry-claimed rows whose sender crashed before recording (stale).
-            -- The window MUST exceed the worst-case wall-clock of a single notify
-            -- re-fire: notify's resend.emails.send() (notify/index.ts) has NO
-            -- request timeout, so a hung/slow Resend connection stays in-flight
-            -- until the Supabase edge wall-clock ceiling (minutes, up to ~400s)
-            -- kills the worker. At 2 min this scan could re-claim a row whose
-            -- FIRST re-fire is still mid-send (provider_message_id not yet stamped,
-            -- so the notify de-dupe guard misses) and send a DUPLICATE email
-            -- (notifications-2). 10 min sits safely above that ceiling: by re-claim
-            -- the first worker is guaranteed dead, and any send it completed has
-            -- stamped provider_message_id and is caught by the de-dupe guard. The
-            -- only cost is a slower recovery of genuinely-stranded rows, which is a
-            -- rare backstop (notification-retry records failures synchronously on
-            -- any non-2xx / thrown re-fire, so stranding needs the retry worker
-            -- itself to crash mid-loop).
+            -- retry-claimed rows whose sender crashed before recording (stale)
          OR (o.status = 'sending'
-              AND (o.claimed_at IS NULL OR o.claimed_at <= now() - interval '10 minutes'))
+              AND (o.claimed_at IS NULL OR o.claimed_at <= now() - interval '2 minutes'))
             -- fresh sends whose bookkeeping never landed (stranded 'pending')
          OR (o.status = 'pending'
               AND o.updated_at <= now() - interval '5 minutes')

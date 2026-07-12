@@ -143,11 +143,7 @@ begin
       public.compute_life_chart_character(v_dob_text::date, new.gender);
   exception when others then
     -- A bad ciphertext / bad date must NEVER abort the row write.
-    -- Log ONLY the non-sensitive SQLSTATE code, never SQLERRM: on a failed
-    -- v_dob_text::date cast SQLERRM embeds the offending input string, i.e. the
-    -- decrypted plaintext DOB, which would leak to the Postgres/Supabase server
-    -- log and defeat the DOB-encryption regime (0013, decrypt_dob stays revoked).
-    raise warning 'trg_fill_life_chart_character: derivation skipped (sqlstate %)', sqlstate;
+    raise warning 'trg_fill_life_chart_character: derivation skipped: %', sqlerrm;
     return new;
   end;
 

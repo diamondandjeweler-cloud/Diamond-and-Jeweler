@@ -1,5 +1,4 @@
 import { supabase } from '../../lib/supabase'
-import type { Json } from '../../types/db.generated'
 
 // ── Points / purchases reads ─────────────────────────────────────────────────
 // Centralizes the Diamond-Points money tables: the point_transactions ledger and
@@ -36,13 +35,8 @@ export function purchasePaymentStatusById(table: PurchaseTable, purchaseId: stri
     .eq('id', purchaseId)
 }
 
-/** RPC: award points (server-side ledger write, deduped by p_idempotency_key); callers treat as best-effort. */
-export function awardPoints(params: {
-  p_user_id: string
-  p_delta: number
-  p_reason: string
-  p_reference: Json
-  p_idempotency_key: string
-}) {
-  return supabase.rpc('award_points', params)
-}
+// NOTE: there is deliberately NO client-side award_points wrapper here. award_points
+// is SECURITY DEFINER and EXECUTE-revoked from `authenticated`/`anon` (migration
+// 0201) — the ONLY legitimate callers are service-role edge functions
+// (payment-webhook, award-points, submit-feedback, admin-refund). Frontend flows
+// that need to grant points must invoke one of those edge functions instead.

@@ -7,7 +7,7 @@ import { matchForFeedback } from '../data/repositories/matches'
 import { hmProfileLinkById } from '../data/repositories/hiringManagers'
 import { talentOwnershipById } from '../data/repositories/talents'
 import { updateInterview, interviewFeedbackFlagsByMatch, insertFeedbackSubmission } from '../data/repositories/interviews'
-import { awardPoints } from '../data/repositories/points'
+import { callFunction } from '../lib/functions'
 import LoadingSpinner from '../components/LoadingSpinner'
 import { RadioGroup } from '../ui/RadioGroup'
 
@@ -35,6 +35,7 @@ export default function InterviewFeedback() {
   const [notes, setNotes] = useState('')
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
+  const [pointsAwarded, setPointsAwarded] = useState(0)
 
   useEffect(() => {
     if (!matchId || !session) return
@@ -102,15 +103,21 @@ export default function InterviewFeedback() {
     const isDup = fbErr?.code === '23505'
 
     if (!fbErr) {
-      // Award points (best-effort — failure shouldn't block UI)
+      // Award points through the submit-feedback edge function, which credits via
+      // the service-role adminClient. The direct award_points RPC is EXECUTE-
+      // revoked from `authenticated` (migration 0201 closes the free-mint hole),
+      // so the frontend can no longer call it. Best-effort — a failure must not
+      // block the UI; the edge fn is idempotent on (match_id, stage, from_party),
+      // and only reports points when the match actually reached this stage.
       try {
-        await awardPoints({
-          p_user_id: session.user.id,
-          p_delta: 5,
-          p_reason: 'feedback_submitted',
-          p_reference: { match_id: matchId, side: resolved.side },
-          p_idempotency_key: `feedback_legacy:${matchId}:${session.user.id}`,
+        const res = await callFunction<{ points_awarded?: number }>('submit-feedback', {
+          match_id: matchId,
+          stage: 'interview',
+          from_party: resolved.side,
+          rating,
+          ...(notes.trim() ? { free_text: notes.trim() } : {}),
         })
+        if (res?.points_awarded) setPointsAwarded(res.points_awarded)
       } catch { /* tolerate */ }
     } else if (!isDup) {
       // Real error worth surfacing
@@ -151,7 +158,9 @@ export default function InterviewFeedback() {
       <div className="max-w-lg mx-auto text-center bg-white border rounded-lg p-6">
         <h1 className="text-xl font-semibold mb-2">{t('feedback.thankYou')}</h1>
         <p className="text-sm text-gray-600">{t('feedback.thankYouBody')}</p>
-        <p className="text-xs text-emerald-700 mt-2">{t('feedback.pointsNote')}</p>
+        {pointsAwarded > 0 && (
+          <p className="text-xs text-emerald-700 mt-2">{t('feedback.pointsNote')}</p>
+        )}
       </div>
     )
   }

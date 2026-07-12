@@ -83,10 +83,17 @@ unchanged (still gated by `!isRetry` / consent-before-enqueue).
 
 ### Steps
 
-1. Apply BOTH migrations (idempotent; numeric order 0194→0200 in one push):
+1. Apply the migrations (idempotent; numeric order 0194→0200→0209 in one push):
    - `0200_notification_outbox_state_machine_hardening.sql` — `ADD COLUMN IF NOT
      EXISTS` (`claimed_at`, `provider_message_id`), DROP/ADD the status CHECK,
      `CREATE OR REPLACE` both RPCs, `CREATE INDEX IF NOT EXISTS`.
+   - `0209_outbox_widen_stale_inflight_window.sql` — reaudit follow-up:
+     `CREATE OR REPLACE` of `claim_notification_retry_batch` that widens the
+     stale-`'sending'` re-claim window from 2 min to **10 min** so a hung notify
+     re-fire (Resend has no request timeout) can't be re-claimed mid-send and
+     duplicate the email. A SEPARATE next-free migration on purpose (a
+     checksum-tracking runner would skip an in-place edit of the already-staged
+     0200); apply AFTER 0200.
    - `0194_notification_retry_cron.sql` — schedules `bole-notification-retry-every-1m`
      (cron only; unchanged from its originally-shipped form).
 2. Deploy edge fns:
@@ -198,7 +205,13 @@ public.platform_stats;` — `/api/stats` auto-falls-back to the live count.
 
 1. Apply migration `0198_life_chart_character_trigger.sql`
    (`compute_life_chart_character(date,text)` pure fn + fill-only
-   BEFORE INSERT/UPDATE trigger on `talents` and `hiring_managers`).
+   BEFORE INSERT/UPDATE trigger on `talents` and `hiring_managers`), **then**
+   `0208_life_chart_trigger_no_dob_in_log.sql` (reaudit follow-up — re-applies the
+   trigger fn via `CREATE OR REPLACE` so its error handler logs SQLSTATE only,
+   never SQLERRM, which on a bad-date cast would embed the decrypted plaintext DOB
+   in the server log). 0208 is a SEPARATE next-free migration on purpose: 0198 is
+   staged and a checksum-tracking runner would silently skip an in-place edit if
+   0198 had already been applied. Apply in numeric order (0198 → 0208).
 2. Secrets/Vault: none new — the trigger decrypts DOB internally using the
    existing `bole_dob_passphrase` Vault secret (same pattern as `encrypt_dob`).
    `decrypt_dob` stays REVOKED (governor §6) — the trigger does NOT call it.
@@ -301,9 +314,9 @@ the alert-less silent-pending behavior.
 
 | Item | Migration(s) | Edge fn deploy | Vault/secret | Post-deploy client cleanup |
 |------|--------------|----------------|--------------|-----------------------------|
-| B4 | 0200 (outbox schema + RPC hardening) + 0194 (cron only) | `notify` (mod), `notification-retry` (new) | none | none (optional `db.generated.ts` regen) |
+| B4 | 0200 (outbox schema + RPC hardening) + 0209 (widen stale-`sending` window 2m→10m) + 0194 (cron only) | `notify` (mod), `notification-retry` (new) | none | none (optional `db.generated.ts` regen) |
 | B5 | 0195 | — | none | swap `useHrDashboardData` to PREFER RPC + fallback |
 | B8 | 0196 | — | none | none (`api/stats.ts` already fallback-safe) |
 | B6 | 0197 | — | `deadman_alert_webhook_url` (optional) | none |
-| B1 | 0198 | — | none (reuses `bole_dob_passphrase`) | drop client `life_chart_character` send + delete `lifeChartCharacter.ts` |
+| B1 | 0198 + 0208 (trigger logs SQLSTATE only, no DOB in server log) | — | none (reuses `bole_dob_passphrase`) | drop client `life_chart_character` send + delete `lifeChartCharacter.ts` |
 | B9 | 0199 (`amount_mismatch` marker on 3 payment tables) | `payment-webhook` (mod — flag + finance alert on mismatch) | none (uses existing `reportError` sink) | none (optional `db.generated.ts` regen) |

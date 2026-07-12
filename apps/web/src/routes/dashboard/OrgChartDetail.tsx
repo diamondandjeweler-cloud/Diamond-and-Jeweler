@@ -448,6 +448,7 @@ export default function OrgChartDetail() {
               <h3 className="text-lg font-semibold">Client-facing Report Preview</h3>
               <Button variant="secondary" size="sm" onClick={() => setShowReport(false)}>Close</Button>
             </div>
+            {/* eslint-disable-next-line no-restricted-syntax -- report_html is DOMPurify-sanitized on this line */}
             <div className="max-h-[70vh] overflow-auto" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(row.report_html) }} />
           </div>
         </div>

@@ -8,6 +8,7 @@ import { talentOwnershipById } from '../data/repositories/talents'
 import { updateInterview, interviewFeedbackFlagsByMatch, insertFeedbackSubmission } from '../data/repositories/interviews'
 import { awardPoints } from '../data/repositories/points'
 import LoadingSpinner from '../components/LoadingSpinner'
+import { RadioGroup } from '../ui/RadioGroup'
 
 type Side = 'talent' | 'hm'
 
@@ -163,21 +164,27 @@ export default function InterviewFeedback() {
 
         <div>
           <div id="rating-question" className="block text-sm mb-2">How did it go? (1 = poor, 5 = excellent)</div>
-          <div role="group" aria-labelledby="rating-question" className="flex gap-2">
+          <RadioGroup
+            variant="segmented"
+            aria-labelledby="rating-question"
+            orientation="horizontal"
+            value={rating != null ? String(rating) : ''}
+            onValueChange={(v) => setRating(Number(v))}
+            className="flex gap-2"
+          >
             {[1, 2, 3, 4, 5].map((n) => (
-              <button
+              <RadioGroup.Item
                 key={n}
-                type="button"
-                onClick={() => setRating(n)}
-                className={`w-12 h-12 border rounded text-lg ${
-                  rating === n ? 'bg-brand-600 text-white border-brand-600' : 'bg-white hover:bg-gray-50'
-                }`}
+                value={String(n)}
+                size="tile"
                 aria-label={`Rate ${n} out of 5`}
-              >
-                {n}
-              </button>
+                label={n}
+                // Parity overrides for this legacy non-tokenised `bg-white` card:
+                // brand-600 fill (vs the variant's brand-500) + white/gray-200 resting.
+                className="data-[state=unchecked]:bg-white data-[state=unchecked]:border-gray-200 data-[state=unchecked]:text-inherit data-[state=unchecked]:hover:bg-gray-50 data-[state=checked]:bg-brand-600 data-[state=checked]:border-brand-600"
+              />
             ))}
-          </div>
+          </RadioGroup>
         </div>
 
         <div>

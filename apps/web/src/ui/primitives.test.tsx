@@ -105,6 +105,101 @@ describe('<RadioGroup />', () => {
   })
 })
 
+describe('<RadioGroup variant="segmented" />', () => {
+  it('renders each option as a whole-pill radio — the label IS the radio content (no separate circle/label)', () => {
+    render(
+      <RadioGroup variant="segmented" value="male" onValueChange={() => {}} aria-label="Gender">
+        <RadioGroupItem value="male" label="Male" />
+        <RadioGroupItem value="female" label="Female" />
+      </RadioGroup>,
+    )
+    expect(screen.getByRole('radiogroup', { name: 'Gender' })).toBeInTheDocument()
+    const male = screen.getByRole('radio', { name: 'Male' })
+    const female = screen.getByRole('radio', { name: 'Female' })
+    expect(male).toHaveAttribute('aria-checked', 'true')
+    expect(female).toHaveAttribute('aria-checked', 'false')
+    // Whole-pill click target: the visible label lives INSIDE the radio button,
+    // and there is no separate <label> element (the pill is its own label).
+    expect(male).toHaveTextContent('Male')
+    expect(screen.queryByText('Male', { selector: 'label' })).not.toBeInTheDocument()
+  })
+
+  it('keeps the segmented pill styling — brand fill when checked, resting border otherwise (parity pin)', () => {
+    render(
+      <RadioGroup variant="segmented" value="male" onValueChange={() => {}} aria-label="Gender">
+        <RadioGroupItem value="male" label="Male" />
+        <RadioGroupItem value="female" label="Female" />
+      </RadioGroup>,
+    )
+    // State colours are applied as data-[state] variant utilities (present on
+    // every item, activated by Radix's data-state attribute), so pinning the
+    // class list pins the pill look regardless of which one is checked.
+    const male = screen.getByRole('radio', { name: 'Male' })
+    expect(male.className).toMatch(/rounded-lg/)
+    expect(male.className).toMatch(/px-3/)
+    expect(male.className).toMatch(/data-\[state=checked\]:bg-brand-500/)
+    expect(male.className).toMatch(/data-\[state=unchecked\]:border-border/)
+    // No radio-circle indicator in the segmented variant.
+    expect(male.querySelector('span')).toBeNull()
+  })
+
+  it('selects on click anywhere on the pill', async () => {
+    const onChange = vi.fn()
+    render(
+      <RadioGroup variant="segmented" value="" onValueChange={onChange} aria-label="Gender">
+        <RadioGroupItem value="male" label="Male" />
+        <RadioGroupItem value="female" label="Female" />
+      </RadioGroup>,
+    )
+    await userEvent.click(screen.getByRole('radio', { name: 'Female' }))
+    expect(onChange).toHaveBeenCalledWith('female')
+  })
+
+  it('is keyboard operable — Arrow moves roving focus, Space selects the focused pill', async () => {
+    const onChange = vi.fn()
+    render(
+      <RadioGroup
+        variant="segmented"
+        value="male"
+        onValueChange={onChange}
+        orientation="horizontal"
+        aria-label="Gender"
+      >
+        <RadioGroupItem value="male" label="Male" />
+        <RadioGroupItem value="female" label="Female" />
+      </RadioGroup>,
+    )
+    const male = screen.getByRole('radio', { name: 'Male' })
+    const female = screen.getByRole('radio', { name: 'Female' })
+    // ArrowRight moves roving focus to the next pill, and the roving tabindex
+    // follows it — arrow keys (not Tab) move between options: the radio
+    // semantics the raw <button> groups lacked. (In a real browser Radix also
+    // selects on this focus; jsdom cannot replay select-on-focus, so the
+    // selection half is pinned via Space below — the key a keyboard user
+    // commits the choice with.)
+    male.focus()
+    await userEvent.keyboard('{ArrowRight}')
+    expect(female).toHaveFocus()
+    expect(female).toHaveAttribute('tabindex', '0')
+    expect(male).toHaveAttribute('tabindex', '-1')
+    // Space commits the selection of the focused pill.
+    await userEvent.keyboard(' ')
+    expect(onChange).toHaveBeenCalledWith('female')
+  })
+
+  it('supports a square `tile` size preset (e.g. a 1–5 rating scale)', () => {
+    render(
+      <RadioGroup variant="segmented" value="" onValueChange={() => {}} aria-label="Rating">
+        <RadioGroupItem value="1" size="tile" label={1} aria-label="Rate 1 out of 5" />
+      </RadioGroup>,
+    )
+    const tile = screen.getByRole('radio', { name: 'Rate 1 out of 5' })
+    expect(tile.className).toMatch(/h-12/)
+    expect(tile.className).toMatch(/w-12/)
+    expect(tile).toHaveTextContent('1')
+  })
+})
+
 describe('<Tabs />', () => {
   const Sut = ({ onValueChange = () => {} }: { onValueChange?: (v: string) => void }) => (
     <Tabs defaultValue="a" onValueChange={onValueChange}>

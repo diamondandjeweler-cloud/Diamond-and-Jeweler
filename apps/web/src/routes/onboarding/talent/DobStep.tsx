@@ -11,6 +11,7 @@
 import { memo } from 'react'
 import type { TFunction } from 'i18next'
 import { Button, Alert } from '../../../components/ui'
+import { RadioGroup } from '../../../ui/RadioGroup'
 import Consent from '../../../components/Consent'
 import type { Gender } from '../../../shared/domain/lifeChart/lifeChartCharacter'
 
@@ -102,47 +103,40 @@ function DobStepImpl({
         className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 ${inputErrCls(dobValid)}`}
       />
       <div className="space-y-1" data-dob-invalid={showErr(genderValid) ? 'true' : undefined}>
-        <p className={`text-sm ${showErr(genderValid) ? 'text-red-600 font-medium' : 'text-fg-muted'}`}>
+        <p id="talent-dob-gender-label" className={`text-sm ${showErr(genderValid) ? 'text-red-600 font-medium' : 'text-fg-muted'}`}>
           {t('talentOnboard.genderLabel')}{showErr(genderValid) && <span className="ml-1 text-xs">{t('talentOnboard.requiredParen')}</span>}
         </p>
-        <div className={`grid grid-cols-2 gap-2 ${ringWrap(genderValid)}`}>
-          <button
-            type="button"
-            onClick={() => setGender('male')}
-            className={`border rounded-lg px-3 py-2 text-sm ${gender === 'male' ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-fg-strong hover:bg-ink-50 dark:hover:bg-surface'}`}
-          >
-            {t('talentOnboard.male')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setGender('female')}
-            className={`border rounded-lg px-3 py-2 text-sm ${gender === 'female' ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-fg-strong hover:bg-ink-50 dark:hover:bg-surface'}`}
-          >
-            {t('talentOnboard.female')}
-          </button>
-        </div>
+        <RadioGroup
+          variant="segmented"
+          aria-labelledby="talent-dob-gender-label"
+          value={gender}
+          onValueChange={(v) => setGender(v as Gender)}
+          className={`grid grid-cols-2 gap-2 ${ringWrap(genderValid)}`}
+        >
+          <RadioGroup.Item value="male" label={t('talentOnboard.male')} />
+          <RadioGroup.Item value="female" label={t('talentOnboard.female')} />
+        </RadioGroup>
       </div>
       <div className="space-y-1" data-dob-invalid={showErr(raceValid) ? 'true' : undefined}>
-        <p className={`text-sm ${showErr(raceValid) ? 'text-red-600 font-medium' : 'text-fg-muted'}`}>
+        <p id="talent-dob-race-label" className={`text-sm ${showErr(raceValid) ? 'text-red-600 font-medium' : 'text-fg-muted'}`}>
           {t('talentOnboard.raceLabel')}{showErr(raceValid) && <span className="ml-1 text-xs">{t('talentOnboard.requiredParen')}</span>}
         </p>
-        <div className={`grid grid-cols-2 gap-2 ${ringWrap(raceValid)}`}>
+        <RadioGroup
+          variant="segmented"
+          aria-labelledby="talent-dob-race-label"
+          value={race}
+          onValueChange={setRace}
+          className={`grid grid-cols-2 gap-2 ${ringWrap(raceValid)}`}
+        >
           {([
             { value: 'malay', label: t('talentOnboard.raceMalay') },
             { value: 'chinese', label: t('talentOnboard.raceChinese') },
             { value: 'indian', label: t('talentOnboard.raceIndian') },
             { value: 'others', label: t('talentOnboard.raceOthers') },
           ] as const).map((r) => (
-            <button
-              key={r.value}
-              type="button"
-              onClick={() => setRace(r.value)}
-              className={`border rounded-lg px-3 py-2 text-sm ${race === r.value ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-fg-strong hover:bg-ink-50 dark:hover:bg-surface'}`}
-            >
-              {r.label}
-            </button>
+            <RadioGroup.Item key={r.value} value={r.value} label={r.label} />
           ))}
-        </div>
+        </RadioGroup>
       </div>
       <div className="space-y-1" data-dob-invalid={showErr(religionValid) ? 'true' : undefined}>
         <p className={`text-sm ${showErr(religionValid) ? 'text-red-600 font-medium' : 'text-fg-muted'}`}>
@@ -199,26 +193,23 @@ function DobStepImpl({
         className="space-y-1"
         data-dob-invalid={showErr(locationMattersValid) || (locationMatters === true && showErr(postcodeValid)) ? 'true' : undefined}
       >
-        <p className={`text-sm ${showErr(locationMattersValid) ? 'text-red-600 font-medium' : 'text-fg-muted'}`}>
+        <p id="talent-dob-commute-label" className={`text-sm ${showErr(locationMattersValid) ? 'text-red-600 font-medium' : 'text-fg-muted'}`}>
           {t('talentOnboard.commuteQuestion')}
           {showErr(locationMattersValid) && <span className="ml-1 text-xs">{t('talentOnboard.requiredParen')}</span>}
         </p>
-        <div className={`grid grid-cols-2 gap-2 ${ringWrap(locationMattersValid)}`}>
-          <button
-            type="button"
-            onClick={() => setLocationMatters(true)}
-            className={`border rounded-lg px-3 py-2 text-sm ${locationMatters === true ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-fg-strong hover:bg-ink-50 dark:hover:bg-surface'}`}
-          >
-            {t('talentOnboard.commuteYes')}
-          </button>
-          <button
-            type="button"
-            onClick={() => { setLocationMatters(false); setLocationPostcode('') }}
-            className={`border rounded-lg px-3 py-2 text-sm ${locationMatters === false ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-fg-strong hover:bg-ink-50 dark:hover:bg-surface'}`}
-          >
-            {t('talentOnboard.commuteNo')}
-          </button>
-        </div>
+        <RadioGroup
+          variant="segmented"
+          aria-labelledby="talent-dob-commute-label"
+          value={locationMatters === true ? 'yes' : locationMatters === false ? 'no' : ''}
+          onValueChange={(v) => {
+            if (v === 'yes') setLocationMatters(true)
+            else { setLocationMatters(false); setLocationPostcode('') }
+          }}
+          className={`grid grid-cols-2 gap-2 ${ringWrap(locationMattersValid)}`}
+        >
+          <RadioGroup.Item value="yes" label={t('talentOnboard.commuteYes')} />
+          <RadioGroup.Item value="no" label={t('talentOnboard.commuteNo')} />
+        </RadioGroup>
         {locationMatters === true && (
           <input
             type="text"

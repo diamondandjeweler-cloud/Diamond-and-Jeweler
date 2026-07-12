@@ -60,5 +60,54 @@ export const radioGroupItemVariants = tv({
   },
 })
 
+/**
+ * `segmented` item recipe — a pill / segmented-control option with NO radio
+ * circle: the whole pill IS the click target, brand-filled when selected.
+ *
+ * This bakes in the look of the hand-rolled single-select `<button>` pills it
+ * replaces (talent onboarding DOB step: gender / race / commute), so adopting
+ * it is a visual no-op — parity beats purity:
+ *
+ *   base pill      → `border rounded-lg px-3 py-2 text-sm`
+ *   resting (unchecked) → `border-border text-ink-700 dark:text-fg-strong`, and
+ *     hover applies ONLY while unchecked (mirrors the original, whose hover
+ *     class lived solely in the unselected ternary branch — keyed here on Radix's
+ *     `data-state="unchecked"` so a checked pill never greys on hover).
+ *   selected (checked)  → solid `bg-brand-500` fill in BOTH themes (the original
+ *     had no dark step-up; white-on-brand-500 still clears AA in dark).
+ *
+ * Unlike the default variant's 1px-border control, contrast here is text-on-fill
+ * (white on brand-500), not border-on-surface, so the default variant's dark
+ * `brand-400` border step-up is unnecessary.
+ *
+ * The `size` dimension keeps two shapes first-class: `md` pills (onboarding) and
+ * square `tile`s (e.g. a 1–5 rating scale). Bespoke per-call-site colours (an
+ * older non-tokenised card can differ, e.g. brand-600 fill on a `bg-white`
+ * surface) are reached with a caller `className`, which `cn()` merges last.
+ */
+export const radioGroupSegmentedItemVariants = tv({
+  base: [
+    'inline-flex select-none items-center justify-center border text-center transition-colors',
+    'cursor-pointer disabled:cursor-not-allowed disabled:opacity-50',
+    // Resting (unchecked): tokenised + theme-aware; hover only while unchecked.
+    'data-[state=unchecked]:border-border data-[state=unchecked]:text-ink-700 dark:data-[state=unchecked]:text-fg-strong',
+    'data-[state=unchecked]:hover:bg-ink-50 dark:data-[state=unchecked]:hover:bg-surface',
+    // Selected: solid brand fill (same shade in both themes — parity).
+    'data-[state=checked]:border-brand-500 data-[state=checked]:bg-brand-500 data-[state=checked]:text-white',
+    // Keyboard focus ring — same recipe as Button and the default control.
+    'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-500',
+  ],
+  variants: {
+    size: {
+      md: 'rounded-lg px-3 py-2 text-sm',
+      tile: 'h-12 w-12 rounded text-lg',
+    },
+  },
+  defaultVariants: { size: 'md' },
+})
+
 export type RadioGroupVariantProps = VariantProps<typeof radioGroupVariants>
 export type RadioGroupItemVariantProps = VariantProps<typeof radioGroupItemVariants>
+export type RadioGroupSegmentedItemVariantProps = VariantProps<typeof radioGroupSegmentedItemVariants>
+/** Segmented pill shape presets. */
+export type RadioGroupSegmentedSize = NonNullable<RadioGroupSegmentedItemVariantProps['size']>

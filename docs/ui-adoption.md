@@ -44,37 +44,37 @@ non-test feature files under `src/routes` / `src/components` importing the primi
 | `Checkbox` | ✅ | **0** | raw `<input type=checkbox>` / `aria-pressed` multi-select |
 | `DropdownMenu` | ✅ | **0** | bespoke open/close menu state |
 | `Pagination` | ✅ | **0** | hand-rolled prev/next + `aria-current` |
-| **`RadioGroup`** | ✅ | **0** | single-select `<button aria-pressed>` groups (see §2) |
+| **`RadioGroup`** (default · **segmented**) | ✅ | **2** | single-select `<button>` / `<button aria-pressed>` groups (see §2) |
 
 Interactive primitives (`Tabs`, `Tooltip`, `Switch`, `Checkbox`, `RadioGroup`, `DropdownMenu`) wrap the
 matching `@radix-ui` primitive for correct keyboard + ARIA, skinned with `tv()` + tokens.
 
 ---
 
-## 2. RadioGroup — adoption status: **BUILT, 0 ADOPTERS**
-
-The primitive is fully built and tested but **not yet wired into any feature**:
+## 2. RadioGroup — adoption status: **BUILT, 2 ADOPTERS (segmented variant)**
 
 - **Built:** `src/ui/RadioGroup/RadioGroup.tsx`, `RadioGroup.variants.ts`, `RadioGroup.stories.tsx`, `index.ts`; exported from the barrel (`src/ui/index.ts`); keyboard/ARIA covered in `src/ui/primitives.test.tsx`. Radix-backed → arrow-key roving focus + `role="radiogroup"`/`role="radio"` for free.
-- **Adopters:** none in `src/routes` or `src/components`.
+- **`segmented` variant (2026-07-12):** a pill / segmented-control option with **no radio circle** — the whole pill IS the click target, brand-filled when selected — so it drops into the app's existing hand-rolled single-select `<button>` pill groups with **visual parity** (the default variant's radio-circle look was an unrequested redesign, which is why adoption was previously deferred — see `docs/AUDIT_LOG.md`). Set `variant="segmented"` on the group; `size="tile"` gives the square shape used by a 1–5 rating scale. Bespoke per-site colours are reached with a caller `className` (`cn()` merges last).
+- **Adopters:**
+  - `src/routes/onboarding/talent/DobStep.tsx` — **gender**, **race**, **commute (location matters?)** single-selects. Pinned by `src/routes/onboarding/talent/DobStep.test.tsx`.
+  - `src/routes/InterviewFeedback.tsx` — the 1–5 "how did it go?" **rating** (`size="tile"`). Pinned by `src/routes/InterviewFeedback.test.tsx`.
 
-This is the exact gap `docs/accessibility.md` flags: single-select groups are currently `<button>`
-elements (keyboard-focusable but **missing arrow-key navigation and radio semantics**). Migrating them to
-`RadioGroup` closes that a11y gap.
+This closes the exact gap `docs/accessibility.md` flags: those single-select groups were `<button>`
+elements (keyboard-focusable but **missing arrow-key navigation and radio semantics**); they now carry
+real `role="radiogroup"`/`role="radio"` + roving arrow-key focus while looking identical.
 
 ### RadioGroup adoption candidates (raw single-select button groups)
 
-| Call site | What it is | Current markup |
+| Call site | What it is | Status |
 |---|---|---|
-| `src/routes/InterviewFeedback.tsx:166–175` | 1–5 "how did it go?" rating | 5 `<button>`s in a `role="group"`, `onClick={() => setRating(n)}` — no roving focus |
-| `src/routes/onboarding/hm/DemographicsStep.tsx:51–54` | race single-select | `<button aria-pressed={…}>` per option (toggle semantics, not radio) |
-| `src/routes/onboarding/hm/DemographicsStep.tsx:105–113` | "location matters?" yes/no | pair of `<button aria-pressed>` |
-| onboarding talent interview / leadership questions | Likert single-selects | `<button>` groups (per `accessibility.md` known-gaps §2) |
+| `src/routes/InterviewFeedback.tsx` rating | 1–5 "how did it go?" rating | ✅ **adopted** (segmented, `size="tile"`) |
+| `src/routes/onboarding/talent/DobStep.tsx` gender / race / commute | three single-selects | ✅ **adopted** (segmented) |
+| `src/routes/onboarding/hm/DobStep.tsx` gender | HM gender single-select (+ "prefer not to share" skip that resets it) | ⏳ candidate — not yet adopted |
+| onboarding talent interview / leadership questions | Likert single-selects | ⏳ candidate (per `accessibility.md` known-gaps §2) |
 
-> Note the two different legacy encodings: a `role="group"` of plain buttons (InterviewFeedback) and
-> `aria-pressed` toggle-buttons (DemographicsStep). `aria-pressed` is *toggle-button* semantics and is
-> semantically wrong for a mutually-exclusive choice — RadioGroup fixes both. Multi-select `aria-pressed`
-> groups (e.g. `DemographicsStep` languages) map to `Checkbox` / the existing `role-form/ChipToggleGroup`, **not** RadioGroup.
+> The adopted groups were plain `<button>`s (no radio role); the remaining candidates are the same shape.
+> Multi-select `<button>` groups (e.g. talent `DobStep` **languages**) map to `Checkbox` / the existing
+> `role-form/ChipToggleGroup`, **not** RadioGroup — those stay as-is.
 
 ---
 

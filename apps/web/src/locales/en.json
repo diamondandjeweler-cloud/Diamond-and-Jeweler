@@ -235,7 +235,23 @@
     "ratingLabel": "How was your experience? (1–5 stars)",
     "commentLabel": "Anything we should know?",
     "submitted": "Thanks — we awarded {{points}} points.",
-    "alreadySubmitted": "You've already submitted feedback."
+    "alreadySubmitted": "You've already submitted feedback.",
+    "ratingQuestion": "How did it go? (1 = poor, 5 = excellent)",
+    "rateAria": "Rate {{n}} out of 5",
+    "role": "Role",
+    "notePlaceholder": "Private to admin — not shown to the other side.",
+    "back": "Back",
+    "backToDashboard": "Back to dashboard",
+    "alreadyRated": "Thanks! You've already rated this interview for {{role}}.",
+    "thankYou": "Thank you",
+    "thankYouBody": "Your feedback helps us improve matches.",
+    "pointsNote": "+1 point awarded · 5 points = 1 free extra match.",
+    "submit": "Submit feedback",
+    "submitting": "Submitting…",
+    "errMatchNotFound": "Match not found",
+    "errNoInterview": "No interview row exists for this match yet.",
+    "errNotParticipant": "You are not a participant in this match.",
+    "roleGone": "(role gone)"
   },
   "referral": {
     "title": "Invite a friend, earn points",
@@ -342,6 +358,7 @@
     "willEmail": "We'll email you the video link shortly. If you don't see it within a few minutes, check spam.",
     "pendingConfirm": "We haven't received the payment confirmation yet. This page will update once it arrives — usually within a minute.",
     "couldNotConfirm": "We couldn't confirm your booking. Please contact support if payment was deducted.",
+    "confirmRetry": "We're still confirming your booking. Refresh in a moment, or contact support if payment was deducted.",
     "backHome": "Back to home",
     "couldNotStart": "Could not start payment. Please try again."
   },

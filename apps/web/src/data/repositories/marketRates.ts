@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase'
+import { escapeLikePattern } from '../../lib/likePattern'
 import type { Database } from '../../types/db.generated'
 
 type MarketRateInsert = Database['public']['Tables']['market_rate_cache']['Insert']
@@ -12,8 +13,11 @@ type MarketRateUpdate = Database['public']['Tables']['market_rate_cache']['Updat
 
 /** Benchmark band for the role-creation warning → { data: {min,max,median}|null, error }. */
 export function getMarketRate(title: string, location: string, experience: string) {
+  // Escape LIKE metacharacters so a title with `%`/`_` (e.g. 'Sales%', 'C_Level')
+  // is matched literally by ILIKE instead of as a wildcard returning an arbitrary
+  // unrelated benchmark band. ILIKE (not eq) is kept for case-insensitive lookup.
   return supabase.from('market_rate_cache').select('min_salary, max_salary, median_salary')
-    .ilike('job_title', title).eq('location', location).eq('experience_level', experience)
+    .ilike('job_title', escapeLikePattern(title)).eq('location', location).eq('experience_level', experience)
     .limit(1).maybeSingle()
 }
 

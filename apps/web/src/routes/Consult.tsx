@@ -51,6 +51,12 @@ export default function Consult() {
   const [err, setErr] = useState<string | null>(null)
   const [manualMsg, setManualMsg] = useState<string | null>(null)
   const [returnInfo, setReturnInfo] = useState<{ status: string; videoUrl: string | null } | null>(null)
+  // The booking-status fetch has its OWN lifecycle, independent of the tier-config
+  // `loading` above. Tracking it separately means we render a neutral spinner
+  // while it is in flight (instead of flashing the red "couldn't confirm" alert to
+  // a user who DID pay) and a distinct retry message on fetch error/no-row — the
+  // scary couldNotConfirm alert is reserved for a genuinely not-paid loaded status.
+  const [returnState, setReturnState] = useState<'loading' | 'loaded' | 'error'>('loading')
 
   useEffect(() => {
     let cancelled = false
@@ -88,11 +94,20 @@ export default function Consult() {
   useEffect(() => {
     if (!onReturn) return
     let cancelled = false
+    setReturnState('loading')
+    // Two-arg then(): the PostgREST builder resolves to a PromiseLike (no
+    // `.catch`), so the rejection handler is passed as the second argument.
     void consultBookingStatusById(onReturn)
-      .then(({ data }) => {
-        if (cancelled || !data) return
+      .then(({ data, error }) => {
+        if (cancelled) return
+        // A query error OR a missing row is NOT "not paid" — it's an inconclusive
+        // read (RLS/session/network). Surface a neutral retry state rather than
+        // the red couldNotConfirm alert, which is reserved for a loaded-but-unpaid
+        // status below.
+        if (error || !data) { setReturnState('error'); return }
         setReturnInfo({ status: data.status, videoUrl: data.video_url })
-      })
+        setReturnState('loaded')
+      }, () => { if (!cancelled) setReturnState('error') })
     return () => { cancelled = true }
   }, [onReturn])
 
@@ -122,7 +137,13 @@ export default function Consult() {
         <PageHeader eyebrow={t('consult.eyebrow')} title={t('consult.thanksTitle')} />
         <Card>
           <div className="p-6 space-y-3">
-            {returnInfo?.status === 'scheduled' || returnInfo?.status === 'paid' ? (
+            {returnState === 'loading' ? (
+              <LoadingSpinner />
+            ) : returnState === 'error' ? (
+              // Inconclusive read (error/no row) — neutral retry, NOT a payment-
+              // failure claim to a user who may well have paid.
+              <Alert tone="amber">{t('consult.confirmRetry')}</Alert>
+            ) : returnInfo?.status === 'scheduled' || returnInfo?.status === 'paid' ? (
               <>
                 <Alert tone="green">{t('consult.paid')}</Alert>
                 {returnInfo.videoUrl ? (

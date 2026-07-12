@@ -235,7 +235,23 @@
     "ratingLabel": "Bagaimana pengalaman anda? (1–5 bintang)",
     "commentLabel": "Ada apa-apa yang perlu kami tahu?",
     "submitted": "Terima kasih — anda telah menerima {{points}} mata.",
-    "alreadySubmitted": "Anda telah pun menghantar maklum balas."
+    "alreadySubmitted": "Anda telah pun menghantar maklum balas.",
+    "ratingQuestion": "Bagaimana temu duga itu? (1 = lemah, 5 = cemerlang)",
+    "rateAria": "Beri {{n}} daripada 5",
+    "role": "Jawatan",
+    "notePlaceholder": "Peribadi kepada admin — tidak ditunjukkan kepada pihak lain.",
+    "back": "Kembali",
+    "backToDashboard": "Kembali ke papan pemuka",
+    "alreadyRated": "Terima kasih! Anda telah menilai temu duga ini untuk {{role}}.",
+    "thankYou": "Terima kasih",
+    "thankYouBody": "Maklum balas anda membantu kami menambah baik padanan.",
+    "pointsNote": "+1 mata diberikan · 5 mata = 1 padanan tambahan percuma.",
+    "submit": "Hantar maklum balas",
+    "submitting": "Menghantar…",
+    "errMatchNotFound": "Padanan tidak dijumpai",
+    "errNoInterview": "Tiada rekod temu duga untuk padanan ini lagi.",
+    "errNotParticipant": "Anda bukan peserta dalam padanan ini.",
+    "roleGone": "(jawatan tiada)"
   },
   "referral": {
     "title": "Jemput rakan, kumpul mata",
@@ -342,6 +358,7 @@
     "willEmail": "Kami akan e-mel pautan video kepada anda. Jika tiada selepas beberapa minit, periksa spam.",
     "pendingConfirm": "Kami belum terima pengesahan pembayaran. Halaman ini akan dikemaskini sebaik tiba — biasanya dalam seminit.",
     "couldNotConfirm": "Kami tidak dapat sahkan tempahan anda. Sila hubungi sokongan jika bayaran telah ditolak.",
+    "confirmRetry": "Kami masih mengesahkan tempahan anda. Muat semula sebentar lagi, atau hubungi sokongan jika bayaran telah ditolak.",
     "backHome": "Kembali ke laman utama",
     "couldNotStart": "Tidak dapat mulakan pembayaran. Sila cuba lagi."
   },

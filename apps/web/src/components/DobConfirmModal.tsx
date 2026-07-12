@@ -8,21 +8,45 @@ interface Props {
 }
 
 /**
- * Asks the user to type their birth year a second time before we encrypt + lock
- * the DOB. PDPA + matching-quality double-check: a wrong DOB stays wrong forever,
- * with no way to correct it without a Data Request.
+ * Compare a free-typed date-of-birth against the canonical ISO `dob`
+ * ("YYYY-MM-DD"), validating the FULL date — day, month AND year. Tolerant of
+ * separators and missing leading zeros: accepts "15/7/1990", "15-07-1990",
+ * "15071990" (day-first, matching the displayed "15 Jul 1990" order). Returns
+ * false for anything that doesn't resolve to exactly day+month+year.
+ */
+export function dobConfirmMatches(dob: string, typed: string): boolean {
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dob)
+  if (!iso) return false
+  const [, y, m, d] = iso
+  const parts = typed.trim().split(/\D+/).filter(Boolean)
+  let day: number, mon: number, yr: number
+  if (parts.length === 3) {
+    day = Number(parts[0]); mon = Number(parts[1]); yr = Number(parts[2])
+  } else {
+    const digits = typed.replace(/\D/g, '')
+    if (digits.length !== 8) return false
+    day = Number(digits.slice(0, 2)); mon = Number(digits.slice(2, 4)); yr = Number(digits.slice(4, 8))
+  }
+  return day === Number(d) && mon === Number(m) && yr === Number(y)
+}
+
+/**
+ * Asks the user to re-type their FULL date of birth before we encrypt + lock the
+ * DOB. PDPA + matching-quality double-check: a wrong DOB stays wrong forever,
+ * with no way to correct it without a Data Request — and month/day are the
+ * matching-critical fields, so confirming the year alone gives false assurance
+ * for exactly the same-year month/day typos most likely to degrade matching.
  */
 export default function DobConfirmModal({ dob, onConfirm, onCancel }: Props) {
-  const [typedYear, setTypedYear] = useState('')
+  const [typedDate, setTypedDate] = useState('')
   const [showError, setShowError] = useState(false)
-  const yearInputRef = useRef<HTMLInputElement>(null)
+  const dateInputRef = useRef<HTMLInputElement>(null)
 
-  const expectedYear = dob.slice(0, 4)
-  const matches = typedYear === expectedYear
+  const matches = dobConfirmMatches(dob, typedDate)
 
   useEffect(() => {
-    // Focus the year input when the modal mounts (modal-scoped focus).
-    requestAnimationFrame(() => yearInputRef.current?.focus())
+    // Focus the confirm input when the modal mounts (modal-scoped focus).
+    requestAnimationFrame(() => dateInputRef.current?.focus())
   }, [])
 
   function handleConfirm() {
@@ -55,25 +79,24 @@ export default function DobConfirmModal({ dob, onConfirm, onCancel }: Props) {
           </div>
         </div>
         <div>
-          <label htmlFor="dob-year-confirm" className="block text-sm font-medium text-ink-700 mb-1">
-            To confirm, type your <strong>birth year</strong> ({expectedYear.length === 4 ? '4 digits' : '...'})
+          <label htmlFor="dob-confirm-input" className="block text-sm font-medium text-ink-700 mb-1">
+            To confirm, re-type your full <strong>date of birth</strong> (day / month / year)
           </label>
           <input
-            ref={yearInputRef}
-            id="dob-year-confirm"
+            ref={dateInputRef}
+            id="dob-confirm-input"
             type="text"
             inputMode="numeric"
-            pattern="[0-9]{4}"
-            maxLength={4}
-            value={typedYear}
-            onChange={(e) => { setTypedYear(e.target.value.replace(/\D/g, '').slice(0, 4)); setShowError(false) }}
+            maxLength={10}
+            value={typedDate}
+            onChange={(e) => { setTypedDate(e.target.value); setShowError(false) }}
             className="w-full border border-ink-300 rounded-lg px-3 py-2 text-base font-mono focus:outline-none focus:ring-2 focus:ring-brand-500"
-            placeholder="YYYY"
+            placeholder="DD / MM / YYYY"
           />
           {showError && (
             <p role="alert" aria-live="assertive" className="mt-1 text-sm text-red-600">
-              That doesn&apos;t match. The year you entered above was <strong>{expectedYear}</strong>.
-              Type it exactly to confirm — or click &ldquo;Edit&rdquo; to change your DOB.
+              That doesn&apos;t match. You entered <strong>{formatDob(dob)}</strong> above.
+              Re-type the full date to confirm — or click &ldquo;Edit&rdquo; to change your DOB.
             </p>
           )}
         </div>
@@ -87,7 +110,7 @@ export default function DobConfirmModal({ dob, onConfirm, onCancel }: Props) {
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={typedYear.length !== 4}
+            disabled={typedDate.trim().length === 0}
             className="flex-1"
           >
             Confirm &amp; lock

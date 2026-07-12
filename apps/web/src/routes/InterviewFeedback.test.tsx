@@ -15,6 +15,26 @@ import { render, screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 
+// i18n stub: every visible string flows through t(), so the rendered text IS the
+// key (with n/role interpolation appended). This both keeps the behaviour
+// assertions deterministic AND proves the copy is localized (secrecy-a11y-inj-4):
+// a hard-coded-English component could never render 'feedback.title' etc.
+//
+// `t` MUST be referentially stable (hoisted, created once) — the component's load
+// effect lists `t` in its deps, mirroring production react-i18next where `t` is
+// memoized; a fresh `t` per render would re-fire the effect forever (hang).
+const { stableT } = vi.hoisted(() => ({
+  stableT: (k: string, opts?: Record<string, unknown>) => {
+    let s = k
+    if (opts?.n != null) s += `:${String(opts.n)}`
+    if (opts?.role != null) s += `:${String(opts.role)}`
+    return s
+  },
+}))
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({ t: stableT, i18n: { language: 'en' } }),
+}))
+
 // A STABLE session object — the component reads it through `useShallow`, whose
 // shallow compare is on `state.session`; returning a fresh object each render
 // would flip the identity every render and re-fire the `[matchId, session]`
@@ -66,28 +86,40 @@ function renderFeedback() {
 describe('<InterviewFeedback /> rating — RadioGroup(segmented) adoption', () => {
   it('renders the 1–5 rating as five radios, nothing selected, Submit disabled', async () => {
     renderFeedback()
-    // Wait for the async match/interview load to resolve into the form.
-    const group = await screen.findByRole('radiogroup', { name: /how did it go/i })
+    // Wait for the async match/interview load to resolve into the form. The
+    // radiogroup is labelled by the localized rating question key.
+    const group = await screen.findByRole('radiogroup', { name: 'feedback.ratingQuestion' })
     expect(group).toBeInTheDocument()
     const radios = screen.getAllByRole('radio')
     expect(radios).toHaveLength(5)
     for (const r of radios) expect(r).toHaveAttribute('aria-checked', 'false')
-    expect(screen.getByRole('radio', { name: 'Rate 3 out of 5' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /submit feedback/i })).toBeDisabled()
+    expect(screen.getByRole('radio', { name: 'feedback.rateAria:3' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'feedback.submit' })).toBeDisabled()
   })
 
   it('selecting a rating checks it and enables Submit (selection behaviour preserved)', async () => {
     renderFeedback()
-    const four = await screen.findByRole('radio', { name: 'Rate 4 out of 5' })
+    const four = await screen.findByRole('radio', { name: 'feedback.rateAria:4' })
     await userEvent.click(four)
     expect(four).toHaveAttribute('aria-checked', 'true')
-    expect(screen.getByRole('radio', { name: 'Rate 3 out of 5' })).toHaveAttribute('aria-checked', 'false')
-    expect(screen.getByRole('button', { name: /submit feedback/i })).toBeEnabled()
+    expect(screen.getByRole('radio', { name: 'feedback.rateAria:3' })).toHaveAttribute('aria-checked', 'false')
+    expect(screen.getByRole('button', { name: 'feedback.submit' })).toBeEnabled()
+  })
+
+  it('localizes every visible string through t() (secrecy-a11y-inj-4)', async () => {
+    renderFeedback()
+    // Heading, rating question and role line all come from the feedback.* keys —
+    // a hard-coded-English render could never produce these key strings.
+    expect(await screen.findByText('feedback.title')).toBeInTheDocument()
+    expect(screen.getByText('feedback.ratingQuestion')).toBeInTheDocument()
+    // role line interpolates the fetched title ('Head Chef').
+    expect(screen.getByText(/feedback\.role/)).toHaveTextContent('Head Chef')
+    expect(screen.getByRole('button', { name: 'feedback.back' })).toBeInTheDocument()
   })
 
   it('keeps the exact rating-tile styling — brand-600 fill on a white/gray-200 tile (parity)', async () => {
     renderFeedback()
-    const tile = await screen.findByRole('radio', { name: 'Rate 1 out of 5' })
+    const tile = await screen.findByRole('radio', { name: 'feedback.rateAria:1' })
     expect(tile.className).toMatch(/h-12/)
     expect(tile.className).toMatch(/w-12/)
     expect(tile.className).toMatch(/data-\[state=checked\]:bg-brand-600/)

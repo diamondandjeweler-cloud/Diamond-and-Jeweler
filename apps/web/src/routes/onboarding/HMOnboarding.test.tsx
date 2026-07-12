@@ -17,7 +17,7 @@ vi.mock('../../lib/supabase', () => ({
   },
 }))
 
-import { headlineForPhase, progressPctForPhase, type Phase } from './hm/helpers'
+import { headlineForPhase, progressPctForPhase, hmRestorePhase, type Phase } from './hm/helpers'
 import ReviewStep from './hm/ReviewStep'
 
 // A deterministic i18n stub: echoes the key, and substitutes {{dob}} /
@@ -59,6 +59,21 @@ describe('progressPctForPhase (extracted pure helper)', () => {
     ]
     for (const [phase, pct] of cases) {
       expect(progressPctForPhase(phase)).toBe(pct)
+    }
+  })
+})
+
+describe('hmRestorePhase (restore data-loss guard, onboarding-pii-2)', () => {
+  it("routes a saved 'review' phase back to 'dob' (DOB/gender are never persisted)", () => {
+    // Without this, restore lands on Review with an empty DOB and lets the user
+    // submit, silently dropping the just-entered DOB + gender.
+    expect(hmRestorePhase('review')).toBe('dob')
+  })
+
+  it('restores every other phase unchanged', () => {
+    const passthrough: Phase[] = ['basics', 'chat', 'mustHaves', 'demographics', 'hiringDetails', 'dob', 'submit', 'done']
+    for (const p of passthrough) {
+      expect(hmRestorePhase(p)).toBe(p)
     }
   })
 })

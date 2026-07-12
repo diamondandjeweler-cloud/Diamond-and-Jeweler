@@ -21,7 +21,7 @@ interface ConsentVersion {
 
 export default function Consent() {
   useSeo({ title: 'Data processing consent', noindex: true })
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { session, profile, refresh } = useSession(useShallow((s) => ({ session: s.session, profile: s.profile, refresh: s.refresh })))
   const navigate = useNavigate()
   const [versions, setVersions] = useState<ConsentVersion[]>([])
@@ -60,9 +60,17 @@ export default function Consent() {
   // the UI never surfaces the proprietary matching internals — even before
   // the neutralising migration (0145) lands on this environment.
   const isHiring = profile?.role === 'hr_admin' || profile?.role === 'hiring_manager'
+  // Render the consent copy in the user's active UI language. i18n.language can
+  // carry a region suffix (e.g. 'en-MY', 'zh-CN'), so normalise to the base tag
+  // and fall back to English for anything outside the three supported bodies —
+  // otherwise a BM/中文 user is shown (and asked to "agree" to) English-only PDPA
+  // consent even though full ms/zh bodies exist.
+  const langBase = (i18n.language ?? 'en').split('-')[0]
+  const lang: 'en' | 'ms' | 'zh' = langBase === 'ms' || langBase === 'zh' ? langBase : 'en'
   const v: ConsentVersion | undefined = baseVersion ? {
     ...baseVersion,
-    body_md: isHiring ? hiringBody('en') : talentBody('en'),
+    language: lang,
+    body_md: isHiring ? hiringBody(lang) : talentBody(lang),
   } : undefined
 
   const submit = async () => {

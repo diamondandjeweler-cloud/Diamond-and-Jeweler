@@ -522,6 +522,12 @@ export function useHmDashboardData(userId: string | undefined) {
       await callFunction<{ message: string; cost: number }>('redeem-points', {
         target_type: 'role', role_id: roleId,
       })
+      // If the HM navigated away during the in-flight call, bail before touching
+      // state or arming the reload timer — the useReloadTimer unmount cleanup has
+      // already run (reloadTimerRef was still null), so a timer assigned here
+      // would never be cleared and would reload an unrelated route. Mirrors the
+      // talent sibling (useTalentDashboardData.tsx handleRedeemExtraTalent).
+      if (!mountedRef.current) return
       setUnlockMsg({
         roleId, tone: 'green',
         text: t('hmDash.redeemSuccess', { points: POINTS_PER_EXTRA }),
@@ -532,8 +538,9 @@ export function useHmDashboardData(userId: string | undefined) {
       reloadTimerRef.current = setTimeout(() => { window.location.reload() }, 1500)
     } catch (e) {
       log.error('[redeem-points] failed', e)
+      if (!mountedRef.current) return
       setUnlockMsg({ roleId, tone: 'red', text: e instanceof Error ? e.message : t('hmDash.redeemFailed') })
-    } finally { setRedeemingRoleId(null) }
+    } finally { if (mountedRef.current) setRedeemingRoleId(null) }
   }
 
   const viewResume = useCallback(async (matchId: string) => {
@@ -632,6 +639,11 @@ export function useHmDashboardData(userId: string | undefined) {
     if (nextStatus) {
       setCandidates((cs) => (cs ?? []).map((c) => (c.id === matchId ? { ...c, status: nextStatus } : c)))
     }
+    // schedule_round carries no optimistic status; snapshot the entered slots +
+    // open picker BEFORE clearing so a failed send can restore them (see catch).
+    // matchId === schedulingFor here (the modal passes schedulingFor as matchId).
+    const prevSlots = scheduleSlots
+    const prevSchedulingFor = matchId
     if (action === 'schedule_round') {
       // Close the picker immediately — the function will confirm asynchronously.
       setSchedulingFor(null)
@@ -651,12 +663,27 @@ export function useHmDashboardData(userId: string | undefined) {
       void loadProposals([matchId])
     } catch (e) {
       if (!mountedRef.current) return
-      if (prev) setCandidates((cs) => (cs ?? []).map((c) => (c.id === matchId ? prev : c)))
+      // Revert ONLY if the row still holds the status we optimistically set; a
+      // concurrent realtime `matches` UPDATE may have patched it with newer
+      // server data that a blind revert-to-prev would clobber. For actions with
+      // no optimistic status (e.g. schedule_round, nextStatus undefined) this
+      // condition is false, so the row is left as-is. Mirrors the talent hook
+      // (useTalentDashboardData.tsx doAction/respond).
+      if (prev) setCandidates((cs) => (cs ?? []).map((c) => {
+        if (c.id !== matchId) return c
+        return (nextStatus && c.status === nextStatus) ? prev : c
+      }))
+      if (action === 'schedule_round') {
+        // Restore the picker + the three entered datetime slots so a failed send
+        // doesn't discard the HM's entries and force full re-entry.
+        setSchedulingFor(prevSchedulingFor)
+        setScheduleSlots(prevSlots)
+      }
       setErr(e instanceof Error ? e.message : t('hmDash.actionFailed', { action }))
     } finally {
       if (mountedRef.current) setActionBusy(null)
     }
-  }, [companyVerified, t, candidates, loadRounds, loadProposals, mountedRef])
+  }, [companyVerified, t, candidates, loadRounds, loadProposals, mountedRef, scheduleSlots])
 
   const revealContact = useCallback(async (matchId: string) => {
     if (companyVerified === false) {

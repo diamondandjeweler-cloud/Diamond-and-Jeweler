@@ -180,6 +180,7 @@ function DobStepImpl({
               <button
                 key={value}
                 type="button"
+                aria-pressed={active}
                 onClick={() => setLanguages((prev) => active ? prev.filter((l) => l !== value) : [...prev, value])}
                 className={`border rounded-full px-3 py-1.5 text-xs ${active ? 'bg-brand-500 text-white border-brand-500' : 'border-border text-ink-700 dark:text-fg-strong hover:bg-ink-50 dark:hover:bg-surface'}`}
               >

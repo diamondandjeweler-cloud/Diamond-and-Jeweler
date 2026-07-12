@@ -31,7 +31,7 @@ import { callFunction } from '../../lib/functions'
 import { type Gender } from '../../shared/domain/lifeChart/lifeChartCharacter'
 import ChatShell, { ChatMessage } from '../../components/ChatShell'
 import { Button, Alert } from '../../components/ui'
-import { type Phase, type ApiMessage, headlineForPhase, progressPctForPhase } from './hm/helpers'
+import { type Phase, type ApiMessage, headlineForPhase, progressPctForPhase, hmRestorePhase } from './hm/helpers'
 import { buildHmUpdate, type ExtractedHmProfile, type HmOnboardingData } from './hm/submitHmOnboarding'
 import { useOnboardingChat } from './useOnboardingChat'
 import BasicsStep from './hm/BasicsStep'
@@ -238,6 +238,11 @@ export default function HMOnboarding() {
       if (d.interviewRoundsHM != null) setInterviewRoundsHM(d.interviewRoundsHM)
       if (d.salaryFlex != null) setSalaryFlex(d.salaryFlex)
       if (d.failureAt90Days) setFailureAt90Days(d.failureAt90Days)
+      // hmRestorePhase routes a saved 'review' phase back to 'dob': DOB/gender/
+      // dobConsent/dobSkipped are never persisted, so restoring straight to
+      // 'review' would land on an empty-DOB summary that can still be submitted,
+      // silently dropping them (date_of_birth_encrypted/gender/life_chart_character
+      // null). See helpers.ts.
       if (d.apiMessages && d.apiMessages.length > 1) {
         setApiMessages(d.apiMessages)
         setLog(d.apiMessages.map((m, i) => ({
@@ -246,9 +251,9 @@ export default function HMOnboarding() {
           content: m.content.replace('[PROFILE_READY]', '').trim(),
         })))
         chatInitRef.current = true
-        setPhase(d.phase && d.phase !== 'basics' && d.phase !== 'done' && d.phase !== 'submit' ? d.phase : 'chat')
+        setPhase(d.phase && d.phase !== 'basics' && d.phase !== 'done' && d.phase !== 'submit' ? hmRestorePhase(d.phase) : 'chat')
       } else if (d.phase && d.phase !== 'basics' && d.phase !== 'done' && d.phase !== 'submit') {
-        setPhase(d.phase)
+        setPhase(hmRestorePhase(d.phase))
       }
     } catch { /* ignore */ }
   }, [session?.user.id, draftKey])

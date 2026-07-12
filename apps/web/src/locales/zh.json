@@ -235,7 +235,23 @@
     "ratingLabel": "您的体验如何? (1–5 星)",
     "commentLabel": "有什么想让我们知道的吗?",
     "submitted": "感谢您 — 已为您奖励 {{points}} 积分。",
-    "alreadySubmitted": "您已提交过反馈。"
+    "alreadySubmitted": "您已提交过反馈。",
+    "ratingQuestion": "面试进行得如何？（1 = 差，5 = 极好）",
+    "rateAria": "评 {{n}} 分（满分 5）",
+    "role": "职位",
+    "notePlaceholder": "仅管理员可见 — 不会显示给对方。",
+    "back": "返回",
+    "backToDashboard": "返回仪表板",
+    "alreadyRated": "谢谢！您已为 {{role}} 的这次面试评分。",
+    "thankYou": "谢谢",
+    "thankYouBody": "您的反馈有助于我们改进匹配。",
+    "pointsNote": "+1 积分已发放 · 5 积分 = 1 次免费额外匹配。",
+    "submit": "提交反馈",
+    "submitting": "提交中…",
+    "errMatchNotFound": "找不到匹配",
+    "errNoInterview": "此匹配尚无面试记录。",
+    "errNotParticipant": "您不是此匹配的参与者。",
+    "roleGone": "（职位已删除）"
   },
   "referral": {
     "title": "邀请朋友, 赚取积分",
@@ -342,6 +358,7 @@
     "willEmail": "我们会尽快邮件发送视频链接。如几分钟内未收到，请检查垃圾邮件。",
     "pendingConfirm": "尚未收到付款确认。该页面会在到账后自动刷新——通常一分钟内。",
     "couldNotConfirm": "我们无法确认您的预约。如已扣款请联系客服。",
+    "confirmRetry": "我们仍在确认您的预约。请稍后刷新，如已扣款请联系客服。",
     "backHome": "返回首页",
     "couldNotStart": "无法开始付款。请再试一次。"
   },

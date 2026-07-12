@@ -13,6 +13,18 @@ export type Phase =
 export interface ApiMessage { role: 'user' | 'assistant'; content: string }
 
 /**
+ * Normalize a restored wizard phase after a page reload. DOB, gender, dobConsent
+ * and dobSkipped are intentionally NEVER persisted (no plaintext DOB in
+ * localStorage), so a saved 'review' phase would restore with an empty DOB/gender
+ * and still let the user submit — silently dropping them. Route 'review' back to
+ * 'dob' so the unpersisted DOB/gender/consent must be re-supplied first; every
+ * other phase restores unchanged. Mirrors Talent onboarding's resume→dob routing.
+ */
+export function hmRestorePhase(phase: Phase): Phase {
+  return phase === 'review' ? 'dob' : phase
+}
+
+/**
  * Per-phase wizard headline. Relocated verbatim from HMOnboarding — identical
  * key mapping and final-empty-string fallback.
  */

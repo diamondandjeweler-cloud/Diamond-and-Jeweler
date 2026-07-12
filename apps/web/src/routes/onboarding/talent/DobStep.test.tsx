@@ -92,6 +92,17 @@ describe('<DobStep /> single-selects — RadioGroup(segmented) adoption', () => 
     expect(setLocationPostcode).toHaveBeenCalledWith('')
   })
 
+  it('language multi-select toggles expose aria-pressed reflecting selection (secrecy-a11y-inj-3)', async () => {
+    const setLanguages = vi.fn()
+    render(<DobStep {...makeProps({ languages: ['english'], setLanguages })} />)
+    // Selected + unselected options must announce their pressed state to AT.
+    expect(screen.getByRole('button', { name: 'talentOnboard.langEnglish' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'talentOnboard.langBahasaMalaysia' })).toHaveAttribute('aria-pressed', 'false')
+    // Toggling still drives the setter.
+    await userEvent.click(screen.getByRole('button', { name: 'talentOnboard.langBahasaMalaysia' }))
+    expect(setLanguages).toHaveBeenCalled()
+  })
+
   it('reflects the current selection and keeps the brand-filled pill styling (parity)', () => {
     render(<DobStep {...makeProps({ gender: 'male' })} />)
     const male = screen.getByRole('radio', { name: 'talentOnboard.male' })

@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase'
+import { escapeLikePattern } from '../../lib/likePattern'
 import type { Database } from '../../types/db.generated'
 
 export type CompanyUpdate = Database['public']['Tables']['companies']['Update']
@@ -29,7 +30,16 @@ export interface NewCompany {
 
 /** Company id by primary HR email → { data: { id } | null } (LinkHMPanel / HR dashboard / HMOnboarding self-heal). */
 export function companyIdByHrEmail(email: string) {
-  return supabase.from('companies').select('id').eq('primary_hr_email', email).maybeSingle()
+  // Match the DB binding's normalization. The RLS helper auth_hr_company_id()
+  // (migration 0180) resolves the company via lower(trim(primary_hr_email)), so
+  // an admin whose login email is 'HR@Acme.com' IS granted access to a company
+  // stored as 'hr@acme.com' — but a raw case-sensitive `.eq` here returns null
+  // and locks them out of their own dashboard. Compare case-insensitively on the
+  // trimmed email (ILIKE), escaping LIKE metacharacters (underscores are valid in
+  // email local-parts) so the lookup behaves as an exact, case-insensitive match.
+  return supabase.from('companies').select('id')
+    .ilike('primary_hr_email', escapeLikePattern(email.trim()))
+    .limit(1).maybeSingle()
 }
 
 /**

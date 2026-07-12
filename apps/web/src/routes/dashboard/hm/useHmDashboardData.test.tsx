@@ -589,3 +589,103 @@ describe('useHmDashboardData — action handlers (optimistic + rollback)', () =>
     expect(result.current.linkBusy).toBe(false)
   })
 })
+
+describe('useHmDashboardData — realtime/unmount regressions (dashboards-realtime 1/2/3)', () => {
+  async function renderSubscribed(candidates: Cand[], opts?: { points?: number }) {
+    const rendered = renderLoaded({ candidates, points: opts?.points })
+    await waitFor(() => expect(rendered.result.current.candidates).not.toBeNull())
+    await waitFor(() => expect(rt.handler).not.toBeNull())
+    return rendered
+  }
+
+  // dashboards-realtime-1
+  it('handleRedeemExtra: unmounting mid-flight does NOT arm the window.location.reload timer', async () => {
+    const origLocation = window.location
+    const reloadSpy = vi.fn()
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...origLocation, reload: reloadSpy, assign: vi.fn(), href: '' },
+    })
+    try {
+      // redeem-points stays in flight until we resolve it, so we can unmount first.
+      let resolveRedeem: (v: unknown) => void = () => {}
+      callFunction.mockImplementationOnce(() => new Promise((res) => { resolveRedeem = res }))
+
+      const { result, unmount } = renderLoaded({ candidates: [{ id: 'c1', status: 'viewed' }], points: 30 })
+      await waitFor(() => expect(result.current.candidates).not.toBeNull())
+
+      vi.useFakeTimers()
+      let done: Promise<void> | undefined
+      await act(async () => {
+        done = result.current.handleRedeemExtra('role-1', 'Goldsmith')
+        // Flush the confirmDialog microtask so execution reaches the pending call.
+        await Promise.resolve(); await Promise.resolve()
+      })
+      expect(result.current.redeemingRoleId).toBe('role-1')
+
+      // HM navigates away while redeem-points is still in flight.
+      unmount()
+      await act(async () => { resolveRedeem({ message: 'ok', cost: 21 }); await done })
+      await act(async () => { await vi.advanceTimersByTimeAsync(2000) })
+
+      // The post-await mountedRef guard must prevent arming the reload timer.
+      expect(reloadSpy).not.toHaveBeenCalled()
+      vi.useRealTimers()
+    } finally {
+      Object.defineProperty(window, 'location', { configurable: true, value: origLocation })
+    }
+  })
+
+  // dashboards-realtime-2
+  it('doAction(make_offer): a concurrent realtime UPDATE during the in-flight action is NOT clobbered by the error revert', async () => {
+    const { result } = await renderSubscribed([{ id: 'c1', status: 'invited_by_manager' }])
+
+    // interview-action stays in flight until we reject it.
+    let rejectCall: (e: Error) => void = () => {}
+    callFunction.mockImplementationOnce(() => new Promise((_res, rej) => { rejectCall = rej }))
+
+    let done: Promise<void> | undefined
+    act(() => { done = result.current.doAction('c1', 'make_offer') })
+    // Optimistic status applied.
+    expect(result.current.candidates?.find((c) => c.id === 'c1')?.status).toBe('offer_made')
+
+    // A realtime UPDATE lands with newer server data while the call is in flight.
+    await act(async () => {
+      rt.handler!({ eventType: 'UPDATE', new: { id: 'c1', role_id: 'role-1', status: 'hired' }, old: { id: 'c1', role_id: 'role-1' } })
+    })
+    expect(result.current.candidates?.find((c) => c.id === 'c1')?.status).toBe('hired')
+
+    // Now the edge fn fails.
+    await act(async () => { rejectCall(new Error('offer-boom')); await done })
+
+    // The realtime 'hired' must survive — the revert fires only if the row still
+    // holds the optimistic 'offer_made'.
+    expect(result.current.candidates?.find((c) => c.id === 'c1')?.status).toBe('hired')
+    expect(result.current.err).toBe('offer-boom')
+  })
+
+  // dashboards-realtime-3
+  it('doAction(schedule_round): restores the entered slots + picker when the send fails', async () => {
+    const slots: [string, string, string] = ['2030-01-01T10:00', '2030-01-02T10:00', '2030-01-03T10:00']
+    const { result } = renderLoaded({ candidates: [{ id: 'c1', status: 'invited_by_manager' }] })
+    await waitFor(() => expect(result.current.candidates).not.toBeNull())
+
+    // HM opens the picker for c1 and enters three slots.
+    act(() => {
+      result.current.setSchedulingFor('c1')
+      result.current.setScheduleSlots(slots)
+    })
+    expect(result.current.scheduleSlots).toEqual(slots)
+
+    callFunction.mockRejectedValueOnce(new Error('slot-boom'))
+    await act(async () => {
+      await result.current.doAction('c1', 'schedule_round', { slot_1_at: 'x', slot_2_at: 'y', slot_3_at: 'z' })
+    })
+
+    // The failed send must not discard the entries: picker reopened for c1 and
+    // the three datetime slots are back.
+    expect(result.current.schedulingFor).toBe('c1')
+    expect(result.current.scheduleSlots).toEqual(slots)
+    expect(result.current.err).toBe('slot-boom')
+  })
+})

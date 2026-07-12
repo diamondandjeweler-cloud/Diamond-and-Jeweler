@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useSession } from '../state/useSession'
 import { useShallow } from 'zustand/react/shallow'
 import { matchForFeedback } from '../data/repositories/matches'
@@ -22,6 +23,7 @@ interface Resolved {
 
 export default function InterviewFeedback() {
   const { matchId } = useParams<{ matchId: string }>()
+  const { t } = useTranslation()
   const { session } = useSession(useShallow((s) => ({ session: s.session })))
   const navigate = useNavigate()
 
@@ -42,10 +44,10 @@ export default function InterviewFeedback() {
       // Pull match + interview + ownership info.
       const { data: match, error } = await matchForFeedback(matchId).single()
       if (cancelled) return
-      if (error || !match) { setErr(error?.message ?? 'Match not found'); setLoading(false); return }
+      if (error || !match) { setErr(error?.message ?? t('feedback.errMatchNotFound')); setLoading(false); return }
 
       const { data: interview } = await interviewFeedbackFlagsByMatch(matchId).maybeSingle()
-      if (!interview) { setErr('No interview row exists for this match yet.'); setLoading(false); return }
+      if (!interview) { setErr(t('feedback.errNoInterview')); setLoading(false); return }
 
       // Determine side.
       const { data: talent } = await talentOwnershipById(match.talent_id)
@@ -54,7 +56,7 @@ export default function InterviewFeedback() {
       const { data: hm } = await hmProfileLinkById((match.roles as unknown as { hiring_manager_id: string } | null)?.hiring_manager_id ?? '')
       const isHM = hm?.profile_id === session.user.id
 
-      if (!isTalent && !isHM) { setErr('You are not a participant in this match.'); setLoading(false); return }
+      if (!isTalent && !isHM) { setErr(t('feedback.errNotParticipant')); setLoading(false); return }
 
       const side: Side = isTalent ? 'talent' : 'hm'
       const already =
@@ -62,7 +64,7 @@ export default function InterviewFeedback() {
                           : interview.feedback_manager != null
 
       const roleTitle =
-        (match.roles as unknown as { title: string } | null)?.title ?? '(role gone)'
+        (match.roles as unknown as { title: string } | null)?.title ?? t('feedback.roleGone')
 
       setResolved({
         side,
@@ -74,7 +76,7 @@ export default function InterviewFeedback() {
       setLoading(false)
     })()
     return () => { cancelled = true }
-  }, [matchId, session])
+  }, [matchId, session, t])
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -125,7 +127,7 @@ export default function InterviewFeedback() {
   if (err) return (
     <div className="max-w-lg mx-auto text-center">
       <p className="text-red-600 mb-4">{err}</p>
-      <button onClick={() => navigate(-1)} className="bg-brand-600 text-white px-4 py-2 rounded">Back</button>
+      <button onClick={() => navigate(-1)} className="bg-brand-600 text-white px-4 py-2 rounded">{t('feedback.back')}</button>
     </div>
   )
   if (!resolved) return null
@@ -133,12 +135,12 @@ export default function InterviewFeedback() {
   if (resolved.already_submitted) {
     return (
       <div className="max-w-lg mx-auto text-center bg-white border rounded-lg p-6">
-        <h1 className="text-xl font-semibold mb-2">Feedback already submitted</h1>
+        <h1 className="text-xl font-semibold mb-2">{t('feedback.alreadySubmitted')}</h1>
         <p className="text-sm text-gray-600 mb-4">
-          Thanks! You've already rated this interview for <strong>{resolved.role_title}</strong>.
+          {t('feedback.alreadyRated', { role: resolved.role_title })}
         </p>
         <button onClick={() => navigate('/home')} className="bg-brand-600 text-white px-4 py-2 rounded">
-          Back to dashboard
+          {t('feedback.backToDashboard')}
         </button>
       </div>
     )
@@ -147,9 +149,9 @@ export default function InterviewFeedback() {
   if (done) {
     return (
       <div className="max-w-lg mx-auto text-center bg-white border rounded-lg p-6">
-        <h1 className="text-xl font-semibold mb-2">Thank you</h1>
-        <p className="text-sm text-gray-600">Your feedback helps us improve matches.</p>
-        <p className="text-xs text-emerald-700 mt-2">+1 point awarded · 5 points = 1 free extra match.</p>
+        <h1 className="text-xl font-semibold mb-2">{t('feedback.thankYou')}</h1>
+        <p className="text-sm text-gray-600">{t('feedback.thankYouBody')}</p>
+        <p className="text-xs text-emerald-700 mt-2">{t('feedback.pointsNote')}</p>
       </div>
     )
   }
@@ -157,13 +159,13 @@ export default function InterviewFeedback() {
   return (
     <div className="max-w-lg mx-auto">
       <form onSubmit={submit} className="bg-white border rounded-lg p-6 space-y-4">
-        <h1 className="text-2xl font-bold mb-1">Rate your interview</h1>
+        <h1 className="text-2xl font-bold mb-1">{t('feedback.title')}</h1>
         <p className="text-sm text-gray-600">
-          Role: <strong>{resolved.role_title}</strong>
+          {t('feedback.role')}: <strong>{resolved.role_title}</strong>
         </p>
 
         <div>
-          <div id="rating-question" className="block text-sm mb-2">How did it go? (1 = poor, 5 = excellent)</div>
+          <div id="rating-question" className="block text-sm mb-2">{t('feedback.ratingQuestion')}</div>
           <RadioGroup
             variant="segmented"
             aria-labelledby="rating-question"
@@ -177,7 +179,7 @@ export default function InterviewFeedback() {
                 key={n}
                 value={String(n)}
                 size="tile"
-                aria-label={`Rate ${n} out of 5`}
+                aria-label={t('feedback.rateAria', { n })}
                 label={n}
                 // Parity overrides for this legacy non-tokenised `bg-white` card:
                 // brand-600 fill (vs the variant's brand-500) + white/gray-200 resting.
@@ -188,13 +190,13 @@ export default function InterviewFeedback() {
         </div>
 
         <div>
-          <label htmlFor="interview-notes" className="block text-sm mb-1">Anything else? (optional)</label>
+          <label htmlFor="interview-notes" className="block text-sm mb-1">{t('feedback.commentLabel')}</label>
           <textarea
             id="interview-notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={4}
-            placeholder="Private to admin — not shown to the other side."
+            placeholder={t('feedback.notePlaceholder')}
             className="w-full border rounded px-3 py-2"
           />
         </div>
@@ -204,11 +206,11 @@ export default function InterviewFeedback() {
         <div className="flex gap-2 justify-between pt-2">
           <button type="button" onClick={() => navigate(-1)}
             className="px-4 py-2 border rounded hover:bg-gray-50" disabled={busy}>
-            Back
+            {t('feedback.back')}
           </button>
           <button type="submit" disabled={busy || !rating}
             className="bg-brand-600 text-white px-4 py-2 rounded hover:bg-brand-700 disabled:bg-gray-300">
-            {busy ? 'Submitting…' : 'Submit feedback'}
+            {busy ? t('feedback.submitting') : t('feedback.submit')}
           </button>
         </div>
       </form>

@@ -82,12 +82,31 @@ export function insertHm(profileId: string, companyId: string, jobTitle: string)
   } satisfies HmInsert)
 }
 
-/** Upsert the HM↔company link keyed on profile_id (CompanyRegister + HMOnboarding self-heal). */
-export function upsertHmCompanyLink(profileId: string, companyId: string) {
-  return supabase.from('hiring_managers').upsert(
+/**
+ * Link the HM to a company keyed on profile_id (CompanyRegister + HMOnboarding
+ * self-heal) → { error }.
+ *
+ * A blanket `.upsert({ …, job_title: 'Hiring Manager' }, { onConflict })` writes
+ * ALL columns on the conflict UPDATE, silently clobbering a custom job_title the
+ * HM set earlier (e.g. 'VP of Engineering') back to the literal default whenever
+ * they re-run registration. So do it existence-aware: update ONLY company_id on
+ * an existing row (preserving job_title), else insert with the default title.
+ * ON CONFLICT DO NOTHING is NOT used — it would also skip the legitimate
+ * company_id re-link, stranding the HM on their old company.
+ */
+export async function upsertHmCompanyLink(profileId: string, companyId: string) {
+  const { data: existing, error: selErr } = await supabase
+    .from('hiring_managers').select('id').eq('profile_id', profileId).maybeSingle()
+  if (selErr) return { error: selErr }
+  if (existing) {
+    const { error } = await supabase.from('hiring_managers')
+      .update({ company_id: companyId } satisfies HmUpdate).eq('profile_id', profileId)
+    return { error }
+  }
+  const { error } = await supabase.from('hiring_managers').insert(
     { profile_id: profileId, company_id: companyId, job_title: 'Hiring Manager' } satisfies HmInsert,
-    { onConflict: 'profile_id' },
   )
+  return { error }
 }
 
 /** Update the HM's job title by profile id (HMCompanyProfile save; builder passed into Promise.all). */

@@ -111,7 +111,7 @@ jobs:
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
       - name: Set up Supabase CLI
-        uses: supabase/setup-cli@v1
+        uses: supabase/setup-cli@v3
         with:
           version: latest
       - name: Start local Supabase stack
@@ -278,7 +278,7 @@ jobs:
       # runner, the lighter fallbacks are `supabase db lint` or a psql dry-run
       # against a bare `postgres:15` service — kept here as a documented option.
       - name: Set up Supabase CLI
-        uses: supabase/setup-cli@v1
+        uses: supabase/setup-cli@v3
         with:
           version: latest
       - name: Start local Supabase stack

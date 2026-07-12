@@ -64,6 +64,12 @@ verify_jwt = false
 [functions.notify]
 verify_jwt = false
 
+# Cron-driven drain of the notification_outbox retry queue (migration 0194).
+# Called by pg_cron with the service-role key (no user JWT), and gates itself
+# via requireServiceRole — same rationale as notify above.
+[functions.notification-retry]
+verify_jwt = false
+
 [functions.invite-hm]
 verify_jwt = false
 

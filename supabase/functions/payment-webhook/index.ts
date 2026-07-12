@@ -23,6 +23,7 @@ import { adminClient } from '../_shared/supabase.ts'
 import { timingSafeEqual } from '../_shared/auth.ts'
 import { reportError } from '../_shared/observe.ts'
 import { createLogger } from '../_shared/logger.ts'
+import { checkBillplzAmount, readField } from '../_shared/billplz.ts'
 
 const log = createLogger('payment-webhook')
 
@@ -90,6 +91,9 @@ async function handleMoneyPath(params: Record<string, string>): Promise<Response
   const billId = params['id'] ?? ''
   const paid = params['paid'] === 'true'
   const purchaseRef = params['reference_1'] ?? ''
+  // Billplz-signed paid amount, in sen. Passed to each branch so it can be
+  // asserted against the purchase's expected price before any paid flip (B9).
+  const amountSen = params['amount']
 
   if (!billId && !purchaseRef) {
     return new Response('Missing bill id', { status: 400, headers: corsHeaders })
@@ -98,12 +102,12 @@ async function handleMoneyPath(params: Record<string, string>): Promise<Response
   const db = adminClient()
 
   // Try consult_bookings first.
-  if (await tryConsultBooking({ db, billId, purchaseRef, paid })) {
+  if (await tryConsultBooking({ db, billId, purchaseRef, paid, amountSen })) {
     return new Response('OK (consult)', { status: 200, headers: corsHeaders })
   }
 
   // Try point_purchases (Diamond Points package buy).
-  if (await tryPointPurchase({ db, billId, purchaseRef, paid })) {
+  if (await tryPointPurchase({ db, billId, purchaseRef, paid, amountSen })) {
     return new Response('OK (points)', { status: 200, headers: corsHeaders })
   }
 
@@ -115,13 +119,13 @@ async function handleMoneyPath(params: Record<string, string>): Promise<Response
 
   if (billId) {
     const { data } = await db.from('extra_match_purchases')
-      .select('id, user_id, role_id, talent_id, match_type, quantity, payment_status')
+      .select('id, user_id, role_id, talent_id, match_type, quantity, amount_rm, payment_status')
       .eq('payment_intent_id', billId).maybeSingle()
     purchase = data as typeof purchase
   }
   if (!purchase && purchaseRef) {
     const { data } = await db.from('extra_match_purchases')
-      .select('id, user_id, role_id, talent_id, match_type, quantity, payment_status')
+      .select('id, user_id, role_id, talent_id, match_type, quantity, amount_rm, payment_status')
       .eq('id', purchaseRef).maybeSingle()
     purchase = data as typeof purchase
   }
@@ -139,6 +143,20 @@ async function handleMoneyPath(params: Record<string, string>): Promise<Response
       .update({ payment_status: 'failed' })
       .eq('id', purchase.id)
     return new Response('OK (failed)', { status: 200, headers: corsHeaders })
+  }
+
+  // B9 money-path guard: the Billplz-signed `amount` (sen) must equal the
+  // purchase's stored price before we grant anything. A mismatch means the bill
+  // was created for a different amount than the purchase record — refuse the
+  // credit (fail-safe) and alert; the signature is valid but the amount is not
+  // what this purchase costs. 'unknown' (amount/price absent) falls through to
+  // the existing behavior so nothing breaks.
+  if (checkBillplzAmount(amountSen, readField(purchase, 'amount_rm')) === 'mismatch') {
+    log.error('extra-match amount mismatch — refusing paid flip', { bill: billId, ref: purchaseRef, amount: amountSen })
+    await reportError(new Error('billplz amount mismatch (extra_match)'), {
+      fn: 'payment-webhook', bill_id: billId, reference_1: purchaseRef, amount_sen: amountSen,
+    })
+    return new Response('OK (amount mismatch — not credited)', { status: 200, headers: corsHeaders })
   }
 
   // SUCCESS path — flip to paid. Guard on payment_status='pending' prevents double-grant.
@@ -258,8 +276,9 @@ async function tryPointPurchase(args: {
   billId: string
   purchaseRef: string
   paid: boolean
+  amountSen: string | undefined
 }): Promise<boolean> {
-  const { db, billId, purchaseRef, paid } = args
+  const { db, billId, purchaseRef, paid, amountSen } = args
   let purchase: {
     id: string; user_id: string; package_id: string; package_name: string;
     points: number; amount_rm: number; payment_status: string;
@@ -285,6 +304,16 @@ async function tryPointPurchase(args: {
     await db.from('point_purchases')
       .update({ payment_status: 'failed' })
       .eq('id', purchase.id)
+    return true
+  }
+
+  // B9: the signed paid amount (sen) must equal the package's amount_rm before
+  // we credit points. Mismatch → refuse the credit (handled, not credited).
+  if (checkBillplzAmount(amountSen, readField(purchase, 'amount_rm')) === 'mismatch') {
+    log.error('points amount mismatch — refusing paid flip', purchaseRef || billId)
+    await reportError(new Error('billplz amount mismatch (points)'), {
+      fn: 'payment-webhook', bill_id: billId, reference_1: purchaseRef, amount_sen: amountSen,
+    })
     return true
   }
 
@@ -328,8 +357,9 @@ async function tryConsultBooking(args: {
   billId: string
   purchaseRef: string
   paid: boolean
+  amountSen: string | undefined
 }): Promise<boolean> {
-  const { db, billId, purchaseRef, paid } = args
+  const { db, billId, purchaseRef, paid, amountSen } = args
   let booking: {
     id: string; profile_id: string; tier: string; duration_minutes: number;
     price_rm: number; status: string; payment_provider: string | null; payment_ref: string | null;
@@ -353,6 +383,18 @@ async function tryConsultBooking(args: {
 
   if (!paid) {
     await db.from('consult_bookings').update({ status: 'cancelled' }).eq('id', booking.id).eq('status', 'pending')
+    return true
+  }
+
+  // B9: assert the Billplz-signed amount (sen) equals the booking price before
+  // any paid flip. This complements the ToyyibPay server-side re-confirm below
+  // (which covers the ToyyibPay path); this one covers the Billplz path. A
+  // mismatch → refuse the credit (handled, not credited).
+  if (checkBillplzAmount(amountSen, readField(booking, 'price_rm')) === 'mismatch') {
+    log.error('consult amount mismatch — refusing paid flip', purchaseRef || billId)
+    await reportError(new Error('billplz amount mismatch (consult)'), {
+      fn: 'payment-webhook', bill_id: billId, reference_1: purchaseRef, amount_sen: amountSen,
+    })
     return true
   }
 

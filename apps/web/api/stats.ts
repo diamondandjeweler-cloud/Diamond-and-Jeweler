@@ -25,9 +25,8 @@ async function countTable(table: string, filter?: string): Promise<number> {
       Authorization: `Bearer ${SUPABASE_ANON}`,
       // Exact count kept for output-fidelity of the public counter (an estimate
       // for the leading-wildcard talent filter is just the planner's selectivity
-      // guess). The safe P1 win is the raised CDN TTL below (the scan now runs at
-      // most ~every 30min per POP, not every 5min); a pre-aggregated cached
-      // counter is the P3 follow-up.
+      // guess). This is the FALLBACK path only — the fast path reads the
+      // pre-aggregated platform_stats row (migration 0196).
       Prefer: 'count=exact',
       Range: '0-0',  // fetch only 1 row; count comes from Content-Range header
     },
@@ -38,12 +37,46 @@ async function countTable(table: string, filter?: string): Promise<number> {
   return Number.isFinite(total) ? total : 0
 }
 
+/**
+ * Fast path: read the single pre-aggregated counter row (migration 0196,
+ * refreshed by cron). Returns null — signalling the caller to fall back to the
+ * live count — when the table is absent (migration not yet applied → PostgREST
+ * 404), the row is missing, or any field is non-numeric. This keeps /api/stats
+ * correct whether or not 0196 has been applied.
+ */
+async function readCachedStats(): Promise<{ talents: number; companies: number } | null> {
+  if (!SUPABASE_URL || !SUPABASE_ANON) return null
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/platform_stats?select=talents_count,companies_count&limit=1`,
+      { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` } },
+    )
+    if (!res.ok) return null // e.g. 404 relation does not exist → migration not applied
+    const rows = (await res.json()) as Array<{ talents_count?: number; companies_count?: number }>
+    if (!Array.isArray(rows) || rows.length === 0) return null
+    const { talents_count, companies_count } = rows[0]
+    if (typeof talents_count !== 'number' || typeof companies_count !== 'number') return null
+    return { talents: talents_count, companies: companies_count }
+  } catch {
+    return null
+  }
+}
+
 export default async function handler(_req: Request): Promise<Response> {
   try {
-    const [talents, companies] = await Promise.all([
-      countTable('profiles', 'role=ilike.*talent*'),
-      countTable('companies'),
-    ])
+    let talents: number
+    let companies: number
+    const cached = await readCachedStats()
+    if (cached) {
+      talents = cached.talents
+      companies = cached.companies
+    } else {
+      // Fallback to the live count when the pre-agg row is unavailable.
+      ;[talents, companies] = await Promise.all([
+        countTable('profiles', 'role=ilike.*talent*'),
+        countTable('companies'),
+      ])
+    }
     return new Response(
       JSON.stringify({ talents, companies, updatedAt: new Date().toISOString() }),
       { status: 200, headers: CORS },

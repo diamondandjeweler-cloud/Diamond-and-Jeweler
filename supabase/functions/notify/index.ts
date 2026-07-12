@@ -57,6 +57,11 @@ interface Payload {
   user_id: string
   type: NotifyType
   data?: Record<string, unknown>
+  // Set ONLY by the notification-retry cron when re-firing a previously-failed
+  // send (durable outbox, migration 0085). Its presence means "this is a retry":
+  // attempt the email ONLY (the in-app + WhatsApp rows already exist from the
+  // first delivery) and record the attempt against this outbox row.
+  outbox_id?: string
 }
 
 // Wrapped so any uncaught throw in the handler is reported to the edge error
@@ -83,6 +88,11 @@ async function handler(req: Request): Promise<Response> {
   if (!payload.user_id || !payload.type) {
     return json({ error: 'Missing user_id or type' }, 400)
   }
+
+  // A retry re-fire (from the notification-retry cron) carries the outbox row id.
+  // On a retry we ONLY re-attempt the email — the in-app + WhatsApp channels
+  // already delivered on the first call and must not be duplicated.
+  const isRetry = typeof payload.outbox_id === 'string' && payload.outbox_id.length > 0
 
   // Marketing-category notifications require consents.market = true.
   const MARKETING_TYPES: NotifyType[] = [
@@ -118,35 +128,50 @@ async function handler(req: Request): Promise<Response> {
   <a href="${unsubUrl}" style="color:#6b7280;">Unsubscribe from non-essential emails</a>.
 </p>`
 
-  await db.from('notifications').insert({
-    user_id: payload.user_id,
-    type: payload.type,
-    channel: 'in_app',
-    subject, body, data: payload.data ?? {},
-  })
+  if (!isRetry) {
+    await db.from('notifications').insert({
+      user_id: payload.user_id,
+      type: payload.type,
+      channel: 'in_app',
+      subject, body, data: payload.data ?? {},
+    })
+  }
 
   let emailStatus: 'sent' | 'skipped' | 'error' = 'skipped'
   const resend = getResend()
+  // Durable outbox (migration 0085): on a FRESH call, enqueue a pending row
+  // before the email attempt so a transient Resend failure is picked up and
+  // retried by the notification-retry cron. On a RETRY re-fire, reuse the
+  // outbox_id passed in. Every outbox write is best-effort — a bookkeeping
+  // failure must never change notify's response or break the actual send.
+  let outboxId: string | null = isRetry ? (payload.outbox_id ?? null) : null
+  if (target.email && resend && !target.email_bounced && !outboxId) {
+    outboxId = await enqueueEmailOutbox(db, payload.user_id, payload.type, payload.data ?? {})
+  }
   if (target.email && resend && !target.email_bounced) {
     try {
       await resend.emails.send({ from: FROM, to: target.email, subject, text: body, html: htmlWithUnsub })
       emailStatus = 'sent'
-      await db.from('notifications').insert({
-        user_id: payload.user_id,
-        type: payload.type,
-        channel: 'email',
-        subject, body, data: payload.data ?? {},
-      })
+      if (outboxId) await recordOutboxAttempt(db, outboxId, true)
+      if (!isRetry) {
+        await db.from('notifications').insert({
+          user_id: payload.user_id,
+          type: payload.type,
+          channel: 'email',
+          subject, body, data: payload.data ?? {},
+        })
+      }
     } catch (e) {
       log.error('Resend error', e)
       emailStatus = 'error'
+      if (outboxId) await recordOutboxAttempt(db, outboxId, false, e instanceof Error ? e.message : String(e))
     }
   }
 
   let whatsappStatus: 'sent' | 'skipped' | 'error' = 'skipped'
   const watiKey = Deno.env.get('WATI_API_KEY')
   const watiUrl = Deno.env.get('WATI_API_URL')
-  if (target.whatsapp_opt_in && target.whatsapp_number && watiKey && watiUrl) {
+  if (!isRetry && target.whatsapp_opt_in && target.whatsapp_number && watiKey && watiUrl) {
     try {
       const phone = target.whatsapp_number.replace(/[^\d]/g, '')
       const r = await fetch(`${watiUrl}/sendSessionMessage/${phone}`, {
@@ -184,6 +209,52 @@ async function handler(req: Request): Promise<Response> {
   }
 
   return json({ ok: true, email: emailStatus, whatsapp: whatsappStatus })
+}
+
+// ---------------------------------------------------------------------------
+// Durable notification outbox (migration 0085) — best-effort wiring.
+// enqueueEmailOutbox creates a 'pending' row for a fresh email send;
+// recordOutboxAttempt flips it to 'sent' or schedules the next retry. Both
+// swallow their own errors so notify's primary job (send + respond) is never
+// affected by outbox bookkeeping.
+// ---------------------------------------------------------------------------
+async function enqueueEmailOutbox(
+  db: ReturnType<typeof adminClient>,
+  userId: string,
+  type: NotifyType,
+  data: Record<string, unknown>,
+): Promise<string | null> {
+  try {
+    const { data: id, error } = await db.rpc('enqueue_notification', {
+      p_user_id: userId,
+      p_notify_type: type,
+      p_payload: data,
+      p_channel: 'email',
+    })
+    if (error) { log.error('enqueue_notification failed', error); return null }
+    return typeof id === 'string' ? id : null
+  } catch (e) {
+    log.error('enqueue_notification threw', e)
+    return null
+  }
+}
+
+async function recordOutboxAttempt(
+  db: ReturnType<typeof adminClient>,
+  outboxId: string,
+  success: boolean,
+  errorText?: string,
+): Promise<void> {
+  try {
+    const { error } = await db.rpc('record_notification_attempt', {
+      p_outbox_id: outboxId,
+      p_success: success,
+      p_error: errorText ?? null,
+    })
+    if (error) log.error('record_notification_attempt failed', error)
+  } catch (e) {
+    log.error('record_notification_attempt threw', e)
+  }
 }
 
 type Locale = 'en' | 'ms' | 'zh'

@@ -179,16 +179,27 @@ async function handleMoneyPath(params: Record<string, string>): Promise<Response
   // a read-modify-write race when two different purchases for the same role
   // or talent are paid concurrently.
   if (purchase.match_type === 'hm_extra' && purchase.role_id) {
-    await db.rpc('increment_extra_matches_used', {
+    const { error: incErr } = await db.rpc('increment_extra_matches_used', {
       p_table: 'roles',
       p_id: purchase.role_id,
       p_qty: purchase.quantity,
     })
+    // money-4: the paid CAS already committed above. A swallowed failure here
+    // (e.g. 23514 check_violation when the counter would exceed the DB cap of 3)
+    // leaves a paid-but-uncounted quota — surface it for finance/ops, never drop it.
+    if (incErr) await reportError(new Error(`increment_extra_matches_used failed: ${incErr.message}`), {
+      fn: 'payment-webhook', stage: 'quota_increment', code: incErr.code,
+      table: 'roles', role_id: purchase.role_id, purchase_id: purchase.id,
+    })
   } else if (purchase.match_type === 'talent_extra' && purchase.talent_id) {
-    await db.rpc('increment_extra_matches_used', {
+    const { error: incErr } = await db.rpc('increment_extra_matches_used', {
       p_table: 'talents',
       p_id: purchase.talent_id,
       p_qty: purchase.quantity,
+    })
+    if (incErr) await reportError(new Error(`increment_extra_matches_used failed: ${incErr.message}`), {
+      fn: 'payment-webhook', stage: 'quota_increment', code: incErr.code,
+      table: 'talents', talent_id: purchase.talent_id, purchase_id: purchase.id,
     })
   }
 

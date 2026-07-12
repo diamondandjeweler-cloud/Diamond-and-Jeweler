@@ -23,6 +23,7 @@ import { adminClient } from '../_shared/supabase.ts'
 import { enforceRateLimit, RateLimitError } from '../_shared/ratelimit.ts'
 import { withIdempotency } from '../_shared/idempotency.ts'
 import { reportError } from '../_shared/observe.ts'
+import { effectiveExtraMatchCap } from './cap.ts'
 
 interface Body {
   target_type?: 'role' | 'talent'
@@ -109,7 +110,9 @@ async function handler(req: Request): Promise<Response> {
 
       const { data: capCfg } = await db.from('system_config').select('value')
         .eq('key', 'extra_match_cap_per_role').maybeSingle()
-      if (typeof capCfg?.value === 'number') cap = capCfg.value
+      // money-4: clamp to the DB CHECK cap (0018) so raising the config alone can
+      // never let a redemption pass the app gate and then blow the DB constraint.
+      cap = effectiveExtraMatchCap(capCfg?.value)
     } else {
       // Talent redemption — defaults to caller's own talent profile.
       let tid = body.talent_id ?? null
@@ -134,7 +137,8 @@ async function handler(req: Request): Promise<Response> {
 
       const { data: capCfg } = await db.from('system_config').select('value')
         .eq('key', 'extra_match_cap_per_talent').maybeSingle()
-      if (typeof capCfg?.value === 'number') cap = capCfg.value
+      // money-4: clamp to the DB CHECK cap (0018), same as the role path.
+      cap = effectiveExtraMatchCap(capCfg?.value)
     }
 
     if (used >= cap) {
@@ -184,10 +188,22 @@ async function handler(req: Request): Promise<Response> {
     // Bump quota counter. Only HM role redemptions reach here (talent redemptions
     // are fail-closed above), so this is role-only.
     if (roleId) {
-      await db.from('roles')
+      const { error: bumpErr } = await db.from('roles')
         .update({ extra_matches_used: used + 1 })
         .eq('id', roleId)
         .eq('extra_matches_used', used) // optimistic concurrency guard
+      // money-4: the points were already deducted by redeem_points_for (a prior,
+      // committed statement). A swallowed failure here (e.g. 23514 check_violation
+      // if the counter would exceed the DB cap) leaves a charged-but-uncounted
+      // state — surface it for finance/ops instead of dropping it silently. The
+      // cap-clamp above prevents the CHECK path in normal flow; this is the
+      // defense-in-depth trail for a race / config drift.
+      if (bumpErr) {
+        await reportError(new Error(`extra_matches_used bump failed: ${bumpErr.message}`), {
+          fn: 'redeem-points', stage: 'quota_bump', code: bumpErr.code,
+          role_id: roleId, used, cap,
+        })
+      }
     }
 
     // Deliver synchronously and couple the outcome to the response: a dropped or

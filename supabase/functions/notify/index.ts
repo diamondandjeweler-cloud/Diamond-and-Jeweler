@@ -29,6 +29,7 @@ import { adminClient } from '../_shared/supabase.ts'
 import { logAudit, extractIp } from '../_shared/audit.ts'
 import { reportError } from '../_shared/observe.ts'
 import { createLogger } from '../_shared/logger.ts'
+import { resendSendError, extractProviderId } from './resend-result.ts'
 
 const log = createLogger('notify')
 
@@ -177,6 +178,15 @@ async function handler(req: Request): Promise<Response> {
     } else {
       try {
         const resp = await resend.emails.send({ from: FROM, to: target.email, subject, text: body, html: htmlWithUnsub })
+        // Resend v3 does NOT throw on API-level errors (429 rate_limit, 422
+        // validation, 403 domain-not-verified, 5xx) — it RESOLVES to
+        // { data: null, error }. Treat a non-null error as a FAILED send and route
+        // it through the catch below, so the outbox records a failure + backoff
+        // and notification-retry re-fires it. Recording success here would flip
+        // the outbox row to terminal 'sent' (never re-claimed), silently losing
+        // the email and defeating B4 (notifications-1/fresh-commits-1/split-state-1).
+        const sendErr = resendSendError(resp)
+        if (sendErr) throw new Error(sendErr)
         emailStatus = 'sent'
         // Stamp the provider id BEFORE recording the attempt: if the record RPC
         // then fails, the next re-fire still sees the send already happened (via
@@ -288,17 +298,6 @@ async function recordOutboxAttempt(
   } catch (e) {
     log.error('record_notification_attempt threw', e)
   }
-}
-
-// Extract the Resend message id from a send() response. Resend v3 resolves to
-// { data: { id } | null, error } (it does NOT throw on API errors), so `data.id`
-// is only present on an accepted send.
-function extractProviderId(resp: unknown): string | null {
-  if (resp && typeof resp === 'object') {
-    const data = (resp as { data?: { id?: unknown } | null }).data
-    if (data && typeof data.id === 'string' && data.id.length > 0) return data.id
-  }
-  return null
 }
 
 // Best-effort stamp of the provider message id onto the outbox row. Written

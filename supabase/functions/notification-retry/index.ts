@@ -28,6 +28,7 @@ import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 import { adminClient } from '../_shared/supabase.ts'
 import { requireServiceRole } from '../_shared/auth.ts'
 import { createLogger } from '../_shared/logger.ts'
+import { refireOutcome } from './refire.ts'
 
 const log = createLogger('notification-retry')
 
@@ -77,7 +78,7 @@ serve(async (req) => {
     // anyway so a future channel can't be mis-fired through the email path.
     if (row.channel !== 'email') continue
     try {
-      await fetch(`${supabaseUrl}/functions/v1/notify`, {
+      const res = await fetch(`${supabaseUrl}/functions/v1/notify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${svcKey}` },
         body: JSON.stringify({
@@ -89,7 +90,16 @@ serve(async (req) => {
           outbox_id: row.id,
         }),
       })
-      refired++
+      // notifications-3: a non-2xx from notify (403 rotated key / 404 deleted
+      // user / 500 serve-wrapper throw) does NOT throw and means notify NEVER
+      // reached its own record_notification_attempt. Record a failed attempt so
+      // the backoff advances instead of stranding the 'sending' row for the
+      // coarse stale-scan; only count a genuine 2xx as re-fired. (notify answers
+      // 200 even when it internally records a Resend failure, so this never
+      // double-records that path.)
+      const failMsg = refireOutcome(res)
+      if (failMsg) await recordFailure(db, row.id, failMsg)
+      else refired++
     } catch (e) {
       // The claim already flipped the row to 'sending' (attempt spent). If the
       // re-fire itself throws (network) notify never recorded an attempt, so the

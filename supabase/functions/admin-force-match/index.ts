@@ -19,12 +19,15 @@ import { handleOptions } from '../_shared/cors.ts'
 import { authenticate, json } from '../_shared/auth.ts'
 import { adminClient } from '../_shared/supabase.ts'
 import { logAudit, extractIp } from '../_shared/audit.ts'
+import { evaluateForceMatchGate } from './gate.ts'
 
 interface Body {
   role_id: string
   talent_id: string
   reason: string
   score?: number
+  /** Bypass the SOFT availability/expiry gate (never bypasses a ban). Audited. */
+  override_availability?: boolean
 }
 
 serve(async (req) => {
@@ -65,11 +68,30 @@ serve(async (req) => {
 
   const { data: talent, error: talentErr } = await db
     .from('talents')
-    .select('id, profile_id, is_open_to_offers')
+    .select('id, profile_id, is_open_to_offers, profile_expires_at')
     .eq('id', body.talent_id)
     .maybeSingle()
   if (talentErr) return json({ error: 'Talent lookup failed', detail: talentErr.message }, 500)
   if (!talent) return json({ error: 'Talent not found' }, 404)
+
+  // Consent / moderation gates — mirror the candidate pool's §1 filter
+  // (get_match_candidates, 0191:34-36). Ban is a HARD block; unavailable/expired
+  // is a soft block the admin may override (audited). Without this, force-match
+  // silently bypassed every one of the pool's availability/ban/expiry gates.
+  const { data: prof, error: profErr } = await db
+    .from('profiles')
+    .select('is_banned')
+    .eq('id', talent.profile_id)
+    .maybeSingle()
+  if (profErr) return json({ error: 'Profile lookup failed', detail: profErr.message }, 500)
+
+  const gate = evaluateForceMatchGate({
+    isBanned: prof?.is_banned,
+    isOpenToOffers: talent.is_open_to_offers,
+    profileExpiresAt: talent.profile_expires_at,
+    override: body.override_availability === true,
+  })
+  if (!gate.ok) return json({ error: gate.error }, gate.status ?? 409)
 
   // Idempotency: if an active match already exists for this pair, return it.
   const { data: existing } = await db
@@ -123,6 +145,9 @@ serve(async (req) => {
       talent_id: body.talent_id,
       score,
       reason,
+      // Records when an admin overrode the soft availability/expiry gate so the
+      // decision to surface an opted-out/expired talent is auditable to a human.
+      availability_overridden: gate.overrode,
     },
   })
 

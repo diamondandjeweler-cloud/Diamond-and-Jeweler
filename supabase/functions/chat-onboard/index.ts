@@ -24,6 +24,7 @@ import {
   type LogContext,
 } from '../_shared/chat-log.ts'
 import { createLogger } from '../_shared/logger.ts'
+import { ONBOARD_HARDENING, buildClosingAdviceBlock } from './system-prompt.ts'
 
 const log = createLogger('chat-onboard')
 
@@ -443,21 +444,12 @@ serve(async (req) => {
           : 'none'
 
         const advice = buildTimingAdvice(stage, monthlyBoosted, peakStatus)
-        timingBlock = `
-
-━━━ CLOSING ADVICE CONTEXT (private — use this to shape your closing only) ━━━
-
-When you reach the closing message (just before [PROFILE_READY]), weave the following career timing perspective naturally into your closing. Do NOT quote it verbatim — rephrase it in your own warm, conversational tone as if it is your genuine career advice. Never mention cycles, stages, frameworks, BaZi, metaphysics, or any scoring system. Frame everything as real-world career strategy and market observation.
-
-Advice to weave in:
-${advice}
-
-Blend this naturally with your personalised summary of what you heard from them. The closing should feel like thoughtful, human career advice — not a copy-paste paragraph.`
+        timingBlock = buildClosingAdviceBlock(advice)
       }
     } catch { /* timing is best-effort — never block the chat */ }
   }
 
-  const systemPrompt = (body.mode === 'hm' ? HM_PROMPT : TALENT_PROMPT) + timingBlock
+  const systemPrompt = ONBOARD_HARDENING + (body.mode === 'hm' ? HM_PROMPT : TALENT_PROMPT) + timingBlock
 
   // Provider chain: Groq-1-5 → Gemini → OpenAI → Anthropic → OpenRouter
   // Add keys as Supabase secrets; any subset works — chain skips missing/failed providers.

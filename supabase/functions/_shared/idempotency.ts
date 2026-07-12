@@ -4,6 +4,40 @@ import { createLogger } from './logger.ts'
 const log = createLogger('idempotency')
 
 /**
+ * Scope the client-chosen Idempotency-Key by endpoint + user (finding edge-infra-1).
+ *
+ * request_dedup's PRIMARY KEY is `key` alone (0165), and the replay read is
+ * keyed on `key` alone — user_id/endpoint are stored but never used for
+ * uniqueness or lookup. So two authenticated callers presenting the SAME client
+ * key collide: the second caller's INSERT hits 23505 and it is served the FIRST
+ * caller's stored response (e.g. buy-points would hand caller B caller A's live
+ * Billplz payment link + purchase_id — cross-tenant disclosure + silent no-op).
+ * A cross-endpoint collision (same key to buy-points vs redeem-points) is the
+ * same class. Namespacing the effective row key by endpoint + user closes both
+ * with no schema change.
+ */
+export function effectiveDedupKey(
+  endpoint: string,
+  userId: string | null | undefined,
+  clientKey: string,
+): string {
+  return `${endpoint}:${userId ?? 'anon'}:${clientKey}`
+}
+
+/**
+ * Whether a handler result should be PERSISTED for replay. Money-path handlers
+ * return `{ _status, _body }`; a non-2xx (e.g. a transient 502 'Billplz
+ * createBill failed') must NOT be cached, or a keyed retry would replay the
+ * error for the full 24h dedup window and could never recover. Results without a
+ * numeric `_status` (non-money callers / future shapes) persist as before.
+ */
+export function isPersistableResult(result: unknown): boolean {
+  const status = (result as { _status?: unknown } | null | undefined)?._status
+  if (typeof status !== 'number') return true
+  return status >= 200 && status < 300
+}
+
+/**
  * Request-level idempotency for the money-path POSTs.
  *
  * Backed by public.request_dedup (migration 0165). Protects the
@@ -37,6 +71,10 @@ export async function withIdempotency<T>(
   // No key supplied — nothing to de-dupe, run the body directly.
   if (!key) return await fn()
 
+  // Namespace the stored/looked-up key by endpoint + user so one caller's key
+  // can never replay another caller's (or another endpoint's) stored response.
+  const rowKey = effectiveDedupKey(endpoint, userId, key)
+
   // 1) Try to claim the key. `on conflict do nothing` → insert is a no-op
   //    when the key already exists, so the returned row tells us whether
   //    we are the first caller (row returned) or a replay (no row).
@@ -44,7 +82,7 @@ export async function withIdempotency<T>(
   try {
     const { data: inserted, error: insErr } = await db
       .from('request_dedup')
-      .insert({ key, user_id: userId ?? null, endpoint })
+      .insert({ key: rowKey, user_id: userId ?? null, endpoint })
       .select('key')
       .maybeSingle()
     if (insErr) {
@@ -70,7 +108,7 @@ export async function withIdempotency<T>(
       const { data: existing } = await db
         .from('request_dedup')
         .select('response, expires_at')
-        .eq('key', key)
+        .eq('key', rowKey)
         .maybeSingle()
       const notExpired = !existing?.expires_at || new Date(existing.expires_at as string) > new Date()
       if (existing && existing.response != null && notExpired) {
@@ -84,16 +122,20 @@ export async function withIdempotency<T>(
     return await fn()
   }
 
-  // 3) We own the key. Run the body and persist its response for replay.
+  // 3) We own the key. Run the body and persist its response for replay —
+  //    but only a 2xx result, so a transient error is not cached and replayed
+  //    for the whole 24h dedup window (a keyed retry must be able to recover).
   const result = await fn()
-  try {
-    await db
-      .from('request_dedup')
-      .update({ response: result as unknown as Record<string, unknown> })
-      .eq('key', key)
-  } catch (e) {
-    // Never throw on a store failure — the caller already has a result.
-    log.error('withIdempotency: response store failed (returning result)', e)
+  if (isPersistableResult(result)) {
+    try {
+      await db
+        .from('request_dedup')
+        .update({ response: result as unknown as Record<string, unknown> })
+        .eq('key', rowKey)
+    } catch (e) {
+      // Never throw on a store failure — the caller already has a result.
+      log.error('withIdempotency: response store failed (returning result)', e)
+    }
   }
   return result
 }

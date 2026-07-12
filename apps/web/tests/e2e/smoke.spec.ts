@@ -1,7 +1,35 @@
 import { test, expect } from '@playwright/test'
+import type { Page } from '@playwright/test'
 
 // Force English locale so route copy matches assertions deterministically.
 test.use({ locale: 'en-US' })
+
+// ── White-screen regression guard (2026-07-10 outage at 44be0cc) ───────────
+// A mis-chunked React-coupled dep (Radix + transitive floating-ui /
+// react-remove-scroll deps) threw an uncaught "Cannot read properties of
+// undefined (reading 'useLayoutEffect')" at module-eval time, rendering a blank
+// page while every DOM assertion below could still (mis)pass on a cached shell.
+// `page.on('pageerror')` fires on exactly that class of uncaught exception, so
+// we collect them per test and hard-fail if ANY smoke route produced one. This
+// complements the build-time scripts/check-vendor-chunk.mjs guard: the build
+// script stops a bad bundle from being produced; this stops a bad bundle from
+// passing the smoke suite.
+const pageErrors = new WeakMap<Page, Error[]>()
+
+test.beforeEach(({ page }) => {
+  const errors: Error[] = []
+  pageErrors.set(page, errors)
+  page.on('pageerror', (err) => errors.push(err))
+})
+
+test.afterEach(({ page }) => {
+  const errors = pageErrors.get(page) ?? []
+  expect(
+    errors.map((e) => e.message),
+    `uncaught page error(s) — likely a white-screen render crash:\n` +
+      errors.map((e) => `  • ${e.stack ?? e.message}`).join('\n'),
+  ).toEqual([])
+})
 
 test.describe('landing + waitlist + signup smoke', () => {
   test('landing renders the hero', async ({ page }) => {

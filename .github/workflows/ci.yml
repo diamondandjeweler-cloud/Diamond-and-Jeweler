@@ -205,6 +205,25 @@ jobs:
           exit 1
       - name: Apply all migrations (reset re-runs every migration)
         run: supabase db reset
+      - name: DB types drift — generated types match migrated schema (advisory)
+        # Regenerate the Supabase TypeScript types from the freshly-migrated local
+        # schema and diff them against the committed
+        # apps/web/src/types/db.generated.ts. A non-empty diff means a migration
+        # changed a column/table/enum but `npm run types:gen:local` was never
+        # re-run, so the web app's compile-time types silently drifted from the
+        # real schema (a class of bug tsc cannot catch because the stale file
+        # still type-checks). Uses the SAME CLI subcommand as the
+        # `types:gen:local` npm script.
+        #
+        # ADVISORY (continue-on-error) for now: `supabase gen types` output can
+        # shift with the CLI version, and setup-cli above pins `latest` rather
+        # than the version the committed file was generated with, so a
+        # formatting-only delta must not red-mark this BLOCKING money-path job.
+        # Promote to blocking once the CLI version is pinned in the setup-cli step.
+        continue-on-error: true
+        run: |
+          supabase gen types typescript --local > /tmp/db.ts
+          git diff --no-index --exit-code apps/web/src/types/db.generated.ts /tmp/db.ts
       - name: Column-isolation gate (BLOCKING)
         # Hard gate on the audit's #1 risk: the 3×-recurring ic_path /
         # internal_reasoning / life_chart_score column leak must never reach prod.
@@ -291,6 +310,25 @@ jobs:
         # casts here would risk turning this job red on pre-existing edge type
         # looseness rather than on a real test failure.
         run: deno test --allow-all --no-check supabase/functions/
+      - name: Type-check edge entrypoints (deno check — clean functions must compile)
+        # `deno test --no-check` above runs assertions WITHOUT type-checking, to
+        # avoid red-marking this job on the edge tree's pre-existing Supabase
+        # query-generic looseness. This step ADDS a real type gate over the
+        # entrypoints that compile clean today (42 of 48), so a NEW type error in
+        # any of them — or a newly-added function that doesn't type-check — now
+        # fails CI (the 2026-07 A21 guard).
+        #
+        # Six entrypoints carry pre-existing type errors (loose query generics)
+        # and are EXCLUDED here — exactly the grandfather pattern the migrations
+        # job uses for legacy duplicates in .known-duplicates. Burn a file's
+        # errors down, then delete it from KNOWN_UNTYPED so it becomes gated too.
+        # Tracked in docs/AUDIT_LOG.md.
+        run: |
+          set -euo pipefail
+          KNOWN_UNTYPED='/(payment-webhook|admin-refund|chat-support|chat-onboard|dsr-export|send-push-notification)/index\.ts$'
+          files=$(find supabase/functions -maxdepth 2 -name index.ts | grep -vE "$KNOWN_UNTYPED" | sort)
+          echo "deno check over $(printf '%s\n' "$files" | wc -l) clean edge entrypoints (6 known-untyped excluded):"
+          deno check $files
       - name: verify_jwt pin invariant (BLOCKING)
         # The invariant that prevents the payment-webhook 401 class of bug:
         # every signature-verified webhook (imports webhookCorsHeaders) and every

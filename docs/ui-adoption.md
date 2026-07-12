@@ -8,6 +8,15 @@ signals over `apps/web/src` excluding `*.test.tsx` — approximate, meant for pr
 > the legacy hand-rolled elements at call sites. Legacy `components/ui.tsx` is imported by **93 files**;
 > that barrel is the migration surface.
 
+> **2026-07-12 (A15) — `components/ui.tsx` is now a thin `@deprecated` shim.** Every primitive it used to
+> _define_ (`Field`/`Input`/`Textarea`/`Select`/`PasswordInput`/`EmptyState`/`PageHeader`/`SectionTitle`/`LiveDot`)
+> has moved to its own folder under `src/ui/<Name>/` (verbatim move — same names, props, and className strings,
+> so DOM output is byte-identical; pinned by `src/ui/forms.test.tsx`). `components/ui.tsx` now only re-exports
+> from `src/ui/*`, and the canonical `src/ui` barrel no longer depends on it. The **93 existing importers keep
+> working unchanged** — they were deliberately **not** rewritten (a blind 93-file codemod is the risky part).
+> An eslint `no-restricted-imports` **warning** now flags any NEW `components/ui` import and points to `src/ui`;
+> the warning also lights up the 93 grandfathered sites, which is the tracked burn-down signal below.
+
 ---
 
 ## 1. Primitive library — adoption status
@@ -19,12 +28,12 @@ non-test feature files under `src/routes` / `src/components` importing the primi
 |---|:---:|:---:|---|
 | `Button` (+`Spinner`) | ✅ | widespread (via barrel) | raw `<button>` |
 | `Card` / `CardHeader` / `CardBody` | ✅ | widespread | `<div className="rounded border …">` |
-| `Field` / `Input` / `Textarea` / `Select` / `PasswordInput` | ✅ (legacy `ui.tsx`) | widespread | raw labelled inputs |
+| `Field` / `Input` / `Textarea` / `Select` / `PasswordInput` | ✅ (`src/ui/Field/`) | widespread | raw labelled inputs |
 | `Alert` | ✅ | via barrel | inline colored `<div>` banners |
 | `Badge` | ✅ | via barrel | pill `<span>` |
 | `Stat` | ✅ | via barrel | KPI `<div>` blocks |
 | `Skeleton.{Text,Card,Row,Avatar,Stat}` | ✅ | via barrel | ad-hoc pulse `<div>` |
-| `EmptyState` / `PageHeader` / `SectionTitle` / `LiveDot` | ✅ (legacy `ui.tsx`) | widespread | hand-rolled headers/empties |
+| `EmptyState` / `PageHeader` / `SectionTitle` / `LiveDot` | ✅ (`src/ui/{EmptyState,PageHeader,SectionTitle,LiveDot}/`) | widespread | hand-rolled headers/empties |
 | `Modal` (+`useConfirm`/`confirmDialog`) | ✅ | partial | `window.confirm` / bespoke dialogs |
 | `Async` (loading→error→empty→data) | ✅ | partial | manual `if (loading) … if (error) …` ladders |
 | `Tooltip` | ✅ | **6** | `title=""` attributes |
@@ -77,7 +86,7 @@ Grep signals over non-test `src`:
 |---|:---:|---|---|
 | raw `<table>` | **22** | `DataList` | Many are `src/routes/restaurant/*` admin tables + `admin/AuditLogPanel`, `admin/KpiPanel`, `PointsWallet`, `Referrals`, `DataRequests`. Blog-post tables (`blog/*`) are static content — likely leave as-is. |
 | manual tab state (`setTab`/`activeTab`) | **~19** | `Tabs` | Some are false positives (variables that merely contain "tab"); triage per file before migrating. |
-| raw `<select>` | **21** | `Select` (legacy) / `DropdownMenu` | `Select` already exists in `ui.tsx`; these are candidates to route through it for consistent labelling/disabled states. |
+| raw `<select>` | **21** | `Select` / `DropdownMenu` | `Select` lives in `src/ui/Field/`; these are candidates to route through it for consistent labelling/disabled states. |
 | `<button aria-pressed>` groups | **2** | `RadioGroup` (single) / `Checkbox` (multi) | `onboarding/hm/DemographicsStep.tsx`, `components/LanguageSwitcher.tsx`. |
 | `window.confirm` on a destructive/money action | 1 (`admin/SystemConfigPanel.tsx`) | `confirmDialog` / `useConfirm` | UI_SYSTEM §7 shows the pattern. |
 
@@ -93,3 +102,26 @@ characterization test pinning current behaviour *before* it's migrated. Per swap
 3. Gate (UI_SYSTEM §8): `tsc --noEmit` · `vitest run` · `vite build` · `storybook build` · `eslint` (0 errors) · `playwright` axe (no new failures vs `main`).
 
 **Do not** batch-migrate blindly — the `manualChunks` white-screen (`docs/postmortems/2026-07-10-vendor-chunk-white-screen.md`) came from eager shell components pulling Radix-backed primitives onto the boot path; verify chunk assignment when adopting an interactive primitive into an eagerly-imported file.
+
+---
+
+## 5. `components/ui.tsx` shim retirement — tracked future work
+
+**Status (2026-07-12):** the shim is behaviour-neutral and the eslint warning caps new debt, so the
+remaining step is a **mechanical, low-risk find-and-replace** of the import specifier only — no JSX or
+prop changes. Deliberately deferred out of A15 to avoid a blind 93-file codemod in one commit.
+
+- **Scope:** ~93 files importing from `…/components/ui`. Each import is `import { … } from '<rel>/components/ui'`
+  → change the specifier to the `src/ui` barrel (`'<rel>/ui'`); the imported names and usage are unchanged
+  because the barrel re-exports the identical implementations.
+- **How to burn down safely (per batch of ~10–15 files):**
+  1. `rg -l "components/ui'" apps/web/src` to list remaining sites; rewrite the specifier only.
+  2. Run the web gate (`tsc --noEmit` · `eslint src` · `vitest run` · `vite build`) — the eslint
+     warning count for `no-restricted-imports` (components/ui) must drop by the number of files touched.
+  3. **Watch chunk assignment** for eagerly-imported files (see §4 white-screen note): importing the full
+     `src/ui` barrel can pull Radix-backed primitives onto an eager path. Prefer the specific subfolder
+     (`'<rel>/ui/Field'`, `'<rel>/ui/Button'`, …) for files on the boot path.
+- **Definition of done:** zero `components/ui` importers remain → delete `src/components/ui.tsx` and drop the
+  `no-restricted-imports` `components/ui` pattern from `eslint.config.js`.
+- **Do NOT** widen this into a component swap. This item is import-path-only; adopting *new* primitives at
+  these call sites (e.g. `RadioGroup`, `DataList`) is separate work tracked in §1–§3.

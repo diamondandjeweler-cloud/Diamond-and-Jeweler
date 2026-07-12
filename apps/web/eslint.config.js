@@ -151,9 +151,19 @@ export default [
     },
   },
 
-  // ── GUARD-RAIL 3 (WARN): one-way restaurant module boundary ─────────────────
-  // Recruitment code must not import from the restaurant module. Base rule spans
-  // all of src; the exemption below lets the restaurant files import each other.
+  // ── GUARD-RAIL 3 (WARN): one-way restaurant module boundary + legacy-ui ban ──
+  // (a) Recruitment code must not import from the restaurant module. Base rule
+  //     spans all of src; the exemption below lets the restaurant files import
+  //     each other.
+  // (b) The legacy `components/ui` barrel is a DEPRECATED re-export shim (its
+  //     primitives now live in src/ui/<Name>/). Ban NEW imports of it and point
+  //     devs at the src/ui barrel. WARNING, not error, on purpose: the ~93
+  //     existing import sites are grandfathered debt tracked in
+  //     docs/ui-adoption.md, and a warning keeps the lint gate green while
+  //     stopping the count from growing. Both restaurant-boundary and legacy-ui
+  //     patterns share ONE no-restricted-imports config so neither clobbers the
+  //     other (a separate flat-config block would fully override this rule for
+  //     the same files).
   {
     files: ['src/**/*.ts', 'src/**/*.tsx'],
     rules: {
@@ -170,6 +180,15 @@ export default [
               ],
               message:
                 'recruitment code must not import the restaurant module (one-way boundary)',
+            },
+            {
+              group: [
+                '**/components/ui',
+                '**/components/ui.tsx',
+                '@/components/ui',
+              ],
+              message:
+                'components/ui is a deprecated shim — import UI primitives from the src/ui barrel instead (e.g. `../../ui`). See docs/ui-adoption.md.',
             },
           ],
         },

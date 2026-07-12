@@ -3,12 +3,28 @@
  *
  *   import { Button, Card, Field, Alert, Async, Tabs, Avatar, DataList } from '../../ui'
  *
- * Button/Card/Badge/Alert/Stat live in src/ui/<Name>/ and reach here through the
- * components/ui re-export shim (so their many existing '../components/ui' import
- * sites keep working). Field/Input/EmptyState/PageHeader/SectionTitle/LiveDot
- * still live in components/ui. The primitives below are new in Phase 2.
+ * Every primitive's implementation lives in src/ui/<Name>/ (tv() + semantic
+ * tokens, or a verbatim move for the presentational forms/headers). The legacy
+ * components/ui module is now a thin DEPRECATED re-export shim pointing back
+ * here, kept only so its ~93 existing '../components/ui' import sites keep
+ * working unchanged — new code must import from this barrel.
  */
-export * from '../components/ui'
+
+/* ── Migrated primitives (source of truth: src/ui/<Name>/) ── */
+export { Button, Spinner } from './Button'
+export type { ButtonProps } from './Button'
+export { Card, CardBody, CardHeader } from './Card'
+export { Badge } from './Badge'
+export type { BadgeTone } from './Badge'
+export { Alert } from './Alert'
+export { Stat } from './Stat'
+export { Field, Input, Textarea, Select, PasswordInput } from './Field'
+export { EmptyState } from './EmptyState'
+export { PageHeader } from './PageHeader'
+export { SectionTitle } from './SectionTitle'
+export { LiveDot } from './LiveDot'
+
+/* ── Composite patterns ── */
 export * from '../components/Modal'
 export { Async } from '../components/patterns/Async'
 export type { AsyncProps } from '../components/patterns/Async'

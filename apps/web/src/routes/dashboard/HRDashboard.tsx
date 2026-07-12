@@ -78,7 +78,7 @@ export default function HRDashboard() {
             className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
               hrTab === tab
                 ? 'border-brand-600 text-brand-700'
-                : 'border-transparent text-fg-muted hover:text-ink-800 dark:hover:text-gray-200'
+                : 'border-transparent text-fg-muted hover:text-ink-800 dark:hover:text-fg'
             }`}
           >
             {tab === 'scheduling' ? t('hrDash.tabScheduling') : t('hrDash.tabLinkHms')}

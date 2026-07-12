@@ -104,7 +104,7 @@ export default function ScreeningChecklist({ reasoning, salaryMin, salaryMax }: 
     <div className="mt-3 border border-border rounded-lg overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center justify-between w-full px-3 py-2.5 bg-ink-50 dark:bg-surface hover:bg-ink-100 dark:hover:bg-gray-700 text-left transition-colors"
+        className="flex items-center justify-between w-full px-3 py-2.5 bg-ink-50 dark:bg-surface hover:bg-ink-100 dark:hover:bg-surface-2 text-left transition-colors"
         aria-expanded={open}
       >
         <span className="flex items-center gap-2 text-xs font-semibold text-ink-700 dark:text-fg-strong uppercase tracking-wide">

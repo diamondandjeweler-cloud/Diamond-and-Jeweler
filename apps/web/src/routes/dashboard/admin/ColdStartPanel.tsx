@@ -164,7 +164,7 @@ export default function ColdStartPanel() {
                       <p className="text-xs text-fg-muted mb-2">
                         Pick up to 3. {selected.size} selected.
                       </p>
-                      <ul className="max-h-64 overflow-y-auto divide-y dark:divide-gray-700">
+                      <ul className="max-h-64 overflow-y-auto divide-y dark:divide-border">
                         {talents.map((t) => (
                           <li key={t.id} className="py-2 flex items-center gap-2">
                             <input

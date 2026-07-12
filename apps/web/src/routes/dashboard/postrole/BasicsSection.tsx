@@ -61,7 +61,7 @@ function BasicsSection({
                 type="button"
                 onClick={() => void onGenerateDraft()}
                 disabled={drafting || !title.trim()}
-                className="text-xs px-2.5 py-1 rounded-md border border-border text-ink-700 dark:text-fg-strong hover:border-ink-400 dark:hover:border-gray-500 hover:text-fg disabled:opacity-50 disabled:cursor-not-allowed transition"
+                className="text-xs px-2.5 py-1 rounded-md border border-border text-ink-700 dark:text-fg-strong hover:border-ink-400 dark:hover:border-fg-subtle hover:text-fg disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
                 {drafting ? 'Drafting…' : description ? 'Regenerate draft' : 'Generate draft'}
               </button>

@@ -42,6 +42,16 @@ export function companyIdByHrEmail(email: string) {
     .limit(1).maybeSingle()
 }
 
+/** Single-round-trip HR dashboard bootstrap via the hr_dashboard_bootstrap RPC
+ *  (migration 0195) → { data: jsonb | null, error }. Mirrors the HR dashboard
+ *  waterfall (company + hms + open_roles + pending + scheduled + outcomes) in one
+ *  call; callers fall back to the multi-phase repos on any error. Authz is
+ *  enforced in the SECURITY DEFINER function (caller must own the company email
+ *  or be admin). */
+export function hrDashboardBootstrap(email: string) {
+  return supabase.rpc('hr_dashboard_bootstrap', { p_email: email })
+}
+
 /**
  * Company id by primary HR email (bare builder variant — caller adds .maybeSingle()).
  */

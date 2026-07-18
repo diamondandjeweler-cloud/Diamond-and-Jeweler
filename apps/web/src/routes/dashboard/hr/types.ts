@@ -46,3 +46,31 @@ export interface OpenRoleRow {
 }
 
 export type HRTab = 'scheduling' | 'link-hms'
+
+/** Shape returned by the `hr_dashboard_bootstrap(p_email)` RPC (migration 0195).
+ *  Note: pending uses singular `role`/`talent` — the client adapts them to the
+ *  plural `roles`/`talents` that PendingRow (and SchedulingSection) expect. */
+export interface HrBootstrap {
+  company: { id: string } | null
+  hms: Array<{ id: string; profile_id: string; full_name: string; job_title: string; role_count: number }>
+  open_roles: Array<{ id: string; title: string; hiring_manager_id: string }>
+  pending: Array<{
+    id: string
+    status: string
+    compatibility_score: number | null
+    role: { id: string; title: string } | null
+    talent: { id: string; profile_id: string } | null
+  }>
+  scheduled: Array<{
+    interview_id: string
+    match_id: string
+    status: string
+    scheduled_at: string | null
+    format: string | null
+    meeting_url: string | null
+    meeting_provider: string | null
+    role_title: string
+    talent_id: string
+  }>
+  outcomes_pending: number
+}

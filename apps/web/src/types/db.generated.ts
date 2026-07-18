@@ -3875,6 +3875,10 @@ export type Database = {
         Args: { target_talent_id: string }
         Returns: boolean
       }
+      hr_dashboard_bootstrap: {
+        Args: { p_email: string }
+        Returns: Json
+      }
       increment_extra_matches_used: {
         Args: { p_id: string; p_qty: number; p_table: string }
         Returns: undefined

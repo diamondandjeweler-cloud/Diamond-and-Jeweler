@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useSession } from '../../../state/useSession'
 import { useShallow } from 'zustand/react/shallow'
 import { supabase } from '../../../lib/supabase'
-import { companyIdByHrEmail, companyIdById } from '../../../data/repositories/companies'
+import { companyIdByHrEmail, companyIdById, hrDashboardBootstrap } from '../../../data/repositories/companies'
 import { hmsWithNamesByCompanyId, insertHm } from '../../../data/repositories/hiringManagers'
 import { listRolesForHms } from '../../../data/repositories/roles'
 import { hrPendingMatches, hrOutcomesPendingMatches, updateMatch } from '../../../data/repositories/matches'
@@ -11,7 +11,7 @@ import { updateInterview, insertInterview, hrScheduledInterviewsForRoles } from 
 import { writeDashCache } from '../../../lib/dashboardCache'
 import { useDashCacheSnapshot } from '../useDashboardResource'
 import type {
-  HRCacheSnapshot, PendingRow, ScheduledRow, HMRow, OpenRoleRow,
+  HRCacheSnapshot, PendingRow, ScheduledRow, HMRow, OpenRoleRow, HrBootstrap,
 } from './types'
 
 /**
@@ -63,6 +63,72 @@ export function useHrDashboardData() {
     }, 20000)
     async function load() {
       if (!userId || !userEmail) { clearTimeout(loadTimeout); setLoading(false); return }
+
+      // ── B5: single-round-trip bootstrap ──────────────────────────────────
+      // Prefer the hr_dashboard_bootstrap RPC (migration 0195) — one call that
+      // mirrors the whole waterfall below. On ANY failure (RPC error, older
+      // backend without the function, malformed payload) fall THROUGH to the
+      // multi-phase waterfall unchanged, so behaviour is identical either way.
+      try {
+        await supabase.auth.getSession()
+        if (cancelled) { clearTimeout(loadTimeout); return }
+        const { data: bootRaw, error: bootErr } = await hrDashboardBootstrap(userEmail)
+        if (cancelled) { clearTimeout(loadTimeout); return }
+        if (!bootErr && bootRaw) {
+          const boot = bootRaw as unknown as HrBootstrap
+          const companyIdVal = boot.company?.id ?? null
+          const hmsMapped: HMRow[] = (boot.hms ?? []).map((h) => ({
+            id: h.id,
+            profile_id: h.profile_id,
+            full_name: h.full_name ?? '(unknown)',
+            job_title: h.job_title,
+            role_count: h.role_count ?? 0,
+            is_self: h.profile_id === userId,
+          }))
+          const hmNameMap = new Map(hmsMapped.map((h) => [h.id, h.full_name]))
+          const openRolesMapped: OpenRoleRow[] = (boot.open_roles ?? []).map((r) => ({
+            id: r.id, title: r.title, hm_name: hmNameMap.get(r.hiring_manager_id) ?? '—',
+          }))
+          // RPC pending uses singular role/talent — adapt to the plural
+          // roles/talents that PendingRow (and SchedulingSection) read.
+          const pendingMapped: PendingRow[] = (boot.pending ?? []).map((p) => ({
+            id: p.id,
+            status: p.status,
+            compatibility_score: p.compatibility_score,
+            roles: p.role ?? null,
+            talents: p.talent ?? null,
+          }))
+          const scheduledMapped: ScheduledRow[] = (boot.scheduled ?? []).map((s) => ({
+            interview_id: s.interview_id, match_id: s.match_id, status: s.status,
+            scheduled_at: s.scheduled_at, format: s.format,
+            role_title: s.role_title ?? '(role gone)',
+            talent_id: s.talent_id ?? '',
+            meeting_url: s.meeting_url, meeting_provider: s.meeting_provider,
+          }))
+          setCompanyId(companyIdVal)
+          setHms(hmsMapped)
+          setOpenRoles(openRolesMapped)
+          setPending(pendingMapped)
+          setScheduled(scheduledMapped)
+          setOutcomesPending(boot.outcomes_pending ?? 0)
+          // Cache only when there's a company (matches the waterfall, which
+          // skips the cache write on the no-company path).
+          if (companyIdVal) {
+            writeDashCache<HRCacheSnapshot>('hr_dashboard', userId, {
+              companyId: companyIdVal,
+              outcomesPending: boot.outcomes_pending ?? 0,
+              hms: hmsMapped,
+              openRoles: openRolesMapped,
+            })
+          }
+          clearTimeout(loadTimeout)
+          setLoading(false)
+          return
+        }
+        // bootErr or null payload → fall through to the waterfall.
+      } catch { /* fall through to the waterfall */ }
+      if (cancelled) { clearTimeout(loadTimeout); return }
+
       try {
       // Warm the auth token first. If the access token is expired, this call
       // completes the refresh before the DB queries start — otherwise all

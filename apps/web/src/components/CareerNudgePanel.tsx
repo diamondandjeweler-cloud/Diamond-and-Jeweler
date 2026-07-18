@@ -14,7 +14,7 @@ import { getCareerNudge } from '../data/repositories/talents'
 import { useSession } from '../state/useSession'
 import { useShallow } from 'zustand/react/shallow'
 import { Card } from './ui'
-import type { CareerNudge } from '../shared/domain/lifeChart/yearLuck'
+import type { CareerNudge } from '../shared/domain/lifeChart/types'
 
 interface Props {
   side: 'talent' | 'hm'

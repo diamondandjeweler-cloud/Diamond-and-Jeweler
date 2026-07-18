@@ -16,3 +16,11 @@ export type LifeChartCharacter =
   | 'E+' | 'E-'
   | 'W+' | 'W-'
   | 'G+' | 'G-'
+
+/**
+ * Generic career-nudge category returned by the server-side `get_career_nudge`
+ * RPC. The year-luck derivation that produces it lives server-side; the client
+ * only renders generic, non-method-revealing copy keyed off this category and
+ * never exposes stages, character codes, or year-cycle vocabulary.
+ */
+export type CareerNudge = 'skill_dev' | 'move_fast' | 'ramp_up' | null

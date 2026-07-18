@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import TraitPicker from './postrole/TraitPicker'
-import { buildTeamMemberCharacters } from './postrole/teamCharacters'
+import { buildTeamMemberInputs } from './postrole/teamCharacters'
 import { TRAITS } from './postrole/types'
 
 // PostRole's transitive imports (role-form/index.tsx) touch the supabase
@@ -47,36 +47,38 @@ describe('<TraitPicker /> (PostRole sub-view)', () => {
   })
 })
 
-/* ── Pure helper: buildTeamMemberCharacters (relocated verbatim from submit) ── */
-describe('buildTeamMemberCharacters()', () => {
+/* ── Pure helper: buildTeamMemberInputs (raw inputs; server derives characters,
+      migration 0210 — H5 keeps the algorithm off the client) ── */
+describe('buildTeamMemberInputs()', () => {
   it('returns null when there are no valid rows', () => {
-    expect(buildTeamMemberCharacters([])).toBeNull()
-    expect(buildTeamMemberCharacters([{ dob: '', gender: '' }])).toBeNull()
+    expect(buildTeamMemberInputs([])).toBeNull()
+    expect(buildTeamMemberInputs([{ dob: '', gender: '' }])).toBeNull()
     // Missing gender → skipped.
-    expect(buildTeamMemberCharacters([{ dob: '1990', gender: '' }])).toBeNull()
+    expect(buildTeamMemberInputs([{ dob: '1990', gender: '' }])).toBeNull()
   })
 
   it('drops out-of-range years (1950..2100 bound preserved)', () => {
-    expect(buildTeamMemberCharacters([{ dob: '1900', gender: 'male' }])).toBeNull()
-    expect(buildTeamMemberCharacters([{ dob: '2200', gender: 'female' }])).toBeNull()
+    expect(buildTeamMemberInputs([{ dob: '1900', gender: 'male' }])).toBeNull()
+    expect(buildTeamMemberInputs([{ dob: '2200', gender: 'female' }])).toBeNull()
   })
 
-  it('returns a non-empty character array for valid rows', () => {
-    const out = buildTeamMemberCharacters([
+  it('returns raw {y,g} inputs for valid rows (no character derivation client-side)', () => {
+    const out = buildTeamMemberInputs([
       { dob: '1985', gender: 'male' },
       { dob: '1990', gender: 'female' },
     ])
-    expect(out).not.toBeNull()
-    expect(Array.isArray(out)).toBe(true)
-    expect((out as unknown[]).length).toBe(2)
+    expect(out).toEqual([
+      { y: 1985, g: 'male' },
+      { y: 1990, g: 'female' },
+    ])
   })
 
   it('skips invalid rows but keeps valid ones in the same call', () => {
-    const out = buildTeamMemberCharacters([
+    const out = buildTeamMemberInputs([
       { dob: '1985', gender: 'male' },   // valid
       { dob: '', gender: 'female' },      // skipped (no dob)
       { dob: '1900', gender: 'male' },    // skipped (out of range)
     ])
-    expect((out as unknown[]).length).toBe(1)
+    expect(out).toEqual([{ y: 1985, g: 'male' }])
   })
 })

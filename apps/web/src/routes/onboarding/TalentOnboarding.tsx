@@ -26,7 +26,7 @@ import { uploadPrivate } from '../../lib/storage'
 import { encryptDob, markOnboardingComplete } from '../../lib/api'
 import { callFunction } from '../../lib/functions'
 import { useDraftForm } from '../../lib/useDraftForm'
-import { type Gender } from '../../shared/domain/lifeChart/lifeChartCharacter'
+import { type Gender } from '../../shared/domain/lifeChart/types'
 import ChatShell, { ChatMessage } from '../../components/ChatShell'
 import DobConfirmModal from '../../components/DobConfirmModal'
 import {

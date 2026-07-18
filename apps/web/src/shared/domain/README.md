@@ -21,7 +21,7 @@ layer cannot accumulate framework or I/O dependencies.
 
 | Path | Responsibility |
 |------|----------------|
-| `lifeChart/lifeChartCharacter.ts` | Character derivation from DOB + gender (pure). |
+| `lifeChart/types.ts` | Life-chart type aliases only (`Gender`, `LifeChartCharacter`). The DOB → character derivation lives server-side (SQL `compute_life_chart_character`, migrations 0198/0210) so the algorithm never ships in the client bundle (H5). |
 | `lifeChart/yearLuck.ts` | Year-luck stage → career-nudge category (pure; internal stage numbers never surfaced). |
 | `identity/displayName.ts` | Given-name parsing + display-name formatting (pure). |
 | `onboarding/chatStream.ts` | SSE frame decoding + `[PROFILE_READY]` sentinel handling for the Bo onboarding chat (pure; shared by the Talent + HM wizards via `useOnboardingChat`). |

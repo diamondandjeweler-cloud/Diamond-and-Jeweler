@@ -19,7 +19,7 @@ import {
 } from '../../components/role-form'
 import { validateSalaryRange } from '../../shared/domain/salary/validateSalaryRange'
 import { DRAFT_KEY, type TeamMember } from './postrole/types'
-import { buildTeamMemberCharacters } from './postrole/teamCharacters'
+import { buildTeamMemberInputs } from './postrole/teamCharacters'
 import { resolveRoleStatus } from './postrole/resolveRoleStatus'
 import DraftBanners from './postrole/DraftBanners'
 import HardFiltersSection from './postrole/HardFiltersSection'
@@ -431,7 +431,10 @@ export default function PostRole() {
         eligibility_work_auth: eligibilityWorkAuth,
         non_negotiables_text:  nnText.trim() || null,
         non_negotiables_atoms: nnAtoms,
-        team_member_characters: buildTeamMemberCharacters(teamMembers),
+        // Send raw (year, gender) inputs; the server derives
+        // team_member_characters via the roles trigger (0210) so the life-chart
+        // algorithm stays off the client (H5).
+        team_member_inputs: buildTeamMemberInputs(teamMembers),
       }
 
       const savedId = isEdit ? editRoleId! : roleId

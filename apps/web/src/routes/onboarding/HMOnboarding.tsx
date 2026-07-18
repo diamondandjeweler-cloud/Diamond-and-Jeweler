@@ -28,7 +28,7 @@ import { hmIdByProfileId, upsertHmCompanyLink, updateHmInterviewTranscript, upda
 import type { Json } from '../../types/db.generated'
 import { encryptDob, markOnboardingComplete } from '../../lib/api'
 import { callFunction } from '../../lib/functions'
-import { type Gender } from '../../shared/domain/lifeChart/lifeChartCharacter'
+import { type Gender } from '../../shared/domain/lifeChart/types'
 import ChatShell, { ChatMessage } from '../../components/ChatShell'
 import { Button, Alert } from '../../components/ui'
 import { type Phase, type ApiMessage, headlineForPhase, progressPctForPhase, hmRestorePhase } from './hm/helpers'

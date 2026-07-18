@@ -2547,6 +2547,7 @@ export type Database = {
           start_urgency: string | null
           status: string
           team_member_characters: string[] | null
+          team_member_inputs: Json | null
           title: string
           updated_at: string
           vacancy_expires_at: string
@@ -2616,6 +2617,7 @@ export type Database = {
           start_urgency?: string | null
           status?: string
           team_member_characters?: string[] | null
+          team_member_inputs?: Json | null
           title: string
           updated_at?: string
           vacancy_expires_at?: string
@@ -2685,6 +2687,7 @@ export type Database = {
           start_urgency?: string | null
           status?: string
           team_member_characters?: string[] | null
+          team_member_inputs?: Json | null
           title?: string
           updated_at?: string
           vacancy_expires_at?: string

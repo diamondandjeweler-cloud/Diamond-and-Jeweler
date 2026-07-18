@@ -1,4 +1,4 @@
-import type { Gender } from '../../../shared/domain/lifeChart/lifeChartCharacter'
+import type { Gender } from '../../../shared/domain/lifeChart/types'
 
 /**
  * One existing-colleague reference row in the optional "Team-dynamic" section.

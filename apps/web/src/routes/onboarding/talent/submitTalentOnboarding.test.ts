@@ -52,8 +52,8 @@ describe('buildTalentInsert (golden payload)', () => {
       profile_id: 'user-123',
       date_of_birth_encrypted: '\\xDEADBEEF',
       gender: 'male',
-      // 1990-06-15 male → solar year 1990 → cycle slot 4 → 'W'
-      life_chart_character: 'W',
+      // life_chart_character is no longer in the client payload — the server
+      // trigger (0198) derives it from the encrypted DOB + gender (H5).
       location_matters: true,
       location_postcode: '50450',
       open_to_new_field: true,
@@ -138,7 +138,8 @@ describe('buildTalentInsert (golden payload)', () => {
       resolved,
     )
     expect(row.gender).toBeNull()
-    expect(row.life_chart_character).toBeNull()
+    // life_chart_character is not sent by the client (server-derived, 0198).
+    expect(row.life_chart_character).toBeUndefined()
     expect(row.location_matters).toBe(false)
     expect(row.location_postcode).toBeNull()
     expect(row.available_days_per_week).toBeNull()

@@ -13,7 +13,7 @@ import { memo } from 'react'
 import type { TFunction } from 'i18next'
 import { Button, Alert } from '../../../components/ui'
 import Consent from '../../../components/Consent'
-import type { Gender } from '../../../shared/domain/lifeChart/lifeChartCharacter'
+import type { Gender } from '../../../shared/domain/lifeChart/types'
 
 interface DobStepProps {
   t: TFunction

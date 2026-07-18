@@ -12,7 +12,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { TFunction } from 'i18next'
-import type { Gender } from '../../../shared/domain/lifeChart/lifeChartCharacter'
+import type { Gender } from '../../../shared/domain/lifeChart/types'
 import DobStep from './DobStep'
 
 afterEach(cleanup)

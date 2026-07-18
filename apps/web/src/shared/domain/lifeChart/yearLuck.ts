@@ -7,7 +7,7 @@
  * `getCareerNudge` and never quote stage texts.
  */
 
-import type { LifeChartCharacter } from './lifeChartCharacter'
+import type { LifeChartCharacter } from './types'
 
 const ANCHOR_YEAR: Record<LifeChartCharacter, number> = {
   'W':  2026, 'E-': 2027, 'W+': 2028, 'W-': 2029, 'E':  2030,

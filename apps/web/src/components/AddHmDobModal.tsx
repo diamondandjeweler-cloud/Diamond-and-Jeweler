@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { profileConsentsById, updateProfile } from '../data/repositories/profiles'
 import { updateHmById } from '../data/repositories/hiringManagers'
 import { encryptDob } from '../lib/api'
-import { getLifeChartCharacter, type Gender } from '../shared/domain/lifeChart/lifeChartCharacter'
+import type { Gender } from '../shared/domain/lifeChart/types'
 import { Button, Alert } from './ui'
 import Consent from './Consent'
 
@@ -40,12 +40,13 @@ export default function AddHmDobModal({ hmId, profileId, onSaved, onCancel }: Pr
     setBusy(true)
     try {
       const dobEncrypted = await encryptDob(dob)
-      const lifeChartCharacter = getLifeChartCharacter(dob, gender)
 
+      // life_chart_character is derived server-side by the BEFORE-UPDATE trigger
+      // on hiring_managers (migration 0198) — the client no longer computes it
+      // (H5: keep the algorithm out of the bundle).
       const { error: hmErr } = await updateHmById(hmId, {
         date_of_birth_encrypted: dobEncrypted,
         gender,
-        life_chart_character: lifeChartCharacter,
       })
       if (hmErr) throw hmErr
 

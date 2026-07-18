@@ -68,8 +68,8 @@ describe('buildHmUpdate (golden payload)', () => {
     expect(row).toEqual({
       date_of_birth_encrypted: '\\xCAFE',
       gender: 'female',
-      // 1985-03-20 female → solar year 1985 → cycle slot 8 → 'F'
-      life_chart_character: 'F',
+      // life_chart_character is no longer in the client payload — the server
+      // trigger (0198) derives it from the encrypted DOB + gender (H5).
       job_title: 'Engineering Manager',
       industry: 'tech',
       role_type: 'Backend Engineer',
@@ -143,8 +143,8 @@ describe('buildHmUpdate (golden payload)', () => {
     expect(row.interview_stages).toBe(3)
     // form must-haves used when extracted list is empty
     expect(row.must_have_items).toEqual(['leadership'])
-    // no DOB / gender → no life-chart character, null encrypted DOB
-    expect(row.life_chart_character).toBeNull()
+    // life_chart_character is not sent by the client (server-derived, 0198).
+    expect(row.life_chart_character).toBeUndefined()
     expect(row.date_of_birth_encrypted).toBeNull()
     expect(row.gender).toBeNull()
   })

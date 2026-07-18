@@ -3,10 +3,10 @@
  * onboarding.
  *
  * Extracted verbatim from TalentOnboarding.finalise() as a behavior-preserving
- * decomposition so the row construction is golden-testable in isolation. No
- * runtime logic changed: the same computeUsesLunarCalendar / getLifeChartCharacter
- * calls, the same Json boundary casts, and the same null-coalescing are reproduced
- * exactly.
+ * decomposition so the row construction is golden-testable in isolation. The
+ * same computeUsesLunarCalendar call, Json boundary casts, and null-coalescing
+ * are reproduced exactly. life_chart_character is no longer computed here — the
+ * server trigger derives it (migration 0198, H5).
  *
  * The one structural change is that `photoPath` is typed `string` (not
  * `string | null`). photo_url is NOT NULL in the talents schema; the caller now
@@ -16,7 +16,7 @@
  * no-photo path.
  */
 import type { Database, Json } from '../../../types/db.generated'
-import { getLifeChartCharacter, type Gender } from '../../../shared/domain/lifeChart/lifeChartCharacter'
+import type { Gender } from '../../../shared/domain/lifeChart/types'
 import type { LanguageReq, NNAtom } from '../../../components/role-form'
 import { computeUsesLunarCalendar, type ApiMessage } from './helpers'
 
@@ -70,23 +70,22 @@ export interface TalentInsertResolved {
 }
 
 /**
- * Build the exact talents Insert payload. Pure and deterministic — the only
- * non-input dependency is getLifeChartCharacter (itself a pure lookup).
+ * Build the exact talents Insert payload. Pure and deterministic — a function
+ * of its inputs only (life_chart_character is derived server-side, migration 0198).
  */
 export function buildTalentInsert(
   data: TalentOnboardingData,
   resolved: TalentInsertResolved,
 ): TalentInsert {
   const { gender } = data
-  const lifeChartCharacter = gender
-    ? getLifeChartCharacter(data.dob, gender)
-    : null
 
   return {
     profile_id: resolved.userId,
     date_of_birth_encrypted: resolved.dobEncrypted,
     gender: gender || null,
-    life_chart_character: lifeChartCharacter,
+    // life_chart_character is derived server-side by the BEFORE-INSERT trigger
+    // on talents (migration 0198) from the encrypted DOB + gender — the client
+    // no longer computes it (H5: keep the algorithm out of the bundle).
     location_matters: data.locationMatters === true,
     location_postcode: data.locationMatters && data.locationPostcode.trim() ? data.locationPostcode.trim() : null,
     open_to_new_field: data.openToNewField,

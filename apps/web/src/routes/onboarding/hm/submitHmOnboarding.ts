@@ -3,10 +3,10 @@
  * onboarding.
  *
  * Extracted verbatim from HMOnboarding.finalise() as a behavior-preserving
- * decomposition so the row construction is golden-testable in isolation. No
- * runtime logic changed: the same getLifeChartCharacter call, the same
- * form-value-over-extracted precedence, and the same null-coalescing are
- * reproduced exactly.
+ * decomposition so the row construction is golden-testable in isolation. The
+ * same form-value-over-extracted precedence and null-coalescing are reproduced
+ * exactly. life_chart_character is no longer computed here — the server trigger
+ * derives it (migration 0198, H5).
  *
  * This replaces the blanket `as unknown as HmUpdate` cast that previously
  * wrapped the whole inline object. The only field that genuinely needs a Json
@@ -16,7 +16,7 @@
  * builder's return type honestly `HmUpdate`.
  */
 import type { Database, Json } from '../../../types/db.generated'
-import { getLifeChartCharacter, type Gender } from '../../../shared/domain/lifeChart/lifeChartCharacter'
+import type { Gender } from '../../../shared/domain/lifeChart/types'
 import type { ApiMessage } from './helpers'
 
 type HmUpdate = Database['public']['Tables']['hiring_managers']['Update']
@@ -86,16 +86,16 @@ export interface HmOnboardingData {
 
 /**
  * Build the exact hiring_managers Update payload from the extracted AI profile
- * plus the structured form state. Pure and deterministic — the only non-input
- * dependency is getLifeChartCharacter (itself a pure lookup).
+ * plus the structured form state. Pure and deterministic — a function of its
+ * inputs only (life_chart_character is derived server-side, migration 0198).
  */
 export function buildHmUpdate(extracted: ExtractedHmProfile, form: HmOnboardingData): HmUpdate {
-  const lifeChartCharacter = form.gender ? getLifeChartCharacter(form.dob, form.gender) : null
-
   return {
     date_of_birth_encrypted: form.dobEncrypted,
     gender: form.gender || null,
-    life_chart_character: lifeChartCharacter,
+    // life_chart_character is derived server-side by the BEFORE-INSERT/UPDATE
+    // trigger on hiring_managers (migration 0198) — the client no longer
+    // computes it (H5: keep the algorithm out of the bundle).
     job_title: form.jobTitle.trim(),
     industry: extracted.industry,
     role_type: extracted.role_type,
